@@ -283,7 +283,7 @@ function saveRankingToStorage(ranking) {
    下の '' の中に貼り付けると機能が有効になる。
    空のままならネットランキングは非表示になり、ローカルのみで動く。
    ============================================================ */
-const GAS_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxBTNMeHmGLBKj88W6rFbmBaoMxyQNXvbsAAO9C4xZlhnVH268hizriZ2YIRJNfPmAZ/exec';
+const GAS_ENDPOINT_URL = '';
 
 async function fetchNetRanking() {
   const res = await fetch(GAS_ENDPOINT_URL);
@@ -566,6 +566,8 @@ function FactorHunt() {
   const [ranking, setRanking] = useState(() => loadRankingFromStorage()); // 起動時に前回までのランキングを復元
   const [netRanking, setNetRanking] = useState([]); // ネットランキング(GAS)
   const [netStatus, setNetStatus] = useState('idle'); // idle | loading | ok | error
+  const [pendingNetEntry, setPendingNetEntry] = useState(null); // 名前未入力のまま終了した時の送信待ちスコア
+  const [netSubmitState, setNetSubmitState] = useState('none'); // none | pending(名前待ち) | sending | sent | error
   const [rankedIn, setRankedIn] = useState(false);
   const [cleared, setCleared] = useState(false); // 難易度ごとの目標問題数に到達したクリア達成フラグ
   const [difficulty, setDifficulty] = useState('normal'); // easy | normal | hard
@@ -616,6 +618,21 @@ function FactorHunt() {
   useEffect(() => {
     if (screen === 'menu') loadNetRanking();
   }, [screen, loadNetRanking]);
+
+  /* --- ゲームオーバー画面: 名前を入力してから送信待ちスコアをネットランキングに送る --- */
+  const submitPendingScore = useCallback(async () => {
+    const name = playerName.trim().slice(0, 10);
+    if (!name || !pendingNetEntry) return;
+    setNetSubmitState('sending');
+    try {
+      await submitNetScore({ name, ...pendingNetEntry });
+      setNetSubmitState('sent');
+      setPendingNetEntry(null);
+    } catch (e) {
+      console.error('[factor-hunt] スコア送信失敗:', e);
+      setNetSubmitState('error');
+    }
+  }, [playerName, pendingNetEntry]);
 
   /* --- プレイ中: 効果音シンセ + アップロードされたBGM(ループ再生) --- */
   useEffect(() => {
@@ -991,9 +1008,22 @@ function FactorHunt() {
       });
     }
     setRankedIn(madeRanking);
-    // ネットランキングへの送信(失敗してもゲーム進行は止めない)
+    // ネットランキング: 名前が入力済みなら即送信、未入力ならゲームオーバー画面で
+    // 名前を入力してもらってから送信する(pending状態にする)
     if (GAS_ENDPOINT_URL && finalScore > 0) {
-      submitNetScore(newEntry).catch(e => console.error('[factor-hunt] スコア送信失敗:', e));
+      const entry = { score: finalScore, caught: finalCaught, difficulty };
+      setPendingNetEntry(entry);
+      if (playerName.trim()) {
+        setNetSubmitState('sending');
+        submitNetScore({ name, ...entry })
+          .then(() => { setNetSubmitState('sent'); setPendingNetEntry(null); })
+          .catch(e => { console.error('[factor-hunt] スコア送信失敗:', e); setNetSubmitState('error'); });
+      } else {
+        setNetSubmitState('pending');
+      }
+    } else {
+      setNetSubmitState('none');
+      setPendingNetEntry(null);
     }
     releaseBodyScrollLock();
     setScreen(nextScreen);
@@ -1026,6 +1056,8 @@ function FactorHunt() {
     try { await Tone.start(); } catch (e) { /* audio unlock best-effort */ }
     seenProblemsRef.current = new Set();
     difficultyRef.current = chosenDifficulty;
+    setPendingNetEntry(null); // 前回の送信待ちスコアは破棄
+    setNetSubmitState('none');
     const { tiles, poly } = buildBoard(1, seenProblemsRef.current, DIFFICULTY_CONFIG[chosenDifficulty].tileCount);
     questionStartTimeRef.current = Date.now();
     setDifficulty(chosenDifficulty);
@@ -1259,6 +1291,87 @@ function FactorHunt() {
             <img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} />
           </div>
 
+          <button
+            onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}
+            className="w-full rounded-2xl py-3 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95"
+            style={{ background: COLORS.paper, color: COLORS.sky, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
+          >
+            📖 チュートリアルを読む
+          </button>
+
+          <div className="mb-6">
+            <label className="text-xs font-bold block mb-1" style={{ color: COLORS.inkSoft }}>なまえ</label>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
+              onBlur={() => window.scrollTo(0, 0)}
+              placeholder="なまえ (省略可・10文字まで)"
+              maxLength={10}
+              className="w-full rounded-xl px-3 py-2 font-bold"
+              style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {['easy', 'normal', 'hard'].map(diff => {
+              const cfg = DIFFICULTY_CONFIG[diff];
+              const mm = Math.floor(cfg.startTime / 60);
+              const ss = cfg.startTime % 60;
+              const timeLabel = ss === 0 ? `${mm}分` : `${mm}分${ss}秒`;
+              return (
+                <button
+                  key={diff}
+                  onClick={() => startGame(diff)}
+                  className="rounded-2xl py-3 px-1 text-center shadow-lg transition-transform active:scale-95"
+                  style={{ background: cfg.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                >
+                  <div className="text-sm font-black" style={{ color: '#FFFFFF' }}>{cfg.label}</div>
+                  <div className="text-[10px] font-bold mt-1" style={{ color: '#FFFFFFDD' }}>{cfg.clearCount}問</div>
+                  <div className="text-[10px] font-bold" style={{ color: '#FFFFFFDD' }}>{timeLabel}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          {GAS_ENDPOINT_URL !== '' && (
+            <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキング TOP10</div>
+                <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
+              </div>
+              {netStatus === 'loading' && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>読み込み中…</div>
+              )}
+              {netStatus === 'error' && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。</div>
+              )}
+              {netStatus === 'ok' && netRanking.length === 0 && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。全国1位を目指そう！</div>
+              )}
+              {netStatus === 'ok' && netRanking.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  {netRanking.map((r, i) => {
+                    const diffCfg = DIFFICULTY_CONFIG[r.difficulty] || DIFFICULTY_CONFIG.normal;
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1.5" style={{ background: i === 0 ? `${COLORS.amber}26` : 'transparent' }}>
+                        {i < 3 ? (
+                          <span className="text-lg leading-none w-6 text-center shrink-0">{['🥇', '🥈', '🥉'][i]}</span>
+                        ) : (
+                          <span className="font-mono font-black w-6 text-right shrink-0" style={{ color: COLORS.inkSoft }}>{i + 1}.</span>
+                        )}
+                        <span className="text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center shrink-0" style={{ background: diffCfg.color, color: '#fff' }} title={diffCfg.label}>{diffCfg.label[0]}</span>
+                        <span className="font-bold flex-1 truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
+                        <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{r.score}点</span>
+                        <span className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{r.caught}組</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
             <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.inkSoft }}>🏆 ランキング TOP3</div>
             {!STORAGE_AVAILABLE && (
@@ -1288,54 +1401,6 @@ function FactorHunt() {
             )}
           </div>
 
-          {GAS_ENDPOINT_URL !== '' && (
-            <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキング TOP10</div>
-                <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
-              </div>
-              {netStatus === 'loading' && (
-                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>読み込み中…</div>
-              )}
-              {netStatus === 'error' && (
-                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。</div>
-              )}
-              {netStatus === 'ok' && netRanking.length === 0 && (
-                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。全国1位を目指そう！</div>
-              )}
-              {netStatus === 'ok' && netRanking.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  {netRanking.map((r, i) => {
-                    const diffCfg = DIFFICULTY_CONFIG[r.difficulty] || DIFFICULTY_CONFIG.normal;
-                    return (
-                      <div key={i} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1.5" style={{ background: i === 0 ? `${COLORS.amber}26` : 'transparent' }}>
-                        <span className="font-mono font-black w-6 text-right shrink-0" style={{ color: i < 3 ? COLORS.amber : COLORS.inkSoft }}>{i + 1}.</span>
-                        <span className="text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center shrink-0" style={{ background: diffCfg.color, color: '#fff' }} title={diffCfg.label}>{diffCfg.label[0]}</span>
-                        <span className="font-bold flex-1 truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
-                        <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{r.score}点</span>
-                        <span className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{r.caught}組</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="mb-6">
-            <label className="text-xs font-bold block mb-1" style={{ color: COLORS.inkSoft }}>なまえ</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
-              onBlur={() => window.scrollTo(0, 0)}
-              placeholder="なまえ (省略可・10文字まで)"
-              maxLength={10}
-              className="w-full rounded-xl px-3 py-2 font-bold"
-              style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }}
-            />
-          </div>
-
           <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
             <p className="text-xs font-bold mb-3" style={{ color: COLORS.inkSoft }}>正解するごとに、だんだん難しくなるよ！</p>
             <div className="flex flex-col gap-2">
@@ -1350,35 +1415,6 @@ function FactorHunt() {
                 );
               })}
             </div>
-          </div>
-
-          <button
-            onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}
-            className="w-full rounded-2xl py-3 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95"
-            style={{ background: COLORS.paper, color: COLORS.sky, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
-          >
-            📖 チュートリアルを読む
-          </button>
-
-          <div className="grid grid-cols-3 gap-2">
-            {['easy', 'normal', 'hard'].map(diff => {
-              const cfg = DIFFICULTY_CONFIG[diff];
-              const mm = Math.floor(cfg.startTime / 60);
-              const ss = cfg.startTime % 60;
-              const timeLabel = ss === 0 ? `${mm}分` : `${mm}分${ss}秒`;
-              return (
-                <button
-                  key={diff}
-                  onClick={() => startGame(diff)}
-                  className="rounded-2xl py-3 px-1 text-center shadow-lg transition-transform active:scale-95"
-                  style={{ background: cfg.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}
-                >
-                  <div className="text-sm font-black" style={{ color: '#FFFFFF' }}>{cfg.label}</div>
-                  <div className="text-[10px] font-bold mt-1" style={{ color: '#FFFFFFDD' }}>{cfg.clearCount}問</div>
-                  <div className="text-[10px] font-bold" style={{ color: '#FFFFFFDD' }}>{timeLabel}</div>
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -1447,6 +1483,52 @@ function FactorHunt() {
           {isRecord && <div className="text-xs font-bold mb-1" style={{ color: COLORS.leafDeep }}>🏆 自己ベスト更新！</div>}
           {rankedIn && <div className="text-xs font-bold mb-4" style={{ color: COLORS.coral }}>🎉 ランキング入り！</div>}
           {!rankedIn && <div className="mb-4" />}
+
+          {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
+          {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
+            <div className="rounded-2xl p-3 mb-4 text-left" style={{ background: COLORS.paperDark }}>
+              {(netSubmitState === 'pending' || netSubmitState === 'error') && (
+                <div>
+                  <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.ink }}>
+                    {netSubmitState === 'error'
+                      ? '⚠️ 送信に失敗しました。もう一度試してね'
+                      : '🌏 なまえを入れて、みんなのランキングに登録しよう！'}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
+                      placeholder="なまえ (10文字まで)"
+                      maxLength={10}
+                      className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm font-bold"
+                      style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                    />
+                    <button
+                      onClick={submitPendingScore}
+                      disabled={!playerName.trim()}
+                      className="rounded-xl px-4 py-2 text-sm font-black shadow active:scale-95 transition-transform shrink-0"
+                      style={{ background: playerName.trim() ? COLORS.sky : `${COLORS.sky}55`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                    >
+                      {netSubmitState === 'error' ? '再送信' : '送信'}
+                    </button>
+                  </div>
+                  {netSubmitState === 'pending' && (
+                    <button onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }} className="w-full text-center text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>
+                      送信しないでスキップ
+                    </button>
+                  )}
+                </div>
+              )}
+              {netSubmitState === 'sending' && (
+                <div className="text-xs font-bold text-center py-1" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキングに送信中…</div>
+              )}
+              {netSubmitState === 'sent' && (
+                <div className="text-xs font-bold text-center py-1" style={{ color: COLORS.leafDeep }}>✅ みんなのランキングに登録しました！</div>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <button onClick={() => startGame(difficulty)} className="rounded-xl py-3 font-bold shadow active:scale-95 transition-transform" style={{ background: COLORS.amber, color: COLORS.ink }}>もう一度あそぶ({DIFFICULTY_CONFIG[difficulty].label})</button>
             <button onClick={() => setScreen('menu')} className="rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>タイトルに戻る</button>
