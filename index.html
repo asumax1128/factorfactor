@@ -1334,7 +1334,7 @@ function FactorHunt() {
             })}
           </div>
 
-          {GAS_ENDPOINT_URL !== 'https://script.google.com/macros/s/AKfycbxBTNMeHmGLBKj88W6rFbmBaoMxyQNXvbsAAO9C4xZlhnVH268hizriZ2YIRJNfPmAZ/exec' && (
+          {GAS_ENDPOINT_URL !== '' && (
             <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキング TOP10</div>
@@ -1485,7 +1485,7 @@ function FactorHunt() {
           {!rankedIn && <div className="mb-4" />}
 
           {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
-          {GAS_ENDPOINT_URL !== 'https://script.google.com/macros/s/AKfycbxBTNMeHmGLBKj88W6rFbmBaoMxyQNXvbsAAO9C4xZlhnVH268hizriZ2YIRJNfPmAZ/exec' && netSubmitState !== 'none' && (
+          {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
             <div className="rounded-2xl p-3 mb-4 text-left" style={{ background: COLORS.paperDark }}>
               {(netSubmitState === 'pending' || netSubmitState === 'error') && (
                 <div>
