@@ -16,6 +16,32 @@
   html, body { margin: 0; padding: 0; background: #E3F6FD; }
   #root { min-height: 100vh; }
   #boot-status { font-family: sans-serif; color: #4C7A93; text-align: center; padding-top: 40vh; }
+
+  /* ------------------------------------------------------------------
+     メニュー画面のレイアウト。
+     TailwindのCDN版はJITでクラスを生成するため、レスポンシブ指定
+     (md:xxx)が環境によって効かないことがある。ここは実CSSのメディア
+     クエリで直接書くことで、どのブラウザでも確実に効くようにする。
+     ------------------------------------------------------------------ */
+  .fxf-menu-container { width: 100%; max-width: 28rem; }        /* スマホ */
+  .fxf-net-grid { display: grid; grid-template-columns: 1fr; }  /* スマホ: 1列 */
+  .fxf-net-col { margin-bottom: 0.75rem; }
+  .fxf-net-col:last-child { margin-bottom: 0; }
+  /* 名前は省略せず、長ければ折り返して必ず全文表示する */
+  .fxf-name { flex: 1 1 auto; min-width: 0; font-weight: 700; overflow-wrap: anywhere; word-break: normal; }
+
+  @media (min-width: 640px) {
+    .fxf-menu-container { max-width: 36rem; }
+  }
+  @media (min-width: 768px) {          /* タブレット以上 */
+    .fxf-menu-container { max-width: 64rem; }                   /* 3列でも名前が1行に収まる幅 */
+    .fxf-net-grid { grid-template-columns: repeat(3, 1fr); column-gap: 0.75rem; align-items: start; }
+    .fxf-net-col { margin-bottom: 0; }
+    /* DOM順はハード→ノーマル→イージーのまま、横並び時だけ左からイージー順に並べ替える */
+    .fxf-net-col-easy   { order: 1; }
+    .fxf-net-col-normal { order: 2; }
+    .fxf-net-col-hard   { order: 3; }
+  }
   #boot-error {
     display: none; font-family: ui-monospace, monospace; white-space: pre-wrap; word-break: break-word;
     padding: 16px; background: #fff3f0; color: #7a1f10; border: 2px solid #e76f51;
@@ -268,7 +294,7 @@ function loadRankingFromStorage() {
     // 想定外のデータが混ざっていても壊れないように最低限の検証をする
     return parsed
       .filter(e => e && typeof e.score === 'number')
-      .sort((a, b) => b.score - a.score)
+      .sort(compareEntries)
       .slice(0, 3);
   } catch (e) {
     return [];
@@ -290,17 +316,47 @@ const GAS_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxBTNMeHmGLBKj
 
 const NET_RANKING_DIFF_ORDER = ['hard', 'normal', 'easy']; // 表示順: 上からハード→ノーマル→イージー
 
+/* ============================================================
+   ランキングの並び順と順位
+   - スコアの高い順
+   - 同点なら捕獲数(組数)の多い方が上位
+   - スコアも捕獲数も同じなら「同順位」にする
+     (例: 1位, 1位, 3位 のように次の順位は人数分だけ飛ぶ)
+   ============================================================ */
+function compareEntries(a, b) {
+  return (b.score - a.score) || (b.caught - a.caught);
+}
+function withRanks(sortedRows) {
+  let lastRank = 0;
+  return sortedRows.map((r, i) => {
+    const prev = sortedRows[i - 1];
+    const sameAsPrev = prev && prev.score === r.score && prev.caught === r.caught;
+    const rank = sameAsPrev ? lastRank : i + 1; // 同点同組数なら前の人と同じ順位
+    lastRank = rank;
+    return { ...r, rank };
+  });
+}
+const MEDALS = ['🥇', '🥈', '🥉'];
+
 async function fetchNetRanking() {
   const res = await fetch(GAS_ENDPOINT_URL);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || 'サーバーエラー');
   // 新GAS: 難易度別に分かれた形式 { hard: [], normal: [], easy: [] }
-  if (data.rankingByDifficulty) return data.rankingByDifficulty;
+  if (data.rankingByDifficulty) {
+    const byDiff = data.rankingByDifficulty;
+    // サーバー側でも並び替えているが、念のためクライアントでも同じ規則で整える
+    Object.keys(byDiff).forEach(k => {
+      if (Array.isArray(byDiff[k])) byDiff[k].sort(compareEntries);
+    });
+    return byDiff;
+  }
   // 旧GAS(全体TOP10の一覧のみ)への後方互換: クライアント側で難易度別に振り分ける
   const byDiff = { hard: [], normal: [], easy: [] };
   (Array.isArray(data.ranking) ? data.ranking : []).forEach(r => {
     (byDiff[r.difficulty] || byDiff.normal).push(r);
   });
+  Object.keys(byDiff).forEach(k => byDiff[k].sort(compareEntries));
   return byDiff;
 }
 function submitNetScore(entry) {
@@ -640,11 +696,12 @@ function FactorHunt() {
       await submitNetScore({ name, ...pendingNetEntry });
       setNetSubmitState('sent');
       setPendingNetEntry(null);
+      loadNetRanking(); // 登録した自分の記録をすぐ反映する
     } catch (e) {
       console.error('[factor-hunt] スコア送信失敗:', e);
       setNetSubmitState('error');
     }
-  }, [playerName, pendingNetEntry]);
+  }, [playerName, pendingNetEntry, loadNetRanking]);
 
   /* --- プレイ中: 効果音シンセ + アップロードされたBGM(ループ再生) --- */
   useEffect(() => {
@@ -1014,7 +1071,7 @@ function FactorHunt() {
     let madeRanking = false;
     if (finalScore > 0) {
       setRanking(prev => {
-        const top3 = [...prev, newEntry].sort((a, b) => b.score - a.score).slice(0, 3);
+        const top3 = [...prev, newEntry].sort(compareEntries).slice(0, 3);
         madeRanking = top3.includes(newEntry);
         return top3;
       });
@@ -1028,7 +1085,11 @@ function FactorHunt() {
       if (playerName.trim()) {
         setNetSubmitState('sending');
         submitNetScore({ name, ...entry })
-          .then(() => { setNetSubmitState('sent'); setPendingNetEntry(null); })
+          .then(() => {
+            setNetSubmitState('sent');
+            setPendingNetEntry(null);
+            loadNetRanking(); // 送信完了後に取り直す(タイトルに戻った直後でも最新が出るように)
+          })
           .catch(e => { console.error('[factor-hunt] スコア送信失敗:', e); setNetSubmitState('error'); });
       } else {
         setNetSubmitState('pending');
@@ -1039,7 +1100,7 @@ function FactorHunt() {
     }
     releaseBodyScrollLock();
     setScreen(nextScreen);
-  }, [playerName, difficulty]);
+  }, [playerName, difficulty, loadNetRanking]);
 
   /* --- タイマー (0.5秒刻みのボーナスがあるため timeLeft は小数を許容) --- */
   useEffect(() => {
@@ -1295,7 +1356,7 @@ function FactorHunt() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
-        <div className="max-w-md sm:max-w-xl md:max-w-4xl w-full">
+        <div className="fxf-menu-container">
           <div className="text-center mb-2">
             <span style={{ color: COLORS.amber, fontFamily: "'Zen Maru Gothic', sans-serif", letterSpacing: '0.1em' }} className="text-xs font-bold uppercase">Factor × Factor Field Guide</span>
           </div>
@@ -1346,6 +1407,34 @@ function FactorHunt() {
             })}
           </div>
 
+          {/* 名前未入力のままゲームを終えた場合、ここから登録できる */}
+          {GAS_ENDPOINT_URL !== '' && pendingNetEntry && (netSubmitState === 'pending' || netSubmitState === 'error') && (
+            <div className="rounded-2xl p-3 mb-6 shadow-lg" style={{ background: COLORS.paperDark }}>
+              <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.ink }}>
+                {netSubmitState === 'error'
+                  ? '⚠️ 送信に失敗しました。もう一度試してね'
+                  : `🌏 さっきの ${pendingNetEntry.score}点 が未登録です。なまえを入れて登録しよう！`}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={submitPendingScore}
+                  disabled={!playerName.trim()}
+                  className="flex-1 rounded-xl px-4 py-2 text-sm font-black shadow active:scale-95 transition-transform"
+                  style={{ background: playerName.trim() ? COLORS.sky : `${COLORS.sky}55`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                >
+                  {playerName.trim() ? (netSubmitState === 'error' ? '再送信する' : 'この記録を登録する') : '上のなまえ欄を入力してね'}
+                </button>
+                <button
+                  onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }}
+                  className="rounded-xl px-3 py-2 text-xs font-bold shrink-0"
+                  style={{ background: COLORS.paper, color: COLORS.inkSoft }}
+                >
+                  やめる
+                </button>
+              </div>
+            </div>
+          )}
+
           {GAS_ENDPOINT_URL !== '' && (
             <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -1365,26 +1454,25 @@ function FactorHunt() {
                 /* スマホ縦: 1列(上からハード→ノーマル→イージー)
                    タブレット・PC・大きめスマホの横画面(768px以上): 3列(左からイージー→ノーマル→ハード)
                    DOM順はハード→ノーマル→イージーのまま、横並び時だけorderで並べ替える */
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 md:items-start">
+                <div className="fxf-net-grid">
                   {NET_RANKING_DIFF_ORDER.map(diffKey => {
-                    const rows = (netRanking[diffKey] || []).slice(0, 30);
+                    const rows = withRanks((netRanking[diffKey] || []).slice(0, 30));
                     if (rows.length === 0) return null;
                     const diffCfg = DIFFICULTY_CONFIG[diffKey];
-                    const orderClass = { easy: 'md:order-1', normal: 'md:order-2', hard: 'md:order-3' }[diffKey];
                     return (
-                      <div key={diffKey} className={`mb-3 md:mb-0 last:mb-0 ${orderClass}`}>
+                      <div key={diffKey} className={"fxf-net-col fxf-net-col-" + diffKey}>
                         <div className="text-[11px] font-black rounded-full px-3 py-1 mb-1 text-center" style={{ background: diffCfg.color, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>
                           {diffCfg.label} TOP30
                         </div>
                         <div className="flex flex-col gap-1">
                           {rows.map((r, i) => (
-                            <div key={i} className="flex items-center gap-2 md:gap-1 text-sm rounded-lg px-2 md:px-1 py-1.5" style={{ background: i === 0 ? `${COLORS.amber}26` : 'transparent' }}>
-                              {i < 3 ? (
-                                <span className="text-lg leading-none w-6 md:w-5 text-center shrink-0">{['🥇', '🥈', '🥉'][i]}</span>
+                            <div key={i} className="flex items-center gap-1.5 text-sm rounded-lg px-1.5 py-1.5" style={{ background: r.rank === 1 ? `${COLORS.amber}26` : 'transparent' }}>
+                              {r.rank <= 3 ? (
+                                <span className="text-lg leading-none w-6 text-center shrink-0">{MEDALS[r.rank - 1]}</span>
                               ) : (
-                                <span className="font-mono font-black w-6 md:w-5 text-right shrink-0" style={{ color: COLORS.inkSoft }}>{i + 1}.</span>
+                                <span className="font-mono font-black w-6 text-right shrink-0" style={{ color: COLORS.inkSoft }}>{r.rank}.</span>
                               )}
-                              <span className="font-bold flex-1 truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
+                              <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
                               <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep }}>{r.score}点</span>
                               <span className="text-xs font-bold shrink-0" style={{ color: COLORS.inkSoft }}>{r.caught}組</span>
                             </div>
@@ -1409,15 +1497,15 @@ function FactorHunt() {
               <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。最初の1位を目指そう！</div>
             ) : (
               <div className="flex flex-col gap-1">
-                {ranking.map((r, i) => {
+                {withRanks(ranking).map((r, i) => {
                   const diffCfg = DIFFICULTY_CONFIG[r.difficulty] || DIFFICULTY_CONFIG.normal;
                   return (
-                    <div key={i} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1.5" style={{ background: i === 0 ? `${COLORS.amber}26` : 'transparent' }}>
-                      <span className="text-lg leading-none">{['🥇', '🥈', '🥉'][i]}</span>
+                    <div key={i} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1.5" style={{ background: r.rank === 1 ? `${COLORS.amber}26` : 'transparent' }}>
+                      <span className="text-lg leading-none">{MEDALS[r.rank - 1]}</span>
                       <span className="text-[9px] font-black rounded-full w-5 h-5 flex items-center justify-center shrink-0" style={{ background: diffCfg.color, color: '#fff' }} title={diffCfg.label}>
                         {diffCfg.label[0]}
                       </span>
-                      <span className="font-bold flex-1 truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
+                      <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
                       <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{r.score}点</span>
                       <span className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{r.caught}組</span>
                     </div>
