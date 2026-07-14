@@ -383,6 +383,16 @@ const DIFFICULTY_CONFIG = {
   hard: { label: 'ハード', startTime: 60, clearCount: 50, color: '#E76F51', tileCount: 9 },
 };
 
+// 期間優勝者。次の期間が始まったらここを書き換える。表示はハード→ノーマル→イージーの順。
+const PERIOD_CHAMPIONS = {
+  label: '7月前期',
+  entries: [
+    { difficulty: 'hard',   name: 'てるい',           score: 3470, caught: 50 },
+    { difficulty: 'normal', name: 'お荷物プレイヤー', score: 1425, caught: 30 },
+    { difficulty: 'easy',   name: 'はーちゃん',       score: 511,  caught: 15 },
+  ],
+};
+
 /* ランキングの永続化 (localStorage) */
 const RANKING_STORAGE_KEY = 'factorxfactor_ranking_v1';
 // 起動時に「書いて読み戻せるか」を実際に試す。file://直開き+ブラウザの
@@ -1511,11 +1521,27 @@ function FactorHunt() {
       <div className="min-h-screen w-full flex flex-col items-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
         <div className="fxf-menu-container">
-          <div className="text-center mb-2">
-            <span style={{ color: COLORS.amber, fontFamily: "'Zen Maru Gothic', sans-serif", letterSpacing: '0.1em' }} className="text-xs font-bold uppercase">Factor × Factor Field Guide</span>
-          </div>
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-3">
             <img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} />
+          </div>
+
+          {/* 期間優勝者。手動で書き換える一覧。次の期間が始まったら中身を差し替える運用。 */}
+          <div className="rounded-2xl px-4 py-3 mb-4 shadow-lg" style={{ background: COLORS.paper }}>
+            <div className="text-[11px] font-black text-center mb-2 tracking-wide" style={{ color: COLORS.inkSoft }}>🏆 {PERIOD_CHAMPIONS.label} 優勝者</div>
+            <div className="flex flex-col gap-1.5">
+              {PERIOD_CHAMPIONS.entries.map(ch => {
+                const diffCfg = DIFFICULTY_CONFIG[ch.difficulty];
+                return (
+                  <div key={ch.difficulty} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1" style={{ background: `${diffCfg.color}1a`, flexWrap: 'nowrap' }}>
+                    <span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0 text-center" style={{ background: diffCfg.color, color: '#fff', width: '3.8rem', whiteSpace: 'nowrap' }}>{diffCfg.label}</span>
+                    <span className="text-base leading-none shrink-0">🥇</span>
+                    <span className="flex-1 min-w-0 font-bold" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
+                    <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep, minWidth: '3.6em', textAlign: 'right' }}>{ch.score}点</span>
+                    <span className="text-xs font-bold shrink-0" style={{ color: COLORS.inkSoft, minWidth: '2.6em', textAlign: 'right' }}>{ch.caught}組</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <button
