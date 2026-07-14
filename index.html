@@ -24,6 +24,28 @@
      クエリで直接書くことで、どのブラウザでも確実に効くようにする。
      ------------------------------------------------------------------ */
   .fxf-menu-container { width: 100%; max-width: 28rem; }        /* スマホ */
+
+  /* 逆引き「展開」ボーナスステージ突入時のフラッシュ演出 */
+  @keyframes fxfReverseFlash {
+    0%   { opacity: 0.95; }
+    100% { opacity: 0; }
+  }
+
+  /* テンポ・ボーナス(PERFECT!/GREAT!)のポップ演出 */
+  @keyframes fxfTempoPop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* テンポゲージ: 出題から3秒かけて100%→0%、色も緑→黄→消滅と変化する */
+  @keyframes fxfTempoGauge {
+    0%   { width: 100%; background: #43C97B; }
+    49%  { background: #43C97B; }
+    50%  { background: #F5B942; }
+    99%  { background: #F5B942; }
+    100% { width: 0%; background: #cfcfcf; opacity: 0; }
+  }
   .fxf-net-grid { display: grid; grid-template-columns: 1fr; }  /* スマホ: 1列 */
   .fxf-net-col { margin-bottom: 0.75rem; }
   .fxf-net-col:last-child { margin-bottom: 0; }
@@ -714,6 +736,66 @@ function buildBoard(level, seenSet, tileCount = 9) {
   return { tiles, poly };
 }
 
+/* ============================================================
+   逆引き「展開」ボーナスステージ
+   ------------------------------------------------------------
+   通常とは逆に「因数分解された式」をお題にして、正しい展開結果を
+   4択から選ばせる特別問題。Lv.5・6・8・9(たすきがけ系)のロジックを
+   流用して問題を作る。
+   ============================================================ */
+const REVERSE_STAGE_LEVELS = [5, 6, 8, 9];
+const REVERSE_STAGE_MIN_CORRECT = 30; // 累計正解数がこれを超えたら発生し得る
+const REVERSE_STAGE_CHANCE = 0.05;    // 5%の確率
+const REVERSE_STAGE_POINTS = 100;     // 配点は一律100点
+
+/* ============================================================
+   テンポ・ボーナス(アクティブ・スコア倍率)
+   ------------------------------------------------------------
+   問題が出た瞬間から解答までの経過時間で、獲得点数に倍率をかける。
+   通常の因数分解・逆引き展開ステージのどちらにも同じ基準で適用する。
+   ============================================================ */
+const TEMPO_PERFECT_MS = 1500; // これ以内なら PERFECT (3倍)
+const TEMPO_GREAT_MS = 3000;   // これ以内なら GREAT (2倍)
+function getTempoBonus(elapsedMs) {
+  if (elapsedMs <= TEMPO_PERFECT_MS) return { mult: 3, label: 'PERFECT!', kind: 'perfect' };
+  if (elapsedMs <= TEMPO_GREAT_MS) return { mult: 2, label: 'GREAT!', kind: 'great' };
+  return { mult: 1, label: null, kind: null };
+}
+
+function buildReverseQuestion() {
+  const level = REVERSE_STAGE_LEVELS[randInt(0, REVERSE_STAGE_LEVELS.length - 1)];
+  const { factors, poly } = GENERATORS[level]();
+  const correctText = formatPoly(poly);
+
+  // ダミーの展開結果: 符号ミス・定数ズレなど「ありがちな展開間違い」を元に作る
+  const candidates = [];
+  const pushUnique = (text) => {
+    if (text && text !== correctText && !candidates.includes(text)) candidates.push(text);
+  };
+  pushUnique(formatPoly(multiply(flipSign(factors[0]), factors[1])));
+  pushUnique(formatPoly(multiply(factors[0], flipSign(factors[1]))));
+  pushUnique(formatPoly(multiply(shiftConst(factors[0]), factors[1])));
+  pushUnique(formatPoly(multiply(factors[0], shiftConst(factors[1]))));
+  // それでも3つ揃わない場合は、同じレベルの別問題の展開結果で埋める
+  let guard = 0;
+  while (candidates.length < 3 && guard < 30) {
+    guard++;
+    pushUnique(formatPoly(GENERATORS[level]().poly));
+  }
+
+  const allTexts = [correctText, ...candidates.slice(0, 3)];
+  for (let i = allTexts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allTexts[i], allTexts[j]] = [allTexts[j], allTexts[i]];
+  }
+  const choices = allTexts.map((text, idx) => ({
+    id: `rc_${idx}_${Math.random().toString(36).slice(2)}`,
+    text,
+    correct: text === correctText,
+  }));
+  return { level, factors, poly, choices };
+}
+
 function hashRotation(id) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -788,6 +870,13 @@ function FactorHunt() {
   const [difficulty, setDifficulty] = useState('normal'); // easy | normal | hard
   const [tutorialStep, setTutorialStep] = useState(0);
   const [clearTimeBonus, setClearTimeBonus] = useState(0); // クリア時に加算した残り時間ボーナス
+
+  /* --- 逆引き「展開」ボーナスステージ --- */
+  const [isReverseStage, setIsReverseStage] = useState(false); // 今の問題が逆引き展開ボーナスか
+  const [reverseFactorsText, setReverseFactorsText] = useState(''); // お題として出す「因数分解された式」の表示文字列
+  const [reverseChoices, setReverseChoices] = useState([]); // 4択の選択肢 [{id, text, correct}]
+  const [reverseFlash, setReverseFlash] = useState(false); // 突入した瞬間のフラッシュ演出トリガー
+  const [reverseChoiceState, setReverseChoiceState] = useState({}); // {choiceId: 'correct'|'wrong'} タップ後の色分け用
 
   const gridRef = useRef(null);
   const seenProblemsRef = useRef(new Set()); // 1ゲーム内で既に出た問題を記録し、重複を避ける
@@ -1350,6 +1439,26 @@ function FactorHunt() {
   // 全レベル解放後(=12問正解後)はスコアに応じた出現率で選ぶ。
   // questionNumber: これから出す問題が何問目か(1問目 = 1)
   const nextQuestion = useCallback((questionNumber) => {
+    const correctCountSoFar = questionNumber - 1; // これまでに正解した数
+    const triggerReverse = correctCountSoFar > REVERSE_STAGE_MIN_CORRECT && Math.random() < REVERSE_STAGE_CHANCE;
+
+    if (triggerReverse) {
+      const { level, factors, poly: rPoly, choices } = buildReverseQuestion();
+      setIsReverseStage(true);
+      setReverseFactorsText(factors.map(formatFactorTile).join(''));
+      setBoard([]);
+      setPoly(rPoly);
+      setQuestionLevel(level);
+      setReverseChoices(choices);
+      setReverseChoiceState({});
+      // 突入した瞬間のフラッシュ演出(数百msだけ発火させて消す)
+      setReverseFlash(true);
+      setTimeout(() => setReverseFlash(false), 550);
+      questionStartTimeRef.current = Date.now();
+      return;
+    }
+
+    setIsReverseStage(false);
     const lvl = pickLevelForQuestion(questionNumber);
     const { tiles, poly } = buildBoard(lvl, seenProblemsRef.current, DIFFICULTY_CONFIG[difficultyRef.current].tileCount);
     setBoard(tiles);
@@ -1391,10 +1500,13 @@ function FactorHunt() {
       playSuccessSound();
       setFlashMap({ [id1]: 'correct', [id2]: 'correct' });
       const newCombo = combo + 1;
-      const mult = 1 + combo * 0.1;
-      // 基本得点はレベルごとに設定(Lv.6のたすきがけ発展が最高の30点)
+      const comboMult = 1 + combo * 0.1;
+      // 基本得点はレベルごとに設定(Lv.9のたすきがけ発展・大が最高の40点)
       const basePoint = LEVEL_POINTS[questionLevel] || 10;
-      const gain = Math.round(basePoint * mult);
+      // テンポ・ボーナス: 出題から1.5秒以内=PERFECT(3倍)、3秒以内=GREAT(2倍)
+      const elapsedMs = Date.now() - questionStartTimeRef.current;
+      const tempo = getTempoBonus(elapsedMs);
+      const gain = Math.round(basePoint * comboMult * tempo.mult);
       // 時間ボーナス: 解いた問題のレベル×1秒(基本) + コンボ数×0.2秒(上限3秒)
       const baseRecovery = questionLevel * 1;
       const comboBonus = Math.min(newCombo * 0.2, 2);
@@ -1410,12 +1522,10 @@ function FactorHunt() {
       const newTimeLeft = Math.round((timeLeft + timeBonus) * 10) / 10;
       const isClear = newCaught >= DIFFICULTY_CONFIG[difficulty].clearCount; // 難易度ごとの目標問題数でクリア
       const clearBonus = isClear ? Math.round(newTimeLeft) : 0;
-      // 回答スピードに応じたメッセージ(優先度: レベルアップ > 5コンボ > スピード)
-      const elapsedSec = (Date.now() - questionStartTimeRef.current) / 1000;
-      const isSpeedy = elapsedSec <= 3; // 3秒以内の高速回答
+      // 回答スピードに応じたメッセージ(優先度: レベルアップ > 5コンボ > テンポ判定 > 通常スピード)
+      const elapsedSec = elapsedMs / 1000;
       let speedText;
-      if (isSpeedy) speedText = '速い！速すぎる！インチキでしょ！';
-      else if (elapsedSec <= 5) speedText = 'やるねぇ！';
+      if (elapsedSec <= 5) speedText = 'やるねぇ！';
       else if (elapsedSec <= 10) speedText = 'ナイス！';
       else speedText = '頑張ったね！';
       setTimeout(() => {
@@ -1426,6 +1536,8 @@ function FactorHunt() {
           showTopMessage(`🎉 Lv.${newUnlocked}「${LEVEL_INFO[newUnlocked].name}」が解放されました！`, 'levelup', 1600);
         } else if (comboFanfare) {
           showTopMessage('ナイスコンボ！', 'combo', 1300);
+        } else if (tempo.label) {
+          showTopMessage(`${tempo.label} +${gain}pts`, tempo.kind, 1300);
         } else {
           showTopMessage(speedText, 'speed', 1300);
         }
@@ -1435,7 +1547,7 @@ function FactorHunt() {
         if (comboFanfare) {
           playComboSound();
         }
-        if (isSpeedy) {
+        if (tempo.label) {
           playSpeedPraise();
         }
         setFlashMap({});
@@ -1465,6 +1577,79 @@ function FactorHunt() {
       setTimeout(() => {
         setFlashMap({});
         setSelectedId(null);
+        setResolving(false);
+      }, 420);
+      setTimeout(() => setLastTimePenalty(null), 900);
+    }
+  };
+
+  /* --- 逆引き「展開」ボーナスステージの回答処理 (4択タップ) --- */
+  const attemptReverseAnswer = (choiceId) => {
+    if (resolving) return;
+    const choice = reverseChoices.find(c => c.id === choiceId);
+    if (!choice) return;
+    setResolving(true);
+    if (choice.correct) {
+      playSuccessSound();
+      setReverseChoiceState({ [choiceId]: 'correct' });
+      const newCombo = combo + 1;
+      const comboMult = 1 + combo * 0.1;
+      const elapsedMs = Date.now() - questionStartTimeRef.current;
+      const tempo = getTempoBonus(elapsedMs);
+      const gain = Math.round(REVERSE_STAGE_POINTS * comboMult * tempo.mult); // 逆引きは一律100点にコンボ・テンポ倍率を適用
+      const baseRecovery = questionLevel * 1;
+      const comboBonus = Math.min(newCombo * 0.2, 2);
+      const timeBonus = Math.round((baseRecovery + comboBonus) * 10) / 10;
+      setLastGain(gain);
+      setLastTimeBonus(timeBonus);
+      const newCaught = caught + 1;
+      const willLevelUp = newCaught % 3 === 0 && unlockedLevel < 9;
+      const newUnlocked = willLevelUp ? unlockedLevel + 1 : unlockedLevel;
+      const comboFanfare = newCombo % 5 === 0;
+      const newScore = score + gain;
+      const newTimeLeft = Math.round((timeLeft + timeBonus) * 10) / 10;
+      const isClear = newCaught >= DIFFICULTY_CONFIG[difficulty].clearCount;
+      const clearBonus = isClear ? Math.round(newTimeLeft) : 0;
+      setTimeout(() => {
+        setCombo(newCombo);
+        setCaught(newCaught);
+        if (willLevelUp) {
+          setUnlockedLevel(newUnlocked);
+          showTopMessage(`🎉 Lv.${newUnlocked}「${LEVEL_INFO[newUnlocked].name}」が解放されました！`, 'levelup', 1600);
+        } else if (comboFanfare) {
+          showTopMessage('ナイスコンボ！', 'combo', 1300);
+        } else if (tempo.label) {
+          showTopMessage(`${tempo.label} REVERSE +${gain}pts`, tempo.kind, 1300);
+        } else {
+          showTopMessage('REVERSE BONUS CLEAR！', 'speed', 1300);
+        }
+        if (willLevelUp) playLevelUpVoice();
+        if (comboFanfare) playComboSound();
+        if (tempo.label) playSpeedPraise();
+        setReverseChoiceState({});
+        setResolving(false);
+        if (isClear) {
+          playClearFanfare();
+          setScore(s => s + gain + clearBonus);
+          setTimeLeft(0);
+          setCleared(true);
+          setClearTimeBonus(clearBonus);
+          finishGame(newScore + clearBonus, newCaught);
+        } else {
+          setScore(s => s + gain);
+          setTimeLeft(tl => Math.round((tl + timeBonus) * 10) / 10);
+          nextQuestion(newCaught + 1);
+        }
+      }, 420);
+      setTimeout(() => { setLastGain(null); setLastTimeBonus(null); }, 1300);
+    } else {
+      playBuzz();
+      setReverseChoiceState({ [choiceId]: 'wrong' });
+      setCombo(0);
+      setTimeLeft(tl => Math.round(Math.max(tl - 1, 0) * 10) / 10);
+      setLastTimePenalty(1);
+      setTimeout(() => {
+        setReverseChoiceState({});
         setResolving(false);
       }, 420);
       setTimeout(() => setLastTimePenalty(null), 900);
@@ -1536,7 +1721,7 @@ function FactorHunt() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging, selectedId, board, poly, combo, caught, unlockedLevel, questionLevel]);
 
-  const targetText = useMemo(() => formatPoly(poly), [poly]);
+  const targetText = useMemo(() => (isReverseStage ? reverseFactorsText : formatPoly(poly)), [poly, isReverseStage, reverseFactorsText]);
   const wholeTime = Math.floor(Math.max(timeLeft, 0));
   const mm = String(Math.floor(wholeTime / 60)).padStart(1, '0');
   const ss = String(wholeTime % 60).padStart(2, '0');
@@ -1940,9 +2125,19 @@ function FactorHunt() {
             <div
               className="text-xs sm:text-sm font-black rounded-xl py-1.5 px-3 w-full shadow-lg leading-tight"
               style={{
-                background: topMessage.kind === 'levelup' ? COLORS.amber : topMessage.kind === 'combo' ? COLORS.sky : COLORS.paper,
-                color: topMessage.kind === 'speed' ? COLORS.inkSoft : COLORS.ink,
+                background:
+                  topMessage.kind === 'levelup' ? COLORS.amber :
+                  topMessage.kind === 'combo' ? COLORS.sky :
+                  topMessage.kind === 'perfect' ? 'linear-gradient(90deg, #FFD54A, #FF9F1C)' :
+                  topMessage.kind === 'great' ? 'linear-gradient(90deg, #8BE38F, #43C97B)' :
+                  COLORS.paper,
+                color:
+                  topMessage.kind === 'speed' ? COLORS.inkSoft :
+                  topMessage.kind === 'perfect' ? '#5c3a00' :
+                  topMessage.kind === 'great' ? '#fff' :
+                  COLORS.ink,
                 fontFamily: "'Zen Maru Gothic', sans-serif",
+                animation: (topMessage.kind === 'perfect' || topMessage.kind === 'great') ? 'fxfTempoPop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
               }}
             >
               {topMessage.text}
@@ -1979,16 +2174,72 @@ function FactorHunt() {
         </div>
 
         {/* お題 (縮まない) */}
-        <div className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden" style={{ background: COLORS.paper, border: `2px dashed ${COLORS.sky}45`, borderTop: `5px solid ${LEVEL_INFO[questionLevel].color}`, flexShrink: 0 }}>
-          <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>この式を因数分解しよう</div>
-          <div className="font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}>{targetText}</div>
-          <div className="absolute bottom-1.5 right-3 text-[10px] font-bold tracking-wide" style={{ color: COLORS.inkSoft }}>問{caught + 1}/{DIFFICULTY_CONFIG[difficulty].clearCount}</div>
+        <div
+          className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden"
+          style={{
+            background: isReverseStage ? 'linear-gradient(160deg, #3a0d0d, #6b1414)' : COLORS.paper,
+            border: isReverseStage ? '2px solid #ff5c5c' : `2px dashed ${COLORS.sky}45`,
+            borderTop: isReverseStage ? '5px solid #ff2e2e' : `5px solid ${LEVEL_INFO[questionLevel].color}`,
+            boxShadow: isReverseStage ? '0 0 18px rgba(255,46,46,0.55)' : 'none',
+            transition: 'background 300ms, border-color 300ms, box-shadow 300ms',
+            flexShrink: 0,
+          }}
+        >
+          {/* テンポ・ゲージ: 出題から3秒かけて100%→0%に減る。key=caughtで問題が変わるたびリセットされる */}
+          <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)', zIndex: 6 }}>
+            <div
+              key={caught}
+              className="h-full"
+              style={{ width: '100%', background: '#43C97B', animation: 'fxfTempoGauge 3000ms linear forwards' }}
+            />
+          </div>
+
+          {reverseFlash && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: '#fff', animation: 'fxfReverseFlash 550ms ease-out forwards', zIndex: 5 }}
+            />
+          )}
+          {isReverseStage ? (
+            <div className="text-[10px] font-black mb-1 tracking-wide animate-pulse" style={{ color: '#ffb3b3' }}>
+              ⚡ REVERSE BONUS! ⚡ 赤いときは「展開」して当てよう！
+            </div>
+          ) : (
+            <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>この式を因数分解しよう</div>
+          )}
+          <div className="font-black" style={{ color: isReverseStage ? '#fff' : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}>{targetText}</div>
+          <div className="absolute bottom-1.5 right-3 text-[10px] font-bold tracking-wide" style={{ color: isReverseStage ? '#ffb3b3' : COLORS.inkSoft }}>問{caught + 1}/{DIFFICULTY_CONFIG[difficulty].clearCount}</div>
           {lastGain !== null && (
-            <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{lastGain}</div>
+            <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: isReverseStage ? '#ffe680' : COLORS.leafDeep }}>+{lastGain}</div>
           )}
         </div>
 
-        {/* 盤面: 残りの高さいっぱいまで可変に広がる (画面の高さが低くても必ず収まる) */}
+        {isReverseStage ? (
+          /* 逆引き展開ボーナス: 4択タップ形式 */
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5" style={{ flex: '1 1 auto', minHeight: 0, alignContent: 'start' }}>
+            {reverseChoices.map(choice => {
+              const state = reverseChoiceState[choice.id]; // 'correct' | 'wrong' | undefined
+              return (
+                <button
+                  key={choice.id}
+                  onClick={() => attemptReverseAnswer(choice.id)}
+                  disabled={resolving}
+                  className="rounded-2xl px-3 py-4 font-black shadow-lg active:scale-95 transition-transform"
+                  style={{
+                    background: state === 'correct' ? COLORS.leafDeep : state === 'wrong' ? '#8a1f1f' : '#fff5f5',
+                    color: state === 'correct' || state === 'wrong' ? '#fff' : '#3a0d0d',
+                    border: '2px solid #ff8a8a',
+                    fontFamily: "'Zen Maru Gothic', sans-serif",
+                    fontSize: 'clamp(1rem, 4vh, 1.6rem)',
+                  }}
+                >
+                  {choice.text}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+        /* 盤面: 残りの高さいっぱいまで可変に広がる (画面の高さが低くても必ず収まる) */
         <div className="w-full flex" style={{ flex: '1 1 auto', minHeight: 0 }}>
           <div
             ref={gridRef}
@@ -2046,8 +2297,11 @@ function FactorHunt() {
             })}
           </div>
         </div>
+        )}
 
-        <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>タイルをドラッグしてもう一枚とつなげよう</p>
+        <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>
+          {isReverseStage ? '正しく展開した式をタップしよう' : 'タイルをドラッグしてもう一枚とつなげよう'}
+        </p>
       </div>
     </div>
   );
