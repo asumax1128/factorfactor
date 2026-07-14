@@ -247,35 +247,34 @@ function genL4() {
   return { factors: [f1, f2], poly: multiply(f1, f2) };
 }
 
-/* --- Lv.5 (18点)  cx² + (d+bc)x + bd = (x+b)(cx+d)
-   c は2〜9の自然数、b・d は0を除く1桁の整数、c と |d| は互いに素。
-   たすきがけのうち、片方が x + b (1次の係数が1) の基本形。 --- */
+/* --- Lv.5 (18点)  cx² + (d+bc)x + bd = (x+b)(cx+d)   [基本・数値小]
+   c は2〜9の自然数、b・d は0を除く-5〜5の整数、c と |d| は互いに素。
+   たすきがけのうち、片方が x + b (1次の係数が1) の基本形。
+   b・d を ±5 までに抑えているので、Lv.6(数値大)とは範囲が重ならない。 --- */
 function genL5() {
   let c, b, d;
   do {
     c = randInt(2, 9);
-    b = randNonZero(-9, 9);
-    d = randNonZero(-9, 9);
+    b = randNonZero(-5, 5);
+    d = randNonZero(-5, 5);
   } while (!coprime(c, d));
   const f1 = { type: 'linear', a: 1, b };
   const f2 = { type: 'linear', a: c, b: d };
   return { factors: [f1, f2], poly: multiply(f1, f2) };
 }
 
-/* --- Lv.6 (30点)  acx² + (ad+bc)x + bd = (ax+b)(cx+d)
-   a, c は2〜9の自然数、b・d は0を除く1桁の整数。
-   a と |b|、c と |d| がそれぞれ互いに素 (各因数がそれ以上くくれない形)。
-   (ax+b)(cx+d) と (cx+d)(ax+b) は展開結果が同じなので seenSet が重複を弾く。
-   このゲーム最難関なので配点も最高の30点。 --- */
+/* --- Lv.6 (22点)  cx² + (d+bc)x + bd = (x+b)(cx+d)   [基本・数値大]
+   モデルはLv.5と同じだが、b・d の範囲を-9〜9まで広げ、
+   |b|≥6 または |d|≥6 を必須にすることでLv.5とは重複しない
+   「大きい数が混ざって計算が大変な問題」だけに絞っている。 --- */
 function genL6() {
-  let a, c, b, d;
+  let c, b, d;
   do {
-    a = randInt(2, 9);
     c = randInt(2, 9);
     b = randNonZero(-9, 9);
     d = randNonZero(-9, 9);
-  } while (!coprime(a, b) || !coprime(c, d));
-  const f1 = { type: 'linear', a, b };
+  } while (!coprime(c, d) || !(Math.abs(b) >= 6 || Math.abs(d) >= 6));
+  const f1 = { type: 'linear', a: 1, b };
   const f2 = { type: 'linear', a: c, b: d };
   return { factors: [f1, f2], poly: multiply(f1, f2) };
 }
@@ -295,78 +294,107 @@ function genL7() {
   return { factors: [linear, quad], poly: multiply(linear, quad) };
 }
 
-const GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6, 7: genL7 };
-const LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7];
+/* --- Lv.8 (30点)  acx² + (ad+bc)x + bd = (ax+b)(cx+d)   [発展・数値小]
+   a, c は2〜4の自然数、b・d は0を除く-4〜4の整数。
+   a と |b|、c と |d| がそれぞれ互いに素。
+   (ax+b)(cx+d) と (cx+d)(ax+b) の重複は a<c、または a=c かつ b≤d で回避。 --- */
+function genL8() {
+  let a, c, b, d;
+  do {
+    a = randInt(2, 4);
+    c = randInt(2, 4);
+    b = randNonZero(-4, 4);
+    d = randNonZero(-4, 4);
+  } while (!coprime(a, b) || !coprime(c, d) || !(a < c || (a === c && b <= d)));
+  const f1 = { type: 'linear', a, b };
+  const f2 = { type: 'linear', a: c, b: d };
+  return { factors: [f1, f2], poly: multiply(f1, f2) };
+}
+
+/* --- Lv.9 (40点)  acx² + (ad+bc)x + bd = (ax+b)(cx+d)   [発展・数値大]
+   a, c は2〜9の自然数、b・d は0を除く-9〜9の整数。
+   a と |b|、c と |d| がそれぞれ互いに素。
+   さらに a≥5、c≥5、|b|≥5、|d|≥5 のいずれかを必須にすることで
+   Lv.8(数値小)とは重ならない「このゲーム最難関」の問題だけに絞っている。
+   重複回避は a<c、または a=c かつ b≤d。 --- */
+function genL9() {
+  let a, c, b, d;
+  do {
+    a = randInt(2, 9);
+    c = randInt(2, 9);
+    b = randNonZero(-9, 9);
+    d = randNonZero(-9, 9);
+  } while (
+    !coprime(a, b) || !coprime(c, d) ||
+    !(a < c || (a === c && b <= d)) ||
+    !(a >= 5 || c >= 5 || Math.abs(b) >= 5 || Math.abs(d) >= 5)
+  );
+  const f1 = { type: 'linear', a, b };
+  const f2 = { type: 'linear', a: c, b: d };
+  return { factors: [f1, f2], poly: multiply(f1, f2) };
+}
+
+const GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6, 7: genL7, 8: genL8, 9: genL9 };
+const LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // レベルごとの基本得点
-const LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 30, 7: 20 };
+const LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 22, 7: 20, 8: 30, 9: 40 };
 
 const LEVEL_INFO = {
   1: { name: '共通因数(数)', desc: '数だけをくくり出す', example: '6x+15 → 3(2x+5)', color: '#8FD3F4' },
   2: { name: '共通因数(x)', desc: 'x を含めてくくり出す', example: '6x²+4x → 2x(3x+2)', color: '#6BAEE8' },
   3: { name: '基本の因数分解', desc: 'x²+(a+b)x+ab の形', example: 'x²+5x+6 → (x+2)(x+3)', color: '#5E9BE0' },
   4: { name: '2乗の差', desc: '(ax)²-b² の形', example: '4x²-9 → (2x+3)(2x-3)', color: '#7C93DD' },
-  5: { name: 'たすきがけ(基本)', desc: '(x+b)(cx+d) の形', example: '2x²+7x+3 → (x+3)(2x+1)', color: '#8B6FCE' },
-  6: { name: 'たすきがけ(発展)', desc: '(ax+b)(cx+d) の形', example: '6x²+7x+2 → (2x+1)(3x+2)', color: '#5B2A86' },
+  5: { name: 'たすきがけ(基本・小)', desc: '(x+b)(cx+d) の形。数値は小さめ', example: '2x²+7x+3 → (x+3)(2x+1)', color: '#8B6FCE' },
+  6: { name: 'たすきがけ(基本・大)', desc: '(x+b)(cx+d) の形。数値が大きい', example: '2x²+19x+9 → (x+9)(2x+1)', color: '#7A4FC2' },
   7: { name: '3乗の和・差', desc: 'a³x³±b³ の形', example: 'x³+8 → (x+2)(x²-2x+4)', color: '#B5487E' },
+  8: { name: 'たすきがけ(発展・小)', desc: '(ax+b)(cx+d) の形。数値は小さめ', example: '6x²+7x+2 → (2x+1)(3x+2)', color: '#5B2A86' },
+  9: { name: 'たすきがけ(発展・大)', desc: '(ax+b)(cx+d) の形。数値が大きい最難関', example: '18x²+21x-5 → (6x-1)(3x+5)', color: '#3D1B63' },
 };
 
 /* ============================================================
    出題レベルの決定
    ------------------------------------------------------------
-   【フェーズ1】1〜21問目: 3問ごとに Lv.1 → Lv.7 と確実に上がる
-   【フェーズ2】22問目以降: 確率で抽選。3問正解するごとに確率が変動する
+   【フェーズ1】1〜27問目: 3問ごとに Lv.1 → Lv.9 と確実に上がる
+   【フェーズ2】28問目以降: 確率で抽選。3問正解するごとに確率が変動する
    ============================================================ */
-const FIXED_PHASE_LAST_Q = 21;   // ここまでは固定レベル
-const RANDOM_PHASE_FIRST_Q = 22; // ここから確率抽選
+const FIXED_PHASE_LAST_Q = 27;   // ここまでは固定レベル(9レベル×3問)
+const RANDOM_PHASE_FIRST_Q = 28; // ここから確率抽選
 
-// 22問目時点の初期確率(%)
-const INITIAL_WEIGHTS = { 1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 25, 7: 25 };
-// 3問正解ごとの増減(%)
-const WEIGHT_DELTA = { 1: -1, 2: -1, 3: -1, 4: -1, 5: +3, 6: +2, 7: -1 };
-// 上限・下限(%)
-const WEIGHT_LIMITS = {
-  1: { min: 0, max: 100 }, 2: { min: 0, max: 100 },
-  3: { min: 0, max: 100 }, 4: { min: 0, max: 100 },
-  5: { min: 0, max: 40 },  6: { min: 0, max: 45 },
-  7: { min: 15, max: 100 },
-};
+// 28問目時点の初期確率(%)
+const INITIAL_WEIGHTS = { 1: 8, 2: 8, 3: 8, 4: 8, 5: 10, 6: 10, 7: 12, 8: 16, 9: 20 };
+// 3問正解ごとの増減(%)。Lv.9だけは「残り全部」を集約するので値を持たない
+const WEIGHT_DELTA = { 1: -1, 2: -1, 3: -1, 4: -1, 5: +2, 6: +2, 7: -2, 8: +1 };
+
+// Lv.1〜4・7が全て0%に落ちきった段階(8ステップ目=52問目〜)は、
+// たすきがけ4種(Lv.5,6,8,9)を均等に25%ずつにする固定状態に切り替える。
+const FINAL_STEP = 8;
+const FINAL_FIXED_WEIGHTS = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 25, 6: 25, 7: 0, 8: 25, 9: 25 };
 
 // 指定の問題番号における各レベルの出現確率(%)を返す。合計は必ず100になる。
 function getLevelWeights(questionNumber) {
   const steps = Math.max(0, Math.floor((questionNumber - RANDOM_PHASE_FIRST_Q) / 3));
-  const w = {};
-  LEVEL_IDS.forEach(lv => {
-    const lim = WEIGHT_LIMITS[lv];
-    const raw = INITIAL_WEIGHTS[lv] + WEIGHT_DELTA[lv] * steps;
-    w[lv] = Math.min(lim.max, Math.max(lim.min, raw)); // 上限・下限で頭打ち
-  });
 
-  // 上限・下限の値は「10ステップ目で全レベルが同時に限界に達し、その時点でも
-  // 合計100」になるよう設計されているため、通常この補正は動かない。
-  // 設定を変えたときに合計がずれても壊れないようにするための保険。
-  let diff = 100 - LEVEL_IDS.reduce((s, lv) => s + w[lv], 0);
-  const order = [6, 5, 7, 4, 3, 2, 1]; // 余りは難しいレベルから優先して吸収させる
-  let guard = 0;
-  while (diff !== 0 && guard < 500) {
-    guard++;
-    let moved = false;
-    for (const lv of order) {
-      if (diff === 0) break;
-      const lim = WEIGHT_LIMITS[lv];
-      if (diff > 0 && w[lv] < lim.max) { w[lv]++; diff--; moved = true; }
-      else if (diff < 0 && w[lv] > lim.min) { w[lv]--; diff++; moved = true; }
-    }
-    if (!moved) break; // これ以上動かせない(設定が破綻している)
-  }
+  if (steps >= FINAL_STEP) return { ...FINAL_FIXED_WEIGHTS };
+
+  const w = {};
+  [1, 2, 3, 4].forEach(lv => { w[lv] = Math.max(0, INITIAL_WEIGHTS[lv] + WEIGHT_DELTA[lv] * steps); });
+  w[5] = INITIAL_WEIGHTS[5] + WEIGHT_DELTA[5] * steps;
+  w[6] = INITIAL_WEIGHTS[6] + WEIGHT_DELTA[6] * steps;
+  w[7] = Math.max(0, INITIAL_WEIGHTS[7] + WEIGHT_DELTA[7] * steps);
+  w[8] = INITIAL_WEIGHTS[8] + WEIGHT_DELTA[8] * steps;
+
+  // Lv.9は「他の8レベルを引いた残り全部」を引き受ける(常に合計100%になる)
+  const usedSum = [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, lv) => s + w[lv], 0);
+  w[9] = Math.max(0, 100 - usedSum);
   return w;
 }
 
 // questionNumber 問目に出す問題のレベルを決める(1問目 = 1)
 function pickLevelForQuestion(questionNumber) {
   if (questionNumber <= FIXED_PHASE_LAST_Q) {
-    // 1〜3問目=Lv.1、4〜6問目=Lv.2 … 19〜21問目=Lv.7
-    return Math.min(7, Math.floor((questionNumber - 1) / 3) + 1);
+    // 1〜3問目=Lv.1、4〜6問目=Lv.2 … 25〜27問目=Lv.9
+    return Math.min(9, Math.floor((questionNumber - 1) / 3) + 1);
   }
   const w = getLevelWeights(questionNumber);
   let r = Math.random() * 100;
@@ -374,7 +402,7 @@ function pickLevelForQuestion(questionNumber) {
     if (r < w[lv]) return lv;
     r -= w[lv];
   }
-  return 6; // 丸め誤差対策のフォールバック
+  return 9; // 丸め誤差対策のフォールバック
 }
 
 const DIFFICULTY_CONFIG = {
@@ -1375,7 +1403,7 @@ function FactorHunt() {
       setLastTimeBonus(timeBonus);
       const newCaught = caught + 1;
       // 3問正解するごとに1レベルずつ解放(21問目=Lv.7でカンスト)
-      const willLevelUp = newCaught % 3 === 0 && unlockedLevel < 7;
+      const willLevelUp = newCaught % 3 === 0 && unlockedLevel < 9;
       const newUnlocked = willLevelUp ? unlockedLevel + 1 : unlockedLevel;
       const comboFanfare = newCombo % 5 === 0; // 5コンボごとにファンファーレ
       const newScore = score + gain;
@@ -1954,6 +1982,7 @@ function FactorHunt() {
         <div className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden" style={{ background: COLORS.paper, border: `2px dashed ${COLORS.sky}45`, borderTop: `5px solid ${LEVEL_INFO[questionLevel].color}`, flexShrink: 0 }}>
           <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>この式を因数分解しよう</div>
           <div className="font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}>{targetText}</div>
+          <div className="absolute bottom-1.5 right-3 text-[10px] font-bold tracking-wide" style={{ color: COLORS.inkSoft }}>問{caught + 1}/{DIFFICULTY_CONFIG[difficulty].clearCount}</div>
           {lastGain !== null && (
             <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{lastGain}</div>
           )}
