@@ -25,6 +25,12 @@
      ------------------------------------------------------------------ */
   .fxf-menu-container { width: 100%; max-width: 28rem; }        /* スマホ */
 
+  /* 「みんなのランキング2」のタイトル: 768px未満は2行、768px以上は1行にする */
+  .fxf-title-br { display: block; }
+  @media (min-width: 768px) {
+    .fxf-title-br { display: none; }
+  }
+
   /* 逆引き「展開」ボーナスステージ突入時のフラッシュ演出 */
   @keyframes fxfReverseFlash {
     0%   { opacity: 0.95; }
@@ -1872,7 +1878,9 @@ function FactorHunt() {
           {GAS_ENDPOINT_URL !== '' && (
             <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
               <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキング</div>
+                <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>
+                  🌎 みんなのランキング2 <br className="fxf-title-br" />(20260714~31)
+                </div>
                 <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
               </div>
               {netStatus === 'loading' && (
@@ -1890,13 +1898,13 @@ function FactorHunt() {
                    DOM順はハード→ノーマル→イージーのまま、横並び時だけorderで並べ替える */
                 <div className="fxf-net-grid">
                   {NET_RANKING_DIFF_ORDER.map(diffKey => {
-                    const rows = withRanks((netRanking[diffKey] || []).slice(0, 30));
+                    const rows = withRanks((netRanking[diffKey] || []).slice(0, 20));
                     if (rows.length === 0) return null;
                     const diffCfg = DIFFICULTY_CONFIG[diffKey];
                     return (
                       <div key={diffKey} className={"fxf-net-col fxf-net-col-" + diffKey}>
                         <div className="text-[11px] font-black rounded-full px-3 py-1 mb-1 text-center" style={{ background: diffCfg.color, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>
-                          {diffCfg.label} TOP30
+                          {diffCfg.label} TOP20
                         </div>
                         <div className="flex flex-col gap-1">
                           {rows.map((r, i) => (
@@ -1945,14 +1953,14 @@ function FactorHunt() {
                 <div className="fxf-net-grid">
                   {NET_RANKING_DIFF_ORDER.map(diffKey => {
                     const rows = withRanks(
-                      (totalRanking[diffKey] || []).slice(0, 30).map(r => ({ ...r, score: r.totalScore, caught: r.totalCaught }))
+                      (totalRanking[diffKey] || []).slice(0, 20).map(r => ({ ...r, score: r.totalScore, caught: r.totalCaught }))
                     );
                     if (rows.length === 0) return null;
                     const diffCfg = DIFFICULTY_CONFIG[diffKey];
                     return (
                       <div key={diffKey} className={"fxf-net-col fxf-net-col-" + diffKey}>
                         <div className="text-[11px] font-black rounded-full px-3 py-1 mb-1 text-center" style={{ background: diffCfg.color, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>
-                          {diffCfg.label} 総合TOP30
+                          {diffCfg.label} 総合TOP20
                         </div>
                         <div className="flex flex-col gap-1">
                           {rows.map((r, i) => (
