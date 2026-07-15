@@ -2090,6 +2090,16 @@ function FactorHunt() {
             </div>
           </div>
         </div>
+
+        {/* クレジット: 控えめで世界観を邪魔しない半透明表示 */}
+        <div className="w-full text-center" style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+          <span
+            className="font-light tracking-wide"
+            style={{ fontSize: '10px', color: '#FFFFFF6b', fontFamily: "'Zen Kaku Gothic New', sans-serif", letterSpacing: '0.06em' }}
+          >
+            © 2026 FACTOR × FACTOR | Created by Syusuke F.
+          </span>
+        </div>
       </div>
     );
   }
@@ -2211,6 +2221,20 @@ function FactorHunt() {
             <button onClick={() => startGame(difficulty)} className="rounded-xl py-3 font-bold shadow active:scale-95 transition-transform" style={{ background: COLORS.amber, color: COLORS.ink }}>もう一度あそぶ({DIFFICULTY_CONFIG[difficulty].label})</button>
             <button onClick={() => setScreen('menu')} className="rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>タイトルに戻る</button>
           </div>
+        </div>
+
+        {/* エンディングメッセージ: 余韻を感じさせる、控えめで半透明なクレジット表示 */}
+        <div className="max-w-sm sm:max-w-md md:max-w-lg w-full text-center" style={{ marginTop: '1.75rem', marginBottom: '0.5rem' }}>
+          <div style={{ opacity: 0.35, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: '0.6rem' }}>━━━━━━━━━━━━━━━━━━━━━━</div>
+          <div className="font-light" style={{ opacity: 0.75, fontSize: '13px', color: '#FFFFFF', fontFamily: "'Zen Kaku Gothic New', sans-serif", letterSpacing: '0.04em', lineHeight: 1.9 }}>
+            Thank you for playing.<br />
+            Calculation complete.<br />
+            You did an amazing job.
+          </div>
+          <div className="font-light" style={{ opacity: 0.45, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.08em', marginTop: '0.7rem' }}>
+            Created by Syusuke F.
+          </div>
+          <div style={{ opacity: 0.35, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.25em', marginTop: '0.6rem' }}>━━━━━━━━━━━━━━━━━━━━━━</div>
         </div>
       </div>
     );
