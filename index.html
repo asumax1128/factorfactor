@@ -526,6 +526,42 @@ function withRanks(sortedRows) {
 }
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+/* ============================================================
+   みんなの総得点ランキング
+   ------------------------------------------------------------
+   GASから返る「全プレイ記録」(allRecords)を、プレイヤー名×難易度で
+   集計してランキングを作る。ローカルストレージは一切使わない
+   (GASに保存されている全員分のプレイ履歴が集計元)。
+   ============================================================ */
+function aggregateTotalRanking(allRecords) {
+  const byDiff = { hard: [], normal: [], easy: [] };
+  if (!Array.isArray(allRecords)) return byDiff;
+
+  const groups = {}; // key: "難易度:名前"
+  allRecords.forEach(r => {
+    const difficulty = ['easy', 'normal', 'hard'].includes(r.difficulty) ? r.difficulty : 'normal';
+    const name = String(r.name || '').trim();
+    const score = Number(r.score);
+    const caught = Number(r.caught);
+    if (!name || !isFinite(score) || score <= 0) return;
+    const key = `${difficulty}:${name}`;
+    if (!groups[key]) groups[key] = { name, difficulty, totalScore: 0, playCount: 0, totalCaught: 0 };
+    groups[key].totalScore += score;
+    groups[key].totalCaught += isFinite(caught) ? caught : 0;
+    groups[key].playCount += 1;
+  });
+
+  Object.values(groups).forEach(g => {
+    // 平均点は小数点第1位で四捨五入
+    g.avgScore = Math.round((g.totalScore / g.playCount) * 10) / 10;
+    byDiff[g.difficulty].push(g);
+  });
+  Object.keys(byDiff).forEach(k => {
+    byDiff[k].sort((a, b) => b.totalScore - a.totalScore); // 合計得点が高い順
+  });
+  return byDiff;
+}
+
 async function fetchNetRanking() {
   const res = await fetch(GAS_ENDPOINT_URL);
   const data = await res.json();
@@ -538,7 +574,9 @@ async function fetchNetRanking() {
       if (!Array.isArray(byDiff[k])) { byDiff[k] = []; return; }
       byDiff[k] = dedupeByName(byDiff[k].sort(compareEntries));
     });
-    return byDiff;
+    // allRecords(全プレイ生データ)があれば総得点ランキングも同時に集計する
+    const totalByDiff = aggregateTotalRanking(data.allRecords);
+    return { byDiff, totalByDiff };
   }
   // 旧GAS(全体TOP10の一覧のみ)への後方互換: クライアント側で難易度別に振り分ける
   const byDiff = { hard: [], normal: [], easy: [] };
@@ -546,7 +584,8 @@ async function fetchNetRanking() {
     (byDiff[r.difficulty] || byDiff.normal).push(r);
   });
   Object.keys(byDiff).forEach(k => { byDiff[k] = dedupeByName(byDiff[k].sort(compareEntries)); });
-  return byDiff;
+  // 旧GASにはallRecordsが無いため、総得点ランキングは空(取得不可)になる
+  return { byDiff, totalByDiff: { hard: [], normal: [], easy: [] } };
 }
 function submitNetScore(entry) {
   // Content-Typeをtext/plainにするとCORSのプリフライト(事前確認)が発生せず、
@@ -861,6 +900,7 @@ function FactorHunt() {
   const [playerName, setPlayerName] = useState('');
   const [ranking, setRanking] = useState(() => loadRankingFromStorage()); // 起動時に前回までのランキングを復元
   const [netRanking, setNetRanking] = useState({ hard: [], normal: [], easy: [] }); // ネットランキング(難易度別)
+  const [totalRanking, setTotalRanking] = useState({ hard: [], normal: [], easy: [] }); // みんなの総得点ランキング(難易度別)
   const [netStatus, setNetStatus] = useState('idle'); // idle | loading | ok | error
   const [pendingNetEntry, setPendingNetEntry] = useState(null); // 名前未入力のまま終了した時の送信待ちスコア
   const [countdown, setCountdown] = useState(3); // 難易度選択後の「3・2・1・スタート！」カウントダウン
@@ -912,8 +952,9 @@ function FactorHunt() {
     if (!GAS_ENDPOINT_URL) return;
     setNetStatus('loading');
     try {
-      const rows = await fetchNetRanking();
-      setNetRanking(rows);
+      const { byDiff, totalByDiff } = await fetchNetRanking();
+      setNetRanking(byDiff);
+      setTotalRanking(totalByDiff);
       setNetStatus('ok');
     } catch (e) {
       console.error('[factor-hunt] ネットランキング取得失敗:', e);
@@ -1868,6 +1909,66 @@ function FactorHunt() {
                               <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
                               <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep }}>{r.score}点</span>
                               <span className="text-xs font-bold shrink-0" style={{ color: COLORS.inkSoft }}>{r.caught}組</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* みんなの総得点ランキング: GASの全プレイ履歴をプレイヤー名×難易度で集計したもの。
+              ローカルストレージは使わず、常にGASの最新データから計算し直す。 */}
+          {GAS_ENDPOINT_URL !== '' && (
+            <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🏅 みんなの総得点ランキング</div>
+                <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
+              </div>
+              <div className="text-[10px] text-center mb-2" style={{ color: COLORS.inkSoft }}>これまでの全プレイの合計点数ランキング(プレイ回数・平均点つき)</div>
+              {netStatus === 'loading' && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>読み込み中…</div>
+              )}
+              {netStatus === 'error' && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。</div>
+              )}
+              {netStatus === 'ok' && NET_RANKING_DIFF_ORDER.every(k => (totalRanking[k] || []).length === 0) && (
+                <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。プレイして最初の1位を目指そう！</div>
+              )}
+              {netStatus === 'ok' && !NET_RANKING_DIFF_ORDER.every(k => (totalRanking[k] || []).length === 0) && (
+                /* スマホ縦: 1列(上からハード→ノーマル→イージー)
+                   タブレット・PC・横画面(768px以上): 3列(左からイージー→ノーマル→ハード)
+                   既存の「みんなのランキング」と全く同じ並び替えの仕組み(fxf-net-grid)を再利用している */
+                <div className="fxf-net-grid">
+                  {NET_RANKING_DIFF_ORDER.map(diffKey => {
+                    const rows = withRanks(
+                      (totalRanking[diffKey] || []).slice(0, 30).map(r => ({ ...r, score: r.totalScore, caught: r.totalCaught }))
+                    );
+                    if (rows.length === 0) return null;
+                    const diffCfg = DIFFICULTY_CONFIG[diffKey];
+                    return (
+                      <div key={diffKey} className={"fxf-net-col fxf-net-col-" + diffKey}>
+                        <div className="text-[11px] font-black rounded-full px-3 py-1 mb-1 text-center" style={{ background: diffCfg.color, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>
+                          {diffCfg.label} 総合TOP30
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {rows.map((r, i) => (
+                            <div key={i} className="flex flex-col gap-0.5 text-sm rounded-lg px-1.5 py-1.5" style={{ background: r.rank === 1 ? `${COLORS.amber}26` : 'transparent' }}>
+                              <div className="flex items-center gap-1.5">
+                                {r.rank <= 3 ? (
+                                  <span className="text-lg leading-none w-6 text-center shrink-0">{MEDALS[r.rank - 1]}</span>
+                                ) : (
+                                  <span className="font-mono font-black w-6 text-right shrink-0" style={{ color: COLORS.inkSoft }}>{r.rank}.</span>
+                                )}
+                                <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.name}</span>
+                                <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep }}>{r.totalScore}点</span>
+                              </div>
+                              <div className="pl-7 text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>
+                                {r.playCount}回プレイ・平均{r.avgScore}点・計{r.totalCaught}組
+                              </div>
                             </div>
                           ))}
                         </div>
