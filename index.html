@@ -37,20 +37,28 @@
     100% { opacity: 0; }
   }
 
-  /* テンポ・ボーナス(PERFECT!/GREAT!)のポップ演出 */
-  @keyframes fxfTempoPop {
-    0%   { transform: scale(0.6); opacity: 0; }
-    60%  { transform: scale(1.08); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
+  /* 音ゲー風判定(Perfect〜Bad)のポップ演出 */
+  @keyframes fxfJudgePop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    25%  { transform: scale(1.15); opacity: 1; }
+    45%  { transform: scale(1); opacity: 1; }
+    80%  { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.05); opacity: 0; }
   }
 
-  /* テンポゲージ: 出題から3秒かけて100%→0%、色も緑→黄→消滅と変化する */
-  @keyframes fxfTempoGauge {
-    0%   { width: 100%; background: #43C97B; }
-    49%  { background: #43C97B; }
-    50%  { background: #F5B942; }
-    99%  { background: #F5B942; }
-    100% { width: 0%; background: #cfcfcf; opacity: 0; }
+  /* 問題ごとのタイムアウトゲージ: 出題から15秒かけて100%→0%。
+     Perfect(緑)→Excellent(黄緑)→Great(水色)→Good(青)→OK(オレンジ警告)→時間切れ(赤/消滅)と色が変わる */
+  @keyframes fxfJudgeGauge {
+    0%     { width: 100%; background: #FFD54A; }
+    13.3%  { background: #FFD54A; }
+    13.4%  { background: #8BE38F; }
+    20%    { background: #8BE38F; }
+    20.1%  { background: #6BD4E8; }
+    33.3%  { background: #6BD4E8; }
+    33.4%  { background: #8FB8FF; }
+    66.7%  { background: #8FB8FF; }
+    66.8%  { background: #FF9F1C; }
+    100%   { width: 0%; background: #FF5C5C; opacity: 0; }
   }
   .fxf-net-grid { display: grid; grid-template-columns: 1fr; }  /* スマホ: 1列 */
   .fxf-net-col { margin-bottom: 0.75rem; }
@@ -366,7 +374,7 @@ const GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6,
 const LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // レベルごとの基本得点
-const LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 22, 7: 20, 8: 30, 9: 40 };
+const LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };
 
 const LEVEL_INFO = {
   1: { name: '共通因数', desc: '数だけをくくり出す', example: '6x+15 → 3(2x+5)', color: '#8FD3F4' },
@@ -434,9 +442,9 @@ function pickLevelForQuestion(questionNumber) {
 }
 
 const DIFFICULTY_CONFIG = {
-  easy: { label: 'イージー', startTime: 120, clearCount: 15, color: '#52B788', tileCount: 6 },
-  normal: { label: 'ノーマル', startTime: 90, clearCount: 30, color: '#E8A33D', tileCount: 9 },
-  hard: { label: 'ハード', startTime: 60, clearCount: 50, color: '#E76F51', tileCount: 9 },
+  easy: { label: 'イージー', clearCount: 15, color: '#52B788', tileCount: 6 },
+  normal: { label: 'ノーマル', clearCount: 30, color: '#E8A33D', tileCount: 9 },
+  hard: { label: 'ハード', clearCount: 50, color: '#E76F51', tileCount: 9 },
 };
 
 // 期間優勝者。次の期間が始まったらここを書き換える。表示はハード→ノーマル→イージーの順。
@@ -606,10 +614,10 @@ function submitNetScore(entry) {
 const TUTORIAL_STEPS = [
   { title: '① 目標', body: '上に出る式と同じになるように、2つの因数タイルをかけ算で作ろう！' },
   { title: '② タイルをつなげる', body: 'タイルを指で押さえたまま、もう1枚のタイルまでドラッグしてつなげよう。' },
-  { title: '③ せいかい・まちがい', body: '正解なら青く光ってキラキラ音、まちがいなら赤く光ってブッブー音+残り時間-1秒。' },
-  { title: '④ 時間ボーナス', body: '正解すると残り時間が回復するよ。レベルの高い問題を解くほど、たくさん回復する！' },
+  { title: '③ 体力(HP)ゲージ', body: 'HPは100%スタート。問題が表示されている間は毎秒1%ずつ減っていくよ。0%になるとゲームオーバー！' },
+  { title: '④ タイム判定', body: '正解までの速さで Perfect〜OK の5段階judgeされ、HPが回復するよ。まちがい・15秒の時間切れは Bad でHPが大きく減るので注意！' },
   { title: '⑤ コンボ・レベルアップ', body: '連続正解でコンボが増えて得点アップ！3問正解ごとにレベルアップ、5コンボごとにファンファーレが鳴るよ。' },
-  { title: '⑥ 難易度を選ぼう', body: 'イージー・ノーマル・ハードから選べる。クリアに必要な問題数と持ち時間が違うよ。' },
+  { title: '⑥ 難易度を選ぼう', body: 'イージー・ノーマル・ハードから選べる。クリアに必要な問題数と、まちがえた時に減るHPの量が違うよ。' },
 ];
 
 function TutorialVisual({ step }) {
@@ -646,29 +654,27 @@ function TutorialVisual({ step }) {
   }
   if (step === 2) {
     return (
-      <div className="flex gap-4">
-        <div className="flex flex-col items-center gap-1">
-          <div style={{ ...tileBase, background: '#6FCBEF', border: `2px solid ${COLORS.sky}` }}>正解！</div>
-          <span style={{ fontSize: '11px', color: COLORS.leafDeep, fontWeight: 700 }}>✨キラキラ音</span>
+      <div className="flex flex-col items-center gap-2 w-full">
+        <div className="relative w-full max-w-[220px] rounded-full overflow-hidden" style={{ height: '16px', background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
+          <div style={{ width: '62%', height: '100%', background: 'linear-gradient(90deg, #43C97B, #8BE38F)' }} />
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div style={{ ...tileBase, background: COLORS.coral, color: '#fff', border: '2px solid #b3402c' }}>ちがう…</div>
-          <span style={{ fontSize: '11px', color: '#b3402c', fontWeight: 700 }}>ブッブー -1秒</span>
-        </div>
+        <span style={{ fontSize: '11px', color: COLORS.inkSoft, fontWeight: 700 }}>毎秒 1% ずつ減る</span>
       </div>
     );
   }
   if (step === 3) {
     return (
       <div className="flex flex-col items-center gap-2">
-        <div className="rounded-xl px-4 py-2 text-center" style={{ background: COLORS.paperDark }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: COLORS.inkSoft }}>TIME</div>
-          <div style={{ fontSize: '20px', fontWeight: 900, color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>0:45</div>
+        <div className="flex gap-2">
+          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#FFD54A', color: '#5c3a00' }}>Perfect +25%</span>
+          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#8BE38F', color: '#fff' }}>Excellent +20%</span>
         </div>
-        <div className="flex gap-3">
-          <span style={{ color: COLORS.leafDeep, fontWeight: 900, fontSize: '13px' }}>+2.4秒(正解)</span>
-          <span style={{ color: '#b3402c', fontWeight: 900, fontSize: '13px' }}>-1秒(不正解)</span>
+        <div className="flex gap-2">
+          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#6BD4E8', color: '#fff' }}>Great +15%</span>
+          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#8FB8FF', color: '#fff' }}>Good +10%</span>
+          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#C9C9C9', color: '#333' }}>OK +5%</span>
         </div>
+        <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#FF5C5C', color: '#fff' }}>Bad(ミス・15秒超) HPダウン</span>
       </div>
     );
   }
@@ -692,6 +698,7 @@ function TutorialVisual({ step }) {
         <div key={d} className="rounded-xl px-3 py-2 text-center" style={{ background: DIFFICULTY_CONFIG[d].color }}>
           <div style={{ fontSize: '11px', fontWeight: 900, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{DIFFICULTY_CONFIG[d].label}</div>
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>{DIFFICULTY_CONFIG[d].clearCount}問</div>
+          <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>ミス-{DIFFICULTY_MISS_PENALTY[d]}%</div>
         </div>
       ))}
     </div>
@@ -790,22 +797,38 @@ function buildBoard(level, seenSet, tileCount = 9) {
    ============================================================ */
 const REVERSE_STAGE_LEVELS = [5, 6, 8, 9];
 const REVERSE_STAGE_MIN_CORRECT = 30; // 累計正解数がこれを超えたら発生し得る
-const REVERSE_STAGE_CHANCE = 0.05;    // 5%の確率
-const REVERSE_STAGE_POINTS = 100;     // 配点は一律100点
+const REVERSE_STAGE_CHANCE = 0.03;    // 3%の確率
+const REVERSE_STAGE_POINTS = 50;      // 配点は一律50点
 
 /* ============================================================
-   テンポ・ボーナス(アクティブ・スコア倍率)
+   ライフ(体力)ゲージ・音ゲー風6段階判定
    ------------------------------------------------------------
-   問題が出た瞬間から解答までの経過時間で、獲得点数に倍率をかける。
-   通常の因数分解・逆引き展開ステージのどちらにも同じ基準で適用する。
+   制限時間タイマーは廃止し、体力ゲージ(100%スタート)を採用。
+   問題が表示されている間は毎秒1%ずつ自然減少し、0%でゲームオーバー。
+   正解までの時間で6段階judgeし、判定に応じて体力を回復する。
+   ミス・時間切れ(15秒)は回復なしで、難易度に応じた体力を減らす。
    ============================================================ */
-const TEMPO_PERFECT_MS = 1500; // これ以内なら PERFECT (3倍)
-const TEMPO_GREAT_MS = 3000;   // これ以内なら GREAT (2倍)
-function getTempoBonus(elapsedMs) {
-  if (elapsedMs <= TEMPO_PERFECT_MS) return { mult: 3, label: 'PERFECT!', kind: 'perfect' };
-  if (elapsedMs <= TEMPO_GREAT_MS) return { mult: 2, label: 'GREAT!', kind: 'great' };
-  return { mult: 1, label: null, kind: null };
+const QUESTION_TIMEOUT_MS = 15000; // 1問15秒で時間切れ
+// 正解までの経過時間(ms) → 判定。境界値は「以内」なので <= で判定する。
+const JUDGE_TIERS = [
+  { max: 2000, label: 'Perfect', recover: 25, color: '#FFD54A' },
+  { max: 3000, label: 'Excellent', recover: 20, color: '#8BE38F' },
+  { max: 5000, label: 'Great', recover: 15, color: '#6BD4E8' },
+  { max: 10000, label: 'Good', recover: 10, color: '#8FB8FF' },
+  { max: 15000, label: 'OK', recover: 5, color: '#C9C9C9' },
+];
+const JUDGE_BAD = { label: 'Bad', recover: 0, color: '#FF5C5C' }; // ミス・時間切れ共通
+function getJudgment(elapsedMs) {
+  for (const tier of JUDGE_TIERS) {
+    if (elapsedMs <= tier.max) return tier;
+  }
+  return JUDGE_BAD; // 15秒超は本来タイムアップ処理に回るのでここには来ない想定の保険
 }
+// ミス時の体力減少(難易度別)
+const DIFFICULTY_MISS_PENALTY = { easy: 15, normal: 20, hard: 25 };
+// 時間切れ(15秒)時の追加減少: 15秒間の自然減少(15%)にこの差分を足すと、
+// ミス時と同じ合計減少幅(イージー15%・ノーマル20%・ハード25%)になる
+const DIFFICULTY_TIMEOUT_EXTRA = { easy: 0, normal: 5, hard: 10 };
 
 function buildReverseQuestion() {
   const level = REVERSE_STAGE_LEVELS[randInt(0, REVERSE_STAGE_LEVELS.length - 1)];
@@ -886,21 +909,22 @@ function FactorHunt() {
   const [screen, setScreen] = useState('menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
   const [questionLevel, setQuestionLevel] = useState(1); // 今出ている問題のレベル
-  const [topMessage, setTopMessage] = useState(null); // {text, kind:'levelup'|'combo'|'speed'} 常に固定高さの領域に表示する
+  const [topMessage, setTopMessage] = useState(null); // {text, kind:'levelup'|'combo'} 常に固定高さの領域に表示する
   const [board, setBoard] = useState([]);
   const [poly, setPoly] = useState({ x4: 0, x3: 0, x2: 0, x1: 0, x0: 0 });
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
   const [combo, setCombo] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [life, setLife] = useState(100); // 体力ゲージ(0〜100%)。0%でゲームオーバー
+  const [elapsedSeconds, setElapsedSeconds] = useState(0); // ゲーム開始からの経過時間(カウントアップ)
+  const [judgePopup, setJudgePopup] = useState(null); // {label, color} 音ゲー風の判定ポップアップ(Perfect〜Bad)
+  const [lastLifeChange, setLastLifeChange] = useState(null); // {amount:number} 体力の増減表示(+15 / -20 など)
   const [selectedId, setSelectedId] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [flashMap, setFlashMap] = useState({});
   const [resolving, setResolving] = useState(false);
   const [lastGain, setLastGain] = useState(null);
-  const [lastTimeBonus, setLastTimeBonus] = useState(null);
-  const [lastTimePenalty, setLastTimePenalty] = useState(null);
   const [caught, setCaught] = useState(0);
   const [muted, setMuted] = useState(false);
   const [playerName, setPlayerName] = useState('');
@@ -915,7 +939,7 @@ function FactorHunt() {
   const [cleared, setCleared] = useState(false); // 難易度ごとの目標問題数に到達したクリア達成フラグ
   const [difficulty, setDifficulty] = useState('normal'); // easy | normal | hard
   const [tutorialStep, setTutorialStep] = useState(0);
-  const [clearTimeBonus, setClearTimeBonus] = useState(0); // クリア時に加算した残り時間ボーナス
+  const [clearTimeBonus, setClearTimeBonus] = useState(0); // クリア時に加算したタイムボーナス(解いた問題数×15秒 - 実経過秒数)
 
   /* --- 逆引き「展開」ボーナスステージ --- */
   const [isReverseStage, setIsReverseStage] = useState(false); // 今の問題が逆引き展開ボーナスか
@@ -1200,10 +1224,10 @@ function FactorHunt() {
     const player = bgmPlayerRef.current;
     if (!player) return;
     let rate = 1.0;
-    if (timeLeft <= 10) rate = 1.3;
-    else if (timeLeft <= 30) rate = 1.15;
+    if (life < 10) rate = 1.3;
+    else if (life < 30) rate = 1.15;
     player.playbackRate = rate;
-  }, [screen, timeLeft <= 30, timeLeft <= 10]);
+  }, [screen, life < 30, life < 10]);
 
   /* --- iOSでinputタップ時に自動ズームされたまま戻らなくなるのを防ぐ保険 --- */
   useEffect(() => {
@@ -1407,17 +1431,46 @@ function FactorHunt() {
     setScreen(nextScreen);
   }, [playerName, difficulty, loadNetRanking]);
 
-  /* --- タイマー (0.5秒刻みのボーナスがあるため timeLeft は小数を許容) --- */
+  /* --- ライフ(体力)ゲージ: 0.01秒ごとに0.01%ずつ自然減少(より滑らかにじわじわ減る演出) + 1問15秒の時間切れ判定 ---
+     0%になったらこのeffectの先頭でゲームオーバーにする(旧timeLeft方式と同じ考え方)。
+     時間切れの瞬間は、そのtickの自然減少(-0.01%)に加えて難易度別の追加減少を即座に適用し、
+     問題を破棄して新しい問題を出す。(0.01秒×1500回=15秒で自然減少の合計は変わらず15%)
+     表示(HP%)は小数点第1位までなので、内部値が細かくても見た目はチラつかない。 */
   useEffect(() => {
     if (screen !== 'playing') return;
-    if (timeLeft <= 0) {
+    if (life <= 0) {
       playTimeoutFanfare();
       finishGame(score, caught);
       return;
     }
-    const t = setTimeout(() => setTimeLeft(tl => Math.round((tl - 1) * 10) / 10), 1000);
+    const t = setTimeout(() => {
+      setElapsedSeconds(s => Math.round((s + 0.01) * 100) / 100);
+      const questionElapsedMs = Date.now() - questionStartTimeRef.current;
+      if (!resolving && questionElapsedMs >= QUESTION_TIMEOUT_MS) {
+        // 時間切れ(15秒): このtickの自然減少0.01% + 難易度別の追加減少をまとめて適用
+        const extra = DIFFICULTY_TIMEOUT_EXTRA[difficulty] || 0;
+        const penalty = 0.01 + extra;
+        playBuzz();
+        setCombo(0);
+        setLife(l => Math.max(0, Math.round((l - penalty) * 100) / 100));
+        setLastLifeChange({ amount: -penalty });
+        setJudgePopup({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
+        setResolving(true);
+        setTimeout(() => {
+          setFlashMap({});
+          setReverseChoiceState({});
+          setSelectedId(null);
+          setResolving(false);
+          setJudgePopup(null);
+          nextQuestion(caught + 1); // 同じ問題番号(=正解数+1)の問題を出し直す
+        }, 420);
+        setTimeout(() => setLastLifeChange(null), 900);
+      } else {
+        setLife(l => Math.max(0, Math.round((l - 0.01) * 100) / 100));
+      }
+    }, 10);
     return () => clearTimeout(t);
-  }, [screen, timeLeft, score, caught, finishGame]);
+  }, [screen, life, score, caught, difficulty, resolving, finishGame]);
 
   const startGame = async (diff) => {
     const chosenDifficulty = diff || difficulty;
@@ -1446,11 +1499,13 @@ function FactorHunt() {
     setScore(0);
     setCombo(0);
     setCaught(0);
-    setTimeLeft(DIFFICULTY_CONFIG[chosenDifficulty].startTime);
+    setLife(100);
+    setElapsedSeconds(0);
+    setJudgePopup(null);
+    setLastLifeChange(null);
     setSelectedId(null);
     setFlashMap({});
     setLastGain(null);
-    setLastTimeBonus(null);
     if (topMessageTimeoutRef.current) clearTimeout(topMessageTimeoutRef.current);
     setTopMessage(null);
     setRankedIn(false);
@@ -1550,43 +1605,36 @@ function FactorHunt() {
       const comboMult = 1 + combo * 0.1;
       // 基本得点はレベルごとに設定(Lv.9のたすきがけ発展・大が最高の40点)
       const basePoint = LEVEL_POINTS[questionLevel] || 10;
-      // テンポ・ボーナス: 出題から1.5秒以内=PERFECT(3倍)、3秒以内=GREAT(2倍)
+      const gain = Math.round(basePoint * comboMult);
+      // 音ゲー風6段階判定: 出題からの経過時間で判定し、体力を回復する
       const elapsedMs = Date.now() - questionStartTimeRef.current;
-      const tempo = getTempoBonus(elapsedMs);
-      const gain = Math.round(basePoint * comboMult * tempo.mult);
-      // 時間ボーナス: 解いた問題のレベル×1秒(基本) + コンボ数×0.2秒(上限3秒)
-      const baseRecovery = questionLevel * 1;
-      const comboBonus = Math.min(newCombo * 0.2, 2);
-      const timeBonus = Math.round((baseRecovery + comboBonus) * 10) / 10;
-      setLastGain(gain);
-      setLastTimeBonus(timeBonus);
+      const judge = getJudgment(elapsedMs);
+      // 体力は100%が上限。超過分は1%=1点としてスコアに変換する
+      const rawLife = life + judge.recover;
+      const overflowBonus = Math.max(0, Math.round(rawLife - 100));
+      const newLife = Math.min(100, Math.round(rawLife * 100) / 100);
+      const totalGain = gain + overflowBonus;
+      setLastGain(totalGain);
       const newCaught = caught + 1;
-      // 3問正解するごとに1レベルずつ解放(21問目=Lv.7でカンスト)
+      // 3問正解するごとに1レベルずつ解放(27問目=Lv.9でカンスト)
       const willLevelUp = newCaught % 3 === 0 && unlockedLevel < 9;
       const newUnlocked = willLevelUp ? unlockedLevel + 1 : unlockedLevel;
       const comboFanfare = newCombo % 5 === 0; // 5コンボごとにファンファーレ
-      const newScore = score + gain;
-      const newTimeLeft = Math.round((timeLeft + timeBonus) * 10) / 10;
+      const newScore = score + totalGain;
       const isClear = newCaught >= DIFFICULTY_CONFIG[difficulty].clearCount; // 難易度ごとの目標問題数でクリア
-      const clearBonus = isClear ? Math.round(newTimeLeft) : 0;
-      // 回答スピードに応じたメッセージ(優先度: レベルアップ > 5コンボ > テンポ判定 > 通常スピード)
-      const elapsedSec = elapsedMs / 1000;
-      let speedText;
-      if (elapsedSec <= 5) speedText = 'やるねぇ！';
-      else if (elapsedSec <= 10) speedText = 'ナイス！';
-      else speedText = '頑張ったね！';
+      // クリア時のタイムボーナス: (解いた総問題数×15秒) − 実際の総経過時間(秒)
+      const clearBonus = isClear ? Math.round(newCaught * 15 - elapsedSeconds) : 0;
       setTimeout(() => {
         setCombo(newCombo);
         setCaught(newCaught);
+        setLife(newLife);
+        setLastLifeChange({ amount: judge.recover });
+        setJudgePopup({ label: judge.label, color: judge.color });
         if (willLevelUp) {
           setUnlockedLevel(newUnlocked);
           showTopMessage(`🎉 Lv.${newUnlocked}「${LEVEL_INFO[newUnlocked].name}」が解放されました！`, 'levelup', 1600);
         } else if (comboFanfare) {
           showTopMessage('ナイスコンボ！', 'combo', 1300);
-        } else if (tempo.label) {
-          showTopMessage(`${tempo.label} +${gain}pts`, tempo.kind, 1300);
-        } else {
-          showTopMessage(speedText, 'speed', 1300);
         }
         if (willLevelUp) {
           playLevelUpVoice();
@@ -1594,39 +1642,41 @@ function FactorHunt() {
         if (comboFanfare) {
           playComboSound();
         }
-        if (tempo.label) {
+        if (judge.label === 'Perfect' || judge.label === 'Excellent') {
           playSpeedPraise();
         }
         setFlashMap({});
         setSelectedId(null);
         setResolving(false);
         if (isClear) {
-          // クリア: 残り時間の秒数をそのままスコアに加算してゲーム終了
+          // クリア: (解いた問題数×15秒 − 実経過秒数)をタイムボーナスとして加算してゲーム終了
           playClearFanfare();
-          setScore(s => s + gain + clearBonus);
-          setTimeLeft(0);
+          setScore(s => s + totalGain + clearBonus);
           setCleared(true);
           setClearTimeBonus(clearBonus);
           finishGame(newScore + clearBonus, newCaught);
         } else {
-          setScore(s => s + gain);
-          setTimeLeft(tl => Math.round((tl + timeBonus) * 10) / 10);
+          setScore(s => s + totalGain);
           nextQuestion(newCaught + 1); // 次に出すのは (正解数+1) 問目
         }
       }, 420);
-      setTimeout(() => { setLastGain(null); setLastTimeBonus(null); }, 1300);
+      setTimeout(() => { setLastGain(null); setJudgePopup(null); setLastLifeChange(null); }, 900);
     } else {
       playBuzz();
       setFlashMap({ [id1]: 'wrong', [id2]: 'wrong' });
       setCombo(0);
-      setTimeLeft(tl => Math.round(Math.max(tl - 1, 0) * 10) / 10);
-      setLastTimePenalty(1);
+      const penalty = DIFFICULTY_MISS_PENALTY[difficulty] || 20;
+      const newLife = Math.max(0, Math.round((life - penalty) * 100) / 100);
+      setJudgePopup({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
+      setLastLifeChange({ amount: -penalty });
       setTimeout(() => {
+        setLife(newLife);
         setFlashMap({});
         setSelectedId(null);
         setResolving(false);
+        nextQuestion(caught + 1); // 間違えた問題は破棄して次の問題へ(同じ問題番号=正解数+1の枠)
       }, 420);
-      setTimeout(() => setLastTimePenalty(null), 900);
+      setTimeout(() => { setJudgePopup(null); setLastLifeChange(null); }, 900);
     }
   };
 
@@ -1641,65 +1691,66 @@ function FactorHunt() {
       setReverseChoiceState({ [choiceId]: 'correct' });
       const newCombo = combo + 1;
       const comboMult = 1 + combo * 0.1;
+      const gain = Math.round(REVERSE_STAGE_POINTS * comboMult); // 逆引きは一律50点にコンボ倍率を適用
       const elapsedMs = Date.now() - questionStartTimeRef.current;
-      const tempo = getTempoBonus(elapsedMs);
-      const gain = Math.round(REVERSE_STAGE_POINTS * comboMult * tempo.mult); // 逆引きは一律100点にコンボ・テンポ倍率を適用
-      const baseRecovery = questionLevel * 1;
-      const comboBonus = Math.min(newCombo * 0.2, 2);
-      const timeBonus = Math.round((baseRecovery + comboBonus) * 10) / 10;
-      setLastGain(gain);
-      setLastTimeBonus(timeBonus);
+      const judge = getJudgment(elapsedMs);
+      // 体力は100%が上限。超過分は1%=1点としてスコアに変換する
+      const rawLife = life + judge.recover;
+      const overflowBonus = Math.max(0, Math.round(rawLife - 100));
+      const newLife = Math.min(100, Math.round(rawLife * 100) / 100);
+      const totalGain = gain + overflowBonus;
+      setLastGain(totalGain);
       const newCaught = caught + 1;
       const willLevelUp = newCaught % 3 === 0 && unlockedLevel < 9;
       const newUnlocked = willLevelUp ? unlockedLevel + 1 : unlockedLevel;
       const comboFanfare = newCombo % 5 === 0;
-      const newScore = score + gain;
-      const newTimeLeft = Math.round((timeLeft + timeBonus) * 10) / 10;
+      const newScore = score + totalGain;
       const isClear = newCaught >= DIFFICULTY_CONFIG[difficulty].clearCount;
-      const clearBonus = isClear ? Math.round(newTimeLeft) : 0;
+      const clearBonus = isClear ? Math.round(newCaught * 15 - elapsedSeconds) : 0;
       setTimeout(() => {
         setCombo(newCombo);
         setCaught(newCaught);
+        setLife(newLife);
+        setLastLifeChange({ amount: judge.recover });
+        setJudgePopup({ label: judge.label, color: judge.color });
         if (willLevelUp) {
           setUnlockedLevel(newUnlocked);
           showTopMessage(`🎉 Lv.${newUnlocked}「${LEVEL_INFO[newUnlocked].name}」が解放されました！`, 'levelup', 1600);
         } else if (comboFanfare) {
           showTopMessage('ナイスコンボ！', 'combo', 1300);
-        } else if (tempo.label) {
-          showTopMessage(`${tempo.label} REVERSE +${gain}pts`, tempo.kind, 1300);
-        } else {
-          showTopMessage('REVERSE BONUS CLEAR！', 'speed', 1300);
         }
         if (willLevelUp) playLevelUpVoice();
         if (comboFanfare) playComboSound();
-        if (tempo.label) playSpeedPraise();
+        if (judge.label === 'Perfect' || judge.label === 'Excellent') playSpeedPraise();
         setReverseChoiceState({});
         setResolving(false);
         if (isClear) {
           playClearFanfare();
-          setScore(s => s + gain + clearBonus);
-          setTimeLeft(0);
+          setScore(s => s + totalGain + clearBonus);
           setCleared(true);
           setClearTimeBonus(clearBonus);
           finishGame(newScore + clearBonus, newCaught);
         } else {
-          setScore(s => s + gain);
-          setTimeLeft(tl => Math.round((tl + timeBonus) * 10) / 10);
+          setScore(s => s + totalGain);
           nextQuestion(newCaught + 1);
         }
       }, 420);
-      setTimeout(() => { setLastGain(null); setLastTimeBonus(null); }, 1300);
+      setTimeout(() => { setLastGain(null); setJudgePopup(null); setLastLifeChange(null); }, 900);
     } else {
       playBuzz();
       setReverseChoiceState({ [choiceId]: 'wrong' });
       setCombo(0);
-      setTimeLeft(tl => Math.round(Math.max(tl - 1, 0) * 10) / 10);
-      setLastTimePenalty(1);
+      const penalty = DIFFICULTY_MISS_PENALTY[difficulty] || 20;
+      const newLife = Math.max(0, Math.round((life - penalty) * 100) / 100);
+      setJudgePopup({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
+      setLastLifeChange({ amount: -penalty });
       setTimeout(() => {
+        setLife(newLife);
         setReverseChoiceState({});
         setResolving(false);
+        nextQuestion(caught + 1); // 間違えた問題は破棄して次の問題へ
       }, 420);
-      setTimeout(() => setLastTimePenalty(null), 900);
+      setTimeout(() => { setJudgePopup(null); setLastLifeChange(null); }, 900);
     }
   };
 
@@ -1769,7 +1820,7 @@ function FactorHunt() {
   }, [dragging, selectedId, board, poly, combo, caught, unlockedLevel, questionLevel]);
 
   const targetText = useMemo(() => (isReverseStage ? reverseFactorsText : formatPoly(poly)), [poly, isReverseStage, reverseFactorsText]);
-  const wholeTime = Math.floor(Math.max(timeLeft, 0));
+  const wholeTime = Math.max(0, Math.floor(elapsedSeconds)); // ゲーム開始からの経過時間(カウントアップ)
   const mm = String(Math.floor(wholeTime / 60)).padStart(1, '0');
   const ss = String(wholeTime % 60).padStart(2, '0');
 
@@ -1781,8 +1832,16 @@ function FactorHunt() {
       <div className="min-h-screen w-full flex flex-col items-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
         <div className="fxf-menu-container">
-          <div className="flex justify-center mb-3">
-            <img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} />
+          <div className="relative mb-3">
+            <div className="flex justify-center">
+              <img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} />
+            </div>
+            <span
+              className="absolute font-mono font-bold"
+              style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
+            >
+              ver.2.12
+            </span>
           </div>
 
           {/* 期間優勝者。手動で書き換える一覧。次の期間が始まったら中身を差し替える運用。 */}
@@ -1829,9 +1888,7 @@ function FactorHunt() {
           <div className="grid grid-cols-3 gap-2 mb-6">
             {['easy', 'normal', 'hard'].map(diff => {
               const cfg = DIFFICULTY_CONFIG[diff];
-              const mm = Math.floor(cfg.startTime / 60);
-              const ss = cfg.startTime % 60;
-              const timeLabel = ss === 0 ? `${mm}分` : `${mm}分${ss}秒`;
+              const missPenalty = DIFFICULTY_MISS_PENALTY[diff];
               return (
                 <button
                   key={diff}
@@ -1841,7 +1898,7 @@ function FactorHunt() {
                 >
                   <div className="text-sm font-black" style={{ color: '#FFFFFF' }}>{cfg.label}</div>
                   <div className="text-[10px] font-bold mt-1" style={{ color: '#FFFFFFDD' }}>{cfg.clearCount}問</div>
-                  <div className="text-[10px] font-bold" style={{ color: '#FFFFFFDD' }}>{timeLabel}</div>
+                  <div className="text-[10px] font-bold" style={{ color: '#FFFFFFDD' }}>ミス-{missPenalty}%</div>
                 </button>
               );
             })}
@@ -2090,9 +2147,14 @@ function FactorHunt() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
         <div className="max-w-sm sm:max-w-md md:max-w-lg w-full rounded-3xl p-6 shadow-2xl text-center" style={{ background: COLORS.paper }}>
-          <div className="text-sm font-bold mb-1" style={{ color: cleared ? COLORS.leafDeep : COLORS.coral, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{cleared ? `🎉 クリア！(${DIFFICULTY_CONFIG[difficulty].clearCount}問達成)` : 'タイムアップ！'}</div>
+          <div className="text-sm font-bold mb-1" style={{ color: cleared ? COLORS.leafDeep : COLORS.coral, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{cleared ? `🎉 クリア！(${DIFFICULTY_CONFIG[difficulty].clearCount}問達成)` : '💔 体力切れ…ゲームオーバー'}</div>
           <div className="text-5xl font-black mb-1" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{score}</div>
-          {cleared && <div className="text-xs font-bold mb-1" style={{ color: COLORS.leafDeep }}>(残り時間ボーナス +{clearTimeBonus})</div>}
+          {cleared && (
+            <div className="text-xs font-bold mb-1" style={{ color: clearTimeBonus >= 0 ? COLORS.leafDeep : COLORS.coral }}>
+              (タイムボーナス {clearTimeBonus >= 0 ? '+' : ''}{clearTimeBonus})
+            </div>
+          )}
+          <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>プレイ時間：{Math.floor(Math.round(elapsedSeconds) / 60)}分{Math.round(elapsedSeconds) % 60}秒</div>
           <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>捕獲した因数ペア: {caught}組</div>
           <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>難易度: {DIFFICULTY_CONFIG[difficulty].label}</div>
           <div className="text-xs mb-4" style={{ color: COLORS.inkSoft }}>到達レベル: Lv.{unlockedLevel} {LEVEL_INFO[unlockedLevel].name}</div>
@@ -2223,9 +2285,33 @@ function FactorHunt() {
         fontFamily: "'Zen Kaku Gothic New', sans-serif",
         touchAction: 'none',
         overscrollBehavior: 'none',
+        position: 'relative',
       }}
     >
       <FontImport />
+
+      {/* 音ゲー風の判定ポップアップ(Perfect/Excellent/Great/Good/OK/Bad)。画面中央に大きく一瞬表示する */}
+      {judgePopup && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ zIndex: 50 }}
+        >
+          <div
+            className="font-black"
+            style={{
+              color: judgePopup.color,
+              fontFamily: "'Zen Maru Gothic', sans-serif",
+              fontSize: 'clamp(2.2rem, 12vw, 5rem)',
+              textShadow: '0 3px 0 rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4)',
+              animation: 'fxfJudgePop 700ms cubic-bezier(0.2, 0.9, 0.3, 1) both',
+              letterSpacing: '0.03em',
+            }}
+          >
+            {judgePopup.label}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-3xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
 
         {/* メッセージ表示エリア: 内容があってもなくても常に同じ高さを確保し、下のレイアウトがズレないようにする */}
@@ -2234,19 +2320,9 @@ function FactorHunt() {
             <div
               className="text-xs sm:text-sm font-black rounded-xl py-1.5 px-3 w-full shadow-lg leading-tight"
               style={{
-                background:
-                  topMessage.kind === 'levelup' ? COLORS.amber :
-                  topMessage.kind === 'combo' ? COLORS.sky :
-                  topMessage.kind === 'perfect' ? 'linear-gradient(90deg, #FFD54A, #FF9F1C)' :
-                  topMessage.kind === 'great' ? 'linear-gradient(90deg, #8BE38F, #43C97B)' :
-                  COLORS.paper,
-                color:
-                  topMessage.kind === 'speed' ? COLORS.inkSoft :
-                  topMessage.kind === 'perfect' ? '#5c3a00' :
-                  topMessage.kind === 'great' ? '#fff' :
-                  COLORS.ink,
+                background: topMessage.kind === 'levelup' ? COLORS.amber : topMessage.kind === 'combo' ? COLORS.sky : COLORS.paper,
+                color: COLORS.ink,
                 fontFamily: "'Zen Maru Gothic', sans-serif",
-                animation: (topMessage.kind === 'perfect' || topMessage.kind === 'great') ? 'fxfTempoPop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none',
               }}
             >
               {topMessage.text}
@@ -2266,20 +2342,38 @@ function FactorHunt() {
             <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>SCORE</div>
             <div className="text-xl md:text-2xl font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{score}</div>
           </div>
-          <div className="flex-1 rounded-xl px-3 py-1.5 text-center relative overflow-visible" style={{ background: timeLeft <= 10 ? COLORS.coral : COLORS.paper }}>
-            <div className="text-[10px] font-bold" style={{ color: timeLeft <= 10 ? COLORS.paper : COLORS.inkSoft }}>TIME</div>
-            <div className="text-xl md:text-2xl font-black" style={{ color: timeLeft <= 10 ? COLORS.paper : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{mm}:{ss}</div>
-            {lastTimeBonus !== null && (
-              <div className="absolute -top-2 right-1 text-xs font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{lastTimeBonus}s</div>
-            )}
-            {lastTimePenalty !== null && (
-              <div className="absolute -top-2 left-1 text-xs font-black animate-pulse" style={{ color: '#b3402c' }}>-{lastTimePenalty}s</div>
-            )}
+          <div className="flex-1 rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paper }}>
+            <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>TIME</div>
+            <div className="text-xl md:text-2xl font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{mm}:{ss}</div>
           </div>
           <div className="flex-1 rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paper }}>
             <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>COMBO</div>
             <div className="text-xl md:text-2xl font-black" style={{ color: combo > 0 ? COLORS.coral : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>x{multiplier.toFixed(1)}</div>
           </div>
+        </div>
+
+        {/* ライフ(体力)ゲージ: 100%が満タン。0%でゲームオーバー。残量で色が緑→黄→赤に変わる */}
+        <div className="relative rounded-full overflow-hidden mb-2" style={{ height: '28px', background: COLORS.paperDark, flexShrink: 0, border: `2px solid ${COLORS.ink}14` }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.max(0, Math.min(100, life))}%`,
+              background: life <= 10 ? '#FF4D4D' : life <= 30 ? '#FFB020' : 'linear-gradient(90deg, #43C97B, #8BE38F)',
+              transition: 'width 350ms ease, background 350ms ease',
+              boxShadow: life <= 10 ? '0 0 10px rgba(255,77,77,0.7)' : 'none',
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-sm font-black" style={{ color: life > 45 ? '#0b3d20' : '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
+            ❤ HP {life.toFixed(1)}%
+          </div>
+          {lastLifeChange !== null && (
+            <div
+              className="absolute -top-1 right-1 text-xs font-black animate-pulse"
+              style={{ color: lastLifeChange.amount >= 0 ? COLORS.leafDeep : '#fff', background: lastLifeChange.amount >= 0 ? 'transparent' : '#b3402c', padding: lastLifeChange.amount >= 0 ? 0 : '0 4px', borderRadius: '6px' }}
+            >
+              {lastLifeChange.amount >= 0 ? '+' : ''}{lastLifeChange.amount}%
+            </div>
+          )}
         </div>
 
         {/* お題 (縮まない) */}
@@ -2299,7 +2393,7 @@ function FactorHunt() {
             <div
               key={caught}
               className="h-full"
-              style={{ width: '100%', background: '#43C97B', animation: 'fxfTempoGauge 3000ms linear forwards' }}
+              style={{ width: '100%', background: '#FFD54A', animation: 'fxfJudgeGauge 15000ms linear forwards' }}
             />
           </div>
 
