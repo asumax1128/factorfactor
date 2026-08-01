@@ -25,7 +25,7 @@
      ------------------------------------------------------------------ */
   .fxf-menu-container { width: 100%; max-width: 28rem; }        /* スマホ */
 
-  /* 「みんなのランキング2」のタイトル: 768px未満は2行、768px以上は1行にする */
+  /* 「みんなのランキング3」のタイトル: 768px未満は2行、768px以上は1行にする */
   .fxf-title-br { display: block; }
   @media (min-width: 768px) {
     .fxf-title-br { display: none; }
@@ -457,13 +457,27 @@ const DIFFICULTY_CONFIG = {
 
 // 期間優勝者。次の期間が始まったらここを書き換える。表示はハード→ノーマル→イージーの順。
 const PERIOD_CHAMPIONS = {
-  label: '7月前期',
+  label: '7月後期',
   entries: [
-    { difficulty: 'hard',   name: 'てるい',           score: 3470, caught: 50 },
-    { difficulty: 'normal', name: 'お荷物プレイヤー', score: 1425, caught: 30 },
-    { difficulty: 'easy',   name: 'はーちゃん',       score: 511,  caught: 15 },
+    { difficulty: 'hard',   name: 'てるい',   score: 6172, caught: 50 },
+    { difficulty: 'normal', name: '増山悠斗', score: 2671, caught: 30 },
+    { difficulty: 'easy',   name: 'はーちゃん', score: 870,  caught: 15 },
   ],
 };
+
+// 過去の期間優勝者(タイトル画面いちばん下にアーカイブとして表示)。
+// 新しい期間の優勝者が確定したら、現在のPERIOD_CHAMPIONSをここに追加し、
+// PERIOD_CHAMPIONSを新しい期間の内容に書き換える運用。
+const PAST_PERIOD_CHAMPIONS = [
+  {
+    label: '7月前期',
+    entries: [
+      { difficulty: 'hard',   name: 'てるい',           score: 3470, caught: 50 },
+      { difficulty: 'normal', name: 'お荷物プレイヤー', score: 1425, caught: 30 },
+      { difficulty: 'easy',   name: 'はーちゃん',       score: 511,  caught: 15 },
+    ],
+  },
+];
 
 /* ランキングの永続化 (localStorage) */
 const RANKING_STORAGE_KEY = 'factorxfactor_ranking_v1';
@@ -1965,7 +1979,7 @@ function FactorHunt() {
             <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>
-                  🌎 みんなのランキング2 <br className="fxf-title-br" />(20260714~31)
+                  🌎 みんなのランキング3 <br className="fxf-title-br" />(20260801~31)
                 </div>
                 <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
               </div>
@@ -2118,6 +2132,34 @@ function FactorHunt() {
               })}
             </div>
           </div>
+
+          {/* 過去の期間優勝者アーカイブ。新しい期間になったらここに積み重ねていく */}
+          {PAST_PERIOD_CHAMPIONS.length > 0 && (
+            <div className="rounded-2xl px-4 py-3 mb-6 shadow-lg" style={{ background: `${COLORS.paper}cc` }}>
+              <div className="text-[10px] font-black text-center mb-2 tracking-wide" style={{ color: COLORS.inkSoft }}>📜 過去の優勝者</div>
+              <div className="flex flex-col gap-3">
+                {PAST_PERIOD_CHAMPIONS.map(period => (
+                  <div key={period.label}>
+                    <div className="text-[10px] font-bold mb-1" style={{ color: COLORS.inkSoft }}>{period.label}</div>
+                    <div className="flex flex-col gap-1">
+                      {period.entries.map(ch => {
+                        const diffCfg = DIFFICULTY_CONFIG[ch.difficulty];
+                        return (
+                          <div key={ch.difficulty} className="flex items-center gap-2 text-xs rounded-lg px-2 py-1" style={{ background: `${diffCfg.color}14` }}>
+                            <span className="text-[9px] font-black rounded-full px-1.5 py-0.5 shrink-0 text-center" style={{ background: diffCfg.color, color: '#fff', width: '3.2rem', whiteSpace: 'nowrap' }}>{diffCfg.label}</span>
+                            <span className="text-sm leading-none shrink-0">🥇</span>
+                            <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{ch.name}</span>
+                            <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep }}>{ch.score}点</span>
+                            <span className="text-[10px] font-bold shrink-0" style={{ color: COLORS.inkSoft }}>{ch.caught}組</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* クレジット: 控えめで世界観を邪魔しない半透明表示 */}
