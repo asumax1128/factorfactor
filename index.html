@@ -599,8 +599,23 @@ function aggregateTotalRanking(allRecords) {
 }
 
 async function fetchNetRanking() {
-  const res = await fetch(GAS_ENDPOINT_URL);
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(GAS_ENDPOINT_URL);
+  } catch (e) {
+    // ネットワーク断、またはGASの公開設定が「全員」以外でCORSに弾かれた場合
+    throw new Error('サーバーに接続できません(通信環境かGASの公開設定を確認してください)');
+  }
+  if (!res.ok) throw new Error(`サーバー応答エラー (HTTP ${res.status})`);
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    // GAS側でエラーが起きるとJSONではなくHTMLのエラーページが返ってくる。
+    // その場合はここに来るので、GASを疑うべきだと分かるメッセージにする。
+    throw new Error('サーバーの返事が読み取れません(GAS側でエラーが出ている可能性)');
+  }
   if (!data.ok) throw new Error(data.error || 'サーバーエラー');
   // 新GAS: 難易度別に分かれた形式 { hard: [], normal: [], easy: [] }
   if (data.rankingByDifficulty) {
@@ -610,8 +625,14 @@ async function fetchNetRanking() {
       if (!Array.isArray(byDiff[k])) { byDiff[k] = []; return; }
       byDiff[k] = dedupeByName(byDiff[k].sort(compareEntries));
     });
-    // allRecords(全プレイ生データ)があれば総得点ランキングも同時に集計する
-    const totalByDiff = aggregateTotalRanking(data.allRecords);
+    // allRecords(全プレイ生データ)があれば総得点ランキングも同時に集計する。
+    // ここで失敗しても「みんなのランキング」までは道連れにしない。
+    let totalByDiff = { hard: [], normal: [], easy: [] };
+    try {
+      totalByDiff = aggregateTotalRanking(data.allRecords);
+    } catch (e) {
+      console.error('[factor-hunt] 総得点ランキングの集計に失敗:', e);
+    }
     return { byDiff, totalByDiff };
   }
   // 旧GAS(全体TOP10の一覧のみ)への後方互換: クライアント側で難易度別に振り分ける
@@ -960,6 +981,7 @@ function FactorHunt() {
   const [netRanking, setNetRanking] = useState({ hard: [], normal: [], easy: [] }); // ネットランキング(難易度別)
   const [totalRanking, setTotalRanking] = useState({ hard: [], normal: [], easy: [] }); // みんなの総得点ランキング(難易度別)
   const [netStatus, setNetStatus] = useState('idle'); // idle | loading | ok | error
+  const [netError, setNetError] = useState(''); // 取得失敗時のエラー内容(原因切り分け用)
   const [pendingNetEntry, setPendingNetEntry] = useState(null); // 名前未入力のまま終了した時の送信待ちスコア
   const [countdown, setCountdown] = useState(3); // 難易度選択後の「3・2・1・スタート！」カウントダウン
   const [netSubmitState, setNetSubmitState] = useState('none'); // none | pending(名前待ち) | sending | sent | error
@@ -1013,9 +1035,12 @@ function FactorHunt() {
       const { byDiff, totalByDiff } = await fetchNetRanking();
       setNetRanking(byDiff);
       setTotalRanking(totalByDiff);
+      setNetError('');
       setNetStatus('ok');
     } catch (e) {
+      // 原因を切り分けられるよう、エラーの内容を画面にも出す
       console.error('[factor-hunt] ネットランキング取得失敗:', e);
+      setNetError(String((e && e.message) || e));
       setNetStatus('error');
     }
   }, []);
@@ -1987,7 +2012,10 @@ function FactorHunt() {
                 <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>読み込み中…</div>
               )}
               {netStatus === 'error' && (
-                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。</div>
+                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>
+                  読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。
+                  {netError && <div className="text-[10px] mt-1 font-mono" style={{ color: COLORS.inkSoft, wordBreak: 'break-all' }}>({netError})</div>}
+                </div>
               )}
               {netStatus === 'ok' && NET_RANKING_DIFF_ORDER.every(k => (netRanking[k] || []).length === 0) && (
                 <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。全国1位を目指そう！</div>
@@ -2041,7 +2069,10 @@ function FactorHunt() {
                 <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>読み込み中…</div>
               )}
               {netStatus === 'error' && (
-                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。</div>
+                <div className="text-xs text-center py-2" style={{ color: COLORS.coral }}>
+                  読み込みに失敗しました。通信環境を確認して「↻ 更新」を押してね。
+                  {netError && <div className="text-[10px] mt-1 font-mono" style={{ color: COLORS.inkSoft, wordBreak: 'break-all' }}>({netError})</div>}
+                </div>
               )}
               {netStatus === 'ok' && NET_RANKING_DIFF_ORDER.every(k => (totalRanking[k] || []).length === 0) && (
                 <div className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだ記録がありません。プレイして最初の1位を目指そう！</div>
