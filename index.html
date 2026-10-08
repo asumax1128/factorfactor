@@ -1959,7 +1959,7 @@ function FactorHunt({ onBattle }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.4.1
+              ver.4.2
             </span>
           </div>
 
@@ -2759,6 +2759,24 @@ const BADGES = [
   { id: 'lv9', g: 'lv9', r: 4, icon: '🧠', label: 'Lv.9の壁', desc: 'Lv.9の問題を Perfect で正解', test: st => (st.lv9p || 0) >= 1 },
   { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '🐸', label: 'お手つき大王', desc: 'Aでお手つき通算100回', test: st => (st.otetsuki || 0) >= 100 },
   { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★の相手に勝つ', test: st => (st.handiWins || 0) >= 1 },
+  { id: 'games300', g: 'games', r: 4, icon: '🏯', label: '修行の道', desc: '300戦する', test: st => (st.games || 0) >= 300 },
+  { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => (st.maxRating || 0) >= 1600 },
+  { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => (st.maxRating || 0) >= 1900 },
+  { id: 'combo30', g: 'combo', r: 4, icon: '🌋', label: 'コンボの神', desc: '1試合で30コンボ', test: st => (st.maxCombo || 0) >= 30 },
+  { id: 'cancel2000', g: 'cancel', r: 4, icon: '🏰', label: '難攻不落', desc: '相殺で打ち消した量が通算2000', test: st => (st.cancelTotal || 0) >= 2000 },
+  { id: 'ojama500', g: 'ojama', r: 4, icon: '😈', label: 'おじゃま魔王', desc: 'おじゃまタイルを通算500枚送る', test: st => (st.ojSent || 0) >= 500 },
+  { id: 'nomiss10', g: 'nomiss', r: 4, icon: '🎯', label: 'ノーミスの達人', desc: 'ノーミス完走で10回勝つ', test: st => (st.nomissWins || 0) >= 10 },
+  { id: 'wide30', g: 'wide', r: 3, icon: '🎪', label: '人気者', desc: '30人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 30 },
+  { id: 'tour10', g: 'tour', r: 5, icon: '🏛️', label: '殿堂入り', desc: 'クラス大会で10回優勝', test: st => (st.tourWins || 0) >= 10 },
+  { id: 'miracle', g: 'clutch', r: 5, icon: '😇', label: '奇跡の生還', desc: 'Bで体力1%以下になってから勝つ', test: st => (st.miracleWins || 0) >= 1 },
+  { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '🐴', label: 'ダークホース', desc: '出場者の中でレートがいちばん低いのに大会で優勝（記録ありの人が4人以上）', test: st => (st.darkHorse || 0) >= 1 },
+  { id: 'daily7', g: 'daily', r: 2, icon: '📅', label: '皆勤賞', desc: '7日続けて対戦する', test: st => (st.maxDayStreak || 0) >= 7 },
+  { id: 'daily30', g: 'daily', r: 4, icon: '🗓️', label: '継続は力なり', desc: '30日続けて対戦する', test: st => (st.maxDayStreak || 0) >= 30 },
+  { id: 'sp3', g: 'sp3', r: 3, icon: '💥', label: '必殺技三連発', desc: '1試合で必殺技を3回使う', test: st => (st.maxSpMatch || 0) >= 3 },
+  { id: 'revenge', g: 'revenge', r: 2, icon: '⚔️', label: 'リベンジ成功', desc: '前の試合で負けた相手に勝つ', test: st => (st.revenges || 0) >= 1 },
+  { id: 'calm', g: 'calm', r: 3, icon: '🧘', label: '冷静沈着', desc: 'Aでお手つき0のまま、6問以上取って勝つ', test: st => (st.calmWins || 0) >= 1 },
+  { id: 'flawless', g: 'flawless', r: 3, icon: '💎', label: '無傷の勝利', desc: 'Bで攻撃を一度も受けずに勝つ', test: st => (st.flawlessWins || 0) >= 1 },
+  { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
 function BadgeIcons({ st, max = 4 }) {
@@ -3010,7 +3028,17 @@ async function recordMatch(acct, info) {
       s[info.mode] = s[info.mode] || {};
       s[info.mode][o] = (s[info.mode][o] || 0) + 1;
       s.vs = s.vs || {};
-      (info.vs || []).forEach(v => { if (!v.key) return; s.vs[v.key] = s.vs[v.key] || {}; s.vs[v.key][v.o] = (s.vs[v.key][v.o] || 0) + 1; });
+      (info.vs || []).forEach(v => {
+        if (!v.key) return;
+        const r = s.vs[v.key] = s.vs[v.key] || {};
+        if (v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 前回負けた相手に勝った
+        r[v.o] = (r[v.o] || 0) + 1; r.last = v.o;
+      });
+      // 何日続けて対戦しているか（端末の日付で数える）
+      const dkey = t => { const x = new Date(t); return `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`; };
+      const today = dkey(Date.now()), yest = dkey(Date.now() - 86400000);
+      if (s.lastDay !== today) { s.dayStreak = s.lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
+      s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
       if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
       else if (o === 'l') s.streak = 0;
       s.perfects = (s.perfects || 0) + (info.perfects || 0);
@@ -3022,6 +3050,7 @@ async function recordMatch(acct, info) {
       Object.entries(info.add || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) + v; });
       Object.entries(info.max || {}).forEach(([k, v]) => { if (v != null) s[k] = Math.max(s[k] || 0, v); });
       Object.entries(info.min || {}).forEach(([k, v]) => { if (v != null) s[k] = s[k] == null ? v : Math.min(s[k], v); });
+      Object.entries(info.or || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) | v; });
       s.last = Date.now();
       after = s;
       return s;
@@ -3228,7 +3257,7 @@ function bTarget(me, ids, live, ko) {
 /* o = { code, gid, uid, ids, bank, N, diff, hc, view:()=>({live,ko}), sound, fx, onClear } */
 function createBEngine(o) {
   const s = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, resolving: false, over: false, ko: false,
-    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100 };
+    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100, dmgTaken: 0 };
   const fx = (t, p) => { if (o.fx) o.fx(t, p); };
   const snd = k => { if (o.sound) o.sound.play(k); };
   const mul = handiDmgMul(o.hc);
@@ -3294,7 +3323,7 @@ function createBEngine(o) {
     });
     if (E.shield()) { if (dmg || oj) fx('blocked', { dmg, oj }); return; }
     if (oj > 0) s.ojNext += oj;
-    if (dmg > 0 || oj > 0) { snd('hit'); fx('hit', { dmg, oj }); }
+    if (dmg > 0 || oj > 0) { s.dmgTaken += dmg + oj; snd('hit'); fx('hit', { dmg, oj }); }
     damage(dmg);
   };
   /* 自分の攻撃：まず届いている攻撃を相殺し、残りを1位の人に送る */
@@ -3389,7 +3418,7 @@ function createBEngine(o) {
       const keep = []; let dmg = 0, oj = 0;
       s.pend.forEach(p => { if (nowT - p.t >= B_FORCE_LAND) { dmg += p.dmg; oj += p.oj; } else keep.push(p); });
       s.pend = keep;
-      if (!E.shield()) { s.ojNext += oj; if (dmg) { snd('hit'); fx('hit', { dmg, oj }); } damage(dmg); if (s.over) return; }
+      if (!E.shield()) { s.ojNext += oj; s.dmgTaken += dmg + oj; if (dmg) { snd('hit'); fx('hit', { dmg, oj }); } damage(dmg); if (s.over) return; }
     }
     const qe = nowT - s.qStart;
     if (!s.resolving && qe >= QUESTION_TIMEOUT_MS - 5000 && !s.warned) { s.warned = true; if (o.sound) snd('buzz'); }
@@ -3906,7 +3935,7 @@ function PlayerProfile({ name, st, nameOf, me, onClose }) {
             <div key={b.id} className="rounded-xl px-1 py-1.5 text-center" style={{ background: got.has(b.id) ? `${COLORS.amber}33` : COLORS.paperDark, opacity: got.has(b.id) ? 1 : 0.45 }}>
               <div className="text-lg leading-none">{got.has(b.id) ? b.icon : '🔒'}</div>
               <div className="text-[10px] font-black mt-0.5" style={{ color: COLORS.ink }}>{b.label}</div>
-              <div className="text-[8.5px] font-bold leading-tight mt-0.5" style={{ color: COLORS.inkSoft }}>{b.desc}</div>
+              <div className="text-[8.5px] font-bold leading-tight mt-0.5" style={{ color: COLORS.inkSoft }}>{got.has(b.id) ? b.desc : '？？？'}</div>
             </div>
           ))}
         </div>
@@ -4108,7 +4137,8 @@ function BattleGame({ code, state, players, isHost, acct, practice, sound, muted
     const behind = mode === 'B' ? !!(mine.current.eng && mine.current.eng.s.behind) : mine.current.behind;
     // 称号用の記録
     const win = outcome === 'w', eng = mine.current.eng, es = eng ? eng.s : null;
-    const add = {}, mx = {}, mn = {};
+    const add = {}, mx = {}, mn = {}, orr = {};
+    let lvMask = 0;
     if (mode === 'B' && es) {
       const oks = es.hist.filter(h => h.ok);
       if (oks.length) mn.bestMs = Math.round(Math.min(...oks.map(h => h.ms)));
@@ -4117,6 +4147,10 @@ function BattleGame({ code, state, players, isHost, acct, practice, sound, muted
       add.lv9p = oks.filter(h => h.lv === 9 && h.j === 'Perfect').length;
       if (win && es.hist.every(h => h.ok)) add.nomissWins = 1;
       if (win && es.minHp <= 5) add.clutchWins = 1;
+      if (win && es.minHp <= 1) add.miracleWins = 1;
+      if (win && es.dmgTaken === 0) add.flawlessWins = 1;
+      mx.maxSpMatch = es.spUsed;
+      oks.forEach(h => { if (h.j === 'Perfect') lvMask |= 1 << h.lv; });
       if (win && ids.length === 4 && result.reason === 'ko') add.survivors = 1;
     }
     if (mode === 'A') {
@@ -4126,10 +4160,15 @@ function BattleGame({ code, state, players, isHost, acct, practice, sound, muted
       add.otetsuki = Object.values(mine.current.aMiss).reduce((a, v) => a + v, 0);
       add.lv9p = claimsRef.current.filter((c, q) => c && c.uid === me && c.j === 'Perfect' && bank.level(q + 1) === 9).length;
       if (win && others.every(u => !(scA.sc[u] || 0))) add.shutouts = 1;
+      const myCl = claimsRef.current.map((c, q) => ({ c, q })).filter(x => x.c && x.c.uid === me);
+      if (win && add.otetsuki === 0 && myCl.length >= 6) add.calmWins = 1;
+      myCl.forEach(x => { if (x.c.j === 'Perfect') lvMask |= 1 << bank.level(x.q + 1); });
     }
     if (others.some(u => rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 200)) add.giantWins = 1;
     if (others.some(u => rel(u) === 'w' && (hc[u] || 0) >= 3)) add.handiWins = 1;
-    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn };
+    if (lvMask) orr.lvP = lvMask;
+    if (state.final && win && rt[me] != null) { const rs = Object.values(rt); if (rs.length >= 4 && rt[me] <= Math.min(...rs)) add.darkHorse = 1; }
+    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr };
     setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [] });
     if (acct && !practice) recordMatch(acct, info).then(b => { if (b && b.length) setRec(r => ({ ...r, badges: b })); });
   }, [!!result]);
