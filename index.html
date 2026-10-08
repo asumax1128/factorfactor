@@ -15,7 +15,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
+  /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
+  .fxm { font-family: "KaTeX_Main", "Times New Roman", "Cambria Math", serif; font-style: normal; font-weight: 400; white-space: nowrap; letter-spacing: 0; line-height: 1.2; }
+  .fxm-v { font-family: "KaTeX_Math", "Times New Roman", "Cambria Math", serif; font-style: italic; padding-right: 0.04em; }
+  .fxm-op { margin: 0 0.22em; }
+  .fxm-sup { font-size: 0.62em; vertical-align: 0.6em; line-height: 0; margin-left: 0.03em; }
+  .fxm-arrow { margin: 0 0.35em; }
   html, body { margin: 0; padding: 0; background: #E3F6FD; }
   #root { min-height: 100vh; }
   #boot-status { font-family: sans-serif; color: #4C7A93; text-align: center; padding-top: 40vh; }
@@ -214,6 +221,33 @@ function formatFactorTile(f) {
 }
 
 const POW_SYMBOL = { 4: 'x⁴', 3: 'x³', 2: 'x²', 1: 'x', 0: '' };
+
+/* 数式を教科書のような書体で表示する（x は斜体、指数は上付き、マイナスは長い −） */
+const MATH_SUP = { '²': '2', '³': '3', '⁴': '4' };
+function MathText({ text }) {
+  const s = String(text == null ? '' : text);
+  const out = [];
+  let i = 0, key = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    if (/[0-9]/.test(ch)) {
+      let j = i; while (j < s.length && /[0-9]/.test(s[j])) j++;
+      out.push(<span key={key++}>{s.slice(i, j)}</span>); i = j; continue;
+    }
+    if (ch === 'x') { out.push(<span key={key++} className="fxm-v">x</span>); i++; continue; }
+    if (MATH_SUP[ch]) { out.push(<sup key={key++} className="fxm-sup">{MATH_SUP[ch]}</sup>); i++; continue; }
+    if (ch === '+' || ch === '-' || ch === '±' || ch === '∓') {
+      const before = s.slice(0, i).trim();
+      const binary = before.length > 0 && !before.endsWith('(') && !before.endsWith('→');
+      const sym = ch === '-' ? '−' : ch;
+      out.push(<span key={key++} className={binary ? 'fxm-op' : undefined}>{sym}</span>); i++; continue;
+    }
+    if (ch === '→') { out.push(<span key={key++} className="fxm-arrow">→</span>); i++; continue; }
+    out.push(<span key={key++}>{ch}</span>); i++;
+  }
+  return <span className="fxm">{out}</span>;
+}
 function formatPoly(poly) {
   const terms = [];
   [4, 3, 2, 1, 0].forEach(pow => {
@@ -694,11 +728,11 @@ function TutorialVisual({ step }) {
   if (step === 0) {
     return (
       <div className="flex flex-col items-center gap-2">
-        <div className="rounded-xl px-4 py-2 text-sm font-black" style={{ background: COLORS.paperDark, color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>x² + 5x + 6</div>
+        <div className="rounded-xl px-4 py-2 text-sm font-black" style={{ background: COLORS.paperDark, color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}><MathText text="x² + 5x + 6" /></div>
         <div style={{ fontSize: '18px' }}>↓</div>
         <div className="flex gap-2">
-          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}>(x+2)</div>
-          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}>(x+3)</div>
+          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}><MathText text="(x+2)" /></div>
+          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}><MathText text="(x+3)" /></div>
         </div>
       </div>
     );
@@ -706,9 +740,9 @@ function TutorialVisual({ step }) {
   if (step === 1) {
     return (
       <div className="flex items-center gap-3">
-        <div style={tileBase}>(x+2)</div>
+        <div style={tileBase}><MathText text="(x+2)" /></div>
         <svg width="40" height="20"><line x1="0" y1="10" x2="40" y2="10" stroke={COLORS.amber} strokeWidth="3" strokeDasharray="2 6" strokeLinecap="round" /></svg>
-        <div style={tileBase}>(x+3)</div>
+        <div style={tileBase}><MathText text="(x+3)" /></div>
       </div>
     );
   }
@@ -1925,7 +1959,7 @@ function FactorHunt({ onBattle }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.3.1
+              ver.3.2
             </span>
           </div>
 
@@ -2164,7 +2198,7 @@ function FactorHunt({ onBattle }) {
                   <div key={lv} className="flex items-center gap-2 text-xs">
                     <span className="w-14 shrink-0 font-black rounded-full text-center py-0.5" style={{ background: info.color, color: COLORS.paper }}>Lv.{lv}</span>
                     <span className="font-bold" style={{ color: COLORS.ink }}>{info.name}</span>
-                    <span className="ml-auto font-mono" style={{ color: COLORS.inkSoft }}>{info.example}</span>
+                    <span className="ml-auto" style={{ color: COLORS.inkSoft, fontSize: '0.85rem' }}><MathText text={info.example} /></span>
                   </div>
                 );
               })}
@@ -2524,7 +2558,7 @@ function FactorHunt({ onBattle }) {
           ) : (
             <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>この式を因数分解しよう</div>
           )}
-          <div className="font-black" style={{ color: isReverseStage ? '#fff' : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}>{targetText}</div>
+          <div className="font-black" style={{ color: isReverseStage ? '#fff' : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}><MathText text={targetText} /></div>
           <div className="absolute bottom-1.5 right-3 text-[10px] font-bold tracking-wide" style={{ color: isReverseStage ? '#ffb3b3' : COLORS.inkSoft }}>問{caught + 1}/{DIFFICULTY_CONFIG[difficulty].clearCount}</div>
           {lastGain !== null && (
             <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: isReverseStage ? '#ffe680' : COLORS.leafDeep }}>+{lastGain}</div>
@@ -2550,7 +2584,7 @@ function FactorHunt({ onBattle }) {
                     fontSize: 'clamp(1rem, 4vh, 1.6rem)',
                   }}
                 >
-                  {choice.text}
+                  <MathText text={choice.text} />
                 </button>
               );
             })}
@@ -2586,10 +2620,10 @@ function FactorHunt({ onBattle }) {
               if (flash === 'wrong') { bg = COLORS.coral; borderColor = '#b3402c'; }
               if (isSelected && !flash) { borderColor = COLORS.amber; }
               const fontSize = tile.factor.type === 'const'
-                ? 'clamp(1.1rem, 6vmin, 2.75rem)'
+                ? 'clamp(1.4rem, 7.6vmin, 3.2rem)'
                 : tile.factor.type === 'quadratic'
-                ? 'clamp(0.7rem, 3.4vmin, 1.4rem)'
-                : 'clamp(0.9rem, 4.6vmin, 2rem)';
+                ? 'clamp(0.8rem, 3.9vmin, 1.6rem)'
+                : 'clamp(1.05rem, 5.4vmin, 2.3rem)';
               return (
                 <div
                   key={tile.id}
@@ -2608,7 +2642,7 @@ function FactorHunt({ onBattle }) {
                     touchAction: 'none',
                   }}
                 >
-                  {formatFactorTile(tile.factor)}
+                  <MathText text={formatFactorTile(tile.factor)} />
                 </div>
               );
             })}
@@ -2954,12 +2988,12 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
           if (fl === 'correct') { bg = '#6FCBEF'; bc = COLORS.sky; }
           if (fl === 'wrong') { bg = COLORS.coral; bc = '#b3402c'; }
           if (isSel && !fl) bc = COLORS.amber;
-          const fontSize = tile.factor.type === 'const' ? 'clamp(1.1rem, 6vmin, 2.6rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.7rem, 3.3vmin, 1.35rem)' : 'clamp(0.9rem, 4.4vmin, 1.9rem)';
+          const fontSize = tile.factor.type === 'const' ? 'clamp(1.4rem, 7.4vmin, 3.1rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.8rem, 3.8vmin, 1.55rem)' : 'clamp(1.05rem, 5.2vmin, 2.2rem)';
           return (
             <div key={tile.id} data-btile={tile.id} data-f={JSON.stringify(tile.factor)} ref={el => { tileRefs.current[tile.id] = el; }} onPointerDown={e => down(e, tile.id)}
               className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer"
               style={{ background: bg, border: `2px solid ${bc}`, color: COLORS.ink, transform: `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none' }}>
-              {formatFactorTile(tile.factor)}
+              <MathText text={formatFactorTile(tile.factor)} />
             </div>
           );
         })}
@@ -3401,7 +3435,7 @@ function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note }) {
         <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
       </div>
       <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>{note || 'この式を因数分解しよう'} ・ Lv.{level} {LEVEL_INFO[level].name}</div>
-      <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(1.3rem, 5vh, 2.8rem)', ...bFont }}>{formatPoly(poly)}</div>
+      <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(1.3rem, 5vh, 2.8rem)', ...bFont }}><MathText text={formatPoly(poly)} /></div>
       <div className="absolute bottom-1.5 right-3 text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{qLabel}</div>
       {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{gain}</div>}
     </div>
@@ -3791,7 +3825,7 @@ function SpectatorView({ code, state, players, onLeave }) {
     {result && <Card className="mb-3 text-center"><div className="text-2xl font-black" style={{ color: COLORS.amber, ...bFont }}>{result.draw ? '引き分け' : `👑 ${names[result.winner]} の勝ち！`}</div></Card>}
     {mode === 'A' && probA && now >= state.startAt && !result && (
       <Card className="mb-3 text-center"><div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>問{q + 1}/{N} ・ Lv.{probA.level}</div>
-        <div className="text-3xl font-black" style={{ color: COLORS.ink, ...bFont }}>{formatPoly(probA.poly)}</div></Card>
+        <div className="text-3xl font-black" style={{ color: COLORS.ink, ...bFont }}><MathText text={formatPoly(probA.poly)} /></div></Card>
     )}
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
       {slots.map((uid, i) => {
@@ -3813,7 +3847,7 @@ function SpectatorView({ code, state, players, onLeave }) {
               {(l.pd > 0 || l.po > 0) && <div className="text-xs font-black mt-1" style={{ color: COLORS.coral }}>⚠ 攻撃を受けそう：{l.pd ? `体力-${l.pd}%` : ''} {l.po ? `おじゃま${l.po}枚` : ''}</div>}
               {p && !result && <div className="mt-2 rounded-xl px-2 py-1 text-center" style={{ background: COLORS.paperDark }}>
                 <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>いま解いている問題 ・ Lv.{l.lv}{l.oj ? ` ・ おじゃま${l.oj}枚` : ''}</div>
-                <div className="font-black" style={{ color: COLORS.ink, ...bFont }}>{formatPoly(p.poly)}</div>
+                <div className="font-black" style={{ color: COLORS.ink, ...bFont }}><MathText text={formatPoly(p.poly)} /></div>
               </div>}
             </>) : (<>
               <div className="text-3xl font-black" style={{ color: colors[i], ...bFont }}>{(sc && sc.sc[uid]) || 0}点</div>
