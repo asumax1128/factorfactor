@@ -11,6 +11,9 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   html, body { margin: 0; padding: 0; background: #E3F6FD; }
@@ -952,7 +955,7 @@ async function decodeDataUriToAudioBuffer(dataUri) {
 /* ============================================================
    メインコンポーネント
    ============================================================ */
-function FactorHunt() {
+function FactorHunt({ onBattle }) {
   const [screen, setScreen] = useState('menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
   const [questionLevel, setQuestionLevel] = useState(1); // 今出ている問題のレベル
@@ -1908,7 +1911,7 @@ function FactorHunt() {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.2.13
+              ver.3.0
             </span>
           </div>
 
@@ -1937,6 +1940,15 @@ function FactorHunt() {
             style={{ background: COLORS.paper, color: COLORS.sky, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
           >
             📖 チュートリアルを読む
+          </button>
+
+          {/* オンライン対戦（1 vs 1）への入口 */}
+          <button
+            onClick={() => onBattle && onBattle()}
+            className="w-full rounded-2xl py-3 mb-3 text-base font-black shadow-lg transition-transform active:scale-95"
+            style={{ background: `linear-gradient(90deg, ${COLORS.sky}, ${COLORS.coral})`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
+          >
+            ⚔️ オンライン対戦（1 vs 1）
           </button>
 
           <div className="mb-6">
@@ -2654,9 +2666,1177 @@ function FontImport() {
   );
 }
 
+
+/* =====================================================================
+   オンライン対戦（1 vs 1 ＋ 観戦）
+   ---------------------------------------------------------------------
+   ・Firebase Realtime Database（プロジェクト asumath-games）の games/factor 以下を使う
+   ・A：早い者勝ち … 同じ問題を同時に解き、先に正解した人だけ得点。間違えると2秒お手つき
+   ・B：解き切りレース＋攻撃 … 同じ問題の列を自分のペースで。先に規定数を解くか、相手の体力を0にしたら勝ち
+        コンボで体力ダメージ、Perfect／Excellent でおじゃまタイル。届いた攻撃は数秒の予告のあいだに自分の攻撃で相殺できる
+   ・問題は「部屋ごとの種（seed）」から作るので、2人とも同じ問題・同じタイルの並びになる
+   ・名前＋4桁の合言葉で登録すると、勝敗が記録されて勝率が出る（ネットランキングには送らない）
+   ===================================================================== */
+const FB_CONFIG = {
+  apiKey: "AIzaSyC3__kwx4TH-ezcCCUWcb_J7PWZ7pDUjDc",
+  authDomain: "asumath-games.firebaseapp.com",
+  databaseURL: "https://asumath-games-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asumath-games",
+  storageBucket: "asumath-games.firebasestorage.app",
+  messagingSenderId: "254715782397",
+  appId: "1:254715782397:web:bda2fd2283b292db050a94"
+};
+const BATTLE_ROOM_TTL = 6 * 60 * 60 * 1000;
+const BATTLE_START_DELAY = 4200;   // 開始の合図からカウントダウン終了まで
+const A_LOCK_MS = 2000;            // A：お手つきで操作できない時間
+const A_NEXT_DELAY = 1600;         // A：だれかが正解してから次の問題が出るまで
+const B_LAND_DELAY = 3000;         // B：攻撃が届いてから落ちてくるまでの予告時間
+const B_FORCE_LAND = 7000;         // B：解答中でもこれを過ぎた体力ダメージは落ちる
+const OJAMA_UNIT = 5;              // 相殺の計算で、おじゃまタイル1枚 ＝ 体力ダメージ5
+const OJAMA_MAX_PER_BOARD = 3;
+const BATTLE_DIFFS = ['easy', 'normal'];
+const BATTLE_MODES = {
+  A: { label: 'A：早い者勝ち', short: '早い者勝ち', color: '#0E86C6',
+    desc: ['同じ問題を2人同時に解く。先に正解した人だけ得点（レベルの点×コンボ倍率）', '間違えると2秒お手つき（操作できない）', '規定数を出し終えて、得点の多いほうが勝ち'] },
+  B: { label: 'B：解き切りレース＋攻撃', short: 'レース＋攻撃', color: '#E76F51',
+    desc: ['同じ問題の列を自分のペースで解く（体力ゲージあり）', '先に規定数を解き切るか、相手の体力を0にしたら勝ち', 'コンボで体力ダメージ、Perfect・Excellentでおじゃまタイルを送る', '届いた攻撃は3秒の予告中に、自分の攻撃で相殺できる'] },
+};
+
+/* ---------- Firebase ---------- */
+const FB = { db: null, uid: null, off: 0, err: '', started: false, subs: new Set() };
+function fbStart() {
+  if (FB.started) return;
+  FB.started = true;
+  if (!window.firebase) { FB.err = 'オンライン機能を読み込めませんでした（通信が制限されている可能性があります）'; return; }
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    FB.db = firebase.database();
+    FB.db.ref('.info/serverTimeOffset').on('value', s => { FB.off = s.val() || 0; });
+    firebase.auth().onAuthStateChanged(u => { if (u) { FB.uid = u.uid; FB.err = ''; FB.subs.forEach(f => f()); } });
+    firebase.auth().signInAnonymously().catch(e => { FB.err = 'サーバーにログインできませんでした（' + (e.code || 'error') + '）'; FB.subs.forEach(f => f()); });
+  } catch (e) { FB.err = 'オンライン機能の初期化に失敗しました'; }
+}
+const fbNow = () => Date.now() + FB.off;
+const fref = p => FB.db.ref(`games/factor/${p}`);
+const TSV = () => firebase.database.ServerValue.TIMESTAMP;
+const toArrB = v => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.keys(v).sort((a, b) => a - b).map(k => v[k]) : []);
+function useFbReady() {
+  const [, set] = useState(0);
+  useEffect(() => { fbStart(); const f = () => set(x => x + 1); FB.subs.add(f); set(x => x + 1); return () => FB.subs.delete(f); }, []);
+  return { ready: !!(FB.db && FB.uid), err: FB.err };
+}
+function useTick(ms, on) {
+  const [, set] = useState(0);
+  useEffect(() => { if (!on) return; const t = setInterval(() => set(x => x + 1), ms); return () => clearInterval(t); }, [ms, on]);
+}
+/* Firebase の「値」を購読する。path が変わったら付け替える */
+function useFbValue(path) {
+  const [val, setVal] = useState(null);
+  useEffect(() => {
+    if (!path || !FB.db) { setVal(null); return; }
+    const ref = fref(path);
+    const fn = s => setVal(s.val());
+    ref.on('value', fn, () => {});
+    return () => ref.off('value', fn);
+  }, [path, FB.db]);
+  return val;
+}
+
+/* ---------- 同じ問題を作るための「種」つき乱数 ---------- */
+function hashSeed(s) {
+  let h = 1779033703 ^ s.length;
+  for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+function mulberry32(a) {
+  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function withSeed(key, fn) {
+  const orig = Math.random;
+  Math.random = mulberry32(hashSeed(key));
+  try { return fn(); } finally { Math.random = orig; }
+}
+/* 問題の倉庫：レベルごとに、種から決まった順番で問題を作る（2人とも同じ列になる） */
+function makeBank(seed, tileCount) {
+  const lists = {}, seen = {}, levels = {};
+  return {
+    get(level, k) {
+      const L = lists[level] || (lists[level] = []);
+      const S = seen[level] || (seen[level] = new Set());
+      while (L.length <= k) {
+        const i = L.length;
+        const b = withSeed(`${seed}:${level}:${i}`, () => buildBoard(level, S, tileCount));
+        b.tiles = b.tiles.map((t, j) => ({ ...t, id: `q${level}_${i}_${j}` }));
+        L.push(b);
+      }
+      return L[k];
+    },
+    level(n) { // n 問目（1始まり）のレベル
+      if (levels[n] == null) levels[n] = withSeed(`${seed}:lv:${n}`, () => pickLevelForQuestion(n));
+      return levels[n];
+    },
+  };
+}
+/* A：q 問目（0始まり）の問題。レベルの並びと、そのレベルの何問目かで決まる */
+function problemForA(bank, q) {
+  const lv = bank.level(q + 1);
+  let k = 0;
+  for (let i = 0; i < q; i++) if (bank.level(i + 1) === lv) k++;
+  return { level: lv, k, ...bank.get(lv, k) };
+}
+/* おじゃまタイル：正解の組を増やさないダミーを盤面に混ぜる */
+function addOjama(tiles, poly, level, n) {
+  const out = [...tiles];
+  let guard = 0, added = 0;
+  while (added < n && guard < 300) {
+    guard++;
+    const f = foreignFactor(level);
+    const key = factorKey(f);
+    if (out.some(t => factorKey(t.factor) === key)) continue;
+    if (out.some(t => polyEqual(multiply(t.factor, f), poly))) continue;
+    const pos = Math.floor(Math.random() * (out.length + 1));
+    out.splice(pos, 0, { id: 'oj_' + Math.random().toString(36).slice(2), factor: f, ojama: true });
+    added++;
+  }
+  return out;
+}
+/* B：正解したときに送る攻撃 */
+function attackFor(judgeLabel, combo) {
+  let dmg = 0, oj = 0;
+  if (combo >= 2) dmg += Math.min(15, 3 * (combo - 1));
+  if (combo > 0 && combo % 5 === 0) dmg += 10;
+  if (judgeLabel === 'Perfect') oj += 2;
+  else if (judgeLabel === 'Excellent') oj += 1;
+  return { dmg, oj };
+}
+/* A：記録（claims）から得点を計算する（全員が同じ計算をするので食い違わない） */
+function scoreA(bank, claims, players) {
+  const sc = {}, cb = {}, best = {};
+  players.forEach(p => { sc[p] = 0; cb[p] = 0; best[p] = 0; });
+  const log = [];
+  for (let q = 0; ; q++) {
+    const c = claims && claims[q];
+    if (!c) break;
+    const lv = bank.level(q + 1);
+    if (c.uid in sc) {
+      const w = c.uid, mult = 1 + cb[w] * 0.1, pts = Math.round((LEVEL_POINTS[lv] || 10) * mult);
+      sc[w] += pts; cb[w]++; best[w] = Math.max(best[w], cb[w]);
+      players.forEach(p => { if (p !== w) cb[p] = 0; });
+      log.push({ q, w, pts, at: c.at });
+    } else {
+      players.forEach(p => { cb[p] = 0; });
+      log.push({ q, w: null, at: c.at });
+    }
+  }
+  return { sc, cb, best, log };
+}
+const claimsArr = v => { const a = []; if (!v) return a; Object.keys(v).forEach(k => { a[+k] = v[k]; }); return a; };
+
+/* ---------- アカウント（名前＋合言葉）と勝率 ---------- */
+const ACCT_LS = 'fxf_battle_account_v1';
+const NAME_LS = 'fxf_battle_name_v1';
+function acctKey(name) { return 'a' + Array.from(name.trim()).map(c => c.codePointAt(0).toString(36)).join('_'); }
+function loadLS(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function saveLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+async function acctLogin(name, pin, create) {
+  name = name.trim().slice(0, 10);
+  if (!name) return { ok: false, msg: '名前を入れてください' };
+  if (!/^[0-9]{4}$/.test(pin)) return { ok: false, msg: '合言葉は4桁の数字です' };
+  const k = acctKey(name);
+  if (create) {
+    let exists = null;
+    try { exists = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) { return { ok: false, msg: '接続できませんでした' }; }
+    if (exists) return { ok: false, msg: 'その名前はもう登録されています。「ログイン」から入ってね' };
+    try { await fref(`pins/${k}`).set(pin); } catch (e) { return { ok: false, msg: 'その名前はもう登録されています' }; }
+    try { await fref(`accounts/${k}`).update({ name, createdAt: TSV() }); } catch (e) { /* すでにある場合は無視 */ }
+  }
+  try { await fref(`logins/${k}/${FB.uid}`).set(pin); }
+  catch (e) { return { ok: false, msg: create ? '登録に失敗しました' : '名前か合言葉がちがいます' }; }
+  let nm = null;
+  try { nm = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) {}
+  if (!nm) return { ok: false, msg: 'その名前は登録されていません' };
+  return { ok: true, acct: { key: k, name: nm } };
+}
+function bumpStats(acct, mode, outcome, oppKey) {
+  if (!acct || !FB.db) return;
+  fref(`accounts/${acct.key}/stats`).transaction(s => {
+    s = s || {};
+    s.games = (s.games || 0) + 1;
+    s[outcome] = (s[outcome] || 0) + 1;
+    s[mode] = s[mode] || {};
+    s[mode][outcome] = (s[mode][outcome] || 0) + 1;
+    if (oppKey) { s.vs = s.vs || {}; s.vs[oppKey] = s.vs[oppKey] || {}; s.vs[oppKey][outcome] = (s.vs[oppKey][outcome] || 0) + 1; }
+    s.last = Date.now();
+    return s;
+  }).catch(() => {});
+}
+const winRate = st => { const g = (st && st.games) || 0; return g ? (st.w || 0) / g : 0; };
+const recordText = st => `${(st && st.w) || 0}勝${(st && st.l) || 0}敗${(st && st.d) ? (st.d + '分') : ''}`;
+
+/* ---------- 効果音（ソロと同じ音源を使う） ---------- */
+function useBattleSound(muted) {
+  const ref = useRef({});
+  const mutedRef = useRef(muted);
+  useEffect(() => { mutedRef.current = muted; const r = ref.current; if (r.bgm) r.bgm.mute = muted; }, [muted]);
+  useEffect(() => {
+    let cancelled = false;
+    const r = ref.current;
+    const load = async (key, uri, vol, loop) => {
+      try {
+        const p = new Tone.Player().toDestination();
+        p.volume.value = vol; if (loop) p.loop = true;
+        r[key] = p;
+        const buf = await decodeDataUriToAudioBuffer(uri);
+        if (!cancelled) p.buffer = new Tone.ToneAudioBuffer(buf);
+      } catch (e) { /* 音が出なくても遊べる */ }
+    };
+    try {
+      r.buzz = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.2, release: 0.1 } }).toDestination();
+      r.buzz.volume.value = -14;
+      r.beep = new Tone.PolySynth(Tone.Synth).toDestination();
+      r.beep.volume.value = -10;
+    } catch (e) {}
+    load('ok', SUCCESS_SOUND_URI, -4); load('combo', COMBO_FANFARE_URI, -6); load('clear', CLEAR_FANFARE_URI, 0);
+    load('lose', TIMEOUT_FANFARE_URI, -2); load('speed', SPEED_PRAISE_URI, -4); load('bgm', BGM_MUSIC_URI, -14, true);
+    return () => { cancelled = true; Object.values(r).forEach(p => { try { p.stop && p.stop(); } catch (e) {} try { p.dispose && p.dispose(); } catch (e) {} }); ref.current = {}; };
+  }, []);
+  const play = useCallback(key => {
+    if (mutedRef.current) return;
+    const r = ref.current;
+    try {
+      if (key === 'buzz' && r.buzz) { const n = Tone.now(); r.buzz.triggerAttackRelease('A2', 0.2, n); r.buzz.triggerAttackRelease('Gb2', 0.2, n + 0.13); return; }
+      if (key === 'beep' && r.beep) { r.beep.triggerAttackRelease('A4', 0.18, Tone.now()); return; }
+      if (key === 'go' && r.beep) { r.beep.triggerAttackRelease(['A5', 'E6'], 0.7, Tone.now()); return; }
+      if (key === 'hit' && r.beep) { const n = Tone.now(); r.beep.triggerAttackRelease(['C4', 'Eb4'], 0.12, n); r.beep.triggerAttackRelease(['B3', 'D4'], 0.18, n + 0.12); return; }
+      if (key === 'send' && r.beep) { const n = Tone.now(); r.beep.triggerAttackRelease('E5', 0.08, n); r.beep.triggerAttackRelease('B5', 0.12, n + 0.07); return; }
+      const p = r[key];
+      if (p && p.buffer && p.buffer.loaded) { if (p.state === 'started') p.stop(); p.start(); }
+    } catch (e) {}
+  }, []);
+  const bgm = useCallback(on => {
+    const p = ref.current.bgm;
+    try { if (!p || !p.buffer || !p.buffer.loaded) return; if (on && p.state !== 'started') { p.mute = mutedRef.current; p.start(); } if (!on && p.state === 'started') p.stop(); } catch (e) {}
+  }, []);
+  return { play, bgm };
+}
+
+/* ---------- 盤面（ドラッグでつなぐ） ---------- */
+function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
+  const gridRef = useRef(null), tileRefs = useRef({});
+  const [sel, setSel] = useState(null);
+  const [drag, setDrag] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const center = id => {
+    const el = tileRefs.current[id], g = gridRef.current;
+    if (!el || !g) return { x: 0, y: 0 };
+    const r = el.getBoundingClientRect(), b = g.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - b.left, y: r.top + r.height / 2 - b.top };
+  };
+  useEffect(() => { setSel(null); setDrag(false); }, [tiles]);
+  useEffect(() => { if (disabled) { setSel(null); setDrag(false); } }, [disabled]);
+  const down = (e, id) => {
+    if (disabled) return;
+    e.preventDefault();
+    try { if (Tone.getContext().state !== 'running') Tone.start().catch(() => {}); } catch (err) {}
+    setSel(id); setDrag(true); setPos(center(id));
+  };
+  useEffect(() => {
+    if (!drag) return;
+    let raf = null, pend = null, done = false;
+    const mv = e => {
+      if (e.cancelable) e.preventDefault();
+      const g = gridRef.current; if (!g) return;
+      const b = g.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+      pend = { x: cx - b.left, y: cy - b.top };
+      if (raf === null) raf = requestAnimationFrame(() => { raf = null; if (pend) setPos(pend); });
+    };
+    const up = e => {
+      if (done) return; done = true;
+      const cx = e.changedTouches ? e.changedTouches[0].clientX : e.clientX, cy = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+      const el = document.elementFromPoint(cx, cy);
+      const t = el && el.closest ? el.closest('[data-btile]') : null;
+      const from = sel;
+      setDrag(false); setSel(null);
+      if (t) { const tid = t.getAttribute('data-btile'); if (tid && tid !== from) onMatch(from, tid); }
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+    window.addEventListener('touchmove', mv, { passive: false }); window.addEventListener('touchend', up);
+    return () => {
+      if (raf !== null) cancelAnimationFrame(raf);
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up);
+      window.removeEventListener('touchmove', mv); window.removeEventListener('touchend', up);
+    };
+  }, [drag, sel, onMatch]);
+  const rows = Math.max(1, Math.ceil(tiles.length / 3));
+  return (
+    <div className="w-full flex" style={{ flex: '1 1 auto', minHeight: 0, opacity: dim ? 0.45 : 1, transition: 'opacity 200ms' }}>
+      <div ref={gridRef} className="relative grid grid-cols-3 gap-2 sm:gap-3 w-full" style={{ touchAction: 'none', gridTemplateRows: `repeat(${rows}, 1fr)`, height: '100%' }}>
+        <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 10 }}>
+          {drag && sel && (() => { const c = center(sel); return (<>
+            <line x1={c.x} y1={c.y} x2={pos.x} y2={pos.y} stroke={COLORS.amber} strokeWidth="4" strokeLinecap="round" strokeDasharray="2 8" />
+            <circle cx={pos.x} cy={pos.y} r="16" fill="none" stroke={COLORS.amber} strokeWidth="3" />
+            <circle cx={c.x} cy={c.y} r="6" fill={COLORS.amber} />
+          </>); })()}
+        </svg>
+        {tiles.map(tile => {
+          const isSel = sel === tile.id, fl = flash && flash[tile.id];
+          let bg = COLORS.tile, bc = `${COLORS.sky}33`;
+          if (fl === 'correct') { bg = '#6FCBEF'; bc = COLORS.sky; }
+          if (fl === 'wrong') { bg = COLORS.coral; bc = '#b3402c'; }
+          if (isSel && !fl) bc = COLORS.amber;
+          const fontSize = tile.factor.type === 'const' ? 'clamp(1.1rem, 6vmin, 2.6rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.7rem, 3.3vmin, 1.35rem)' : 'clamp(0.9rem, 4.4vmin, 1.9rem)';
+          return (
+            <div key={tile.id} data-btile={tile.id} data-f={JSON.stringify(tile.factor)} ref={el => { tileRefs.current[tile.id] = el; }} onPointerDown={e => down(e, tile.id)}
+              className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer"
+              style={{ background: bg, border: `2px solid ${bc}`, color: COLORS.ink, transform: `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none' }}>
+              {formatFactorTile(tile.factor)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 小さな部品 ---------- */
+const bFont = { fontFamily: "'Zen Maru Gothic', sans-serif" };
+function HpBar({ hp, height = 26, label = true }) {
+  const v = Math.max(0, Math.min(100, hp || 0));
+  return (
+    <div className="relative rounded-full overflow-hidden" style={{ height, background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
+      <div className="h-full rounded-full" style={{ width: `${v}%`, background: v <= 10 ? '#FF4D4D' : v <= 30 ? '#FFB020' : 'linear-gradient(90deg, #43C97B, #8BE38F)', transition: 'width 300ms ease' }} />
+      {label && <div className="absolute inset-0 flex items-center justify-center font-black" style={{ fontSize: height > 20 ? '0.85rem' : '0.62rem', color: v > 45 ? '#0b3d20' : '#fff' }}>❤ {v.toFixed(1)}%</div>}
+    </div>
+  );
+}
+function Card({ children, style, className = '' }) {
+  return <div className={`rounded-2xl p-4 shadow-lg ${className}`} style={{ background: COLORS.paper, ...style }}>{children}</div>;
+}
+function BigBtn({ children, onClick, color = COLORS.sky, disabled, small }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className={`w-full rounded-2xl ${small ? 'py-2 text-sm' : 'py-3 text-base'} font-black shadow-lg transition-transform active:scale-95`}
+      style={{ background: disabled ? `${color}55` : color, color: '#fff', ...bFont }}>{children}</button>
+  );
+}
+/* 相手の様子（画面の端に小さく） */
+function OppMini({ name, mode, live, clearCount, scoreA, online }) {
+  const l = live || {};
+  return (
+    <div className="rounded-xl px-2 py-1.5 shadow" style={{ background: `${COLORS.paper}ee`, border: `2px solid ${COLORS.coral}55`, width: '9.5rem' }}>
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[11px] font-black truncate" style={{ color: COLORS.ink, ...bFont }}>👤 {name}</span>
+        {!online && <span className="text-[9px] font-bold" style={{ color: COLORS.coral }}>切断中</span>}
+      </div>
+      {mode === 'B' ? (<>
+        <div className="mt-1"><HpBar hp={l.hp == null ? 100 : l.hp} height={12} label={false} /></div>
+        <div className="flex justify-between text-[10px] font-bold mt-0.5" style={{ color: COLORS.inkSoft }}>
+          <span>❤{(l.hp == null ? 100 : l.hp).toFixed(0)}%</span><span>{l.c || 0}/{clearCount}問</span><span>{l.combo ? `${l.combo}コンボ` : ''}</span>
+        </div>
+        {(l.pd > 0 || l.po > 0) && <div className="text-[9px] font-black" style={{ color: COLORS.coral }}>⚠ 攻撃が届いている</div>}
+      </>) : (
+        <div className="flex justify-between text-[10px] font-bold mt-0.5" style={{ color: COLORS.inkSoft }}>
+          <span>{scoreA || 0}点</span><span>{l.combo ? `${l.combo}コンボ` : ''}</span>{l.lock > fbNow() && <span style={{ color: COLORS.coral }}>お手つき</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   対戦アプリ本体
+   ===================================================================== */
+function BattleApp({ onExit }) {
+  const fb = useFbReady();
+  const [scr, setScr] = useState('home');           // home | lobby | game
+  const [code, setCode] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [spectator, setSpectator] = useState(false);
+  const [err, setErr] = useState('');
+  const [acct, setAcct] = useState(() => loadLS(ACCT_LS, null));
+  const [guestName, setGuestName] = useState(() => loadLS(NAME_LS, ''));
+  const [muted, setMuted] = useState(false);
+  const sound = useBattleSound(muted);
+  const myName = acct ? acct.name : (guestName.trim() || 'ゲスト');
+
+  const players = useFbValue(code ? `rooms/${code}/players` : null) || {};
+  const state = useFbValue(code ? `rooms/${code}/state` : null);
+
+  // ログイン中なら、この端末がまだ有効か（合言葉の記録が残っているか）を確かめる
+  useEffect(() => { if (acct) saveLS(ACCT_LS, acct); }, [acct]);
+
+  const announce = useCallback(() => {
+    if (!code || !FB.uid || spectator) return;
+    const r = fref(`rooms/${code}/players/${FB.uid}`);
+    r.set({ name: myName, acct: acct ? acct.key : '', joinedAt: TSV() }).catch(() => {});
+    r.onDisconnect().remove();
+  }, [code, spectator, myName, acct]);
+  useEffect(() => { if (code && !spectator) announce(); }, [code, spectator, announce]);
+  // 通信が戻ったら名簿に入り直す
+  useEffect(() => {
+    if (!code || spectator || !FB.db) return;
+    const c = FB.db.ref('.info/connected'), fn = s => { if (s.val()) announce(); };
+    c.on('value', fn);
+    return () => c.off('value', fn);
+  }, [code, spectator, announce]);
+
+  // 部屋の状態に合わせて画面を切り替える
+  useEffect(() => {
+    if (!code) return;
+    if (state && state.phase === 'closed' && !isHost) { setErr('ホストが部屋を閉じました'); leave(true); return; }
+    if (state && state.phase === 'play') setScr('game');
+    else if (scr === 'game') setScr('lobby');
+  }, [state && state.phase, state && state.gid]);
+
+  async function createRoom() {
+    setErr('');
+    for (let t = 0; t < 12; t++) {
+      const c = String(randInt(1000, 9999));
+      let res;
+      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV() }; }); }
+      catch (e) { setErr('部屋を作れませんでした（' + (e.code || e.message) + '）'); return; }
+      if (res.committed) {
+        await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
+        await fref(`rooms/${c}/state`).set({ phase: 'lobby', mode: 'B', diff: 'easy' }).catch(() => {});
+        setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
+        return;
+      }
+    }
+    setErr('空いている部屋コードが見つかりませんでした');
+  }
+  async function joinRoom(c, asSpectator) {
+    setErr('');
+    if (!/^\d{4}$/.test(c)) { setErr('4桁の数字を入れてください'); return; }
+    let m, pl;
+    try { m = (await fref(`rooms/${c}/meta`).get()).val(); pl = (await fref(`rooms/${c}/players`).get()).val() || {}; }
+    catch (e) { setErr('接続できませんでした（' + (e.code || e.message) + '）'); return; }
+    if (!m || m.createdAt < fbNow() - BATTLE_ROOM_TTL) { setErr('その部屋は見つかりません'); return; }
+    const host = m.host === FB.uid;
+    if (!asSpectator && !host) {
+      const others = Object.keys(pl).filter(k => k !== FB.uid);
+      if (others.length >= 2) { setErr('この部屋はもう2人そろっています。「観戦する」なら入れます'); return; }
+    }
+    setIsHost(host); setSpectator(!!asSpectator && !host); setCode(c); setScr('lobby');
+  }
+  function leave(silent) {
+    if (code && FB.uid) {
+      if (isHost) fref(`rooms/${code}/state`).set({ phase: 'closed' }).catch(() => {});
+      if (!spectator) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
+    }
+    sound.bgm(false);
+    setCode(''); setIsHost(false); setSpectator(false); setScr('home');
+    if (!silent) setErr('');
+  }
+  async function startMatch() {
+    const st = state || {};
+    const ids = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).map(([k]) => k).slice(0, 2);
+    if (ids.length < 2) return;
+    const names = {}, accts = {};
+    ids.forEach(k => { names[k] = players[k].name; accts[k] = players[k].acct || ''; });
+    await Promise.all(['claims', 'ev', 'live', 'result'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
+    await fref(`rooms/${code}/state`).set({
+      phase: 'play', mode: st.mode || 'B', diff: st.diff || 'easy', gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
+      startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts,
+    });
+  }
+  const setRule = patch => fref(`rooms/${code}/state`).update(patch).catch(() => {});
+  const backToLobby = () => fref(`rooms/${code}/state`).set({ phase: 'lobby', mode: (state && state.mode) || 'B', diff: (state && state.diff) || 'easy' }).catch(() => {});
+
+  const shell = (children, wide) => (
+    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <FontImport />
+      <div className="w-full" style={{ maxWidth: wide ? '1100px' : '30rem' }}>{children}</div>
+    </div>
+  );
+
+  if (scr === 'home') return shell(
+    <BattleHome fb={fb} acct={acct} setAcct={a => { setAcct(a); saveLS(ACCT_LS, a); }} guestName={guestName}
+      setGuestName={v => { setGuestName(v); saveLS(NAME_LS, v); }} err={err} setErr={setErr}
+      onCreate={createRoom} onJoin={joinRoom} onExit={onExit} />);
+
+  if (scr === 'lobby') return shell(
+    <BattleLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}}
+      onRule={setRule} onStart={startMatch} onLeave={() => leave()} />);
+
+  // 対戦中
+  if (!state || state.phase !== 'play') return shell(<Card><p className="text-center font-bold" style={{ color: COLORS.inkSoft }}>受信しています…</p></Card>);
+  const amPlayer = !spectator && (state.players || []).includes(FB.uid);
+  if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
+  return <BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={acct}
+    sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={startMatch} onLobby={backToLobby} />;
+}
+
+/* ---------- 対戦のトップ画面 ---------- */
+function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, onCreate, onJoin, onExit }) {
+  const [nm, setNm] = useState(acct ? acct.name : '');
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [codeIn, setCodeIn] = useState('');
+  const [rank, setRank] = useState(null);
+  const stats = useFbValue(fb.ready && acct ? `accounts/${acct.key}/stats` : null);
+  useEffect(() => {
+    if (!fb.ready) return;
+    fref('accounts').get().then(s => {
+      const all = s.val() || {};
+      const rows = Object.values(all).filter(a => a && a.name && a.stats && a.stats.games >= 3)
+        .map(a => ({ name: a.name, st: a.stats, rate: winRate(a.stats) }))
+        .sort((a, b) => b.rate - a.rate || (b.st.w || 0) - (a.st.w || 0)).slice(0, 10);
+      setRank(rows);
+    }).catch(() => setRank([]));
+  }, [fb.ready]);
+  const doLogin = async create => {
+    setBusy(true); setMsg('');
+    const r = await acctLogin(nm, pin, create);
+    setBusy(false);
+    if (!r.ok) { setMsg(r.msg); return; }
+    setAcct(r.acct); setPin('');
+  };
+  const inputStyle = { background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' };
+  return (<>
+    <div className="flex items-center justify-between mb-3">
+      <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+    </div>
+    <div className="text-center mb-4">
+      <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>⚔️ オンライン対戦</div>
+      <div className="text-xs font-bold mt-1" style={{ color: COLORS.inkSoft }}>1 vs 1 ・ 同じ問題で勝負！</div>
+    </div>
+    {!fb.ready && <Card className="mb-4"><p className="text-sm text-center font-bold" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}</p></Card>}
+
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🏅 せいせき（勝率の記録）</div>
+      {acct ? (<>
+        <div className="font-black text-lg" style={{ color: COLORS.ink, ...bFont }}>{acct.name}</div>
+        <div className="text-sm font-bold" style={{ color: COLORS.leafDeep }}>
+          {stats && stats.games ? `勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}` : 'まだ対戦の記録がありません'}
+        </div>
+        {stats && stats.games > 0 && <div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>
+          A 早い者勝ち：{recordText(stats.A)} ／ B レース：{recordText(stats.B)}
+        </div>}
+        <button onClick={() => { setAcct(null); setMsg(''); }} className="mt-2 text-[11px] font-bold rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>ログアウト</button>
+      </>) : (<>
+        <p className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>名前と4桁の合言葉を登録すると、どの端末からでも勝敗が記録されます。合言葉は忘れないでね。</p>
+        <input value={nm} onChange={e => setNm(e.target.value.slice(0, 10))} placeholder="名前（10文字まで）" maxLength={10} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
+        <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="合言葉（4桁の数字）" inputMode="numeric" type="password" maxLength={4} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
+        <div className="grid grid-cols-2 gap-2">
+          <BigBtn small disabled={!fb.ready || busy} onClick={() => doLogin(false)}>ログイン</BigBtn>
+          <BigBtn small disabled={!fb.ready || busy} color={COLORS.leaf} onClick={() => doLogin(true)}>新しく登録</BigBtn>
+        </div>
+        {msg && <p className="text-xs font-bold mt-2" style={{ color: COLORS.coral }}>{msg}</p>}
+        <div className="mt-3 pt-3" style={{ borderTop: `1px dashed ${COLORS.sky}55` }}>
+          <label className="text-[11px] font-bold block mb-1" style={{ color: COLORS.inkSoft }}>登録しないで遊ぶ（記録は残りません）</label>
+          <input value={guestName} onChange={e => setGuestName(e.target.value.slice(0, 10))} placeholder="表示する名前" maxLength={10} className="w-full rounded-xl px-3 py-2 font-bold" style={inputStyle} />
+        </div>
+      </>)}
+    </Card>
+
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🚪 部屋</div>
+      <BigBtn disabled={!fb.ready} onClick={() => onCreate()}>部屋を作る（ホスト）</BigBtn>
+      <div className="flex gap-2 mt-3">
+        <input value={codeIn} onChange={e => setCodeIn(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="部屋コード4桁" inputMode="numeric" className="flex-1 min-w-0 rounded-xl px-3 py-2 font-black text-center tracking-widest" style={inputStyle} />
+        <button disabled={!fb.ready} onClick={() => onJoin(codeIn, false)} className="rounded-xl px-4 font-black shadow" style={{ background: COLORS.leaf, color: '#fff', ...bFont }}>参加</button>
+        <button disabled={!fb.ready} onClick={() => onJoin(codeIn, true)} className="rounded-xl px-3 text-xs font-black shadow" style={{ background: COLORS.paperDark, color: COLORS.ink, ...bFont }}>観戦</button>
+      </div>
+      {err && <p className="text-xs font-bold mt-2" style={{ color: COLORS.coral }}>{err}</p>}
+    </Card>
+
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>👑 勝率ランキング（3戦以上）</div>
+      {rank == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>読み込み中…</p>
+        : rank.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p>
+        : rank.map((r, i) => (
+          <div key={r.name} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+            <span className="w-6 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+            <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+            <span className="font-black" style={{ color: COLORS.leafDeep }}>{Math.round(r.rate * 100)}%</span>
+            <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '5.5em', textAlign: 'right' }}>{recordText(r.st)}</span>
+          </div>
+        ))}
+    </Card>
+    <p className="text-center text-[10px]" style={{ color: COLORS.inkSoft }}>対戦の結果はネットランキングには送られません</p>
+  </>);
+}
+
+/* ---------- ロビー ---------- */
+function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart, onLeave }) {
+  const list = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+  const mode = state.mode || 'B', diff = state.diff || 'easy';
+  const seg = (items, cur, onPick) => (
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+      {items.map(([v, label, color]) => (
+        <button key={v} disabled={!isHost} onClick={() => onPick(v)} className="rounded-xl py-2 px-1 text-sm font-black shadow transition-transform active:scale-95"
+          style={{ background: cur === v ? (color || COLORS.sky) : COLORS.paperDark, color: cur === v ? '#fff' : COLORS.ink, opacity: !isHost && cur !== v ? 0.5 : 1, ...bFont }}>{label}</button>
+      ))}
+    </div>
+  );
+  return (<>
+    <Card className="mb-4 text-center">
+      <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>部屋コード</div>
+      <div className="text-5xl font-black tracking-widest my-1" style={{ color: COLORS.sky, ...bFont }}>{code}</div>
+      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{spectator ? '観戦中：対戦が始まるのを待っています' : isHost ? '相手は「参加」、見る人は「観戦」でこのコードを入れます' : 'ホストが始めるのを待っています…'}</div>
+    </Card>
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>対戦する2人</div>
+      {[0, 1].map(i => (
+        <div key={i} className="flex items-center gap-2 py-1.5" style={{ borderBottom: i === 0 ? `1px solid ${COLORS.paperDark}` : 'none' }}>
+          <span className="font-black" style={{ color: i === 0 ? COLORS.sky : COLORS.coral }}>{i === 0 ? '1P' : '2P'}</span>
+          <span className="flex-1 font-bold" style={{ color: list[i] ? COLORS.ink : COLORS.inkSoft, ...bFont }}>{list[i] ? list[i][1].name : 'まだ来ていません'}</span>
+          {list[i] && list[i][1].acct && <span className="text-[10px] font-bold rounded-full px-2" style={{ background: `${COLORS.leaf}22`, color: COLORS.leafDeep }}>記録あり</span>}
+        </div>
+      ))}
+    </Card>
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>対戦方式{isHost ? '' : '（ホストが決めます）'}</div>
+      {seg([['A', BATTLE_MODES.A.label, BATTLE_MODES.A.color], ['B', BATTLE_MODES.B.label, BATTLE_MODES.B.color]], mode, v => onRule({ mode: v }))}
+      <ul className="mt-2 text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.inkSoft }}>
+        {BATTLE_MODES[mode].desc.map(d => <li key={d}>{d}</li>)}
+      </ul>
+      <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>難易度</div>
+      {seg(BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color]), diff, v => onRule({ diff: v }))}
+    </Card>
+    {isHost && <div className="mb-3"><BigBtn color={COLORS.coral} disabled={list.length < 2} onClick={onStart}>{list.length < 2 ? '相手を待っています…' : '対戦スタート！'}</BigBtn></div>}
+    <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+  </>);
+}
+
+/* =====================================================================
+   対戦画面（A・B 共通の外枠）
+   ===================================================================== */
+function BattleGame({ code, state, players, isHost, acct, sound, muted, setMuted, onLeave, onRematch, onLobby }) {
+  const me = FB.uid;
+  const ids = state.players || [];
+  const opp = ids.find(k => k !== me);
+  const names = state.names || {};
+  const diff = state.diff || 'easy', mode = state.mode || 'B';
+  const N = DIFFICULTY_CONFIG[diff].clearCount;
+  const bank = useMemo(() => makeBank(state.seed, DIFFICULTY_CONFIG[diff].tileCount), [state.seed, diff]);
+  const result = useFbValue(`rooms/${code}/result/${state.gid}`);
+  const live = useFbValue(`rooms/${code}/live/${state.gid}`) || {};
+  const [now, setNow] = useState(fbNow());
+  useEffect(() => { const t = setInterval(() => setNow(fbNow()), 100); return () => clearInterval(t); }, []);
+  const counting = now < state.startAt;
+  const cd = Math.ceil((state.startAt - now) / 1000);
+  // カウントダウンの音
+  const lastCd = useRef(null);
+  useEffect(() => {
+    if (!counting) { if (lastCd.current !== 0) { lastCd.current = 0; sound.play('go'); sound.bgm(true); } return; }
+    const v = Math.min(3, cd);
+    if (v !== lastCd.current && v >= 1) { lastCd.current = v; sound.play('beep'); }
+  }, [counting, cd]);
+  useEffect(() => () => sound.bgm(false), []);
+  // スクロールを止める
+  useEffect(() => {
+    const block = e => { if (e.cancelable) e.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    const b = document.body; b.style.overflow = 'hidden'; b.style.overscrollBehavior = 'none';
+    return () => { document.removeEventListener('touchmove', block); b.style.overflow = ''; b.style.overscrollBehavior = ''; };
+  }, []);
+  // 相手が抜けたまま戻らなければ、不戦勝
+  const oppOnline = !!(opp && players[opp]);
+  const goneSince = useRef(null);
+  useEffect(() => {
+    if (result || counting) { goneSince.current = null; return; }
+    if (oppOnline) { goneSince.current = null; return; }
+    if (goneSince.current == null) goneSince.current = Date.now();
+    else if (Date.now() - goneSince.current > 8000) {
+      fref(`rooms/${code}/result/${state.gid}`).transaction(cur => cur ? undefined : { winner: me, loser: opp, reason: 'leave', at: TSV() }).catch(() => {});
+    }
+  }, [now, oppOnline, !!result, counting]);
+  // 勝敗を記録（1試合につき1回）
+  const recorded = useRef(false);
+  useEffect(() => {
+    if (!result || recorded.current) return;
+    recorded.current = true;
+    sound.bgm(false);
+    const outcome = result.draw ? 'd' : result.winner === me ? 'w' : 'l';
+    sound.play(outcome === 'w' ? 'clear' : outcome === 'l' ? 'lose' : 'combo');
+    if (acct) bumpStats(acct, mode, outcome, (state.accts || {})[opp] || '');
+  }, [!!result]);
+
+  const header = (extra) => (
+    <div className="flex items-start justify-between gap-2 mb-1" style={{ flexShrink: 0 }}>
+      <div className="flex flex-col gap-1">
+        <button onClick={() => { if (window.confirm('対戦をやめて部屋を出ますか？（負けになります）')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg text-left" style={{ color: COLORS.inkSoft }}>✕ 退出</button>
+        <div className="text-[10px] font-black rounded-full px-2 py-0.5 text-white" style={{ background: BATTLE_MODES[mode].color }}>{BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label}</div>
+        <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-0.5 rounded-lg text-left" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
+      </div>
+      {extra}
+    </div>
+  );
+  const wrap = children => (
+    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+      <FontImport />
+      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>{children}</div>
+    </div>
+  );
+
+  if (result) return wrap(<BattleResult result={result} me={me} opp={opp} names={names} mode={mode} N={N} live={live} bank={bank} code={code} state={state}
+    isHost={isHost} acct={acct} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} oppOnline={oppOnline} />);
+  if (counting) return wrap(<>
+    {header(null)}
+    <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="text-sm font-black rounded-full px-5 py-1.5 mb-4 shadow-lg text-white" style={{ background: BATTLE_MODES[mode].color, ...bFont }}>{BATTLE_MODES[mode].label}</div>
+      <div className="text-lg font-black mb-6" style={{ color: COLORS.ink, ...bFont }}>{names[me]} <span style={{ color: COLORS.coral }}>VS</span> {names[opp]}</div>
+      <div key={cd} className="font-black leading-none" style={{ color: '#fff', fontSize: cd > 3 ? 'clamp(2rem,10vw,4rem)' : 'clamp(5rem, 30vw, 12rem)', textShadow: `0 6px 0 ${COLORS.forestDeep}, 0 10px 24px rgba(0,0,0,0.35)`, ...bFont }}>{cd > 3 ? 'READY' : cd}</div>
+      <div className="text-sm font-bold mt-8 text-center" style={{ color: '#ffffffcc' }}>{mode === 'A' ? '先に正解した人だけ得点！ まちがえると2秒お手つき' : 'コンボで攻撃！ 届いた攻撃は自分の攻撃で相殺できる'}</div>
+    </div>
+  </>);
+  const props = { code, state, me, opp, names, diff, N, bank, live, now, sound, header, oppOnline };
+  return wrap(mode === 'A' ? <GameA {...props} /> : <GameB {...props} />);
+}
+
+/* ---------- 判定の文字・お題 ---------- */
+function JudgePop({ judge }) {
+  if (!judge) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 50 }}>
+      <div className="font-black text-center" style={{ color: judge.color, fontSize: judge.small ? 'clamp(1.6rem, 8vw, 3rem)' : 'clamp(2.2rem, 12vw, 5rem)', textShadow: '0 3px 0 rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4)', animation: 'fxfJudgePop 700ms cubic-bezier(0.2, 0.9, 0.3, 1) both', ...bFont }}>{judge.label}</div>
+    </div>
+  );
+}
+function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note }) {
+  return (
+    <div data-poly={JSON.stringify(poly)} className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden" style={{ background: COLORS.paper, border: `2px dashed ${COLORS.sky}45`, borderTop: `5px solid ${LEVEL_INFO[level].color}`, flexShrink: 0 }}>
+      <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)' }}>
+        <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
+      </div>
+      <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>{note || 'この式を因数分解しよう'} ・ Lv.{level} {LEVEL_INFO[level].name}</div>
+      <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(1.3rem, 5vh, 2.8rem)', ...bFont }}>{formatPoly(poly)}</div>
+      <div className="absolute bottom-1.5 right-3 text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{qLabel}</div>
+      {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{gain}</div>}
+    </div>
+  );
+}
+const statBox = (label, value, color) => (
+  <div className="flex-1 rounded-xl px-2 py-1 text-center" style={{ background: COLORS.paper }}>
+    <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{label}</div>
+    <div className="text-lg md:text-xl font-black" style={{ color: color || COLORS.ink, ...bFont }}>{value}</div>
+  </div>
+);
+
+/* =====================================================================
+   B：解き切りレース＋攻撃
+   ===================================================================== */
+function GameB({ code, state, me, opp, names, diff, N, bank, live, now, sound, header, oppOnline }) {
+  const gid = state.gid;
+  const S = useRef(null);
+  if (!S.current) S.current = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, cancelled: 0, resolving: false, over: false, lastT: Date.now(), cur: null, qStart: 0, warned: false };
+  const [, force] = useState(0);
+  const rerender = () => force(x => x + 1);
+  const [flash, setFlash] = useState({});
+  const [judge, setJudge] = useState(null);
+  const [gain, setGain] = useState(null);
+  const [banner, setBanner] = useState(null);
+  const bannerT = useRef(null);
+  const showBanner = (text, color, ms = 1300) => { clearTimeout(bannerT.current); setBanner({ text, color }); bannerT.current = setTimeout(() => setBanner(null), ms); };
+
+  const serve = useCallback(() => {
+    const s = S.current;
+    const n = s.c + 1, lv = bank.level(n), k = s.served[lv] || 0;
+    s.served[lv] = k + 1;
+    const b = bank.get(lv, k);
+    let tiles = b.tiles.map(t => ({ ...t }));
+    const oj = Math.min(OJAMA_MAX_PER_BOARD, s.ojNext);
+    if (oj > 0) { tiles = addOjama(tiles, b.poly, lv, oj); s.ojNext -= oj; showBanner(`💥 おじゃまタイルが${oj}枚まざった！`, COLORS.coral, 1600); }
+    s.cur = { level: lv, k, poly: b.poly, tiles, oj };
+    s.qStart = Date.now(); s.warned = false;
+  }, [bank]);
+  if (!S.current.cur) serve();
+
+  const pushLive = useRef(0);
+  const writeLive = (force2) => {
+    const s = S.current, t = Date.now();
+    if (!force2 && t - pushLive.current < 400) return;
+    pushLive.current = t;
+    const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);
+    fref(`rooms/${code}/live/${gid}/${me}`).set({ hp: Math.round(s.hp * 10) / 10, c: s.c, score: s.score, combo: s.combo, pd, po, lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.over ? 'over' : 'play' }).catch(() => {});
+  };
+  const finish = (winner, reason) => {
+    const s = S.current;
+    if (s.over) return;
+    s.over = true;
+    writeLive(true);
+    fref(`rooms/${code}/result/${gid}`).transaction(cur => cur ? undefined : { winner, loser: winner === me ? opp : me, reason, at: TSV() }).catch(() => {});
+  };
+  // 届いた攻撃を落とす（予告時間を過ぎたものだけ）
+  const land = (forceAll) => {
+    const s = S.current, t = Date.now();
+    let dmg = 0, oj = 0;
+    s.pend = s.pend.filter(p => {
+      if (forceAll || t - p.t >= B_LAND_DELAY) { dmg += p.dmg; oj += p.oj; return false; }
+      return true;
+    });
+    if (dmg > 0) { s.hp = Math.max(0, Math.round((s.hp - dmg) * 100) / 100); sound.play('hit'); showBanner(`💢 攻撃を受けた！ 体力 -${dmg}%`, COLORS.coral); }
+    if (oj > 0) { s.ojNext += oj; if (!dmg) showBanner(`💢 次の問題におじゃまタイル +${oj}`, COLORS.coral); }
+    if (s.hp <= 0) finish(opp, 'ko');
+  };
+  // 相手からの攻撃を受け取る
+  const evs = useFbValue(`rooms/${code}/ev/${gid}/${me}`);
+  useEffect(() => {
+    if (!evs) return;
+    const s = S.current;
+    Object.entries(evs).forEach(([k, e]) => {
+      if (s.seenEv[k] || !e) return;
+      s.seenEv[k] = 1;
+      s.pend.push({ dmg: e.dmg || 0, oj: e.oj || 0, t: Date.now() });
+      sound.play('buzz');
+      showBanner(`⚠ 攻撃が来る！ ${e.dmg ? `体力-${e.dmg}%` : ''}${e.dmg && e.oj ? '・' : ''}${e.oj ? `おじゃま${e.oj}枚` : ''}　コンボで相殺しよう！`, '#b3402c', 1800);
+    });
+    writeLive(true); rerender();
+  }, [evs]);
+
+  // 自分の攻撃：まず届いている攻撃を相殺し、残りを相手に送る
+  const sendAttack = out => {
+    const s = S.current;
+    let units = out.dmg + out.oj * OJAMA_UNIT;
+    if (units <= 0) return;
+    let cancelled = 0;
+    for (const p of s.pend) {
+      if (units <= 0) break;
+      const pu = p.dmg + p.oj * OJAMA_UNIT;
+      const c = Math.min(units, pu);
+      units -= c; cancelled += c;
+      let r = c;
+      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;
+      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));
+    }
+    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);
+    if (cancelled > 0) showBanner(`🛡 相殺！ ${cancelled}ぶん打ち消した`, COLORS.sky);
+    if (units <= 0) return;
+    const oj = Math.min(out.oj, Math.floor(units / OJAMA_UNIT));
+    const dmg = units - oj * OJAMA_UNIT;
+    const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);
+    fref(`rooms/${code}/ev/${gid}/${opp}/${key}`).set({ dmg, oj, from: me, at: TSV() }).catch(() => {});
+    s.sent += dmg + oj * OJAMA_UNIT;
+    sound.play('send');
+    if (!cancelled) showBanner(`⚔ 攻撃！ ${dmg ? `体力-${dmg}%` : ''}${dmg && oj ? '・' : ''}${oj ? `おじゃま${oj}枚` : ''}`, COLORS.leafDeep);
+  };
+
+  const next = () => {
+    const s = S.current;
+    land(false);
+    if (s.over) return;
+    serve();
+    setFlash({}); s.resolving = false;
+    writeLive(true); rerender();
+  };
+
+  const onMatch = useCallback((id1, id2) => {
+    const s = S.current;
+    if (s.resolving || s.over || !s.cur) return;
+    const t1 = s.cur.tiles.find(t => t.id === id1), t2 = s.cur.tiles.find(t => t.id === id2);
+    if (!t1 || !t2) return;
+    s.resolving = true;
+    if (polyEqual(multiply(t1.factor, t2.factor), s.cur.poly)) {
+      sound.play('ok');
+      setFlash({ [id1]: 'correct', [id2]: 'correct' });
+      const mult = 1 + s.combo * 0.1, g = Math.round((LEVEL_POINTS[s.cur.level] || 10) * mult);
+      const j = getJudgment(Date.now() - s.qStart);
+      const raw = s.hp + j.recover, over = Math.max(0, Math.round(raw - 100));
+      s.hp = Math.min(100, Math.round(raw * 100) / 100);
+      s.score += g + over; s.combo++; s.best = Math.max(s.best, s.combo); s.c++;
+      setJudge({ label: j.label, color: j.color }); setGain(g + over);
+      if (j.label === 'Perfect' || j.label === 'Excellent') sound.play('speed');
+      if (s.combo % 5 === 0) sound.play('combo');
+      sendAttack(attackFor(j.label, s.combo));
+      writeLive(true);
+      if (s.c >= N) { finish(me, 'clear'); rerender(); return; }
+      setTimeout(next, 420);
+    } else {
+      sound.play('buzz');
+      setFlash({ [id1]: 'wrong', [id2]: 'wrong' });
+      s.combo = 0;
+      s.hp = Math.max(0, Math.round((s.hp - (DIFFICULTY_MISS_PENALTY[diff] || 20)) * 100) / 100);
+      setJudge({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
+      writeLive(true);
+      if (s.hp <= 0) { finish(opp, 'ko'); rerender(); return; }
+      setTimeout(next, 420);
+    }
+    setTimeout(() => { setJudge(null); setGain(null); }, 800);
+    rerender();
+  }, [bank, diff, N]);
+
+  // 体力の自然減少・時間切れ・予告の時間切れ
+  useEffect(() => {
+    const t = setInterval(() => {
+      const s = S.current;
+      const nowT = Date.now(), dt = nowT - s.lastT; s.lastT = nowT;
+      if (s.over) return;
+      if (!s.resolving) s.hp = Math.max(0, Math.round((s.hp - dt / 1000) * 100) / 100);
+      // 予告が長すぎる体力ダメージは、解答中でも落ちる
+      if (s.pend.some(p => nowT - p.t >= B_FORCE_LAND)) {
+        const keep = []; let dmg = 0;
+        s.pend.forEach(p => { if (nowT - p.t >= B_FORCE_LAND) { dmg += p.dmg; s.ojNext += p.oj; } else keep.push(p); });
+        s.pend = keep;
+        if (dmg) { s.hp = Math.max(0, s.hp - dmg); sound.play('hit'); showBanner(`💢 攻撃を受けた！ 体力 -${dmg}%`, COLORS.coral); }
+      }
+      const qe = nowT - s.qStart;
+      if (!s.resolving && qe >= QUESTION_TIMEOUT_MS - 5000 && !s.warned) { s.warned = true; sound.play('buzz'); }
+      if (!s.resolving && qe >= QUESTION_TIMEOUT_MS) {
+        s.resolving = true; s.combo = 0;
+        s.hp = Math.max(0, s.hp - (DIFFICULTY_TIMEOUT_EXTRA[diff] || 0));
+        setJudge({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
+        setTimeout(() => setJudge(null), 800);
+        if (s.hp <= 0) { finish(opp, 'ko'); return; }
+        setTimeout(next, 420);
+      }
+      if (s.hp <= 0) { finish(opp, 'ko'); return; }
+      writeLive(false);
+      rerender();
+    }, 100);
+    return () => clearInterval(t);
+  }, []);
+
+  const s = S.current, cur = s.cur;
+  const qe = Date.now() - s.qStart;
+  const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);
+  const soonest = s.pend.length ? Math.max(0, B_LAND_DELAY - (Date.now() - Math.min(...s.pend.map(p => p.t)))) : 0;
+  const oppLive = live[opp];
+  return (<>
+    {qe >= QUESTION_TIMEOUT_MS - 5000 && qe < QUESTION_TIMEOUT_MS && !s.resolving && <div className="pointer-events-none absolute inset-0" style={{ background: '#FF1E1E', animation: 'fxfTimeWarningFlash 500ms ease-in-out infinite', zIndex: 40 }} />}
+    <JudgePop judge={judge} />
+    {header(<OppMini name={names[opp]} mode="B" live={oppLive} clearCount={N} online={oppOnline} />)}
+    <div className="mb-1 flex items-center justify-center text-center" style={{ height: '2.2rem', flexShrink: 0 }}>
+      {banner && <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: banner.color, ...bFont }}>{banner.text}</div>}
+    </div>
+    <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
+      {statBox('SCORE', s.score)}{statBox('解いた', `${s.c}/${N}`)}{statBox('COMBO', s.combo, s.combo > 0 ? COLORS.coral : null)}
+    </div>
+    <div className="mb-1" style={{ flexShrink: 0 }}><HpBar hp={s.hp} /></div>
+    <div className="mb-1 rounded-xl px-2 flex items-center gap-2" style={{ height: '1.7rem', flexShrink: 0, background: (pd || po) ? '#ffe1d9' : 'transparent', border: (pd || po) ? '2px solid #e76f51' : '2px solid transparent' }}>
+      {(pd || po) ? (<>
+        <span className="text-[11px] font-black" style={{ color: '#b3402c' }}>⚠ 予告：{pd ? `体力-${pd}%` : ''}{pd && po ? '・' : ''}{po ? `おじゃま${po}枚` : ''}</span>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#f6c3b6' }}><div className="h-full" style={{ width: `${Math.min(100, soonest / B_LAND_DELAY * 100)}%`, background: '#e76f51' }} /></div>
+        <span className="text-[10px] font-bold" style={{ color: '#b3402c' }}>正解して相殺！</span>
+      </>) : <span className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{s.ojNext ? `次の問題におじゃまタイル${Math.min(OJAMA_MAX_PER_BOARD, s.ojNext)}枚` : ''}</span>}
+    </div>
+    {cur && <TargetCard poly={cur.poly} level={cur.level} qLabel={`問${s.c + 1}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
+    {cur && <BattleBoard tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} flash={flash} />}
+    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>コンボで攻撃（体力ダメージ）・Perfect/Excellentでおじゃまタイルを送る</p>
+  </>);
+}
+
+/* =====================================================================
+   A：早い者勝ち
+   ===================================================================== */
+function GameA({ code, state, me, opp, names, diff, N, bank, live, now, sound, header, oppOnline }) {
+  const gid = state.gid;
+  const claimsV = useFbValue(`rooms/${code}/claims/${gid}`);
+  const claims = useMemo(() => claimsArr(claimsV), [claimsV]);
+  let q = 0; while (claims[q]) q++;
+  const ids = state.players || [me, opp];
+  const sc = useMemo(() => scoreA(bank, claims, ids), [claims, bank]);
+  const qStart = q === 0 ? state.startAt : (claims[q - 1].at || state.startAt) + A_NEXT_DELAY;
+  const ended = q >= N;
+  const waiting = !ended && now < qStart;
+  const prob = useMemo(() => ended ? null : problemForA(bank, q), [bank, q, ended]);
+  const lock = useRef(0);
+  const [flash, setFlash] = useState({});
+  const [judge, setJudge] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const lastSeenQ = useRef(0);
+  // だれかが正解したとき（または時間切れ）の表示
+  useEffect(() => {
+    if (q === 0 || q === lastSeenQ.current) return;
+    lastSeenQ.current = q;
+    const c = claims[q - 1];
+    setFlash({}); setBusy(false);
+    if (c && c.uid === me) { /* 自分の正解は回答時に表示済み */ }
+    else if (c && c.uid === opp) { sound.play('buzz'); setJudge({ label: `${names[opp]}が先に正解！`, color: COLORS.coral, small: true }); setTimeout(() => setJudge(null), 1200); }
+    else { setJudge({ label: '時間切れ', color: '#9aa', small: true }); setTimeout(() => setJudge(null), 1000); }
+  }, [q]);
+  // 時間切れ（20秒だれも正解しない）
+  useEffect(() => {
+    if (ended || waiting) return;
+    if (now - qStart >= QUESTION_TIMEOUT_MS) {
+      fref(`rooms/${code}/claims/${gid}/${q}`).transaction(cur => cur ? undefined : { uid: '_none', at: TSV() }).catch(() => {});
+    }
+  }, [now >= qStart + QUESTION_TIMEOUT_MS, q]);
+  // 出し終わったら、ホストが結果を書く（どちらの端末でも同じ計算になる）
+  useEffect(() => {
+    if (!ended) return;
+    const a = sc.sc[me] || 0, b = sc.sc[opp] || 0;
+    const res = a === b ? { draw: true, reason: 'points', at: TSV(), sc: sc.sc } : { winner: a > b ? me : opp, loser: a > b ? opp : me, reason: 'points', at: TSV(), sc: sc.sc };
+    fref(`rooms/${code}/result/${gid}`).transaction(cur => cur ? undefined : res).catch(() => {});
+  }, [ended]);
+  const pushLive = (patch) => fref(`rooms/${code}/live/${gid}/${me}`).update(patch).catch(() => {});
+  useEffect(() => { pushLive({ combo: sc.cb[me] || 0, score: sc.sc[me] || 0 }); }, [sc]);
+
+  const onMatch = useCallback((id1, id2) => {
+    if (busy || ended || waiting || !prob) return;
+    if (fbNow() < lock.current) return;
+    const t1 = prob.tiles.find(t => t.id === id1), t2 = prob.tiles.find(t => t.id === id2);
+    if (!t1 || !t2) return;
+    if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
+      setBusy(true);
+      setFlash({ [id1]: 'correct', [id2]: 'correct' });
+      const j = getJudgment(fbNow() - qStart);
+      const qq = q;
+      fref(`rooms/${code}/claims/${gid}/${qq}`).transaction(cur => cur ? undefined : { uid: me, at: TSV() }).then(r => {
+        if (r && r.committed) {
+          sound.play('ok');
+          if (j.label === 'Perfect' || j.label === 'Excellent') sound.play('speed');
+          setJudge({ label: j.label, color: j.color }); setTimeout(() => setJudge(null), 800);
+        } else {
+          setJudge({ label: 'おしい！ 相手が先', color: COLORS.coral, small: true }); setTimeout(() => setJudge(null), 1000);
+        }
+      }).catch(() => setBusy(false));
+    } else {
+      sound.play('buzz');
+      lock.current = fbNow() + A_LOCK_MS;
+      pushLive({ lock: lock.current });
+      setFlash({ [id1]: 'wrong', [id2]: 'wrong' });
+      setJudge({ label: 'お手つき！', color: COLORS.coral, small: true });
+      setTimeout(() => { setFlash({}); setJudge(null); }, 700);
+    }
+  }, [busy, ended, waiting, prob, q, qStart]);
+
+  const locked = now < lock.current;
+  const myCombo = sc.cb[me] || 0;
+  const last = q > 0 ? sc.log[q - 1] : null;
+  return (<>
+    <JudgePop judge={judge} />
+    {header(<OppMini name={names[opp]} mode="A" live={live[opp]} scoreA={sc.sc[opp]} online={oppOnline} />)}
+    <div className="mb-1 flex items-center justify-center text-center" style={{ height: '2.2rem', flexShrink: 0 }}>
+      {locked ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: COLORS.coral, ...bFont }}>お手つき中… あと{Math.max(0, (lock.current - now) / 1000).toFixed(1)}秒</div>
+        : waiting && last ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: last.w === me ? COLORS.leafDeep : last.w ? COLORS.coral : COLORS.inkSoft, ...bFont }}>
+          {last.w === me ? `あなたが正解！ +${last.pts}点` : last.w ? `${names[last.w]}が正解 +${last.pts}点` : 'だれも解けなかった'} ・ 次の問題へ</div> : null}
+    </div>
+    <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
+      {statBox('あなた', `${sc.sc[me] || 0}点`, COLORS.sky)}{statBox('相手', `${sc.sc[opp] || 0}点`, COLORS.coral)}{statBox('COMBO', myCombo, myCombo > 0 ? COLORS.coral : null)}
+    </div>
+    <div className="mb-2 flex gap-1" style={{ flexShrink: 0 }}>
+      {Array.from({ length: N }).map((_, i) => {
+        const c = claims[i];
+        const bg = !c ? (i === q ? COLORS.amber : `${COLORS.ink}18`) : c.uid === me ? COLORS.sky : c.uid === opp ? COLORS.coral : '#b8c4cc';
+        return <div key={i} className="flex-1 rounded-sm" style={{ height: '8px', background: bg }} />;
+      })}
+    </div>
+    {prob && <TargetCard poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} />}
+    {prob && <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
+    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>先に正解した人だけ得点 ・ まちがえると2秒お手つき</p>
+  </>);
+}
+
+/* ---------- 結果 ---------- */
+function BattleResult({ result, me, opp, names, mode, N, live, bank, code, state, isHost, acct, onRematch, onLobby, onLeave, oppOnline }) {
+  const outcome = result.draw ? 'd' : result.winner === me ? 'w' : 'l';
+  const stats = useFbValue(acct ? `accounts/${acct.key}/stats` : null);
+  const claimsV = useFbValue(mode === 'A' ? `rooms/${code}/claims/${state.gid}` : null);
+  const sc = mode === 'A' ? scoreA(bank, claimsArr(claimsV), state.players || [me, opp]) : null;
+  const reason = { ko: outcome === 'w' ? `${names[opp]}の体力が0になった` : 'あなたの体力が0になった', clear: outcome === 'w' ? `${N}問を先に解き切った！` : `${names[opp]}が先に${N}問を解き切った`, leave: '相手が退出した（不戦勝）', points: '得点で勝負' }[result.reason] || '';
+  const row = (uid, label) => {
+    const l = (live || {})[uid] || {};
+    return (
+      <div className="flex items-center gap-2 py-2" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+        <span className="font-black w-16 text-xs" style={{ color: uid === me ? COLORS.sky : COLORS.coral }}>{label}</span>
+        <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{names[uid]}{result.winner === uid ? ' 👑' : ''}</span>
+        {mode === 'A' ? <span className="font-black" style={{ color: COLORS.ink }}>{(sc && sc.sc[uid]) || 0}点 <span className="text-[10px]" style={{ color: COLORS.inkSoft }}>最大{(sc && sc.best[uid]) || 0}コンボ</span></span>
+          : <span className="text-xs font-bold text-right" style={{ color: COLORS.ink }}>{l.c || 0}/{N}問 ・ ❤{(l.hp == null ? 0 : l.hp).toFixed(0)}% ・ {l.score || 0}点</span>}
+      </div>
+    );
+  };
+  return (
+    <div className="flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
+      <div className="text-center mb-4">
+        <div className="font-black" style={{ fontSize: 'clamp(2.6rem, 14vw, 5rem)', color: outcome === 'w' ? COLORS.amber : outcome === 'l' ? COLORS.inkSoft : COLORS.sky, textShadow: '0 4px 0 rgba(0,0,0,.15)', ...bFont }}>
+          {outcome === 'w' ? 'WIN!' : outcome === 'l' ? 'LOSE…' : 'DRAW'}
+        </div>
+        <div className="text-sm font-bold" style={{ color: COLORS.ink }}>{reason}</div>
+      </div>
+      <Card className="mb-3">{row(me, 'あなた')}{row(opp, '相手')}</Card>
+      {acct ? <Card className="mb-3"><div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>🏅 {acct.name} のせいせき</div>
+        <div className="font-black" style={{ color: COLORS.leafDeep }}>{stats && stats.games ? `勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}` : '記録中…'}</div></Card>
+        : <p className="text-center text-[11px] font-bold mb-3" style={{ color: COLORS.inkSoft }}>名前と合言葉を登録すると、勝敗が記録されます</p>}
+      {isHost ? (<div className="flex flex-col gap-2">
+        <BigBtn color={COLORS.coral} disabled={!oppOnline} onClick={onRematch}>{oppOnline ? 'もう一戦（同じルール）' : '相手がいません'}</BigBtn>
+        <BigBtn small onClick={onLobby}>ルールを変える（ロビーへ）</BigBtn>
+        <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+      </div>) : (<div className="flex flex-col gap-2">
+        <p className="text-center text-sm font-bold" style={{ color: COLORS.inkSoft }}>ホストが次の対戦を始めるのを待っています…</p>
+        <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+      </div>)}
+    </div>
+  );
+}
+
+/* =====================================================================
+   観戦モード：最大4人ぶんの枠を並べる（いまは1 vs 1 なので2枠を使う）
+   ===================================================================== */
+function SpectatorView({ code, state, players, onLeave }) {
+  const ids = state.players || [];
+  const names = state.names || {};
+  const diff = state.diff || 'easy', mode = state.mode || 'B';
+  const N = DIFFICULTY_CONFIG[diff].clearCount;
+  const bank = useMemo(() => makeBank(state.seed, DIFFICULTY_CONFIG[diff].tileCount), [state.seed, diff]);
+  const live = useFbValue(`rooms/${code}/live/${state.gid}`) || {};
+  const result = useFbValue(`rooms/${code}/result/${state.gid}`);
+  const claimsV = useFbValue(mode === 'A' ? `rooms/${code}/claims/${state.gid}` : null);
+  useTick(250, true);
+  const now = fbNow();
+  const claims = claimsArr(claimsV);
+  let q = 0; while (claims[q]) q++;
+  const sc = mode === 'A' ? scoreA(bank, claims, ids) : null;
+  const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
+  const slots = [0, 1, 2, 3].map(i => ids[i] || null);
+  const colors = [COLORS.sky, COLORS.coral, COLORS.leaf, COLORS.amber];
+  return (<>
+    <div className="flex items-center justify-between mb-3">
+      <button onClick={onLeave} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← 観戦をやめる</button>
+      <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: BATTLE_MODES[mode].color }}>👀 観戦中 ・ {BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label} ・ 部屋{code}</div>
+    </div>
+    {now < state.startAt && <Card className="mb-3 text-center"><div className="text-3xl font-black" style={{ color: COLORS.sky, ...bFont }}>まもなく開始 {Math.max(0, Math.ceil((state.startAt - now) / 1000))}</div></Card>}
+    {result && <Card className="mb-3 text-center"><div className="text-2xl font-black" style={{ color: COLORS.amber, ...bFont }}>{result.draw ? '引き分け' : `👑 ${names[result.winner]} の勝ち！`}</div></Card>}
+    {mode === 'A' && probA && now >= state.startAt && !result && (
+      <Card className="mb-3 text-center"><div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>問{q + 1}/{N} ・ Lv.{probA.level}</div>
+        <div className="text-3xl font-black" style={{ color: COLORS.ink, ...bFont }}>{formatPoly(probA.poly)}</div></Card>
+    )}
+    <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+      {slots.map((uid, i) => {
+        if (!uid) return (<div key={i} className="rounded-2xl p-4 flex items-center justify-center text-sm font-bold" style={{ border: `2px dashed ${COLORS.inkSoft}55`, color: COLORS.inkSoft, minHeight: '9rem' }}>空き</div>);
+        const l = live[uid] || {};
+        const on = !!players[uid];
+        const p = mode === 'B' && l.lv ? bank.get(l.lv, l.k || 0) : null;
+        return (
+          <Card key={uid} style={{ borderTop: `6px solid ${colors[i]}` }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-black text-lg truncate" style={{ color: COLORS.ink, ...bFont }}>{names[uid]}{result && result.winner === uid ? ' 👑' : ''}</span>
+              {!on && <span className="text-xs font-bold" style={{ color: COLORS.coral }}>切断中</span>}
+            </div>
+            {mode === 'B' ? (<>
+              <HpBar hp={l.hp == null ? 100 : l.hp} height={20} />
+              <div className="flex justify-between text-sm font-bold mt-2" style={{ color: COLORS.ink }}>
+                <span>{l.c || 0}/{N}問</span><span>{l.score || 0}点</span><span style={{ color: l.combo ? COLORS.coral : COLORS.inkSoft }}>{l.combo || 0}コンボ</span>
+              </div>
+              {(l.pd > 0 || l.po > 0) && <div className="text-xs font-black mt-1" style={{ color: COLORS.coral }}>⚠ 攻撃を受けそう：{l.pd ? `体力-${l.pd}%` : ''} {l.po ? `おじゃま${l.po}枚` : ''}</div>}
+              {p && !result && <div className="mt-2 rounded-xl px-2 py-1 text-center" style={{ background: COLORS.paperDark }}>
+                <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>いま解いている問題 ・ Lv.{l.lv}{l.oj ? ` ・ おじゃま${l.oj}枚` : ''}</div>
+                <div className="font-black" style={{ color: COLORS.ink, ...bFont }}>{formatPoly(p.poly)}</div>
+              </div>}
+            </>) : (<>
+              <div className="text-3xl font-black" style={{ color: colors[i], ...bFont }}>{(sc && sc.sc[uid]) || 0}点</div>
+              <div className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>{(sc && sc.log.filter(x => x.w === uid).length) || 0}問正解 ・ {(sc && sc.cb[uid]) || 0}コンボ中{l.lock > now ? ' ・ お手つき中' : ''}</div>
+            </>)}
+          </Card>
+        );
+      })}
+    </div>
+  </>);
+}
+
+/* ソロとオンライン対戦の切り替え */
+function AppRoot() {
+  const [mode, setMode] = useState('solo');
+  return mode === 'battle'
+    ? <BattleApp onExit={() => { setMode('solo'); window.scrollTo(0, 0); }} />
+    : <FactorHunt onBattle={() => { setMode('battle'); window.scrollTo(0, 0); }} />;
+}
+
 const rootEl = document.getElementById('root');
 const root = ReactDOM.createRoot(rootEl);
-root.render(<FactorHunt />);
+root.render(<AppRoot />);
 </script>
 
 <script>
