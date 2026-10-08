@@ -1929,25 +1929,6 @@ function FactorHunt({ onBattle }) {
             </span>
           </div>
 
-          {/* 期間優勝者。手動で書き換える一覧。次の期間が始まったら中身を差し替える運用。 */}
-          <div className="rounded-2xl px-4 py-3 mb-4 shadow-lg" style={{ background: COLORS.paper }}>
-            <div className="text-[11px] font-black text-center mb-2 tracking-wide" style={{ color: COLORS.inkSoft }}>🏆 {PERIOD_CHAMPIONS.label} 優勝者</div>
-            <div className="flex flex-col gap-1.5">
-              {PERIOD_CHAMPIONS.entries.map(ch => {
-                const diffCfg = DIFFICULTY_CONFIG[ch.difficulty];
-                return (
-                  <div key={ch.difficulty} className="flex items-center gap-2 text-sm rounded-lg px-2 py-1" style={{ background: `${diffCfg.color}1a`, flexWrap: 'nowrap' }}>
-                    <span className="text-[10px] font-black rounded-full px-2 py-0.5 shrink-0 text-center" style={{ background: diffCfg.color, color: '#fff', width: '3.8rem', whiteSpace: 'nowrap' }}>{diffCfg.label}</span>
-                    <span className="text-base leading-none shrink-0">🥇</span>
-                    <span className="flex-1 min-w-0 font-bold" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.name}</span>
-                    <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep, minWidth: '3.6em', textAlign: 'right' }}>{ch.score}点</span>
-                    <span className="text-xs font-bold shrink-0" style={{ color: COLORS.inkSoft, minWidth: '2.6em', textAlign: 'right' }}>{ch.caught}組</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           <button
             onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}
             className="w-full rounded-2xl py-3 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95"
@@ -2190,33 +2171,6 @@ function FactorHunt({ onBattle }) {
             </div>
           </div>
 
-          {/* 過去の期間優勝者アーカイブ。新しい期間になったらここに積み重ねていく */}
-          {PAST_PERIOD_CHAMPIONS.length > 0 && (
-            <div className="rounded-2xl px-4 py-3 mb-6 shadow-lg" style={{ background: `${COLORS.paper}cc` }}>
-              <div className="text-[10px] font-black text-center mb-2 tracking-wide" style={{ color: COLORS.inkSoft }}>📜 過去の優勝者</div>
-              <div className="flex flex-col gap-3">
-                {PAST_PERIOD_CHAMPIONS.map(period => (
-                  <div key={period.label}>
-                    <div className="text-[10px] font-bold mb-1" style={{ color: COLORS.inkSoft }}>{period.label}</div>
-                    <div className="flex flex-col gap-1">
-                      {period.entries.map(ch => {
-                        const diffCfg = DIFFICULTY_CONFIG[ch.difficulty];
-                        return (
-                          <div key={ch.difficulty} className="flex items-center gap-2 text-xs rounded-lg px-2 py-1" style={{ background: `${diffCfg.color}14` }}>
-                            <span className="text-[9px] font-black rounded-full px-1.5 py-0.5 shrink-0 text-center" style={{ background: diffCfg.color, color: '#fff', width: '3.2rem', whiteSpace: 'nowrap' }}>{diffCfg.label}</span>
-                            <span className="text-sm leading-none shrink-0">🥇</span>
-                            <span className="fxf-name" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{ch.name}</span>
-                            <span className="font-mono font-black shrink-0" style={{ color: COLORS.leafDeep }}>{ch.score}点</span>
-                            <span className="text-[10px] font-bold shrink-0" style={{ color: COLORS.inkSoft }}>{ch.caught}組</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* クレジット: 控えめで世界観を邪魔しない半透明表示 */}
