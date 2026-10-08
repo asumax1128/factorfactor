@@ -621,6 +621,20 @@ async function fetchNetRanking() {
   }
   if (!data.ok) throw new Error(data.error || 'サーバーエラー');
   // 新GAS: 難易度別に分かれた形式 { hard: [], normal: [], easy: [] }
+  // 全期間のランキング：GASが返す全プレイ記録(allRecords)から、難易度ごとにベスト記録TOP20を作る
+  if (Array.isArray(data.allRecords)) {
+    const byDiff = { hard: [], normal: [], easy: [] };
+    data.allRecords.forEach(r => {
+      const difficulty = ['easy', 'normal', 'hard'].includes(r.difficulty) ? r.difficulty : 'normal';
+      const score = Number(r.score), caught = Number(r.caught);
+      if (!String(r.name || '').trim() || !isFinite(score) || score <= 0) return;
+      byDiff[difficulty].push({ name: String(r.name), score, caught: isFinite(caught) ? caught : 0, difficulty });
+    });
+    Object.keys(byDiff).forEach(k => { byDiff[k] = dedupeByName(byDiff[k].sort(compareEntries)).slice(0, 20); });
+    let totalByDiff = { hard: [], normal: [], easy: [] };
+    try { totalByDiff = aggregateTotalRanking(data.allRecords); } catch (e) { console.error('[factor-hunt] 総得点ランキングの集計に失敗:', e); }
+    return { byDiff, totalByDiff };
+  }
   if (data.rankingByDifficulty) {
     const byDiff = data.rankingByDifficulty;
     // サーバー側でも並び替えているが、念のためクライアントでも同じ規則で整える
@@ -1911,7 +1925,7 @@ function FactorHunt({ onBattle }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.3.0
+              ver.3.1
             </span>
           </div>
 
@@ -2016,7 +2030,7 @@ function FactorHunt({ onBattle }) {
             <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>
-                  🌎 みんなのランキング3 <br className="fxf-title-br" />(20260801~31)
+                  🌎 みんなのランキング <br className="fxf-title-br" />（全期間）
                 </div>
                 <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
               </div>
@@ -3175,11 +3189,14 @@ function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, o
   const [msg, setMsg] = useState('');
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
+  const [nameOf, setNameOf] = useState({});
+  const [showVs, setShowVs] = useState(false);
   const stats = useFbValue(fb.ready && acct ? `accounts/${acct.key}/stats` : null);
   useEffect(() => {
     if (!fb.ready) return;
     fref('accounts').get().then(s => {
       const all = s.val() || {};
+      const nm = {}; Object.entries(all).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm);
       const rows = Object.values(all).filter(a => a && a.name && a.stats && a.stats.games >= 3)
         .map(a => ({ name: a.name, st: a.stats, rate: winRate(a.stats) }))
         .sort((a, b) => b.rate - a.rate || (b.st.w || 0) - (a.st.w || 0)).slice(0, 10);
@@ -3214,6 +3231,10 @@ function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, o
         {stats && stats.games > 0 && <div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>
           A 早い者勝ち：{recordText(stats.A)} ／ B レース：{recordText(stats.B)}
         </div>}
+        {stats && stats.vs && Object.keys(stats.vs).length > 0 && (<>
+          <button onClick={() => setShowVs(v => !v)} className="mt-2 mr-2 text-[11px] font-bold rounded-full px-3 py-1" style={{ background: `${COLORS.sky}22`, color: COLORS.sky }}>{showVs ? '▲ 相手ごとの成績をとじる' : '▼ 相手ごとの成績を見る'}</button>
+          {showVs && <VsTable vs={stats.vs} nameOf={nameOf} />}
+        </>)}
         <button onClick={() => { setAcct(null); setMsg(''); }} className="mt-2 text-[11px] font-bold rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>ログアウト</button>
       </>) : (<>
         <p className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>名前と4桁の合言葉を登録すると、どの端末からでも勝敗が記録されます。合言葉は忘れないでね。</p>
@@ -3257,6 +3278,29 @@ function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, o
     </Card>
     <p className="text-center text-[10px]" style={{ color: COLORS.inkSoft }}>対戦の結果はネットランキングには送られません</p>
   </>);
+}
+
+/* ---------- 相手ごとの成績 ---------- */
+function VsTable({ vs, nameOf }) {
+  const rows = Object.entries(vs || {}).map(([k, r]) => {
+    const w = r.w || 0, l = r.l || 0, d = r.d || 0, g = w + l + d;
+    return { k, name: nameOf[k] || '（名前不明）', w, l, d, g, rate: g ? w / g : 0 };
+  }).filter(r => r.g > 0).sort((a, b) => b.g - a.g || b.rate - a.rate);
+  return (
+    <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+      <div className="grid text-[10px] font-black px-2 py-1" style={{ gridTemplateColumns: '1fr 3em 6.5em 3.5em', background: COLORS.paperDark, color: COLORS.inkSoft }}>
+        <span>相手</span><span className="text-right">対戦</span><span className="text-right">成績</span><span className="text-right">勝率</span>
+      </div>
+      {rows.map(r => (
+        <div key={r.k} className="grid items-center text-sm px-2 py-1.5" style={{ gridTemplateColumns: '1fr 3em 6.5em 3.5em', borderTop: `1px solid ${COLORS.paperDark}` }}>
+          <span className="font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+          <span className="text-right text-xs font-bold" style={{ color: COLORS.inkSoft }}>{r.g}戦</span>
+          <span className="text-right text-xs font-bold" style={{ color: COLORS.ink }}>{r.w}勝{r.l}敗{r.d ? `${r.d}分` : ''}</span>
+          <span className="text-right font-black" style={{ color: r.rate >= 0.5 ? COLORS.leafDeep : COLORS.coral }}>{Math.round(r.rate * 100)}%</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* ---------- ロビー ---------- */
@@ -3748,7 +3792,9 @@ function BattleResult({ result, me, opp, names, mode, N, live, bank, code, state
       </div>
       <Card className="mb-3">{row(me, 'あなた')}{row(opp, '相手')}</Card>
       {acct ? <Card className="mb-3"><div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>🏅 {acct.name} のせいせき</div>
-        <div className="font-black" style={{ color: COLORS.leafDeep }}>{stats && stats.games ? `勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}` : '記録中…'}</div></Card>
+        <div className="font-black" style={{ color: COLORS.leafDeep }}>{stats && stats.games ? `勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}` : '記録中…'}</div>
+        {(() => { const ok = (state.accts || {})[opp]; const r = ok && stats && stats.vs && stats.vs[ok]; if (!r) return null; const g = (r.w || 0) + (r.l || 0) + (r.d || 0);
+          return <div className="text-xs font-bold mt-1" style={{ color: COLORS.inkSoft }}>{names[opp]}との通算：{g}戦 {recordText(r)}（勝率{g ? Math.round((r.w || 0) / g * 100) : 0}%）</div>; })()}</Card>
         : <p className="text-center text-[11px] font-bold mb-3" style={{ color: COLORS.inkSoft }}>名前と合言葉を登録すると、勝敗が記録されます</p>}
       {isHost ? (<div className="flex flex-col gap-2">
         <BigBtn color={COLORS.coral} disabled={!oppOnline} onClick={onRematch}>{oppOnline ? 'もう一戦（同じルール）' : '相手がいません'}</BigBtn>
