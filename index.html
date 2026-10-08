@@ -3288,11 +3288,11 @@ function VsTable({ vs, nameOf }) {
   }).filter(r => r.g > 0).sort((a, b) => b.g - a.g || b.rate - a.rate);
   return (
     <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${COLORS.paperDark}` }}>
-      <div className="grid text-[10px] font-black px-2 py-1" style={{ gridTemplateColumns: '1fr 3em 6.5em 3.5em', background: COLORS.paperDark, color: COLORS.inkSoft }}>
+      <div className="grid text-[10px] font-black px-2 py-1" style={{ gridTemplateColumns: '1fr 2.6rem 5.6rem 3rem', background: COLORS.paperDark, color: COLORS.inkSoft }}>
         <span>相手</span><span className="text-right">対戦</span><span className="text-right">成績</span><span className="text-right">勝率</span>
       </div>
       {rows.map(r => (
-        <div key={r.k} className="grid items-center text-sm px-2 py-1.5" style={{ gridTemplateColumns: '1fr 3em 6.5em 3.5em', borderTop: `1px solid ${COLORS.paperDark}` }}>
+        <div key={r.k} className="grid items-center text-sm px-2 py-1.5" style={{ gridTemplateColumns: '1fr 2.6rem 5.6rem 3rem', borderTop: `1px solid ${COLORS.paperDark}` }}>
           <span className="font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
           <span className="text-right text-xs font-bold" style={{ color: COLORS.inkSoft }}>{r.g}戦</span>
           <span className="text-right text-xs font-bold" style={{ color: COLORS.ink }}>{r.w}勝{r.l}敗{r.d ? `${r.d}分` : ''}</span>
