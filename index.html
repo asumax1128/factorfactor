@@ -1959,7 +1959,7 @@ function FactorHunt({ onBattle }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.3.2
+              ver.3.3
             </span>
           </div>
 
@@ -3179,14 +3179,19 @@ function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, o
   const [rank, setRank] = useState(null);
   const [nameOf, setNameOf] = useState({});
   const [showVs, setShowVs] = useState(false);
+  const [allAcc, setAllAcc] = useState(null);     // 登録している全員の成績（だれでも見られる）
+  const [openKey, setOpenKey] = useState(null);   // 成績を開いている人
+  const [q, setQ] = useState('');
+  const [sortBy, setSortBy] = useState('games');
   const stats = useFbValue(fb.ready && acct ? `accounts/${acct.key}/stats` : null);
   useEffect(() => {
     if (!fb.ready) return;
     fref('accounts').get().then(s => {
       const all = s.val() || {};
       const nm = {}; Object.entries(all).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm);
-      const rows = Object.values(all).filter(a => a && a.name && a.stats && a.stats.games >= 3)
-        .map(a => ({ name: a.name, st: a.stats, rate: winRate(a.stats) }))
+      setAllAcc(Object.entries(all).filter(([k, a]) => a && a.name).map(([k, a]) => ({ k, name: a.name, st: a.stats || {} })));
+      const rows = Object.entries(all).filter(([k, a]) => a && a.name && a.stats && a.stats.games >= 3)
+        .map(([k, a]) => ({ k, name: a.name, st: a.stats, rate: winRate(a.stats) }))
         .sort((a, b) => b.rate - a.rate || (b.st.w || 0) - (a.st.w || 0)).slice(0, 10);
       setRank(rows);
     }).catch(() => setRank([]));
@@ -3256,16 +3261,86 @@ function BattleHome({ fb, acct, setAcct, guestName, setGuestName, err, setErr, o
       {rank == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>読み込み中…</p>
         : rank.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p>
         : rank.map((r, i) => (
-          <div key={r.name} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+          <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1 cursor-pointer" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
             <span className="w-6 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-            <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+            <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
             <span className="font-black" style={{ color: COLORS.leafDeep }}>{Math.round(r.rate * 100)}%</span>
             <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '5.5em', textAlign: 'right' }}>{recordText(r.st)}</span>
           </div>
         ))}
     </Card>
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>📊 みんなの成績（名前をタップすると、くわしい成績と相手ごとの成績が見られます）</div>
+      {allAcc == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>読み込み中…</p> : (<>
+        <div className="flex gap-2 mb-2">
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="名前でさがす" className="flex-1 min-w-0 rounded-xl px-3 py-1.5 text-sm font-bold" style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-xl px-2 text-xs font-bold" style={{ background: COLORS.paperDark, color: COLORS.ink }}>
+            <option value="games">対戦数順</option><option value="rate">勝率順</option><option value="w">勝ち数順</option><option value="name">名前順</option>
+          </select>
+        </div>
+        {(() => {
+          const rows = allAcc.filter(r => !q.trim() || r.name.includes(q.trim())).map(r => ({ ...r, g: r.st.games || 0, rate: winRate(r.st) }));
+          rows.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name, 'ja') : sortBy === 'rate' ? (b.rate - a.rate || b.g - a.g) : sortBy === 'w' ? ((b.st.w || 0) - (a.st.w || 0) || b.g - a.g) : (b.g - a.g || b.rate - a.rate));
+          if (!rows.length) return <p className="text-xs" style={{ color: COLORS.inkSoft }}>見つかりません</p>;
+          return (<div style={{ maxHeight: '22rem', overflowY: 'auto' }}>
+            {rows.map(r => (
+              <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: acct && acct.key === r.k ? `${COLORS.sky}14` : 'transparent' }}>
+                <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+                <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>{r.g}戦</span>
+                <span className="text-[11px] font-bold" style={{ color: COLORS.ink, minWidth: '5em', textAlign: 'right' }}>{recordText(r.st)}</span>
+                <span className="font-black" style={{ color: r.g ? (r.rate >= 0.5 ? COLORS.leafDeep : COLORS.coral) : COLORS.inkSoft, minWidth: '2.8em', textAlign: 'right' }}>{r.g ? `${Math.round(r.rate * 100)}%` : '−'}</span>
+              </div>
+            ))}
+          </div>);
+        })()}
+      </>)}
+    </Card>
     <p className="text-center text-[10px]" style={{ color: COLORS.inkSoft }}>対戦の結果はネットランキングには送られません</p>
+    {openKey && allAcc && (() => {
+      const r = allAcc.find(x => x.k === openKey);
+      if (!r) return null;
+      return <PlayerProfile name={r.name} st={r.st} nameOf={nameOf} me={acct && acct.key === r.k} onClose={() => setOpenKey(null)} />;
+    })()}
   </>);
+}
+
+/* ---------- だれかの成績（みんなが見られる） ---------- */
+function PlayerProfile({ name, st, nameOf, me, onClose }) {
+  const g = st.games || 0;
+  const box = (label, v, color) => (
+    <div className="flex-1 rounded-xl px-2 py-2 text-center" style={{ background: COLORS.paperDark }}>
+      <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{label}</div>
+      <div className="font-black" style={{ color: color || COLORS.ink, ...bFont }}>{v}</div>
+    </div>
+  );
+  const modeLine = (m, label) => {
+    const s = st[m] || {}; const n = (s.w || 0) + (s.l || 0) + (s.d || 0);
+    return <div className="flex justify-between text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+      <span className="font-bold" style={{ color: COLORS.ink }}>{label}</span>
+      <span className="font-bold" style={{ color: COLORS.inkSoft }}>{n}戦 {recordText(s)}{n ? `（勝率${Math.round((s.w || 0) / n * 100)}%）` : ''}</span>
+    </div>;
+  };
+  return (
+    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 80 }}>
+      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl" style={{ background: COLORS.paper, maxWidth: '28rem', maxHeight: '85vh', overflowY: 'auto' }}>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div>
+            <div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>📊 オンライン対戦の成績{me ? '（あなた）' : ''}</div>
+            <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>{name}</div>
+          </div>
+          <button onClick={onClose} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button>
+        </div>
+        {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
+          <div className="flex gap-2 mb-3">
+            {box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}{box('成績', recordText(st))}
+          </div>
+          {modeLine('A', 'A 早い者勝ち')}{modeLine('B', 'B レース＋攻撃')}
+          <div className="text-xs font-black mt-3" style={{ color: COLORS.inkSoft }}>相手ごとの成績</div>
+          {st.vs && Object.keys(st.vs).length ? <VsTable vs={st.vs} nameOf={nameOf} /> : <p className="text-xs" style={{ color: COLORS.inkSoft }}>記録のある相手がいません</p>}
+        </>)}
+      </div>
+    </div>
+  );
 }
 
 /* ---------- 相手ごとの成績 ---------- */
