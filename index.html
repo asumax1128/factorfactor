@@ -1959,7 +1959,7 @@ function FactorHunt({ onBattle }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.4.0
+              ver.4.1
             </span>
           </div>
 
@@ -2726,24 +2726,48 @@ const CPU_LEVELS = {
 
 /* ---------- 称号（あとから増やせるように、ここに並べるだけで表示される） ---------- */
 const BADGES = [
-  { id: 'streak10', icon: '🔥', label: '10連勝', test: st => (st.maxStreak || 0) >= 10 },
-  { id: 'streak30', icon: '🔥', label: '30連勝', test: st => (st.maxStreak || 0) >= 30 },
-  { id: 'streak50', icon: '🔥', label: '50連勝', test: st => (st.maxStreak || 0) >= 50 },
-  { id: 'perfect50', icon: '⭐', label: 'Perfect 50回', test: st => (st.perfects || 0) >= 50 },
-  { id: 'perfect100', icon: '⭐', label: 'Perfect 100回', test: st => (st.perfects || 0) >= 100 },
-  { id: 'perfect300', icon: '🌟', label: 'Perfect 300回', test: st => (st.perfects || 0) >= 300 },
-  { id: 'perfect500', icon: '🌟', label: 'Perfect 500回', test: st => (st.perfects || 0) >= 500 },
-  { id: 'perfect1000', icon: '👑', label: 'Perfect 1000回', test: st => (st.perfects || 0) >= 1000 },
-  { id: 'comeback', icon: '🔄', label: '逆転勝ち', test: st => (st.comebacks || 0) >= 1 },
+  // g：系統（同じ系統は一番上だけ名前の横に出す） r：めずらしさ（大きいほど先に出す） desc：取り方
+  { id: 'first', g: 'first', r: 1, icon: '🌱', label: 'はじめの一歩', desc: '初めて勝つ', test: st => (st.w || 0) >= 1 },
+  { id: 'lose50', g: 'lose', r: 2, icon: '🧱', label: '七転び八起き', desc: '負け50回（それでも続けた！）', test: st => (st.l || 0) >= 50 },
+  { id: 'games100', g: 'games', r: 2, icon: '💯', label: '百戦錬磨', desc: '100戦する', test: st => (st.games || 0) >= 100 },
+  { id: 'rival20', g: 'rival', r: 2, icon: '🤝', label: '永遠のライバル', desc: '同じ相手と20戦', test: st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20) },
+  { id: 'wide10', g: 'wide', r: 1, icon: '🌏', label: '顔が広い', desc: '10人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 10 },
+  { id: 'dual', g: 'dual', r: 2, icon: '⚖️', label: '二刀流', desc: 'A・Bそれぞれで10勝', test: st => ((st.A || {}).w || 0) >= 10 && ((st.B || {}).w || 0) >= 10 },
+  { id: 'streak10', g: 'streak', r: 2, icon: '🔥', label: '10連勝', desc: '10連勝する', test: st => (st.maxStreak || 0) >= 10 },
+  { id: 'streak30', g: 'streak', r: 4, icon: '🔥', label: '30連勝', desc: '30連勝する', test: st => (st.maxStreak || 0) >= 30 },
+  { id: 'streak50', g: 'streak', r: 5, icon: '🔥', label: '50連勝', desc: '50連勝する', test: st => (st.maxStreak || 0) >= 50 },
+  { id: 'perfect50', g: 'perfect', r: 1, icon: '⭐', label: 'Perfect 50回', desc: 'Perfect を通算50回', test: st => (st.perfects || 0) >= 50 },
+  { id: 'perfect100', g: 'perfect', r: 2, icon: '⭐', label: 'Perfect 100回', desc: 'Perfect を通算100回', test: st => (st.perfects || 0) >= 100 },
+  { id: 'perfect300', g: 'perfect', r: 3, icon: '🌟', label: 'Perfect 300回', desc: 'Perfect を通算300回', test: st => (st.perfects || 0) >= 300 },
+  { id: 'perfect500', g: 'perfect', r: 4, icon: '🌟', label: 'Perfect 500回', desc: 'Perfect を通算500回', test: st => (st.perfects || 0) >= 500 },
+  { id: 'perfect1000', g: 'perfect', r: 5, icon: '👑', label: 'Perfect 1000回', desc: 'Perfect を通算1000回', test: st => (st.perfects || 0) >= 1000 },
+  { id: 'comeback', g: 'comeback', r: 2, icon: '🔄', label: '逆転勝ち', desc: '不利な展開からひっくり返して勝つ', test: st => (st.comebacks || 0) >= 1 },
+  { id: 'comeback10', g: 'comeback', r: 4, icon: '🔄', label: '逆転の鬼', desc: '逆転勝ち10回', test: st => (st.comebacks || 0) >= 10 },
+  { id: 'master1700', g: 'master', r: 4, icon: '👑', label: '因数分解マスター', desc: 'レート1700に到達', test: st => (st.maxRating || 0) >= 1700 },
+  { id: 'tour1', g: 'tour', r: 3, icon: '🏆', label: 'クラス王', desc: 'クラス大会で優勝', test: st => (st.tourWins || 0) >= 1 },
+  { id: 'tour3', g: 'tour', r: 5, icon: '🏆', label: '三冠王', desc: 'クラス大会で3回優勝', test: st => (st.tourWins || 0) >= 3 },
+  { id: 'flash', g: 'flash', r: 3, icon: '⚡', label: '光速の因数分解', desc: '1問を1秒以内に正解', test: st => st.bestMs != null && st.bestMs <= 1000 },
+  { id: 'combo20', g: 'combo', r: 3, icon: '🔥', label: 'コンボ職人', desc: '1試合で20コンボ', test: st => (st.maxCombo || 0) >= 20 },
+  { id: 'nomiss', g: 'nomiss', r: 3, icon: '🎯', label: 'ノーミス完走', desc: 'Bでミス・時間切れ0のまま勝つ', test: st => (st.nomissWins || 0) >= 1 },
+  { id: 'clutch', g: 'clutch', r: 3, icon: '🩸', label: 'ギリギリセーフ', desc: 'Bで体力5%以下になってから勝つ', test: st => (st.clutchWins || 0) >= 1 },
+  { id: 'cancel500', g: 'cancel', r: 3, icon: '🛡️', label: '鉄壁の守り', desc: '相殺で打ち消した量が通算500', test: st => (st.cancelTotal || 0) >= 500 },
+  { id: 'ojama100', g: 'ojama', r: 3, icon: '💣', label: 'おじゃま職人', desc: 'おじゃまタイルを通算100枚送る', test: st => (st.ojSent || 0) >= 100 },
+  { id: 'sp50', g: 'sp', r: 3, icon: '✨', label: '必殺技マスター', desc: '必殺技を通算50回使う', test: st => (st.spUsed || 0) >= 50 },
+  { id: 'giant', g: 'giant', r: 4, icon: '🦸', label: 'ジャイアントキラー', desc: '自分よりレートが200以上高い相手に勝つ', test: st => (st.giantWins || 0) >= 1 },
+  { id: 'survivor', g: 'survivor', r: 4, icon: '🏝️', label: 'ラストサバイバー', desc: '4人戦（B）で最後の1人まで生き残って勝つ', test: st => (st.survivors || 0) >= 1 },
+  { id: 'shutout', g: 'shutout', r: 4, icon: '🥷', label: '完封', desc: 'Aで相手を0点にして勝つ', test: st => (st.shutouts || 0) >= 1 },
+  { id: 'lv9', g: 'lv9', r: 4, icon: '🧠', label: 'Lv.9の壁', desc: 'Lv.9の問題を Perfect で正解', test: st => (st.lv9p || 0) >= 1 },
+  { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '🐸', label: 'お手つき大王', desc: 'Aでお手つき通算100回', test: st => (st.otetsuki || 0) >= 100 },
+  { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★の相手に勝つ', test: st => (st.handiWins || 0) >= 1 },
 ];
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
 function BadgeIcons({ st, max = 4 }) {
   const list = badgesOf(st);
   if (!list.length) return null;
-  // 同じ系統は一番上だけ出す
+  // 同じ系統は一番上だけ、めずらしい順に出す
   const top = {};
-  list.forEach(b => { top[b.id.replace(/\d+$/, '')] = b; });
-  const shown = Object.values(top).slice(0, max);
+  list.forEach(b => { if (!top[b.g] || top[b.g].r <= b.r) top[b.g] = b; });
+  const shown = Object.values(top).sort((x, y) => y.r - x.r).slice(0, max);
   return <span className="text-xs" title={list.map(b => b.label).join('・')}>{shown.map(b => <span key={b.id}>{b.icon}</span>)}</span>;
 }
 
@@ -2994,6 +3018,10 @@ async function recordMatch(acct, info) {
       s.rating = Math.round(((s.rating || RATING_INIT) + (info.dr || 0)) * 10) / 10;
       s.maxRating = Math.max(s.maxRating || RATING_INIT, s.rating);
       if (info.tourWin) s.tourWins = (s.tourWins || 0) + 1;
+      // 称号用の記録：add は足し算、max は最大、min は最小（いちばん速い記録など）
+      Object.entries(info.add || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) + v; });
+      Object.entries(info.max || {}).forEach(([k, v]) => { if (v != null) s[k] = Math.max(s[k] || 0, v); });
+      Object.entries(info.min || {}).forEach(([k, v]) => { if (v != null) s[k] = s[k] == null ? v : Math.min(s[k], v); });
       s.last = Date.now();
       after = s;
       return s;
@@ -3200,7 +3228,7 @@ function bTarget(me, ids, live, ko) {
 /* o = { code, gid, uid, ids, bank, N, diff, hc, view:()=>({live,ko}), sound, fx, onClear } */
 function createBEngine(o) {
   const s = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, resolving: false, over: false, ko: false,
-    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null };
+    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100 };
   const fx = (t, p) => { if (o.fx) o.fx(t, p); };
   const snd = k => { if (o.sound) o.sound.play(k); };
   const mul = handiDmgMul(o.hc);
@@ -3237,6 +3265,7 @@ function createBEngine(o) {
   const damage = x => {
     if (x <= 0) return;
     s.hp = Math.max(0, r1(s.hp - x));
+    s.minHp = Math.min(s.minHp, s.hp);
     if (s.hp <= 0) E.knockout();
   };
   /* 届いた攻撃を受け取る（シールド中ははね返す） */
@@ -3295,9 +3324,10 @@ function createBEngine(o) {
       dmg = units - oj * OJAMA_UNIT;
       const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);
       fref(`rooms/${o.code}/ev/${o.gid}/${to}/${key}`).set({ dmg, oj, from: o.uid, sp: isSp ? 1 : 0, at: TSV() }).catch(() => {});
-      s.sent += units;
+      s.sent += units; s.ojSent += oj;
       snd('send');
     }
+    s.cancelTotal += cancelled;
     fx('send', { dmg, oj, to, cancelled, pinch });
   };
   E.answer = ok => {
@@ -3340,7 +3370,7 @@ function createBEngine(o) {
   };
   E.special = kind => {
     if (s.over || s.sp < SP_MAX) return false;
-    s.sp = 0;
+    s.sp = 0; s.spUsed++;
     snd('special');
     if (kind === 'big') E.sendAttack({ dmg: SP_BIG.dmg, oj: SP_BIG.oj }, true);
     else if (kind === 'heal') s.hp = Math.min(100, r1(s.hp + SP_HEAL));
@@ -3371,6 +3401,7 @@ function createBEngine(o) {
       if (s.over) return;
       s.nextAt = nowT + 420;
     }
+    s.minHp = Math.min(s.minHp, s.hp);
     if (s.hp <= 0) { E.knockout(); return; }
     // 逆転勝ちの判定用：ピンチになった、または1位に3問以上差をつけられた
     if (!s.behind) {
@@ -3864,6 +3895,9 @@ function PlayerProfile({ name, st, nameOf, me, onClose }) {
           <div className="flex gap-2 mb-3">
             {box('Perfect', `${st.perfects || 0}回`, '#c99a00')}{box('逆転勝ち', `${st.comebacks || 0}回`)}{box('大会優勝', `${st.tourWins || 0}回`, COLORS.coral)}
           </div>
+          <div className="flex gap-2 mb-3">
+            {box('最速の正解', st.bestMs != null ? `${(st.bestMs / 1000).toFixed(2)}秒` : '−')}{box('最大コンボ', st.maxCombo || 0)}{box('必殺技', `${st.spUsed || 0}回`)}
+          </div>
           {modeLine('A', 'A 早い者勝ち')}{modeLine('B', 'B レース＋攻撃')}
         </>)}
         <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>🎖 称号（{got.size}/{BADGES.length}）</div>
@@ -3872,6 +3906,7 @@ function PlayerProfile({ name, st, nameOf, me, onClose }) {
             <div key={b.id} className="rounded-xl px-1 py-1.5 text-center" style={{ background: got.has(b.id) ? `${COLORS.amber}33` : COLORS.paperDark, opacity: got.has(b.id) ? 1 : 0.45 }}>
               <div className="text-lg leading-none">{got.has(b.id) ? b.icon : '🔒'}</div>
               <div className="text-[10px] font-black mt-0.5" style={{ color: COLORS.ink }}>{b.label}</div>
+              <div className="text-[8.5px] font-bold leading-tight mt-0.5" style={{ color: COLORS.inkSoft }}>{b.desc}</div>
             </div>
           ))}
         </div>
@@ -3980,7 +4015,7 @@ function BattleGame({ code, state, players, isHost, acct, practice, sound, muted
   viewRef.current = { live, ko };
   const claimsRef = useRef(claims);
   claimsRef.current = claims;
-  const mine = useRef({ eng: null, aMiss: {}, behind: false });
+  const mine = useRef({ eng: null, aMiss: {}, behind: false, aFast: null });
   const [now, setNow] = useState(fbNow());
   useEffect(() => { const t = setInterval(() => setNow(fbNow()), 100); return () => clearInterval(t); }, []);
   const counting = now < state.startAt;
@@ -4071,7 +4106,30 @@ function BattleGame({ code, state, players, isHost, acct, practice, sound, muted
     if (Object.values(hc).some(h => h > 0)) dr *= 0.5;
     const perfects = mode === 'B' ? ((mine.current.eng && mine.current.eng.s.perfects) || 0) : claimsRef.current.filter(c => c && c.uid === me && c.j === 'Perfect').length;
     const behind = mode === 'B' ? !!(mine.current.eng && mine.current.eng.s.behind) : mine.current.behind;
-    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w' };
+    // 称号用の記録
+    const win = outcome === 'w', eng = mine.current.eng, es = eng ? eng.s : null;
+    const add = {}, mx = {}, mn = {};
+    if (mode === 'B' && es) {
+      const oks = es.hist.filter(h => h.ok);
+      if (oks.length) mn.bestMs = Math.round(Math.min(...oks.map(h => h.ms)));
+      mx.maxCombo = es.best;
+      add.cancelTotal = es.cancelTotal; add.ojSent = es.ojSent; add.spUsed = es.spUsed;
+      add.lv9p = oks.filter(h => h.lv === 9 && h.j === 'Perfect').length;
+      if (win && es.hist.every(h => h.ok)) add.nomissWins = 1;
+      if (win && es.minHp <= 5) add.clutchWins = 1;
+      if (win && ids.length === 4 && result.reason === 'ko') add.survivors = 1;
+    }
+    if (mode === 'A') {
+      const scA = scoreA(bank, claimsRef.current, ids, N, hc);
+      if (mine.current.aFast != null) mn.bestMs = Math.round(mine.current.aFast);
+      mx.maxCombo = scA.best[me] || 0;
+      add.otetsuki = Object.values(mine.current.aMiss).reduce((a, v) => a + v, 0);
+      add.lv9p = claimsRef.current.filter((c, q) => c && c.uid === me && c.j === 'Perfect' && bank.level(q + 1) === 9).length;
+      if (win && others.every(u => !(scA.sc[u] || 0))) add.shutouts = 1;
+    }
+    if (others.some(u => rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 200)) add.giantWins = 1;
+    if (others.some(u => rel(u) === 'w' && (hc[u] || 0) >= 3)) add.handiWins = 1;
+    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn };
     setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [] });
     if (acct && !practice) recordMatch(acct, info).then(b => { if (b && b.length) setRec(r => ({ ...r, badges: b })); });
   }, [!!result]);
@@ -4304,9 +4362,11 @@ function GameA({ code, state, me, ids, others, names, diff, N, bank, live, ko, c
     if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
       setBusy(true);
       setFlash({ [id1]: 'correct', [id2]: 'correct' });
-      const j = getJudgment(fbNow() - qStart);
+      const ms0 = fbNow() - qStart;
+      const j = getJudgment(ms0);
       fref(`rooms/${code}/claims/${gid}/${q}`).transaction(cur => cur ? undefined : { uid: me, at: TSV(), j: j.label }).then(r => {
         if (r && r.committed) {
+          if (mine.current.aFast == null || ms0 < mine.current.aFast) mine.current.aFast = ms0;
           sound.play('ok');
           if (j.label === 'Perfect' || j.label === 'Excellent') sound.play('speed');
           setJudge({ label: j.label, color: j.color }); setTimeout(() => setJudge(null), 800);
