@@ -2062,7 +2062,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.6.1
+              ver.6.2
             </span>
           </div>
 
@@ -6152,7 +6152,7 @@ function BattleApp({ acct: who, onExit }) {
     const rt = await fetchRatings(accts, bty);
     if (st.fmt === 'swiss') {
       // スイスドロー：1回戦は抽選、2回戦からは点数の近い人どうし
-      const swissRounds = st.swissRounds || 5;
+      const swissRounds = swissEst(ids.length);   // 見込み（実際は全勝が1人になるまで）
       const pairs = swissPair(ids, [], 0);
       await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
       await fref(`rooms/${code}/state`).set({ phase: 'tour', tour: true, fmt: 'swiss', swissRounds, topSize: topSizeFor(ids.length), mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(pairs, 0)] });
@@ -6180,11 +6180,11 @@ function BattleApp({ acct: who, onExit }) {
     const cur = rounds[st.round];
     const done = cur.map((m, k) => ({ ...m, w: outs[k].w || '', draw: !!outs[k].draw, done: true }));
     rounds[st.round] = done;
-    if (st.fmt === 'swiss' && st.round < (st.swissRounds || 5)) {
+    if (isSwissRound(st, st.round)) {
       const next = st.round + 1;
       const table = swissStandings(st, rounds, next);
       let pairs;
-      if (next < (st.swissRounds || 5)) pairs = swissPair(table.map(x => x.u), rounds, next);
+      if (!swissOver(table, next)) pairs = swissPair(table.map(x => x.u), rounds, next);
       else {
         // 予選おわり：上位で決勝トーナメント（1位と2位は決勝まで当たらない）
         const size = Math.min(st.topSize || 4, table.length >= 4 ? (st.topSize || 4) : 2);
@@ -6192,7 +6192,7 @@ function BattleApp({ acct: who, onExit }) {
         pairs = TOP_SEEDS[size].map(([x, y]) => ({ a: seed(x), b: seed(y) || '' }));
         const seeds = {}; table.slice(0, size).forEach((x, i) => { seeds[x.u] = i + 1; });
         rounds.push(tourRound(pairs, next));
-        await fref(`rooms/${code}/state`).update({ rounds, round: next, seeds, topStart: next });
+        await fref(`rooms/${code}/state`).update({ rounds, round: next, seeds, topStart: next, swissRounds: next });
         return;
       }
       rounds.push(tourRound(pairs, next));
@@ -6253,7 +6253,7 @@ function BattleApp({ acct: who, onExit }) {
         sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onBack={() => setSeenGid(s => ({ ...s, [m.gid]: 1 }))} />;
     }
     return shell(<TourBoard code={code} state={state} players={players} isHost={isHost} me={me} onAdvance={tourAdvance} onLeave={() => leave()}
-      onLobby={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', tour: true, mode: state.mode, diff: state.diff, fmt: state.fmt || 'single', swissRounds: state.swissRounds || 5 })} />, true);
+      onLobby={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', tour: true, mode: state.mode, diff: state.diff, fmt: state.fmt || 'single' })} />, true);
   }
 
   // 対戦中
@@ -7718,8 +7718,8 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>大会の形式</div>
       <Seg disabled={!isHost} items={[['single', '🏆 トーナメント', COLORS.amber], ['swiss', '🔀 スイスドロー＋決勝T', '#7B61FF']]} cur={state.fmt || 'single'} onPick={v => onRule({ fmt: v })} />
       {(state.fmt || 'single') === 'swiss' ? (<>
-        <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>予選（スイスドロー）の回戦数</div>
-        <Seg disabled={!isHost} items={[[3, '3回戦'], [4, '4回戦'], [5, '5回戦']]} cur={state.swissRounds || 5} onPick={v => onRule({ swissRounds: v })} />
+        <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>予選（スイスドロー）の回戦数</div>
+        <div className="text-sm font-black rounded-xl px-3 py-1.5" style={{ background: '#7B61FF18', color: '#5b3fd6' }}>自動：全勝の人が1人になるまで（{list.length}人なら だいたい {swissEst(list.length)}回戦）</div>
         <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>予選は負けても最後まで試合あり。勝ち3点・引き分け1点・負け0点で、2回戦からは同じくらいの点数の人と対戦（同じ相手とはなるべく当たらない）。同点はオポネント勝率で順位を決めます。予選の上位{list.length > 32 ? 8 : list.length >= 4 ? 4 : 2}人（32人以内は4人、33人以上は8人）で決勝トーナメント（1位と2位は決勝まで当たらない。引き分けは上位シードが勝ち上がり）。</p>
       </>) : <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>組み合わせは抽選。人数が2のべき乗でないときは、1回戦にシード（不戦勝）が入ります。引き分けは抽選で勝ち上がりを決めます。</p>}
     </Card>
@@ -7731,7 +7731,12 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
 /* 1試合の勝ち上がり（結果がまだなら null） */
 const tourWinner = (m, res) => !m.b ? m.a : !res ? null : res.winner ? res.winner : (hashSeed(m.gid) % 2 ? m.b : m.a);
 /* ---------- スイスドロー（予選）＋ 決勝トーナメント ---------- */
-const isSwissRound = (state, r) => state.fmt === 'swiss' && r < (state.swissRounds || 5);
+/* 予選（スイスドロー）は、全勝の人が1人以下になるまで自動で続ける。決勝トーナメントに入った回（topStart）からがトーナメント */
+const swissN = state => state.topStart != null ? state.topStart : Infinity;
+const isSwissRound = (state, r) => state.fmt === 'swiss' && r < swissN(state);
+const swissEst = n => Math.max(1, Math.ceil(Math.log2(Math.max(2, n))));   // 人数からの見込み回数
+const unbeaten = table => table.filter(x => x.l === 0 && x.d === 0).length;
+const swissOver = (table, played) => unbeaten(table) <= 1 || played >= swissEst(table.length) + 3;   // +3 は念のための上限
 /* 1試合の結果 {done, w, draw, bye}
    スイスの引き分けは引き分けのまま（両者1点）／決勝トーナメントの引き分けは上位シード（a）が勝ち上がり／ふつうのトーナメントは抽選 */
 function matchOutcome(m, res, state, r) {
@@ -7865,13 +7870,14 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
   const swissNow = isSwissRound(state, r);
   const isSwiss = state.fmt === 'swiss';
   // 順位表（いまの回戦の決着した試合もふくめる）
-  const table = isSwiss ? swissStandings(state, rounds, Math.min(r, state.swissRounds || 5), swissNow ? cur.map((m, k) => [m, outs[k]]) : null) : null;
+  const table = isSwiss ? swissStandings(state, rounds, Math.min(r, swissN(state)), swissNow ? cur.map((m, k) => [m, outs[k]]) : null) : null;
+  const swissEnds = swissNow && allDone && table && swissOver(table, r + 1);
   const topN = state.topSize || 4;
   const names = state.names || {};
   const champion = state.champion;
   const label = k => tourRoundLabel(k, rounds, state);
   const nh = winners.length / 2;
-  const nextLabel = swissNow ? (r + 1 < (state.swissRounds || 5) ? `予選 第${r + 2}回戦` : `決勝トーナメント（上位${Math.min(topN, Object.keys(names).length >= 4 ? topN : 2)}人）`) : (isSwiss ? '決勝T ' : '') + (nh === 1 ? '決勝' : nh === 2 ? '準決勝' : nh === 4 ? '準々決勝' : `${r + 2}回戦`);
+  const nextLabel = swissNow ? (!swissEnds ? `予選 第${r + 2}回戦` : `決勝トーナメント（上位${Math.min(topN, Object.keys(names).length >= 4 ? topN : 2)}人）`) : (isSwiss ? '決勝T ' : '') + (nh === 1 ? '決勝' : nh === 2 ? '準決勝' : nh === 4 ? '準々決勝' : `${r + 2}回戦`);
   const [feed, setFeed] = useState([]);
   const onFeed = useCallback(f => setFeed(x => x.some(y => y.id === f.id) ? x : [...x.slice(-5), f]), []);
   // 回戦が始まったら帯のカットイン、優勝が決まったら紙吹雪
@@ -7896,7 +7902,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     const myRow = table && table.find(x => x.u === me);
     if (champion === me) myMsg = ['🏆 優勝おめでとう！', COLORS.amber];
     else if (swissNow && myRow) myMsg = [`予選 ${myRow.w}勝${myRow.l}敗${myRow.d ? myRow.d + '分' : ''}・${myRow.pts}点（いま${myRow.rank}位）${m && !m.b ? ' ・ 今回は不戦勝' : ''}`, COLORS.sky];
-    else if (isSwiss && !swissNow && !cur.some(x => x.a === me || x.b === me) && !out && !rounds.slice(state.topStart || 0).some(rd => rd.some(x => x.a === me || x.b === me))) myMsg = [`予選${(swissStandings(state, rounds, state.swissRounds || 5).find(x => x.u === me) || {}).rank || '-'}位で終了。決勝トーナメントを応援しよう！`, COLORS.inkSoft];
+    else if (isSwiss && !swissNow && !cur.some(x => x.a === me || x.b === me) && !out && !rounds.slice(state.topStart || 0).some(rd => rd.some(x => x.a === me || x.b === me))) myMsg = [`予選${(swissStandings(state, rounds, swissN(state)).find(x => x.u === me) || {}).rank || '-'}位で終了。決勝トーナメントを応援しよう！`, COLORS.inkSoft];
     else if (out || (m && winners[cur.indexOf(m)] && winners[cur.indexOf(m)] !== me)) myMsg = ['敗退しました。ほかの試合を応援しよう！', COLORS.inkSoft];
     else if (m && !m.b) myMsg = ['シード（不戦勝）！ 次の回戦を待っています', COLORS.leafDeep];
     else if (m && winners[cur.indexOf(m)] === me) myMsg = ['勝ち上がり！ 次の回戦を待っています', COLORS.leafDeep];
@@ -7941,11 +7947,13 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     {isHost && champion && <div className="mb-3"><BigBtn color={COLORS.amber} onClick={onLobby}>同じメンバーでもう一度大会をひらく</BigBtn></div>}
     {isSwiss && (() => {
       const fin = !swissNow;
-      const tb = fin ? swissStandings(state, rounds, state.swissRounds || 5) : table;
+      const tb = fin ? swissStandings(state, rounds, swissN(state)) : table;
       const cut = Math.min(topN, tb.length >= 4 ? topN : 2);
       return (
         <Card className="mb-3">
-          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🔀 予選の順位表{fin ? '（確定）' : `（第${r + 1}回戦の途中まで）`} ・ 勝ち3点・引き分け1点</div>
+          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🔀 予選の順位表{fin ? `（確定・${swissN(state)}回戦）` : `（第${r + 1}回戦の途中まで）`} ・ 勝ち3点・引き分け1点</div>
+          {!fin && <div className="text-sm font-black mb-2 rounded-xl px-3 py-1 text-center" style={{ background: unbeaten(tb) <= 1 ? '#fff3c4' : `${COLORS.sky}14`, color: unbeaten(tb) <= 1 ? '#9a6a12' : COLORS.sky }}>
+            {unbeaten(tb) <= 1 ? (allDone ? `👑 全勝は${unbeaten(tb)}人！ 予選終了 → 決勝トーナメントへ` : `全勝はいま${unbeaten(tb)}人`) : `全勝 ${unbeaten(tb)}人（全勝が1人になるまで予選が続きます）`}</div>}
           <div className="grid text-[10px] font-black px-1 py-1" style={{ gridTemplateColumns: '2rem 1fr 2.6rem 4.6rem 3.4rem', color: COLORS.inkSoft, background: COLORS.paperDark, borderRadius: 8 }}>
             <span className="text-center">順位</span><span>名前</span><span className="text-right">点</span><span className="text-right">勝-負-分</span><span className="text-right">OMW</span>
           </div>
