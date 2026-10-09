@@ -2328,6 +2328,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
     return (
       <div className="v7-menu" ref={menuRef}>
         <FontImport />
+        {acct && <LoginBonus acct={acct} />}
         <div className="v7-menu-in v7-open">
           <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
           <div className="v7-col">
@@ -2398,7 +2399,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.6</span>
+              <span className="v7-ver">ver.7.7</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -5037,6 +5038,82 @@ const wkPending = (st, info, final) => {
   return (info.dead && !f.includes('k')) || (final && !f.includes('s'));
 };
 
+/* ---------- ログインボーナス（7日で1枚のスタンプカード。休んでもリセットしない） ----------
+   stats.login = { last 最後に受け取った日, n 通算日数, c いまのカードの何日目まで押したか(0〜6), cards 完成したカード数 }。ゲストは localStorage */
+const LB_REWARDS = [
+  { exp: 20 }, { exp: 30 }, { exp: 10, shard: 1 }, { exp: 40 }, { exp: 50 }, { exp: 10, shard: 1 }, { exp: 100, shard: 2, big: true },
+];
+const LB_LS = 'fxf_login_v1';
+const lbText = r => [r.exp ? `${r.exp} EXP` : '', r.shard ? `かけら×${r.shard}` : ''].filter(Boolean).join('＋');
+const LB_SHOWN = {};
+async function claimLogin(acct) {
+  const today = jstDate();
+  if (isReal(acct) && FB.db) {
+    const r = await statsTx(acct, s => {
+      const L = s.login = s.login || {};
+      if (L.last === today) return null;
+      const c = (L.c || 0) % 7, rw = LB_REWARDS[c];
+      L.last = today; L.n = (L.n || 0) + 1; L.c = c + 1; if (L.c === 7) { L.cards = (L.cards || 0) + 1; }
+      if (rw.shard) { const W = wkOf(s); W.shards = (W.shards || 0) + rw.shard; }
+      const before = s.exp || 0; s.exp = before + rw.exp;
+      return { day: c, rw, before, after: s.exp, n: L.n };
+    });
+    return r && r.out;
+  }
+  const L = loadLS(LB_LS, {}) || {};
+  if (L.last === today) return null;
+  const c = (L.c || 0) % 7, rw = LB_REWARDS[c];
+  L.last = today; L.n = (L.n || 0) + 1; L.c = c + 1; saveLS(LB_LS, L);
+  const e = await addExp(acct, rw.exp + (rw.shard ? 20 * rw.shard : 0));   // ゲストはかけらのかわりに経験値
+  return { day: c, rw, before: e ? e.before : 0, after: e ? e.after : 0, n: L.n, guest: true };
+}
+function LoginBonus({ acct }) {
+  const fb = useFbReady();
+  const [st, setSt] = useState(null);   // { c, last, n }
+  const [open, setOpen] = useState(false);
+  const [got, setGot] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const today = jstDate();
+  useEffect(() => {
+    if (LB_SHOWN[today]) return;
+    try { if (localStorage.getItem('fxf_no_lb') === '1') return; } catch (e) {}   // 自動テスト用：出さない
+    if (isReal(acct)) {
+      if (!fb.ready || !FB.db) return;
+      FB.db.ref(`games/factor/accounts/${acct.key}/stats/login`).get().then(x => { const L = x.val() || {}; setSt(L); if (L.last !== today) { LB_SHOWN[today] = 1; setTimeout(() => setOpen(true), 500); } }).catch(() => {});
+    } else { const L = loadLS(LB_LS, {}) || {}; setSt(L); if (L.last !== today) { LB_SHOWN[today] = 1; setTimeout(() => setOpen(true), 500); } }
+  }, [fb.ready, acct && acct.key]);
+  if (!open || !st) return null;
+  const done = got ? got.day + 1 : (st.c || 0) % 7;   // 押してあるスタンプの数（このカード）
+  const todayIdx = got ? got.day : (st.c || 0) % 7;
+  const claim = async () => {
+    if (busy || got) return; setBusy(true);
+    const r = await claimLogin(acct); setBusy(false);
+    if (!r) { setOpen(false); return; }
+    setGot(r); fxSound('badge'); FX.confetti(r.rw.big ? 90 : 30);
+  };
+  const close = async () => { if (!got) await claim(); setOpen(false); };
+  return (
+    <V7Modal title="ログインボーナス" onClose={close}>
+      <div className="text-xs font-bold mb-2" style={{ color: 'var(--v7-sub)' }}>{got ? `通算${got.n}日目のログイン！` : '今日のスタンプを押そう！ 7日分たまると大きなごほうび（休んでもリセットされません）'}</div>
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {LB_REWARDS.map((r, i) => { const stamped = i < done, isToday = i === todayIdx; return (
+          <div key={i} className="rounded-xl text-center relative" style={{ gridColumn: r.big ? 'span 2' : undefined, padding: '8px 4px', background: stamped ? '#FBE7DF' : '#fff', border: `2px solid ${isToday ? 'var(--v7-accent)' : 'var(--v7-line)'}`, animation: isToday && !got ? 'v7pulse 1.2s ease-in-out infinite' : 'none' }}>
+            <div className="text-[10px] font-black" style={{ color: 'var(--v7-sub)' }}>{i + 1}日目</div>
+            <div style={{ fontSize: r.big ? 30 : 22, lineHeight: 1.2 }}>{r.big ? '🎁' : r.shard ? '💎' : '⭐'}</div>
+            <div className="text-[10px] font-black" style={{ color: 'var(--v7-ink)' }}>{acct && !isReal(acct) && r.shard ? `${r.exp + 20 * r.shard} EXP` : lbText(r)}</div>
+            {stamped && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span style={{ fontFamily: 'var(--v7-f-ui)', fontWeight: 900, fontSize: 15, color: '#E4572E', border: '3px solid #E4572E', borderRadius: 999, padding: '2px 8px', transform: 'rotate(-14deg)', background: 'rgba(255,255,255,.75)', animation: got && i === got.day ? 'fxVsPop 450ms both' : 'none' }}>済</span></div>}
+          </div>); })}
+      </div>
+      {got ? (<>
+        <div className="text-center text-sm font-black mb-2" style={{ color: '#C2410C' }}>{got.rw.big ? '🎉 カードコンプリート！ ' : ''}{got.guest && got.rw.shard ? `${got.rw.exp + 20 * got.rw.shard} EXP` : lbText(got.rw)} ゲット！</div>
+        {got.after > got.before && <div className="mb-2"><ExpGain before={got.before} after={got.after} label="ログインボーナス" /></div>}
+        {got.rw.shard && !got.guest && <div className="text-[11px] font-bold text-center mb-2" style={{ color: 'var(--v7-sub)' }}>かけらを5個集めると、きせかえ「宝箱の金貨」が解放されます</div>}
+        <button className="v7-go v7-cur" data-snd="back" onClick={() => setOpen(false)}>とじる</button>
+      </>) : <button className="v7-go v7-cur" data-snd="none" disabled={busy} onClick={claim}>スタンプを押す</button>}
+    </V7Modal>
+  );
+}
+
 /* ボス図鑑 */
 function BossDex({ st }) {
   const B = (st && st.wk && st.wk.boss) || {};
@@ -5768,6 +5845,9 @@ const BADGES = [
   { id: 'wkone2', g: 'wkone', r: 4, icon: '☄️', label: '会心の出撃', desc: '今週のボスに1回の出撃で1200ダメージ', test: st => ((st.wk || {}).best || 0) >= 1200 },
   { id: 'wkdex3', g: 'wkdex', r: 3, icon: '📖', label: 'ボス図鑑', desc: '3種類のボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },
   { id: 'wkdex6', g: 'wkdex', r: 5, icon: '🐲', label: 'ボスハンター', desc: '6種類すべてのボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },
+  { id: 'lb7', g: 'lb', r: 2, icon: '🎫', label: 'スタンプコンプリート', desc: 'ログインボーナスのカードを1枚完成させる（7日）', test: st => ((st.login || {}).cards || 0) >= 1 },
+  { id: 'lb30', g: 'lb', r: 3, icon: '🏫', label: 'いつもの顔', desc: '通算30日ログイン', test: st => ((st.login || {}).n || 0) >= 30 },
+  { id: 'lb100', g: 'lb', r: 5, icon: '🌸', label: '常連さん', desc: '通算100日ログイン', test: st => ((st.login || {}).n || 0) >= 100 },
   { id: 'wkchest1', g: 'wkchest', r: 2, icon: '🎁', label: '宝探し', desc: '今週のボスの出撃中に宝箱を開ける', test: st => ((st.wk || {}).chests || 0) >= 1 },
   { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
   { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
