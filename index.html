@@ -193,6 +193,22 @@
     .v7-bhome { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px; align-items: start; }
     .v7-bhome-head { grid-column: 1 / -1; }
   }
+  /* あそびかた */
+  .v7-tut { width: 100%; max-width: 34rem; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .v7-tut-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .v7-tut-body { display: block; }
+  .v7-tut-toc { display: none; }
+  .v7-tut-card { padding: 16px; }
+  .v7-tut-vis { min-height: 150px; display: flex; align-items: center; justify-content: center; background: #F7F4EE; border-radius: 14px; padding: 12px; }
+  .v7-toc-item { display: block; width: 100%; text-align: left; border: none; background: none; padding: 5px 8px; border-radius: 8px; font-size: 13px; font-weight: 700; font-family: var(--v7-f-ui); color: var(--v7-ink); }
+  .v7-toc-item.cur { background: var(--v7-accent-soft); color: var(--v7-accent-dk); font-weight: 900; }
+  @media (min-width: 900px) and (orientation: landscape) {
+    .v7-tut { max-width: 1040px; padding: 18px 48px 18px 56px; }
+    .v7-tut-body { display: grid; grid-template-columns: 250px 1fr; gap: 20px; align-items: start; }
+    .v7-tut-toc { display: block; padding: 10px 10px 10px 22px; max-height: calc(100dvh - 140px); overflow-y: auto; }
+    .v7-tut-card { padding: 22px 26px; }
+    .v7-tut-vis { min-height: 210px; }
+  }
   /* ウィンドウ（成績・ランキングなど） */
   .v7-modal { position: fixed; inset: 0; z-index: 90; background: rgba(29,38,51,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .v7-modal-win { width: 100%; max-width: 46rem; max-height: calc(100dvh - 32px); overflow: auto; background: var(--v7-card); border-radius: 18px; border: 1px solid var(--v7-line); box-shadow: 0 16px 40px rgba(0,0,0,.25); padding: 16px; color: var(--v7-ink); }
@@ -1022,154 +1038,103 @@ function submitNetScore(entry) {
   }).then(res => res.json());
 }
 
+const TUT_CHAPTERS = [
+  { id: 'solo', name: 'ソロ' },
+  { id: 'vs', name: 'オンライン対戦' },
+  { id: 'team', name: 'みんなで' },
+  { id: 'grow', name: '育てる' },
+];
 const TUTORIAL_STEPS = [
-  { title: '① 目標', body: '上に出る式と同じになるように、2つの因数タイルをかけ算で作ろう！' },
-  { title: '② タイルをつなげる', body: 'タイルを指で押さえたまま、もう1枚のタイルまでドラッグしてつなげよう。' },
-  { title: '③ 体力(HP)ゲージ', body: 'HPは100%スタート。問題が表示されている間は毎秒1%ずつ減っていくよ。0%になるとゲームオーバー！' },
-  { title: '④ タイム判定', body: 'Perfect〜Fairの6段階で判定され、HPが回復するよ。ミスや20秒の時間切れは Bad でHPが大きく減ってコンボも途切れるので注意！' },
-  { title: '⑤ コンボ・レベルアップ', body: '連続正解でコンボが増えて得点アップ！3問正解ごとにレベルアップ、5コンボごとにファンファーレが鳴るよ。' },
-  { title: '⑥ 難易度を選ぼう', body: 'イージー・ノーマル・ハードから選べる。クリアに必要な問題数と、まちがえた時に減るHPの量が違うよ。' },
-  { title: '⑦ オンライン対戦', body: 'タイトルの「オンライン対戦」から遊べるよ。「すぐ遊ぶ」は空いている相手と自動でマッチ（待っている間は練習できる）。「部屋をつくる／入る」なら部屋番号で友だちと最大4人、CPU練習もあるよ。' },
-  { title: '⑧ 方式を決めよう', body: '対戦にはA方式とB方式がある。「すぐ遊ぶ」では2人がそろったら「方式×難易度」の4つから投票！ 方式は同じならその方式、分かれたらランダム。難易度は2人ともノーマルのときだけノーマルになるよ。' },
-  { title: '⑨ A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」で操作できない。最後の3問は得点2倍のラストスパート！' },
-  { title: '⑩ B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfect・Excellentでおじゃまタイルも送れる。攻撃が来たら予告中に正解すると相殺できるよ。' },
-  { title: '⑪ 必殺技とピンチ', body: '正解で必殺技ゲージがたまると、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
-  { title: '⑫ レート・ランク・称号', body: 'ログインして遊ぶと、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。称号は二つ名として飾れて、レベルが上がると「きせかえ」も増えるよ。' },
-  { title: '⑬ ほかの遊び方', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット、「学びの部屋」で苦手分析とドリル、クラスみんなでボスに挑む「レイド」もあるよ！ 観戦中は📣で友だちを応援できる。' },
+  { ch: 'solo', v: 'goal', title: '目標', body: '上に出る式と同じになるように、2枚の因数タイルをかけ算で作ろう！' },
+  { ch: 'solo', v: 'drag', title: 'タイルをつなげる', body: 'タイルを指で押さえたまま、もう1枚のタイルまでドラッグしてはなすと、つながるよ。' },
+  { ch: 'solo', v: 'hp', title: '体力（HP）', body: 'HPは100%スタート。問題が出ている間は少しずつ減っていく。0%になるとゲームオーバー！' },
+  { ch: 'solo', v: 'judge', title: 'タイム判定', body: '速く解くほど良い判定で、HPが回復するよ。ミスや20秒の時間切れは Bad でHPが大きく減り、コンボも途切れる。' },
+  { ch: 'solo', v: 'combo', title: 'コンボとレベル', body: '続けて正解するとコンボで得点アップ！ 3問正解ごとに新しいレベルの問題が出てくる。' },
+  { ch: 'solo', v: 'diff', title: '難易度', body: 'イージー・ノーマル・ハードから選んで「スタート」。クリアに必要な問題数と、まちがえたときに減るHPがちがうよ。' },
+  { ch: 'vs', v: 'entry', title: '対戦の入口', body: '「すぐ遊ぶ」は空いている相手と自動で対戦（待っている間はCPUと練習、相手が来たら乱入）。「部屋」なら部屋コードで友だちと最大4人。CPU練習もあるよ。' },
+  { ch: 'vs', v: 'vote', title: '方式を決める', body: '「すぐ遊ぶ」は2人がそろったら「方式×難易度」の4つから投票。方式は同じならその方式、分かれたらランダム。難易度は2人ともノーマルのときだけノーマル。' },
+  { ch: 'vs', v: 'modeA', title: 'A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」。最後の3問は得点2倍のラストスパート！' },
+  { ch: 'vs', v: 'modeB', title: 'B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfectでおじゃまタイルも送れる。攻撃の予告中に正解すると相殺できるよ。' },
+  { ch: 'vs', v: 'sp', title: '必殺技とピンチ', body: '必殺技ゲージがたまったら、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
+  { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
+  { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
+  { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
+  { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
+  { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
+  { ch: 'grow', v: 'badge', title: '称号ときせかえ', body: '条件を満たすと称号がもらえて、「二つ名」として名前の上に飾れる。レベル・ランク・ボス討伐などで「きせかえ」（タイル・背景・エフェクト）も増えていくよ。' },
 ];
 
-function TutorialVisual({ step }) {
-  const tileBase = {
-    background: COLORS.tile,
-    border: `2px solid ${COLORS.sky}55`,
-    borderRadius: '10px',
-    padding: '8px 10px',
-    fontWeight: 900,
-    fontFamily: "'Zen Maru Gothic', sans-serif",
-    color: COLORS.ink,
-    fontSize: '13px',
-  };
-  if (step === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div className="rounded-xl px-4 py-2 text-sm font-black" style={{ background: COLORS.paperDark, color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}><MathText text="x² + 5x + 6" /></div>
-        <div style={{ fontSize: '18px' }}>↓</div>
-        <div className="flex gap-2">
-          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}><MathText text="(x+2)" /></div>
-          <div style={{ ...tileBase, border: `2px solid ${COLORS.leaf}` }}><MathText text="(x+3)" /></div>
-        </div>
-      </div>
-    );
-  }
-  if (step === 1) {
-    return (
-      <div className="flex items-center gap-3">
-        <div style={tileBase}><MathText text="(x+2)" /></div>
-        <svg width="40" height="20"><line x1="0" y1="10" x2="40" y2="10" stroke={COLORS.amber} strokeWidth="3" strokeDasharray="2 6" strokeLinecap="round" /></svg>
-        <div style={tileBase}><MathText text="(x+3)" /></div>
-      </div>
-    );
-  }
-  if (step === 2) {
-    return (
-      <div className="flex flex-col items-center gap-2 w-full">
-        <div className="relative w-full max-w-[220px] rounded-full overflow-hidden" style={{ height: '16px', background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
-          <div style={{ width: '62%', height: '100%', background: 'linear-gradient(90deg, #43C97B, #8BE38F)' }} />
-        </div>
-        <span style={{ fontSize: '11px', color: COLORS.inkSoft, fontWeight: 700 }}>毎秒 1% ずつ減る</span>
-      </div>
-    );
-  }
-  if (step === 3) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex gap-2">
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#FFD54A', color: '#5c3a00' }}>Perfect +25%</span>
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#8BE38F', color: '#fff' }}>Excellent +20%</span>
-        </div>
-        <div className="flex gap-2">
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#6BD4E8', color: '#fff' }}>Great +15%</span>
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#8FB8FF', color: '#fff' }}>Good +10%</span>
-        </div>
-        <div className="flex gap-2">
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#C9C9C9', color: '#333' }}>OK +5%</span>
-          <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#FF9F1C', color: '#fff' }}>Fair +2%</span>
-        </div>
-        <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: '#FF5C5C', color: '#fff' }}>Bad(ミス・20秒超) HPダウン</span>
-      </div>
-    );
-  }
-  if (step === 4) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex gap-3 items-center">
-          <div className="rounded-xl px-3 py-2 text-center" style={{ background: COLORS.paperDark }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: COLORS.inkSoft }}>COMBO</div>
-            <div style={{ fontSize: '18px', fontWeight: 900, color: COLORS.coral, fontFamily: "'Zen Maru Gothic', sans-serif" }}>x1.5</div>
-          </div>
-          <div className="rounded-full px-3 py-1 text-xs font-black" style={{ background: LEVEL_INFO[3].color, color: '#fff' }}>Lv.3解放！🎉</div>
-        </div>
-        <span style={{ fontSize: '11px', color: COLORS.inkSoft, fontWeight: 700 }}>5コンボごとに「ナイスコンボ！」</span>
-      </div>
-    );
-  }
-  const chip = (t, bg, fg = '#fff') => <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: bg, color: fg }}>{t}</span>;
-  const card = (icon, t, sub, bg) => (
-    <div className="rounded-xl px-3 py-2 text-center" style={{ background: bg, minWidth: '78px' }}>
-      <div style={{ fontSize: '20px' }}>{icon}</div>
-      <div style={{ fontSize: '11px', fontWeight: 900, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{t}</div>
-      {sub && <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>{sub}</div>}
-    </div>
-  );
-  if (step === 6) return (
-    <div className="flex gap-2 flex-wrap justify-center">
-      {card('⚡', 'すぐ遊ぶ', '自動マッチ', COLORS.coral)}{card('🚪', '部屋', '最大4人', COLORS.sky)}{card('🤖', 'CPU練習', '1人でOK', COLORS.leaf)}
-    </div>
-  );
-  if (step === 7) return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex gap-2">{card('🏁', 'A方式', '早い者勝ち', '#3a7bd5')}{card('⚔️', 'B方式', 'レース＋攻撃', '#e76f51')}</div>
-      <span style={{ fontSize: '11px', color: COLORS.inkSoft, fontWeight: 700 }}>そろったら投票 → かぶれば決定・分かれたらランダム</span>
-    </div>
-  );
-  if (step === 8) return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex gap-2">{chip('先に正解 +点', COLORS.leaf)}{chip('ミス → 2秒お手つき', COLORS.coral)}</div>
-      {chip('🔥 最後の3問は得点2倍', '#FFD54A', '#5c3a00')}
-    </div>
-  );
-  if (step === 9) return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex gap-2 items-center">{chip('コンボ', COLORS.sky)}<span style={{ fontSize: '18px' }}>→</span>{chip('相手の体力 −', '#e76f51')}</div>
-      <div className="flex gap-2">{chip('Perfect → おじゃま', '#FFD54A', '#5c3a00')}{chip('🛡 予告中に正解で相殺', '#6BD4E8')}</div>
-    </div>
-  );
-  if (step === 10) return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex gap-2">{chip('💥 大攻撃', '#e63946')}{chip('💚 回復', COLORS.leaf)}{chip('🛡 シールド', '#3a7bd5')}</div>
-      {chip('体力30%以下 → PINCH 攻撃×1.3', '#e63946')}
-    </div>
-  );
-  if (step === 11) return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex gap-2 items-center">{chip('レート 1500 → 1532 ▲', COLORS.leaf)}<RankPill r={1532} size={12} />{chip('💰懸賞金 10', '#b7791f')}</div>
-      <div className="rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paperDark }}><div className="text-[10px] font-black" style={{ color: '#b7791f' }}>〈🥋必殺技いらず〉</div><div className="text-sm font-black" style={{ color: COLORS.ink }}>たろう</div></div>
-    </div>
-  );
-  if (step === 12) return (
-    <div className="flex gap-2 flex-wrap justify-center">
-      {card('📅', 'ミッション', '毎日4つ', '#f4a261')}{card('📚', '学びの部屋', '苦手ドリル', COLORS.sky)}{card('🐉', 'レイド', 'みんなで', '#7b2cbf')}
-    </div>
-  );
+/* 図（本番と同じ部品の見た目） */
+function TutVisual({ v }) {
+  const tile = (t, st) => <div className="rounded-xl flex items-center justify-center font-bold" style={{ background: '#F4F7FF', border: '2px solid #C9D5F5', color: '#14204A', boxShadow: '0 4px 0 #0A1230', padding: '8px 12px', fontSize: 15, minWidth: 64, ...bFont, ...st }}><MathText text={t} /></div>;
+  const target = (t, small) => <div className="v7-target" style={{ padding: small ? '6px 10px' : '8px 12px' }}><div className="text-[10px] font-bold" style={{ color: '#6F7785' }}>この式を因数分解しよう</div><div className="font-black" style={{ fontSize: small ? 18 : 22, color: '#1D2633', ...bFont }}><MathText text={t} /></div></div>;
+  const navy = children => <div className="rounded-2xl p-3 w-full flex flex-col items-center gap-2" style={{ background: V7_NIGHT, maxWidth: 340 }}>{children}</div>;
+  const jw = (t, c) => <span style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 20, color: c, WebkitTextStroke: '1px #fff', textShadow: `0 0 10px ${c}` }}>{t}</span>;
+  const chip = (t, bg) => <span className="v7-chip" style={{ background: bg, fontSize: 11 }}>{t}</span>;
+  const wcard = (icon, t, sub) => <div className="v7-wnd px-3 py-2 text-center" style={{ minWidth: 86 }}><div style={{ fontSize: 20 }}>{icon}</div><div className="text-[11px] font-black" style={bFont}>{t}</div>{sub && <div className="text-[9px] font-bold" style={{ color: '#AAB6E0' }}>{sub}</div>}</div>;
+  const panel = (icon, t, sub, c) => <div className="v7-panel text-center" style={{ padding: '8px 10px', minWidth: 90, borderTop: `4px solid ${c}` }}><div style={{ fontSize: 20 }}>{icon}</div><div className="text-[12px] font-black" style={bFont}>{t}</div>{sub && <div className="text-[10px] font-bold" style={{ color: 'var(--v7-sub)' }}>{sub}</div>}</div>;
+  if (v === 'goal') return navy(<>{target('x² + 5x + 6')}<div className="flex gap-2 items-center">{tile('(x+2)', { borderColor: '#FFC94D' })}<span style={{ color: '#FFC94D', fontWeight: 900 }}>×</span>{tile('(x+3)', { borderColor: '#FFC94D' })}</div></>);
+  if (v === 'drag') return navy(<div className="flex items-center gap-1">{tile('(x+2)', { borderColor: '#FFC94D', boxShadow: '0 0 0 3px rgba(255,201,77,.6), 0 4px 0 #0A1230', transform: 'translateY(-3px)' })}<svg width="56" height="20"><line x1="2" y1="10" x2="54" y2="10" stroke="#FFC94D" strokeWidth="4" strokeDasharray="2 8" strokeLinecap="round" /><circle cx="50" cy="10" r="7" fill="none" stroke="#FFC94D" strokeWidth="3" /></svg>{tile('(x+3)')}</div>);
+  if (v === 'hp') return navy(<><div className="w-full"><HpBar v7 hp={62} height={22} /></div><div className="w-full"><HpBar v7 hp={24} height={22} /></div><span className="text-[11px] font-bold" style={{ color: '#AAB6E0' }}>30%以下は黄色、10%以下は赤</span></>);
+  if (v === 'judge') return navy(<><div className="flex gap-3 flex-wrap justify-center">{jw('Perfect', '#FFB300')}{jw('Excellent', '#43C97B')}{jw('Great', '#2EC4B6')}</div><div className="flex gap-3 flex-wrap justify-center">{jw('Good', '#5B8DEF')}{jw('OK', '#9aa')}{jw('Bad', '#ff5c5c')}</div></>);
+  if (v === 'combo') return navy(<div className="grid grid-cols-3 gap-2 w-full">{v7Stat('SCORE', 320)}{v7Stat('TIME', '0:42')}{v7Stat('COMBO', 'x1.5', 'var(--v7-gold)')}</div>);
+  if (v === 'diff') return <div className="flex gap-2">{['easy', 'normal', 'hard'].map(d => <div key={d} className="rounded-xl px-3 py-2 text-center text-white" style={{ background: `var(--v7-${d})` }}><div className="text-[13px] font-black" style={bFont}>{DIFFICULTY_CONFIG[d].label}</div><div className="text-[10px] font-bold opacity-90">{DIFFICULTY_CONFIG[d].clearCount}問・ミス-{DIFFICULTY_MISS_PENALTY[d]}%</div></div>)}</div>;
+  if (v === 'entry') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚡', 'すぐ遊ぶ', '自動で対戦', '#E4572E')}{panel('🚪', '部屋', '最大4人', '#1D2633')}{panel('🤖', 'CPU練習', '1人でOK', '#3FA55F')}</div>;
+  if (v === 'vote') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2">{panel('🏁', 'A方式', '早い者勝ち', BATTLE_MODES.A.color)}{panel('⚔️', 'B方式', 'レース＋攻撃', BATTLE_MODES.B.color)}</div><span className="text-[11px] font-bold" style={{ color: 'var(--v7-sub)' }}>そろったら投票 → 同じなら決定・分かれたらランダム</span></div>;
+  if (v === 'modeA') return navy(<><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: 'var(--v7-gold)' }}>あなたが正解！ +10点 ・ 次の問題へ</div><div className="flex gap-2">{chip('ミス → 2秒お手つき', '#C2410C')}{chip('🔥 最後の3問は2倍', '#b7791f')}</div></>);
+  if (v === 'modeB') return navy(<><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#2D6A4F,#1f4d39)' }}>⚔ 攻撃！ 体力-8%・おじゃま1枚</div><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#0E86C6,#0b5f8c)' }}>🛡 相殺！ 予告中に正解した</div></>);
+  if (v === 'sp') return navy(<><div className="flex gap-1.5">{['⚡大攻撃', '💚回復', '🛡シールド'].map((t, i) => <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-black text-white" style={{ background: ['#e63946', '#2a9d8f', '#457b9d'][i], border: '1.5px solid #fff' }}>{t}</span>)}</div><span className="rounded-full px-2 text-[11px] font-black text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span></>);
+  if (v === 'weekly' || v === 'raid') { const b = BOSSES[v === 'weekly' ? 5 : 0]; return navy(<><div className="w-full"><BossPanel boss={b} hp={v === 'weekly' ? 18000 : 6200} max={v === 'weekly' ? 30000 : 10000} /></div><div className="flex gap-1.5 flex-wrap justify-center">{v === 'weekly' ? <>{chip('🎯 弱点タイム ×2', '#ff7b00')}{chip('🛡 ガード', '#457b9d')}{chip('🏆 討伐報酬', '#d4a017')}</> : <>{chip('🐉 攻撃型', '#2a9d8f')}{chip('🗿 防御型', '#8d6e63')}{chip('👿 変身型', '#b5487e')}</>}</div></>); }
+  if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
+  if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📅', 'デイリー', '毎日4つ', '#E4572E')}{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
+  if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}{chip('💰 懸賞金 10', '#b7791f')}</div></div>;
+  if (v === 'badge') return <div className="flex gap-2 items-center flex-wrap justify-center"><div className="v7-panel text-center" style={{ padding: '8px 14px' }}><div className="text-[11px] font-black" style={{ color: '#b7791f' }}>〈🥋必殺技いらず〉</div><div className="v7-name" style={{ fontSize: 16 }}>しゅう</div></div>{tile('(x+3)', { background: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', color: '#fff', borderColor: '#0e4d44' })}</div>;
+  return null;
+}
+function TutorialV7({ step, setStep, onClose }) {
+  const S = TUTORIAL_STEPS, cur = S[step] || S[0];
+  const ch = cur.ch, inCh = S.map((x, i) => ({ ...x, i })).filter(x => x.ch === ch);
+  const go = n => { const k = Math.max(0, Math.min(S.length - 1, n)); if (k !== step) uiSnd(k > step ? 'ok' : 'back'); setStep(k); };
+  useEffect(() => {
+    const f = e => { if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); else if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', f); return () => window.removeEventListener('keydown', f);
+  }, [step]);
+  const isLast = step === S.length - 1;
   return (
-    <div className="flex gap-2">
-      {['easy', 'normal', 'hard'].map(d => (
-        <div key={d} className="rounded-xl px-3 py-2 text-center" style={{ background: DIFFICULTY_CONFIG[d].color }}>
-          <div style={{ fontSize: '11px', fontWeight: 900, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{DIFFICULTY_CONFIG[d].label}</div>
-          <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>{DIFFICULTY_CONFIG[d].clearCount}問</div>
-          <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>ミス-{DIFFICULTY_MISS_PENALTY[d]}%</div>
+    <div className="v7-menu" style={{ alignItems: 'flex-start' }}>
+      <FontImport />
+      <div className="v7-tut v7-open">
+        <div className="v7-tut-head">
+          <button className="v7-pill v7-cur" data-snd="back" onClick={onClose}>← タイトルへ</button>
+          <div className="v7-name" style={{ fontSize: 20 }}>あそびかた</div>
+          <span className="v7-ver">{step + 1} / {S.length}</span>
         </div>
-      ))}
+        <div className="v7-tabs" style={{ marginBottom: 0 }}>
+          {TUT_CHAPTERS.map(c => <button key={c.id} className="v7-cur" aria-pressed={c.id === ch} onClick={() => go(S.findIndex(x => x.ch === c.id))}>{c.name}</button>)}
+        </div>
+        <div className="v7-tut-body">
+          {/* 目次（タブレット以上） */}
+          <div className="v7-tut-toc v7-panel">
+            {TUT_CHAPTERS.map(c => (<div key={c.id} className="mb-1">
+              <div className="text-[10px] font-black mt-1 mb-0.5" style={{ color: 'var(--v7-sub)', letterSpacing: '.08em' }}>{c.name}</div>
+              {S.map((x, i) => x.ch === c.id && <button key={i} className={`v7-cur v7-toc-item${i === step ? ' cur' : ''}`} onClick={() => go(i)}>{x.title}</button>)}
+            </div>))}
+          </div>
+          <div className="v7-panel v7-tut-card">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="v7-badge">{TUT_CHAPTERS.find(c => c.id === ch).name}</span>
+              <div className="flex gap-1">{inCh.map(x => <span key={x.i} className="rounded-full" style={{ width: x.i === step ? 16 : 6, height: 6, background: x.i === step ? 'var(--v7-accent)' : 'var(--v7-line)', transition: 'all 200ms' }} />)}</div>
+            </div>
+            <div className="v7-name mb-3" style={{ fontSize: 22 }}>{cur.title}</div>
+            <div key={step} className="v7-tut-vis v7-open"><TutVisual v={cur.v} /></div>
+            <p className="text-sm font-bold leading-relaxed mt-3" style={{ color: 'var(--v7-ink)' }}>{cur.body}</p>
+            <div className="flex gap-2 mt-4">
+              {step > 0 && <button className="v7-sub-btn v7-cur" data-snd="none" style={{ flex: 1, fontSize: 15, padding: 11 }} onClick={() => go(step - 1)}>もどる</button>}
+              <button className="v7-go v7-cur" data-snd="none" style={{ flex: 2, fontSize: 16, padding: 11 }} onClick={() => isLast ? (uiSnd('back'), onClose()) : go(step + 1)}>{isLast ? 'タイトルへ' : '次へ ▶'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2433,7 +2398,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.5</span>
+              <span className="v7-ver">ver.7.6</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -2625,44 +2590,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
      画面: チュートリアル
      ============================================================ */
   if (screen === 'tutorial') {
-    const step = TUTORIAL_STEPS[tutorialStep];
-    const isLast = tutorialStep === TUTORIAL_STEPS.length - 1;
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
-        <FontImport />
-        <div className="max-w-md sm:max-w-xl w-full rounded-3xl p-6 v7-open" style={{ background: "#fff", border: "1px solid var(--v7-line)" }}>
-          <div className="flex justify-center gap-1.5 mb-4">
-            {TUTORIAL_STEPS.map((_, i) => (
-              <div key={i} className="rounded-full" style={{ width: i === tutorialStep ? '18px' : '6px', height: '6px', background: i === tutorialStep ? COLORS.sky : `${COLORS.sky}44`, transition: 'all 200ms' }} />
-            ))}
-          </div>
-
-          <div className="text-center text-base font-black mb-3" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{step.title}</div>
-
-          <div className="mb-4 flex items-center justify-center" style={{ minHeight: '110px' }}>
-            <TutorialVisual step={tutorialStep} />
-          </div>
-
-          <p className="text-sm text-center mb-6 leading-relaxed" style={{ color: COLORS.inkSoft }}>{step.body}</p>
-
-          <div className="flex gap-2">
-            {tutorialStep > 0 && (
-              <button onClick={() => { uiSnd('back'); setTutorialStep(s => s - 1); }} className="flex-1 rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>戻る</button>
-            )}
-            <button
-              onClick={() => { uiSnd(isLast ? 'back' : 'ok'); if (isLast) setScreen('menu'); else setTutorialStep(s => s + 1); }}
-              className="flex-1 rounded-xl py-3 font-bold shadow active:scale-95 transition-transform"
-              style={{ background: 'var(--v7-accent)', color: '#fff', boxShadow: '0 3px 0 var(--v7-accent-dk)' }}
-            >
-              {isLast ? 'とじる' : '次へ'}
-            </button>
-          </div>
-          {!isLast && (
-            <button onClick={() => { uiSnd('back'); setScreen('menu'); }} className="w-full text-center text-xs font-bold mt-3 py-1" style={{ color: COLORS.inkSoft }}>スキップしてタイトルへ</button>
-          )}
-        </div>
-      </div>
-    );
+    return <TutorialV7 step={tutorialStep} setStep={setTutorialStep} onClose={() => setScreen('menu')} />;
   }
 
   /* ============================================================
@@ -3350,6 +3278,7 @@ const SKIN_TILES = [
   // 今週のボスの討伐記念
   { id: 'scale', name: 'ドラゴンの鱗', bg: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', bc: '#0e4d44', color: '#ffffff', glow: '0 0 8px #2a9d8f88', need: { boss: 'dragon' } },
   { id: 'inkt', name: 'クラーケンの墨', bg: 'radial-gradient(circle at 30% 30%,#5b4bb7,#1d1640 70%)', bc: '#b9a8ff', color: '#ffffff', glow: '0 0 8px #7B61FF88', need: { boss: 'kraken' } },
+  { id: 'treasure', name: '宝箱の金貨', bg: 'radial-gradient(circle at 30% 25%,#fff6c8,#f7c948 45%,#c08a10)', bc: '#7a5200', color: '#3a2600', glow: '0 0 10px #ffd54aaa', need: { shards: 5 } },
   { id: 'rock', name: 'ゴーレムの岩', bg: 'linear-gradient(135deg,#a1887f,#6d4c41)', bc: '#3e2723', color: '#fff8e1', need: { boss: 'golem' } },
 ];
 const SKIN_BGS = [
@@ -3398,12 +3327,13 @@ function skinOpen(need, info) {
   if (need.mis) return info.mis >= need.mis;
   if (need.bounty) return info.bounty >= need.bounty;
   if (need.boss) return !!(info.boss && info.boss[need.boss]);
+  if (need.shards) return (info.shards || 0) >= need.shards;
   return false;
 }
-const skinNeedText = need => !need ? '' : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
 function skinInfo(st, exp) {
   st = st || {};
-  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {} };
+  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0 };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose }) {
@@ -4499,7 +4429,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
     const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
     if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
       const j = getJudgment(ms);
-      const mul = o.dmgMul ? o.dmgMul(prob.level) : 1;
+      const mul = o.dmgMul ? o.dmgMul(prob.level, j.label, s.combo) : 1;
       const d = Math.round(raidDamage(prob.level, j.label, s.combo) * mul);
       s.combo++; s.best = Math.max(s.best, s.combo); s.dmg += d; s.n++; if (j.label === 'Perfect') s.pf++;
       s.dp[partOfLv(prob.level)] += d;
@@ -4996,15 +4926,53 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
    成績：accounts/<k>/stats/wk = { last 最後に出撃した週, streak, maxStreak, weeks, kills, ace, best, lastHit, boss:{id:回数}, done:{週:'k'討伐報酬・'s'週の締め}, day }
    ===================================================================== */
 const prevWeek = wk => weekKey(Date.parse(wk + 'T03:00:00Z') - 7 * 86400000);
-function weeklyInfo(wk, v) {
-  const boss = weeklyBoss(wk), T = traitOf(boss.id);
-  const hpMax = Math.round(WEEKLY_HP * (T.hpK || 1));
+/* 気まぐれルール（週ごとに1つ） */
+const WK_RULES = [
+  { id: 'perfect', icon: '⚡', name: 'スピード勝負', desc: 'Perfect のダメージが2倍' },
+  { id: 'combo', icon: '🔥', name: 'コンボ祭り', desc: '5コンボ以上のあいだ、ダメージ1.5倍' },
+  { id: 'high', icon: '🧗', name: '上級者の週', desc: 'Lv.5以上はダメージ1.5倍・Lv.4以下は0.7倍（出撃はLv.3から）' },
+  { id: 'lucky', icon: '🍀', name: 'ラッキーセブン', desc: 'Lv.7（3乗の和・差）の問題はダメージ3倍' },
+  { id: 'long', icon: '⏳', name: 'ロングラン', desc: '1回の出撃が90秒に延長' },
+  { id: 'chest', icon: '🎁', name: '宝の山', desc: '宝箱が3倍出やすい' },
+];
+const wkRuleOf = id => WK_RULES.find(r => r.id === id) || null;
+const WK_RAGE_HP = 1.2, wkRageReward = r => r >= 2 ? 2 : r >= 1 ? 1.5 : 1;
+const wkSession = info => info && info.rule && info.rule.id === 'long' ? 90000 : WEEKLY_SESSION;
+// 応援パワー：サポーターの応援ポイント1につき全員のダメージ+0.5%（最大+50%）
+const wkSupMul = p => 1 + Math.min(0.5, (p || 0) * 0.005);
+function weeklyInfo(wk, v, meta, sup) {
+  const boss = (meta && BOSSES.find(b => b.id === meta.boss)) || weeklyBoss(wk), T = traitOf(boss.id);
+  const rage = (meta && meta.rage) || 0;
+  const hpMax = Math.round(WEEKLY_HP * (T.hpK || 1) * Math.pow(WK_RAGE_HP, rage));
+  const supRows = Object.entries(sup || {}).map(([k, e]) => ({ k, ...e })).filter(e => e && e.p).sort((a, b) => b.p - a.p);
+  const supTotal = supRows.reduce((a, e) => a + (e.p || 0), 0);
   const rows = Object.entries(v || {}).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).sort((a, b) => b.d - a.d);
   const total = rows.reduce((a, e) => a + (e.d || 0), 0);
   const revived = !!(T.revive && total >= hpMax * 0.5);   // 魔王：半分を切ると一度だけ回復
   const hp = hpMax - total + (revived ? Math.round(hpMax * T.revive) : 0);
-  return { wk, boss, T, hpMax, total, hp, dead: hp <= 0, revived, rows };
+  return { wk, boss, T, hpMax, total, hp, dead: hp <= 0, revived, rows, rage, rule: wkRuleOf(meta && meta.rule), meta, supRows, supTotal, supMul: wkSupMul(supTotal) };
 }
+/* その週のボス・怒り・ルールを決める（その週に最初に開いた人が記録。全員が同じものを見る）
+   先週のボスが倒されずに逃げたら、同じボスが怒って居座る（体力1.2倍・報酬1.5倍、2週続けて逃げたら1.44倍・2倍） */
+const WK_META_DONE = {};
+async function ensureWeekMeta(wk) {
+  if (!FB.db || WK_META_DONE[wk]) return; WK_META_DONE[wk] = 1;
+  const base = `games/factor/raidw`;
+  try {
+    const cur = (await FB.db.ref(`${base}/${wk}/meta`).get()).val();
+    if (cur) return;
+    const pwk = prevWeek(wk);
+    const [pm, pd] = await Promise.all([FB.db.ref(`${base}/${pwk}/meta`).get().then(x => x.val()), FB.db.ref(`${base}/${pwk}/dmg`).get().then(x => x.val())]);
+    const pinfo = weeklyInfo(pwk, pd, pm);
+    let boss, rage = 0;
+    if (pinfo.rows.length && !pinfo.dead) { boss = pinfo.boss.id; rage = Math.min(2, ((pm && pm.rage) || 0) + 1); }
+    else { boss = weeklyBoss(wk).id; if (boss === pinfo.boss.id) boss = BOSSES[(BOSSES.findIndex(b => b.id === boss) + 1) % BOSSES.length].id; }
+    const rule = WK_RULES[hashSeed('rule:' + wk) % WK_RULES.length].id;
+    await FB.db.ref(`${base}/${wk}/meta`).transaction(c => c ? undefined : { boss, rage, rule, at: Date.now() });
+  } catch (e) { WK_META_DONE[wk] = 0; }
+}
+const fmtDur = ms => { const m = Math.max(0, Math.floor(ms / 60000)); const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60; return d ? `${d}日${h}時間` : h ? `${h}時間${mm}分` : `${mm}分`; };
+const weekStartMs = wk => Date.parse(wk + 'T00:00:00+09:00');
 // 出撃（60秒）の中の弱点タイムと反撃（秒）。ボスの個性で変わる
 const WK_WEAK = { slime: [], kraken: [[18, 38]], robot: [[8, 23], [33, 48]] };
 const WK_CTR = { slime: [], dragon: [22, 44], kraken: [34], golem: [45], maou: [28, 50], robot: [30, 52] };
@@ -5020,7 +4988,15 @@ const WK_DESC = {
 };
 const wkCtrOf = id => WK_CTR[id] || [35];
 // 討伐報酬の経験値：参加20 ＋ ダメージの割合（最大60）＋ 1位30・2〜3位15
-const wkBonus = (info, me) => { if (!me) return 0; const rk = info.rows.indexOf(me) + 1; return 20 + Math.min(60, Math.round(me.d / info.hpMax * 400)) + (rk === 1 ? 30 : rk <= 3 ? 15 : 0); };
+const wkBonus = (info, me) => { if (!me) return 0; const rk = info.rows.indexOf(me) + 1; return Math.round((20 + Math.min(60, Math.round(me.d / info.hpMax * 400)) + (rk === 1 ? 30 : rk <= 3 ? 15 : 0)) * wkRageReward(info.rage || 0)); };
+/* 宝箱の中身 */
+function chestRoll(real) {
+  const r = Math.random();
+  if (r < 0.55) return { exp: 15, label: '経験値 +15' };
+  if (r < 0.85) return { exp: 40, label: '経験値 +40' };
+  if (r < 0.97) return real ? { shard: 1, label: 'きせかえのかけら ×1' } : { exp: 30, label: '経験値 +30' };
+  return { exp: 100, label: '大当たり！ 経験値 +100' };
+}
 /* 成績を書きかえて、新しく取った称号をお知らせする */
 async function statsTx(acct, fn) {
   if (!isReal(acct) || !FB.db) return null;
@@ -5044,7 +5020,7 @@ async function settleWeek(acct, info, final) {
   const r = await statsTx(acct, s => {
     const W = wkOf(s); const f = W.done[info.wk] || '';
     let exp = 0, kill = false, ace = false, nf = f;
-    if (info.dead && !f.includes('k')) { kill = true; exp = wkBonus(info, me); W.kills = (W.kills || 0) + 1; W.boss[info.boss.id] = (W.boss[info.boss.id] || 0) + 1; nf += 'k'; }
+    if (info.dead && !f.includes('k')) { kill = true; exp = wkBonus(info, me); W.kills = (W.kills || 0) + 1; W.boss[info.boss.id] = (W.boss[info.boss.id] || 0) + 1; if (info.rage) W.rageKills = (W.rageKills || 0) + 1; nf += 'k'; }
     if (final && !f.includes('s')) { if (rk === 1) { ace = true; W.ace = (W.ace || 0) + 1; } nf += 's'; }
     if (nf === f) return null;
     W.done[info.wk] = nf; pruneDone(W);
@@ -5087,11 +5063,20 @@ function WeeklyRaidApp({ acct, onExit }) {
   const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
   const pv = useFbValue(fb.ready ? `raidw/${pwk}/dmg` : null);
   const kill = useFbValue(fb.ready ? `raidw/${wk}/kill` : null);
+  const meta = useFbValue(fb.ready ? `raidw/${wk}/meta` : null);
+  const pmeta = useFbValue(fb.ready ? `raidw/${pwk}/meta` : null);
+  const sup = useFbValue(fb.ready ? `raidw/${wk}/sup` : null);
+  const hist = useFbValue(fb.ready ? `raidwHist` : null);
+  useEffect(() => { if (fb.ready) ensureWeekMeta(wk); }, [fb.ready]);
   const meKey = isReal(acct) ? acct.key : null;
   const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
-  const info = useMemo(() => weeklyInfo(wk, v), [v]);
-  const pinfo = useMemo(() => pv ? weeklyInfo(pwk, pv) : null, [pv]);
-  const { boss, T, hpMax, total, hp, rows } = info;
+  const info = useMemo(() => weeklyInfo(wk, v, meta, sup), [v, meta, sup]);
+  const pinfo = useMemo(() => pv ? weeklyInfo(pwk, pv, pmeta) : null, [pv, pmeta]);
+  const { boss, T, hpMax, total, hp, rows, rage, rule } = info;
+  const SESSION = wkSession(info);
+  const bossShown = rage ? { ...boss, name: `${rage >= 2 ? '激怒の' : '怒りの'}${boss.name}` } : boss;
+  const [role, setRole] = useState('atk');   // atk アタッカー / sup サポーター
+  const chest = useRef({ on: false, n: 0 });
   const mine = meKey ? rows.find(r => r.k === meKey) : null;
   const lastMvp = pinfo && pinfo.rows[0] ? pinfo.rows[0].k : null;
   const [sortBy, setSortBy] = useState('d');   // d 合計 / avg 平均 / s 挑戦回数
@@ -5103,7 +5088,7 @@ function WeeklyRaidApp({ acct, onExit }) {
   const [busy, setBusy] = useState(false);
   const [showDex, setShowDex] = useState(false);
   const lrec = useRef([]);
-  const sess = useRef({ d: 0, t0: 0, seed: 0, lastOk: 0, fired: {}, oj: 0 });
+  const sess = useRef({ d: 0, t0: 0, seed: 0, lastOk: 0, fired: {}, oj: 0, sp: 0, chests: 0, shards: 0 });
   const [stunUntil, setStunUntil] = useState(0);
   const [fogUntil, setFogUntil] = useState(0);
   useTick(250, scr === 'play');
@@ -5157,11 +5142,20 @@ function WeeklyRaidApp({ acct, onExit }) {
   const pickLevel = useCallback((lv, how) => {
     let n = lv;
     if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
-    n = Math.max(1, Math.min(9, how === 'init' ? 1 : n));
+    n = Math.max(1, Math.min(9, how === 'init' ? (rule && rule.id === 'high' ? 3 : 1) : n));
     if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
     return n;
   }, [weakFam && weakFam.id]);
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((T.lvMul || {})[lv] || 1), [weakFam && weakFam.id, boss.id]);
+  // ダメージの倍率：弱点×ボスの得意不得意×気まぐれルール×応援パワー（サポーターは自分のダメージ0.3倍）
+  const dmgMul = useCallback((lv, j, combo) => {
+    let m = (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((T.lvMul || {})[lv] || 1);
+    const R = rule && rule.id;
+    if (R === 'perfect' && j === 'Perfect') m *= 2;
+    if (R === 'combo' && (combo || 0) >= 5) m *= 1.5;
+    if (R === 'high') m *= lv >= 5 ? 1.5 : 0.7;
+    if (R === 'lucky' && lv === 7) m *= 3;
+    return role === 'sup' ? m * 0.3 : m * info.supMul;
+  }, [weakFam && weakFam.id, boss.id, rule && rule.id, role, info.supMul]);
 
   const sessionOver = scr === 'play' && Date.now() >= endAt;
   useEffect(() => {
@@ -5179,47 +5173,68 @@ function WeeklyRaidApp({ acct, onExit }) {
           const W = wkOf(s);
           if (sd > 0 && W.last !== wk) { W.weeks = (W.weeks || 0) + 1; W.streak = W.last === prevWeek(wk) ? (W.streak || 0) + 1 : 1; W.maxStreak = Math.max(W.maxStreak || 0, W.streak); W.last = wk; }
           if (sd > 0) W.best = Math.max(W.best || 0, sd);
+          const S2 = sess.current;
+          if (S2.sp) { W.sup = (W.sup || 0) + S2.sp; W.supRuns = (W.supRuns || 0) + 1; }
+          if (S2.chests) W.chests = (W.chests || 0) + S2.chests;
+          if (S2.shards) W.shards = (W.shards || 0) + S2.shards;
           const first = W.day !== today; if (first) W.day = today;
-          const add = base * (first ? 2 : 1);
+          const add = base * (first ? 2 : 1) + (S2.chestExp || 0);
           const before = s.exp || 0; s.exp = before + add;
           return { before, after: s.exp, first };
         });
         if (r && r.out) { e = { before: r.out.before, after: r.out.after }; dbl = r.out.first; }
       } else {
         dbl = loadLS('fxf_wk_day', '') !== today; if (dbl) saveLS('fxf_wk_day', today);
-        e = await addExp(acct, base * (dbl ? 2 : 1));
+        e = await addExp(acct, base * (dbl ? 2 : 1) + (sess.current.chestExp || 0));
       }
-      setRes({ d: sd, exp: e, dbl });
+      setRes({ d: sd, exp: e, dbl, sp: sess.current.sp, chests: sess.current.chestLog || [] });
     })();
     setScr('done');
   }, [sessionOver]);
   useResultBgm(scr === 'done', false);
 
-  if (scr === 'play') return <RaidPlay boss={boss} hp={hp} max={hpMax} endAt={endAt} ended={false} title={`今週のボス ・ 出撃中`}
+  if (scr === 'play') return <RaidPlay boss={bossShown} hp={hp} max={hpMax} endAt={endAt} ended={false} title={`今週のボス ・ ${role === 'sup' ? '📣 サポーター' : '⚔ アタッカー'}`}
     onQuit={() => { setEndAt(Date.now()); }}
     opts={{
       pickLevel, dmgMul, stunUntil, takeOj,
-      hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
-      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
+      hot: lv => chest.current.on || !!(weakFam && weakFam.lv.includes(lv)),
+      note: lv => chest.current.on ? '🎁 宝箱つきの問題！ 正解すると開く（まちがえると逃げる）' : weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
       overlay: (<>
         {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
         {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(26,16,51,.92), rgba(26,16,51,.7) 45%, rgba(26,16,51,.88))' }} />}
         {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>しびれた…</div></div>}
       </>),
-      topExtra: (weakFam || ctrWarn) ? (<div className="text-center font-black text-[12px] py-0.5" style={{ color: ctrWarn ? '#b3402c' : '#C2410C', ...bFont }}>
-        {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒`}
-      </div>) : null,
+      topExtra: (<div className="text-center font-black text-[12px] py-0.5" style={{ color: ctrWarn ? '#b3402c' : weakFam ? '#C2410C' : COLORS.ink, ...bFont }}>
+        {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : weakFam ? `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒`
+          : role === 'sup' ? `📣 応援ポイント ${sess.current.sp}（正解1・Perfect2）` : `${rule ? `${rule.icon}${rule.name}` : ''}${info.supMul > 1.001 ? ` ・ 📣応援パワー +${Math.round((info.supMul - 1) * 100)}%` : ''}`}
+      </div>),
     }}
     onHit={(d, info2) => {
       lrec.current.push({ lv: info2.lv, pid: info2.pid, ok: !info2.miss, ms: info2.ms, j: info2.j });
+      const S = sess.current, CH = chest.current;
+      // 宝箱：正解すると開く・まちがえると逃げる
+      if (CH.on) {
+        CH.on = false;
+        if (info2.miss) FX.band('💨 宝箱が逃げた…', { color: '#6b7a8a', ms: 1200 });
+        else {
+          const g = chestRoll(!!meKey); S.chests++; if (g.shard) S.shards += g.shard; if (g.exp) S.chestExp = (S.chestExp || 0) + g.exp;
+          S.chestLog = [...(S.chestLog || []), g.label];
+          FX.band(`🎁 宝箱オープン！ ${g.label}`, { color: '#d4a017', ms: 1600 }); FX.confetti(30); fxSound('badge');
+        }
+      } else if (!info2.miss && CH.n < 2 && Math.random() < (rule && rule.id === 'chest' ? 0.18 : 0.06)) {
+        CH.on = true; CH.n++; FX.band('🎁 宝箱があらわれた！', { color: '#d4a017', sub: '次の問題に正解すると開く', ms: 1300 });
+      }
       if (info2.miss || !d) return;
       sess.current.d += d; sess.current.lastOk = Date.now();
+      // サポーター：応援ポイント（みんなのダメージが上がる）
+      if (role === 'sup') { const pt = info2.j === 'Perfect' ? 2 : 1; S.sp += pt; if (meKey && FB.db) FB.db.ref(`games/factor/raidw/${wk}/sup/${meKey}`).transaction(e => { e = e || {}; e.p = (e.p || 0) + pt; e.name = acct.name; e.nick = nick.current || ''; return e; }).catch(() => {}); }
       if (!meKey || !FB.db) return;
       FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = (e.d || 0) + d; e.name = acct.name; e.nick = nick.current || ''; e.at = Date.now(); return e; }).catch(() => {});
       // とどめ：この一撃で体力が0になったら記録（早い者勝ち）
       if (!info.dead && info.hp - d <= 0 && !kill) {
         FB.db.ref(`games/factor/raidw/${wk}/kill`).transaction(k => k ? undefined : { by: meKey, name: acct.name, at: Date.now() }).then(r => {
-          if (r && r.committed) { FX.band('🗡 とどめの一撃！', { color: '#e63946', sub: `${boss.name}を撃破した！`, ms: 2400 }); FX.confetti(80); statsTx(acct, s => { const W = wkOf(s); W.lastHit = (W.lastHit || 0) + 1; }); }
+          if (r && r.committed) {
+            FB.db.ref(`games/factor/raidwHist/${wk}`).transaction(h => h ? undefined : { boss: boss.id, rage: rage || 0, t: Date.now() - weekStartMs(wk), name: acct.name, at: Date.now() }).catch(() => {}); FX.band('🗡 とどめの一撃！', { color: '#e63946', sub: `${boss.name}を撃破した！`, ms: 2400 }); FX.confetti(80); statsTx(acct, s => { const W = wkOf(s); W.lastHit = (W.lastHit || 0) + 1; }); }
         }).catch(() => {});
       }
     }} />;
@@ -5234,7 +5249,23 @@ function WeeklyRaidApp({ acct, onExit }) {
           <div className="v7-name" style={{ fontSize: 24 }}>今週のボス</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{wk.replace(/-/g, '/')} の週 ・ みんなのダメージを合わせて倒そう（月曜に新しいボス）</div>
         </div>
-        <div className="mb-3"><BossPanel boss={boss} hp={hp} max={hpMax} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}{info.revived ? ' ・ 第2形態' : ''}{kill ? ` ・ とどめ：${kill.name}` : ''}</div>} /></div>
+        <div className="mb-3"><BossPanel boss={bossShown} hp={hp} max={hpMax} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}{info.revived ? ' ・ 第2形態' : ''}{kill ? ` ・ 撃破タイム ${fmtDur(kill.at - weekStartMs(wk))}（とどめ：${kill.name}）` : ''}</div>} /></div>
+        {rage > 0 && <div className="mb-3 rounded-2xl px-3 py-2 text-center" style={{ background: 'linear-gradient(90deg,#7f1d1d,#b91c1c)', color: '#fff' }}>
+          <div className="text-sm font-black" style={bFont}>😡 先週倒せなかったので、{boss.name}が{rage >= 2 ? '激怒して' : '怒って'}居座っている！</div>
+          <div className="text-[11px] font-bold opacity-90">体力{Math.round(Math.pow(WK_RAGE_HP, rage) * 100)}% ・ 討伐報酬{wkRageReward(rage)}倍</div>
+        </div>}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {rule && <div className="v7-panel" style={{ padding: 10 }}>
+            <div className="text-[10px] font-black" style={{ color: COLORS.inkSoft }}>今週の気まぐれルール</div>
+            <div className="text-sm font-black" style={{ color: '#C2410C', ...bFont }}>{rule.icon} {rule.name}</div>
+            <div className="text-[10px] font-bold" style={{ color: COLORS.ink }}>{rule.desc}</div>
+          </div>}
+          <div className="v7-panel" style={{ padding: 10 }}>
+            <div className="text-[10px] font-black" style={{ color: COLORS.inkSoft }}>📣 応援パワー</div>
+            <div className="text-sm font-black" style={{ color: '#2a9d8f', ...bFont }}>ダメージ +{Math.round((info.supMul - 1) * 100)}%</div>
+            <div className="text-[10px] font-bold" style={{ color: COLORS.ink }}>{info.supRows.length ? `サポーター${info.supRows.length}人・${info.supTotal}ポイント` : 'サポーターで出撃するとみんなが強くなる'}</div>
+          </div>
+        </div>
         {WK_DESC[boss.id] && <Card className="mb-3">
           <div className="text-xs font-black mb-1" style={{ color: boss.color }}>このボスの個性：{T.tag}</div>
           <ul className="text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.ink }}>{WK_DESC[boss.id].map(d => <li key={d}>{d}</li>)}</ul>
@@ -5257,13 +5288,17 @@ function WeeklyRaidApp({ acct, onExit }) {
           <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>出撃おつかれさま！</div>
           <div className="text-3xl font-black" style={{ color: '#E4572E', ...bFont }}>{res.d} ダメージ</div>
           {res.dbl && <div className="text-xs font-black" style={{ color: '#d4a017' }}>今日の初出撃ボーナス：経験値2倍！</div>}
+          {res.sp > 0 && <div className="text-xs font-black" style={{ color: '#2a9d8f' }}>📣 応援ポイント +{res.sp}</div>}
+          {res.chests && res.chests.length > 0 && <div className="text-xs font-black" style={{ color: '#9a6a12' }}>🎁 宝箱：{res.chests.join('・')}</div>}
           {!meKey && <div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>ゲストのダメージはボスに届きません（ログインすると届きます）</div>}
           {res.exp && <div className="mt-2 text-left"><ExpGain before={res.exp.before} after={res.exp.after} label="出撃の経験値" /></div>}
         </Card>}
         <Card className="mb-3">
           {hp <= 0 ? <div className="text-center text-base font-black mb-2" style={{ color: '#d4a017' }}>🎉 今週のボスは撃破されました！ 出撃するとランキングは伸ばせます</div> : null}
-          <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{WEEKLY_SESSION / 1000}秒。正解するとダメージ！ 弱点タイムは2倍、反撃の予告が出たら正解して身を守ろう。</p>
-          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + WEEKLY_SESSION + 600); setScr('play'); }}>⚔ 出撃する（{WEEKLY_SESSION / 1000}秒）</BigBtn>
+          <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{SESSION / 1000}秒。弱点タイムは2倍、反撃の予告が出たら正解して身を守ろう。まれに宝箱も！</p>
+          <div className="mb-2"><Seg items={[['atk', '⚔ アタッカー'], ['sup', '📣 サポーター']]} cur={role} onPick={setRole} /></div>
+          <p className="text-[10px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>{role === 'sup' ? 'サポーター：自分のダメージは0.3倍。正解するたびに応援ポイント（Perfectは2）→ 今週みんなのダメージが上がる（1ポイント+0.5%・最大+50%）。討伐報酬ももらえる' : 'アタッカー：ふつうにダメージを与える。サポーターの応援パワーでダメージアップ'}</p>
+          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, chestLog: [] }; chest.current = { on: false, n: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + SESSION + 600); setScr('play'); }}>{role === 'sup' ? '📣' : '⚔'} 出撃する（{SESSION / 1000}秒）</BigBtn>
           <div className="flex justify-center gap-1.5 mt-2 flex-wrap">
             {firstToday && <span className="v7-chip" style={{ background: '#d4a017' }}>今日の初出撃は経験値2倍！</span>}
             {meKey && st && st.wk && st.wk.streak > 1 && st.wk.last === prevWeek(wk) && <span className="v7-chip" style={{ background: '#2a9d8f' }}>{st.wk.streak}週連続出撃中 → 今週も出撃で{st.wk.streak + 1}週</span>}
@@ -5307,6 +5342,26 @@ function WeeklyRaidApp({ acct, onExit }) {
           </>)}
         </Card>
 
+        {info.supRows.length > 0 && <Card className="mb-3">
+          <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>📣 サポート賞（応援ポイント）</div>
+          {info.supRows.slice(0, 5).map((r, i) => (
+            <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
+              <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+              <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', lineHeight: 1.25 }}>{r.name}</span></span>
+              <span className="font-black" style={{ color: '#2a9d8f' }}>{r.p}pt</span>
+            </div>))}
+        </Card>}
+        {(() => { const H = Object.entries(hist || {}).map(([w, h]) => ({ w, ...h })).filter(h => h && h.t > 0).sort((a, b) => a.t - b.t); return H.length > 0 && <Card className="mb-3">
+          <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>⏱ 歴代最速撃破（月曜0時から撃破まで）</div>
+          {H.slice(0, 5).map((h, i) => { const b = BOSSES.find(x => x.id === h.boss) || boss; return (
+            <div key={h.w} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: h.w === wk ? 'var(--v7-accent-soft)' : 'transparent' }}>
+              <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+              <span className="text-lg">{b.icon}</span>
+              <span className="flex-1 min-w-0 text-xs font-bold" style={{ color: COLORS.ink }}>{h.rage ? (h.rage >= 2 ? '激怒の' : '怒りの') : ''}{b.name}<span className="block text-[10px]" style={{ color: COLORS.inkSoft }}>{h.w.replace(/-/g, '/')}の週 ・ とどめ {h.name}</span></span>
+              <span className="font-black" style={{ color: '#E4572E' }}>{fmtDur(h.t)}</span>
+            </div>); })}
+          {kill && H.findIndex(h => h.w === wk) === 0 && H.length > 1 && <p className="text-[11px] font-black mt-1" style={{ color: '#d4a017' }}>🎉 今週、最速記録を更新！</p>}
+        </Card>; })()}
         <Card className="mb-3">
           {meKey ? <BossDex st={st} /> : <p className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ボス図鑑・討伐報酬・称号は、ログインすると記録されます</p>}
         </Card>
@@ -5379,18 +5434,21 @@ function WeeklyTileV7({ acct, onOpen }) {
   const fb = useFbReady();
   const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
   const pv = useFbValue(fb.ready ? `raidw/${prevWeek(wk)}/dmg` : null);
+  const meta = useFbValue(fb.ready ? `raidw/${wk}/meta` : null);
+  const pmeta = useFbValue(fb.ready ? `raidw/${prevWeek(wk)}/meta` : null);
+  useEffect(() => { if (fb.ready) ensureWeekMeta(wk); }, [fb.ready]);
   const meKey = isReal(acct) ? acct.key : null;
   const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
-  const info = weeklyInfo(wk, v), boss = info.boss;
+  const info = weeklyInfo(wk, v, meta), boss = info.boss;
   const r = Math.max(0, info.hp / info.hpMax);
   const stK = meKey ? { ...(st || {}), __k: meKey } : null;   // 成績がまだない新しいアカウントも報酬を受け取れる
-  const pend = wkPending(stK, info, false) || wkPending(stK, pv ? weeklyInfo(prevWeek(wk), pv) : null, true);
+  const pend = wkPending(stK, info, false) || wkPending(stK, pv ? weeklyInfo(prevWeek(wk), pv, pmeta) : null, true);
   const first = meKey ? !(st && st.wk && st.wk.day === jstDate()) : loadLS('fxf_wk_day', '') !== jstDate();
   return (
     <button className="v7-tile v7-cur" onClick={onOpen}>
       <div className="top"><span className="v7-ico">{boss.icon}</span>{pend ? <span className="v7-badge hot">報酬あり</span> : <span className="v7-badge">{r <= 0 ? '撃破！' : first ? 'EXP2倍' : `のこり${Math.round(r * 100)}%`}</span>}</div>
       <b>今週のボス</b>
-      <span className="s">{boss.name}</span>
+      <span className="s">{info.rage ? '😡怒りの' : ''}{boss.name}</span>
       <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${r * 100}%`, background: boss.color }} /></div>
     </button>
   );
@@ -5710,6 +5768,11 @@ const BADGES = [
   { id: 'wkone2', g: 'wkone', r: 4, icon: '☄️', label: '会心の出撃', desc: '今週のボスに1回の出撃で1200ダメージ', test: st => ((st.wk || {}).best || 0) >= 1200 },
   { id: 'wkdex3', g: 'wkdex', r: 3, icon: '📖', label: 'ボス図鑑', desc: '3種類のボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },
   { id: 'wkdex6', g: 'wkdex', r: 5, icon: '🐲', label: 'ボスハンター', desc: '6種類すべてのボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },
+  { id: 'wkchest1', g: 'wkchest', r: 2, icon: '🎁', label: '宝探し', desc: '今週のボスの出撃中に宝箱を開ける', test: st => ((st.wk || {}).chests || 0) >= 1 },
+  { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
+  { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
+  { id: 'wksup100', g: 'wksup', r: 4, icon: '🎺', label: '名サポーター', desc: '応援ポイントを通算100', test: st => ((st.wk || {}).sup || 0) >= 100 },
+  { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
