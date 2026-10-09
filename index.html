@@ -1989,7 +1989,7 @@ function FactorHunt({ onBattle, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.4.3
+              ver.4.4
             </span>
           </div>
 
@@ -3982,20 +3982,113 @@ function BattleApp({ acct: who, onExit }) {
   }
   async function joinRoom(c, asSpectator) {
     setErr('');
-    if (!/^\d{4}$/.test(c)) { setErr('4桁の数字を入れてください'); return; }
+    if (!/^\d{4}$/.test(c)) { setErr('4桁の数字を入れてください'); return false; }
     let m, pl, st;
     try { m = (await fref(`rooms/${c}/meta`).get()).val(); pl = (await fref(`rooms/${c}/players`).get()).val() || {}; st = (await fref(`rooms/${c}/state`).get()).val() || {}; }
-    catch (e) { setErr('接続できませんでした（' + (e.code || e.message) + '）'); return; }
-    if (!m || m.createdAt < fbNow() - BATTLE_ROOM_TTL) { setErr('その部屋は見つかりません'); return; }
+    catch (e) { setErr('接続できませんでした（' + (e.code || e.message) + '）'); return false; }
+    if (!m || m.createdAt < fbNow() - BATTLE_ROOM_TTL || st.phase === 'closed') { setErr('その部屋は見つかりません'); return false; }
     const host = m.host === FB.uid;
     if (!asSpectator && !host) {
       const others = Object.keys(pl).filter(k => k !== FB.uid);
-      const max = m.tour ? TOUR_MAX : ROOM_MAX;
-      if (others.length >= max) { setErr(`この部屋はもう${max}人そろっています。「観戦」なら入れます`); return; }
-      if (m.tour && st.phase === 'tour' && !(st.names || {})[FB.uid]) { setErr('大会はもう始まっています。「観戦」なら入れます'); return; }
+      const max = m.tour ? TOUR_MAX : m.qm ? 2 : ROOM_MAX;
+      if (others.length >= max) { setErr(`この部屋はもう${max}人そろっています。「観戦」なら入れます`); return false; }
+      if (m.tour && st.phase === 'tour' && !(st.names || {})[FB.uid]) { setErr('大会はもう始まっています。「観戦」なら入れます'); return false; }
     }
     setIsHost(host); setSpectator(!!asSpectator && !host); setCode(c); setScr('lobby');
+    return true;
   }
+
+  /* ---- すぐ遊ぶ（ランダム対戦）：待っている人がいれば入る。いなければ部屋を作って待つ（待つあいだはCPUと練習できる） ---- */
+  const [qm, setQm] = useState(null);               // 待っているあいだ {code, since, found}
+  const qmRef = useRef(null); qmRef.current = qm;
+  const QM_STALE = 25000;
+  const slotRef = () => FB.db.ref('games/factor/qm/slot');
+  async function createQmRoom() {
+    const db = FB.db;
+    for (let t = 0; t < 12; t++) {
+      const c = String(randInt(1000, 9999));
+      const res = await db.ref(`games/factor/rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: fbNow(), qm: true }; });
+      if (!res.committed) continue;
+      await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko'].map(p => db.ref(`games/factor/rooms/${c}/${p}`).remove().catch(() => {})));
+      await db.ref(`games/factor/rooms/${c}/state`).set({ phase: 'lobby', mode: Math.random() < 0.5 ? 'A' : 'B', diff: Math.random() < 0.5 ? 'easy' : 'normal', qm: true });
+      const pr = db.ref(`games/factor/rooms/${c}/players/${FB.uid}`);
+      await pr.set({ name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: fbNow() });
+      pr.onDisconnect().remove();
+      return c;
+    }
+    return null;
+  }
+  async function quickMatch(retry = 0) {
+    setErr('');
+    if (!fb.ready) { setErr('サーバーに接続できていません'); return; }
+    // 1) 待っている人がいれば、その部屋に入る（いちばん先に取った人だけが入れる）
+    let taken = null;
+    try {
+      const r = await slotRef().transaction(cur => {
+        taken = null;
+        if (cur && cur.host !== FB.uid && cur.at > fbNow() - QM_STALE) { taken = cur; return null; }
+        return;
+      });
+      if (r.committed && taken) {
+        const ok = await joinRoom(taken.code, false);
+        if (ok) { FX.band('対戦相手が見つかりました！', { color: '#E76F51', ms: 1500 }); sound.play('special'); return; }
+      }
+    } catch (e) {}
+    // 2) いなければ、部屋を作って待つ
+    const c = await createQmRoom().catch(() => null);
+    if (!c) { setErr('部屋を作れませんでした'); return; }
+    let placed = false;
+    try {
+      const r2 = await slotRef().transaction(cur => { if (cur && cur.host !== FB.uid && cur.at > fbNow() - QM_STALE) return; return { code: c, host: FB.uid, at: fbNow() }; });
+      placed = r2.committed;
+    } catch (e) {}
+    if (!placed) { closeQmRoom(c); if (retry < 2) return quickMatch(retry + 1); setErr('混みあっています。もう一度押してください'); return; }
+    setQm({ code: c, since: Date.now(), found: null });
+    setScr('qmwait');
+  }
+  function closeQmRoom(c) {
+    if (!FB.db || !c) return;
+    FB.db.ref(`games/factor/rooms/${c}/state`).set({ phase: 'closed' }).catch(() => {});
+    const pr = FB.db.ref(`games/factor/rooms/${c}/players/${FB.uid}`); pr.onDisconnect().cancel(); pr.remove().catch(() => {});
+  }
+  function cancelQm() {
+    const q = qmRef.current;
+    if (!q) return;
+    slotRef().transaction(cur => cur && cur.host === FB.uid && cur.code === q.code ? null : undefined).catch(() => {});
+    closeQmRoom(q.code);
+    setQm(null);
+  }
+  // 待っているあいだ：ハートビート（自分がまだいることを知らせる）と、相手が来たかの見張り
+  useEffect(() => {
+    if (!qm || qm.found) return;
+    const hb = setInterval(() => { slotRef().transaction(cur => cur && cur.host === FB.uid && cur.code === qm.code ? { ...cur, at: fbNow() } : undefined).catch(() => {}); }, 8000);
+    const pref = FB.db.ref(`games/factor/rooms/${qm.code}/players`);
+    const fn = snap => {
+      const pl = snap.val() || {};
+      const other = Object.entries(pl).find(([k, p]) => k !== FB.uid && p && p.name);
+      if (!other) return;
+      setQm(q => q ? { ...q, found: other[1].name } : q);
+      sound.play('special'); FX.flash('#fff', 0.6, 300);
+      FX.band('⚔ 挑戦者あらわる！', { color: '#E76F51', sub: `${other[1].name} が対戦を申しこんできた`, ms: 1700 });
+      // 練習中でも、格ゲーの乱入のように対戦へ切り替える
+      setTimeout(() => {
+        DBX = null; sound.bgm(false);
+        setSpectator(false); setIsHost(true); setSeenGid({});
+        setCode(qm.code); setScr('lobby');
+        setQm(null);
+      }, 1700);
+    };
+    pref.on('value', fn);
+    return () => { clearInterval(hb); pref.off('value', fn); };
+  }, [qm && qm.code, qm && !!qm.found]);
+  useEffect(() => () => { if (qmRef.current) cancelQm(); }, []);
+  // すぐ遊ぶの部屋：2人そろったらホストが自動で始める
+  const qmStarted = useRef('');
+  useEffect(() => {
+    if (!code || !isHost || !state || !state.qm || state.phase !== 'lobby') return;
+    const n = Object.entries(players).filter(([k, p]) => p && p.name).length;
+    if (n >= 2 && qmStarted.current !== code + ':' + (state.gid || '')) { qmStarted.current = code + ':' + (state.gid || ''); setTimeout(() => startMatch(code), 900); }
+  }, [code, isHost, state && state.phase, players]);
   // CPU練習：端末の中だけのデータベースで動かす（通信しない）
   async function startPractice(cfg) {
     DBX = makeLocalDb();
@@ -4008,6 +4101,9 @@ function BattleApp({ acct: who, onExit }) {
     setTimeout(() => startMatch(), 0);
   }
   function leave(silent) {
+    // すぐ遊ぶで待っているあいだの練習をやめたときは、待ち画面にもどる
+    if (practice && qmRef.current && !qmRef.current.found) { DBX = null; sound.bgm(false); setCode(''); setIsHost(false); setScr('qmwait'); return; }
+    if (qmRef.current) cancelQm();
     if (code && !practice && FB.uid) {
       if (isHost) fref(`rooms/${code}/state`).set({ phase: 'closed' }).catch(() => {});
       if (!spectator) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
@@ -4017,10 +4113,10 @@ function BattleApp({ acct: who, onExit }) {
     setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
     if (!silent) setErr('');
   }
-  async function startMatch() {
-    const st = (await fref(`rooms/${code || 'local'}/state`).get()).val() || state || {};
-    const pl = (await fref(`rooms/${code || 'local'}/players`).get()).val() || players;
-    const c = code || 'local';
+  async function startMatch(cArg) {
+    const c = (typeof cArg === 'string' && cArg) || code || 'local';
+    const st = (await fref(`rooms/${c}/state`).get()).val() || state || {};
+    const pl = (await fref(`rooms/${c}/players`).get()).val() || players;
     const ids = Object.entries(pl).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).map(([k]) => k).slice(0, ROOM_MAX);
     if (ids.length < 2) return;
     const names = {}, accts = {}, handi = {}, cpu = {}, nicks = {};
@@ -4028,7 +4124,9 @@ function BattleApp({ acct: who, onExit }) {
     const rt = await fetchRatings(accts);
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
     await fref(`rooms/${c}/state`).set({
-      phase: 'play', mode: st.mode || 'B', diff: st.diff || 'easy', gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
+      // すぐ遊ぶの部屋は、方式と難易度を毎回ランダムに
+      phase: 'play', mode: st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B'), diff: st.qm ? (Math.random() < 0.5 ? 'easy' : 'normal') : (st.diff || 'easy'), qm: !!st.qm,
+      gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
       startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts, handi, rt, cpu, nicks,
     });
   }
@@ -4080,8 +4178,12 @@ function BattleApp({ acct: who, onExit }) {
     </div>
   );
 
+  // すぐ遊ぶ：相手を待つ画面
+  if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 }))} onCancel={() => { cancelQm(); setScr('home'); }} />);
+  const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
+
   if (scr === 'home') return shell(
-    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr}
+    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => quickMatch()}
       onCreate={createRoom} onJoin={joinRoom} onPractice={startPractice} onExit={onExit} />);
 
   if (scr === 'lobby') {
@@ -4111,16 +4213,48 @@ function BattleApp({ acct: who, onExit }) {
   if (!state || state.phase !== 'play') return shell(<Card><p className="text-center font-bold" style={{ color: COLORS.inkSoft }}>受信しています…</p></Card>);
   const amPlayer = !spectator && (state.players || []).includes(myUid());
   if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
-  return <BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
-    sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={startMatch} onLobby={practice ? () => leave() : backToLobby} />;
+  return <>{qmChip}<BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
+    sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;
 }
 const tourRoundLabel = (r, rounds, state) => {
   const n = toArrB(rounds[r]).length;
   return n === 1 ? '決勝' : n === 2 ? '準決勝' : n === 4 ? '準々決勝' : `${r + 1}回戦`;
 };
 
+/* ---------- すぐ遊ぶ：待ち画面と、練習中に出す小さな札 ---------- */
+function QmWait({ qm, onPractice, onCancel }) {
+  useTick(500, true);
+  const sec = Math.floor((Date.now() - qm.since) / 1000);
+  return (
+    <div className="text-center pt-10">
+      <div className="mx-auto mb-6 rounded-full flex items-center justify-center" style={{ width: '9rem', height: '9rem', background: COLORS.paper, boxShadow: '0 0 0 10px #ffffff55, 0 10px 30px rgba(0,0,0,.2)', animation: 'fxPulseGold 1.4s ease-in-out infinite' }}>
+        <div className="text-5xl" style={{ animation: 'fxHue 3s linear infinite' }}>{qm.found ? '⚔️' : '🔎'}</div>
+      </div>
+      <div className="text-xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>{qm.found ? `${qm.found} が来た！` : '対戦相手をさがしています…'}</div>
+      <div className="text-sm font-bold mb-6" style={{ color: COLORS.inkSoft }}>待ち時間 {Math.floor(sec / 60)}:{String(sec % 60).padStart(2, '0')}</div>
+      {!qm.found && <div className="flex flex-col gap-2">
+        <BigBtn color={COLORS.leaf} onClick={onPractice}>🤖 待っているあいだCPUと練習する</BigBtn>
+        <p className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>相手が来たら、練習の途中でも対戦に切り替わります（CPUの設定は「CPUと練習」で選んだもの）</p>
+        <BigBtn small color={COLORS.inkSoft} onClick={onCancel}>さがすのをやめる</BigBtn>
+      </div>}
+    </div>
+  );
+}
+function QmChip({ qm, onCancel }) {
+  useTick(1000, true);
+  const sec = Math.floor((Date.now() - qm.since) / 1000);
+  return (
+    <div style={{ position: 'fixed', top: 'max(0.4rem, env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', zIndex: 70 }}>
+      <div className="flex items-center gap-2 rounded-full pl-3 pr-1 py-1 shadow-lg text-[11px] font-black" style={{ background: qm.found ? '#E76F51' : '#123a52e6', color: '#fff', ...bFont }}>
+        <span>{qm.found ? `⚔ ${qm.found} が乱入！` : `🔎 対戦相手をさがし中 ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`}</span>
+        {!qm.found && <button onClick={onCancel} className="rounded-full px-2 py-0.5" style={{ background: '#ffffff33' }}>やめる</button>}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 対戦のトップ画面 ---------- */
-function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onExit }) {
+function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit }) {
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
   const [nameOf, setNameOf] = useState({});
@@ -4155,6 +4289,11 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       <div className="text-xs font-bold mt-1" style={{ color: COLORS.inkSoft }}>2〜4人 ・ 同じ問題で勝負！ CPU練習・クラス大会も</div>
     </div>
     {!fb.ready && <Card className="mb-4"><p className="text-sm text-center font-bold" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</p></Card>}
+    <div className="mb-4">
+      <button disabled={!fb.ready} onClick={onQuick} className="w-full rounded-2xl py-4 font-black shadow-xl transition-transform active:scale-95" style={{ background: fb.ready ? 'linear-gradient(90deg,#ff7b00,#ff2e63)' : '#ccc', color: '#fff', fontSize: '1.25rem', animation: fb.ready ? 'fxPulseGold 1.6s ease-in-out infinite' : 'none', ...bFont }}>⚡ すぐ遊ぶ（ランダム対戦）</button>
+      <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>待っている人がいればすぐ対戦。いなければ待つあいだCPUと練習でき、相手が来たら乱入！（1 vs 1・方式と難易度はランダム）</p>
+      {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: COLORS.coral }}>{err}</p>}
+    </div>
 
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🏅 せいせき（勝率・レーティング・称号）</div>
@@ -4364,7 +4503,7 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
     <Card className="mb-4 text-center">
       <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>部屋コード</div>
       <div className="text-5xl font-black tracking-widest my-1" style={{ color: COLORS.sky, ...bFont }}>{code}</div>
-      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{spectator ? '観戦中：対戦が始まるのを待っています' : isHost ? '相手は「参加」、見る人は「観戦」でこのコードを入れます（4人まで）' : 'ホストが始めるのを待っています…'}</div>
+      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{state.qm ? '⚡ すぐ遊ぶ：対戦相手が見つかりました！ まもなく開始…' : spectator ? '観戦中：対戦が始まるのを待っています' : isHost ? '相手は「参加」、見る人は「観戦」でこのコードを入れます（4人まで）' : 'ホストが始めるのを待っています…'}</div>
     </Card>
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>対戦する人（{list.length}/{ROOM_MAX}）{isHost ? ' ・ ハンデ（★）はホストが決めます' : ''}</div>
@@ -5046,7 +5185,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
             <p className="text-center text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>全員が「準備OK」を押すと、すぐに次の試合が始まります</p>
           </>);
         })()}
-        {isHost && <BigBtn small onClick={onLobby}>ルールを変える（ロビーへ）</BigBtn>}
+        {isHost && !state.qm && <BigBtn small onClick={onLobby}>ルールを変える（ロビーへ）</BigBtn>}
         <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
       </div>)}
     </div>
