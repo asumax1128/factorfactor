@@ -1055,6 +1055,7 @@ const TUTORIAL_STEPS = [
   { ch: 'vs', v: 'vote', title: '方式を決める', body: '「すぐ遊ぶ」は2人がそろったら「方式×難易度」の4つから投票。方式は同じならその方式、分かれたらランダム。難易度は2人ともノーマルのときだけノーマル。' },
   { ch: 'vs', v: 'modeA', title: 'A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」。最後の3問は得点2倍のラストスパート！' },
   { ch: 'vs', v: 'modeB', title: 'B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfectでおじゃまタイルも送れる。攻撃の予告中に正解すると相殺できるよ。' },
+  { ch: 'vs', v: 'modeC', title: 'C方式：2対2タッグ', body: '部屋で4人そろえて2人1組のチーム戦（足りなければCPUを入れられる）。体力はチームで1本。仲間に来た攻撃も自分の正解でカバーでき、2人とも3コンボ以上を3秒以内にそろえると合体攻撃！' },
   { ch: 'vs', v: 'sp', title: '必殺技とピンチ', body: '必殺技ゲージがたまったら、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
@@ -1087,6 +1088,7 @@ function TutVisual({ v }) {
   if (v === 'modeB') return navy(<><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#2D6A4F,#1f4d39)' }}>⚔ 攻撃！ 体力-8%・おじゃま1枚</div><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#0E86C6,#0b5f8c)' }}>🛡 相殺！ 予告中に正解した</div></>);
   if (v === 'sp') return navy(<><div className="flex gap-1.5">{['⚡大攻撃', '💚回復', '🛡シールド'].map((t, i) => <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-black text-white" style={{ background: ['#e63946', '#2a9d8f', '#457b9d'][i], border: '1.5px solid #fff' }}>{t}</span>)}</div><span className="rounded-full px-2 text-[11px] font-black text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span></>);
   if (v === 'weekly' || v === 'raid') { const b = BOSSES[v === 'weekly' ? 5 : 0]; return navy(<><div className="w-full"><BossPanel boss={b} hp={v === 'weekly' ? 18000 : 6200} max={v === 'weekly' ? 30000 : 10000} /></div><div className="flex gap-1.5 flex-wrap justify-center">{v === 'weekly' ? <>{chip('🎯 弱点タイム ×2', '#ff7b00')}{chip('🛡 ガード', '#457b9d')}{chip('🏆 討伐報酬', '#d4a017')}</> : <>{chip('🐉 攻撃型', '#2a9d8f')}{chip('🗿 防御型', '#8d6e63')}{chip('👿 変身型', '#b5487e')}</>}</div></>); }
+  if (v === 'modeC') return navy(<><div className="grid items-center gap-2 w-full" style={{ gridTemplateColumns: '1fr auto 1fr' }}>{[0, 1].map(t => <div key={t} className="flex flex-col gap-1" style={{ order: t ? 3 : 1 }}>{[1, 2].map(i => <div key={i} className="v7-wnd px-2 py-1 text-[11px] font-black" style={{ borderLeft: `5px solid ${TEAM_INFO_C[t].color}`, color: '#fff' }}>{TEAM_INFO_C[t].name.slice(0, 1)}{i}</div>)}</div>)}<div style={{ order: 2, fontFamily: 'var(--v7-f-fx)', fontSize: 26, color: 'var(--v7-gold)' }}>VS</div></div><div className="w-full"><HpBar v7 hp={72} height={16} /></div><div className="flex gap-1.5">{chip('🤝 カバー', '#2F6FD6')}{chip('⚡ 合体攻撃', '#7b2cbf')}</div></>);
   if (v === 'fraid') return <div className="grid grid-cols-4 gap-1.5 w-full" style={{ maxWidth: 340 }}>{ROLE_IDS.map(id => <div key={id} className="rounded-xl py-1.5 text-center" style={{ background: '#fff', border: `1.5px solid ${ROLES[id].color}` }}><div className="text-xl leading-none">{ROLES[id].icon}</div><div className="text-[9px] font-black" style={{ color: ROLES[id].color }}>{ROLES[id].name}</div></div>)}</div>;
   if (v === 'tower') return navy(<><div className="flex items-end gap-1.5">{[1, 2, 3, 4, 5].map(i => <div key={i} className="rounded-md text-center font-black text-white" style={{ width: 44, height: 22 + i * 12, background: i === 5 ? '#E4572E' : '#2B3A7A', fontSize: 10, paddingTop: 2, ...bFont }}>{i * 10}F</div>)}<div style={{ fontSize: 34 }}>👑</div></div><div className="w-full"><HpBar v7 hp={64} height={16} /></div></>);
   if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
@@ -2404,7 +2406,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.8.1</span>
+              <span className="v7-ver">ver.8.2</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -6079,12 +6081,12 @@ function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, sco
     prev.current = { c: l.c, hp: l.hp, ko: !!ko, s: score };
     const c = rectC(ref.current);
     if (!c) return;
-    if (mode === 'B' && p.c != null && (l.c || 0) > p.c) { FX.burst(c.x, c.t + c.h * 0.45, { color: '#FFD54A', colors: ['#FFD54A', '#fff', color], n: 16, r: 90 }); }
-    if (mode === 'B' && p.hp != null && l.hp != null && p.hp - l.hp >= 3) { FX.shake(ref.current, p.hp - l.hp >= 15); FX.text(c.x, c.t + 60, `-${Math.round(p.hp - l.hp)}%`, '#ff4d4d', 26); }
+    if (isBm(mode) && p.c != null && (l.c || 0) > p.c) { FX.burst(c.x, c.t + c.h * 0.45, { color: '#FFD54A', colors: ['#FFD54A', '#fff', color], n: 16, r: 90 }); }
+    if (isBm(mode) && p.hp != null && l.hp != null && p.hp - l.hp >= 3) { FX.shake(ref.current, p.hp - l.hp >= 15); FX.text(c.x, c.t + 60, `-${Math.round(p.hp - l.hp)}%`, '#ff4d4d', 26); }
     if (mode === 'A' && p.s != null && (score || 0) > p.s) { FX.burst(c.x, c.t + c.h * 0.45, { color, n: 16, r: 90 }); FX.text(c.x, c.t + 70, `+${score - p.s}`, color, 28); }
     if (ko && !p.ko) { FX.shards({ ...c, l: c.l + c.w * 0.2, t: c.t + c.h * 0.3, w: c.w * 0.6, h: c.h * 0.3 }, color); fxSound('shatter'); }
   }, [l.c, l.hp, !!ko, score]);
-  const prob = mode === 'B' ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA;
+  const prob = isBm(mode) ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA;
   const hp = l.hp == null ? 100 : l.hp;
   const sp = l.sp || 0;
   const rows = prob ? Math.max(1, Math.ceil(prob.tiles.length / 3)) : 2;
@@ -6099,7 +6101,7 @@ function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, sco
           : mode === 'A' ? <span className="font-black shrink-0" style={{ color, fontSize: big ? '2rem' : '1.3rem', ...bFont }}>{score || 0}点</span>
           : <span className="font-black shrink-0" style={{ color: COLORS.ink, fontSize: big ? '1.6rem' : '1.1rem', ...bFont }}>{l.c || 0}/{N}</span>}
       </div>
-      {mode === 'B' ? (<div style={{ flexShrink: 0 }}>
+      {isBm(mode) ? (<div style={{ flexShrink: 0 }}>
         <div className="relative"><HpBar hp={hp} height={big ? 26 : 18} />{l.sh ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡</span> : hp <= PINCH_HP && !ko ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH</span> : null}</div>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs font-black" style={{ color: COLORS.inkSoft }}>{l.score || 0}点</span>
@@ -6136,7 +6138,7 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
   const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
   const rank = (result && result.rank) || {};
   const two = ids.length === 2;
-  const feed = useCommentary(ids, live, ko, names, mode === 'B' ? N : null);
+  const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
   return (
     <div className="fixed inset-0 flex flex-col" style={{ zIndex: 85, background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, padding: '0.6rem', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <div className="flex items-center justify-between gap-2 mb-2" style={{ flexShrink: 0 }}>
@@ -6274,6 +6276,19 @@ const BATTLE_MODES = {
     desc: ['同じ問題をみんなで同時に解く。先に正解した人だけ得点（レベルの点×コンボ倍率）', '間違えるとお手つき（2秒操作できない）', '最後の3問は得点2倍のラストスパート', '規定数を出し終えて、得点の多い人が勝ち'] },
   B: { label: 'B：解き切りレース＋攻撃', short: 'レース＋攻撃', color: '#E76F51',
     desc: ['同じ問題の列を自分のペースで解く（体力ゲージあり）', '先に規定数を解き切るか、最後まで生き残った人が勝ち', 'コンボで体力ダメージ、Perfectでおじゃまタイル（攻撃は1位の人へ）', '届いた攻撃は3秒の予告中に、自分の攻撃で相殺できる', '必殺技ゲージ（大攻撃・回復・シールド）、体力30%以下で攻撃1.3倍'] },
+};
+BATTLE_MODES.C = { label: 'C：2対2タッグ', short: '2対2タッグ', color: '#7b2cbf',
+  desc: ['2人1組のチーム戦（4人。足りないときはCPUで埋められる）', 'B方式と同じく自分のペースで解いて攻撃。体力はチームで1本を共有', '仲間に届いた攻撃も、自分の正解で相殺できる（カバー）', '2人とも3コンボ以上を3秒以内にそろえると「合体攻撃」', '仲間がミスした直後3秒は、自分の攻撃1.2倍（フォロー）', 'チームで合わせて規定数×2を解き切るか、相手チームの体力を0にしたら勝ち'] };
+const isBm = m => m === 'B' || m === 'C';
+const TEAM_INFO_C = [{ name: '赤チーム', color: '#E4572E' }, { name: '青チーム', color: '#2F6FD6' }];
+const C_HP = { decay: 0.5, recover: 0.5, miss: 0.6 };   // C：体力はチームで共有（自然減少・回復・ミスの減りを弱める）
+const C_UNITE = { dmg: 10, oj: 1, win: 3000, cool: 8000, combo: 3 }, C_FOLLOW = { win: 3000, mul: 1.2 };
+/* C：チーム分け（state.tm があればそれ、なければ入った順に 赤・赤・青・青） */
+const teamsOf = (ids, tm) => {
+  const o = {}, n = [0, 0];
+  ids.forEach(u => { if (tm && (tm[u] === 0 || tm[u] === 1)) { o[u] = tm[u]; n[tm[u]]++; } });
+  ids.forEach(u => { if (o[u] == null) { const t = n[0] < 2 ? 0 : n[1] < 2 ? 1 : (n[0] <= n[1] ? 0 : 1); o[u] = t; n[t]++; } });   // 決めていない人は、2人に満たないチームへ入った順に
+  return o;
 };
 const HANDI_LABEL = ['なし', '★', '★★', '★★★'];
 const handiDmgMul = h => 1 - 0.15 * (h || 0);        // B：受けるダメージ・ミスの減少
@@ -6907,7 +6922,7 @@ function Seg({ items, cur, onPick, disabled }) {
 }
 const PCOLORS = [COLORS.sky, COLORS.coral, COLORS.leaf, COLORS.amber];
 /* 相手の様子（画面の端に小さく） */
-function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, target, color, compact, wide }) {
+function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, target, color, compact, wide, mate }) {
   const l = live || {};
   const ref = useRef(null), prevHp = useRef(null), prevKo = useRef(!!ko), prevSc = useRef(scoreA || 0);
   // 相手が攻撃を受けたら揺れる、KOでくだける、Aで得点したら光る
@@ -6925,13 +6940,13 @@ function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, 
     prevSc.current = scoreA || 0;
   }, [scoreA]);
   return (
-    <div ref={ref} data-opp={uid} className="v7-wnd px-2 py-1" style={{ width: wide ? '100%' : compact ? '7.8rem' : '10rem', minWidth: 0, opacity: ko ? 0.35 : 1, filter: ko ? 'grayscale(1)' : 'none', borderColor: target ? '#FF8A75' : undefined, boxShadow: target ? 'inset 0 0 0 2px #0B1430, 0 0 12px #FF8A75aa' : undefined }}>
+    <div ref={ref} data-opp={uid} className="v7-wnd px-2 py-1" style={{ width: wide ? '100%' : compact ? '7.8rem' : '10rem', minWidth: 0, opacity: ko ? 0.35 : 1, filter: ko ? 'grayscale(1)' : 'none', borderColor: target ? '#FF8A75' : mate ? '#8FB7FF' : undefined, boxShadow: target ? 'inset 0 0 0 2px #0B1430, 0 0 12px #FF8A75aa' : mate ? 'inset 0 0 0 2px #0B1430, 0 0 10px #8FB7FF88' : undefined }}>
       {nick && <div style={{ filter: 'brightness(1.6)' }}><Nick id={nick} size={8} block /></div>}
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] font-black truncate" style={{ color: '#fff', ...bFont }}><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 9, background: color || '#FF8A75', marginRight: 4, verticalAlign: 'middle' }} />{target ? '🎯' : ''}{name}</span>
+        <span className="text-[11px] font-black truncate" style={{ color: '#fff', ...bFont }}><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 9, background: color || '#FF8A75', marginRight: 4, verticalAlign: 'middle' }} />{mate ? '🤝' : ''}{target ? '🎯' : ''}{name}</span>
         {ko ? <span className="text-[9px] font-black" style={{ color: '#FF8A75' }}>KO</span> : !online && <span className="text-[9px] font-bold" style={{ color: '#FF8A75' }}>切断</span>}
       </div>
-      {mode === 'B' ? (<>
+      {isBm(mode) ? (<>
         <div className="mt-0.5"><HpBar v7 hp={l.hp == null ? 100 : l.hp} height={compact ? 7 : 9} label={false} /></div>
         <div className="flex justify-between text-[10px] font-bold" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-fx)', fontWeight: 400 }}>
           <span>HP {(l.hp == null ? 100 : l.hp).toFixed(0)}</span><span>{l.c || 0}/{clearCount}</span><span>{l.combo ? `${l.combo}C` : ''}</span>
@@ -6950,8 +6965,8 @@ function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, 
    B の進行（人もCPUも同じしくみで動く）
    ===================================================================== */
 /* 攻撃する相手＝自分以外で生き残っている人のうち「1位」（解いた数 → 得点の順） */
-function bTarget(me, ids, live, ko) {
-  const alive = ids.filter(u => u !== me && !(ko && ko[u]) && !(live[u] && live[u].st === 'ko'));
+function bTarget(me, ids, live, ko, tm) {
+  const alive = ids.filter(u => u !== me && !(tm && tm[u] === tm[me]) && !(ko && ko[u]) && !(live[u] && live[u].st === 'ko'));
   if (!alive.length) return null;
   const L = u => live[u] || {};
   alive.sort((a, b) => (L(b).c || 0) - (L(a).c || 0) || (L(b).score || 0) - (L(a).score || 0) || (a < b ? -1 : 1));
@@ -6966,9 +6981,28 @@ function createBEngine(o) {
   const mul = handiDmgMul(o.hc);
   const r1 = v => Math.round(v * 100) / 100;
   const E = { s };
+  /* C：体力はチームで1本（rooms/<code>/thp/<gid>/<チーム>）。自分の増減はためて、まとめて transaction で足す */
+  const tm = o.tm || null, TC = !!tm, myT = TC ? tm[o.uid] : null;
+  const mate = TC ? o.ids.find(u => u !== o.uid && tm[u] === myT) : null;
+  s.pool = 100; s.dq = 0; s.flushT = 0; s.lastOkAt = 0; s.lastMissAt = 0; s.uniteAt = 0; s.unites = 0; s.covers = 0;
+  const poolRef = TC ? fref(`rooms/${o.code}/thp/${o.gid}/${myT}`) : null;
+  const syncHp = () => { if (TC) s.hp = Math.max(0, Math.min(100, r1(s.pool + s.dq))); };
+  const addHp = x => { if (!TC) { s.hp = Math.max(0, Math.min(100, r1(s.hp + x))); return; } s.dq += x; syncHp(); };
+  E.flush = force => {
+    if (!TC || !s.dq) return;
+    const t = Date.now();
+    if (!force && t - s.flushT < 300 && Math.abs(s.dq) < 5) return;
+    s.flushT = t; const d = s.dq; s.dq = 0;
+    poolRef.transaction(v => Math.max(0, Math.min(100, r1((v == null ? 100 : v) + d)))).catch(() => {});
+  };
+  let poolFn = null;
+  if (TC) { poolFn = snap => { const v = snap.val(); s.pool = v == null ? 100 : v; syncHp(); }; poolRef.on('value', poolFn); }
+  E.dispose = () => { if (poolFn) poolRef.off('value', poolFn); };
+  E.mate = mate; E.team = myT;
+  const mateL = () => (mate && ((o.view().live || {})[mate])) || {};
   E.shield = () => Date.now() < s.shieldUntil;
   E.pinch = () => s.hp <= PINCH_HP;
-  E.target = () => { const v = o.view(); return bTarget(o.uid, o.ids, v.live || {}, v.ko || {}); };
+  E.target = () => { const v = o.view(); return bTarget(o.uid, o.ids, v.live || {}, v.ko || {}, o.tm); };
   E.serve = () => {
     const n = s.c + 1, lv = o.bank.level(n), k = s.served[lv] || 0;
     s.served[lv] = k + 1;
@@ -6985,18 +7019,21 @@ function createBEngine(o) {
     s.pushT = t;
     const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);
     fref(`rooms/${o.code}/live/${o.gid}/${o.uid}`).set({ hp: Math.round(s.hp * 10) / 10, c: s.c, score: s.score, combo: s.combo, pd, po, sp: s.sp, sh: E.shield() ? 1 : 0,
-      lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play' }).catch(() => {});
+      lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play', ...(TC ? { ok: s.lastOkAt, ms: s.lastMissAt, un: s.uniteAt } : {}) }).catch(() => {});
+    E.flush(force);
   };
   E.knockout = () => {
     if (s.over) return;
-    s.over = true; s.ko = true; s.hp = 0;
+    s.over = true; s.ko = true;
+    if (TC) { s.dq = -200; E.flush(true); }
+    s.hp = 0;
     E.writeLive(true);
     fref(`rooms/${o.code}/ko/${o.gid}/${o.uid}`).transaction(cur => cur ? undefined : { at: TSV() }).catch(() => {});
     fx('ko');
   };
   const damage = x => {
     if (x <= 0) return;
-    s.hp = Math.max(0, r1(s.hp - x));
+    addHp(-x);
     s.minHp = Math.min(s.minHp, s.hp);
     if (s.hp <= 0) E.knockout();
   };
@@ -7008,6 +7045,7 @@ function createBEngine(o) {
       if (s.seenEv[k] || !e) return;
       s.seenEv[k] = 1;
       if (s.over) return;
+      if (e.cover) { const c = coverPend(e.cover); if (c > 0) { fx('covered', { from: e.from, units: c }); E.writeLive(true); } return; }
       if (E.shield()) { fx('blocked', e); return; }
       const dmg = Math.round((e.dmg || 0) * mul);
       s.pend.push({ dmg, oj: e.oj || 0, t: Date.now(), from: e.from });
@@ -7029,12 +7067,28 @@ function createBEngine(o) {
     if (dmg > 0 || oj > 0) { s.dmgTaken += dmg + oj; snd('hit'); fx('hit', { dmg, oj }); }
     damage(dmg);
   };
+  /* C：仲間が代わりに相殺してくれた（units ぶん予告を減らす） */
+  const coverPend = units => {
+    let done = 0;
+    for (const p of s.pend) {
+      if (units <= 0) break;
+      const pu = p.dmg + p.oj * OJAMA_UNIT, c = Math.min(units, pu);
+      units -= c; done += c; let r = c;
+      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;
+      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));
+    }
+    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);
+    return done;
+  };
   /* 自分の攻撃：まず届いている攻撃を相殺し、残りを1位の人に送る */
   E.sendAttack = (out, isSp) => {
     let units = out.dmg + out.oj * OJAMA_UNIT;
     if (units <= 0) return;
     const pinch = E.pinch();
     if (pinch) units = Math.round(units * PINCH_MUL);
+    // C：仲間がミスした直後はフォロー（攻撃1.2倍）
+    const follow = TC && !isSp && mateL().ms && fbNow() - mateL().ms <= C_FOLLOW.win;
+    if (follow) units = Math.round(units * C_FOLLOW.mul);
     let cancelled = 0;
     for (const p of s.pend) {
       if (units <= 0) break;
@@ -7046,12 +7100,22 @@ function createBEngine(o) {
       if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));
     }
     s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);
+    // C：仲間に届いている攻撃もカバー（自分の分を相殺したあとの残りで）
+    let covered = 0;
+    if (TC && units > 0 && mate) {
+      const ml = mateL(), mp = (ml.pd || 0) + (ml.po || 0) * OJAMA_UNIT;
+      if (mp > 0 && ml.st === 'play') {
+        covered = Math.min(units, mp); units -= covered; s.covers += covered;
+        const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);
+        fref(`rooms/${o.code}/ev/${o.gid}/${mate}/${key}`).set({ cover: covered, from: o.uid, at: TSV() }).catch(() => {});
+      }
+    }
     const to = units > 0 ? E.target() : null;
     let dmg = 0, oj = 0;
     if (to) {
       // 3人以上のときは、1位に攻撃が集中しすぎないように少し弱める
       const v = o.view(), alive = o.ids.filter(u => !((v.ko || {})[u]) && !(((v.live || {})[u] || {}).st === 'ko')).length;
-      units = Math.max(1, Math.round(units * (MULTI_ATK[alive] || 1)));
+      if (!TC) units = Math.max(1, Math.round(units * (MULTI_ATK[alive] || 1)));
       oj = Math.min(out.oj, Math.floor(units / OJAMA_UNIT));
       dmg = units - oj * OJAMA_UNIT;
       const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);
@@ -7059,8 +7123,8 @@ function createBEngine(o) {
       s.sent += units; s.ojSent += oj;
       snd('send');
     }
-    s.cancelTotal += cancelled;
-    fx('send', { dmg, oj, to, cancelled, pinch });
+    s.cancelTotal += cancelled + covered;
+    fx('send', { dmg, oj, to, cancelled, pinch, covered, follow, unite: isSp === 'unite' });
   };
   E.answer = ok => {
     if (s.resolving || s.over || !s.cur) return null;
@@ -7070,8 +7134,9 @@ function createBEngine(o) {
     if (ok) {
       const j = getJudgment(ms);
       const mult = 1 + s.combo * 0.1, g = Math.round((LEVEL_POINTS[cur.level] || 10) * mult);
-      const raw = s.hp + j.recover, over = Math.max(0, Math.round(raw - 100));
-      s.hp = Math.min(100, r1(raw));
+      const rec = TC ? j.recover * C_HP.recover : j.recover;
+      const raw = s.hp + rec, over = Math.max(0, Math.round(raw - 100));
+      addHp(rec);
       s.score += g + over; s.combo++; s.best = Math.max(s.best, s.combo); s.c++;
       const pe = j.label === 'Perfect' || j.label === 'Excellent';
       s.sp = Math.min(SP_MAX, s.sp + 1 + (pe ? 1 : 0));
@@ -7079,15 +7144,26 @@ function createBEngine(o) {
       s.hist.push({ lv: cur.level, k: cur.k, ok: true, ms, j: j.label });
       snd('ok', 1 + Math.min(s.combo, 15) * 0.035); if (pe) snd('speed'); if (s.combo % 5 === 0) snd('combo');
       E.sendAttack(attackFor(j.label, s.combo));
+      if (TC) {
+        // 合体攻撃：2人とも3コンボ以上を3秒以内にそろえた（8秒に1回まで）
+        const ml = mateL(), t = fbNow();
+        if (s.combo >= C_UNITE.combo && (ml.combo || 0) >= C_UNITE.combo && ml.ok && t - ml.ok <= C_UNITE.win && t - Math.max(s.uniteAt, ml.un || 0) > C_UNITE.cool && ml.st === 'play') {
+          s.uniteAt = t; s.unites++;
+          fx('unite', { mate });
+          E.sendAttack({ dmg: C_UNITE.dmg, oj: C_UNITE.oj }, 'unite');
+        }
+        s.lastOkAt = t;
+      }
       E.writeLive(true);
-      if (s.c >= o.N) { s.over = true; E.writeLive(true); if (o.onClear) o.onClear(o.uid); return { ok: true, judge: j, gain: g + over, clear: true }; }
+      if (TC ? s.c + (mateL().c || 0) >= o.N * 2 : s.c >= o.N) { s.over = true; E.writeLive(true); if (o.onClear) o.onClear(o.uid); return { ok: true, judge: j, gain: g + over, clear: true }; }
       s.nextAt = Date.now() + 420;
       return { ok: true, judge: j, gain: g + over };
     }
     snd('buzz');
     s.combo = 0;
     s.hist.push({ lv: cur.level, k: cur.k, ok: false, ms });
-    damage(Math.round((DIFFICULTY_MISS_PENALTY[o.diff] || 20) * mul));
+    if (TC) s.lastMissAt = fbNow();
+    damage(Math.round((DIFFICULTY_MISS_PENALTY[o.diff] || 20) * mul * (TC ? C_HP.miss : 1)));
     E.writeLive(true);
     s.nextAt = Date.now() + 420;
     return { ok: false };
@@ -7105,20 +7181,20 @@ function createBEngine(o) {
     s.sp = 0; s.spUsed++;
     snd('special');
     if (kind === 'big') E.sendAttack({ dmg: SP_BIG.dmg, oj: SP_BIG.oj }, true);
-    else if (kind === 'heal') s.hp = Math.min(100, r1(s.hp + SP_HEAL));
+    else if (kind === 'heal') addHp(SP_HEAL);
     else if (kind === 'shield') { s.shieldUntil = Date.now() + SP_SHIELD_MS; s.pend = []; }
     fx('special', kind);
     E.writeLive(true);
     return true;
   };
   /* 観戦者の応援：体力を少し回復 */
-  E.cheer = h => { if (s.over) return false; s.hp = Math.min(100, r1(s.hp + h)); E.writeLive(true); return true; };
+  E.cheer = h => { if (s.over) return false; addHp(h); E.writeLive(true); return true; };
   /* 100ミリ秒ごとに呼ぶ：体力の自然減少・時間切れ・予告の時間切れ */
   E.tick = () => {
     const nowT = Date.now(), dt = nowT - s.lastT; s.lastT = nowT;
     if (s.over) return;
     if (s.nextAt && nowT >= s.nextAt) { s.nextAt = null; E.next(); if (s.over) return; }
-    if (!s.resolving) s.hp = Math.max(0, r1(s.hp - dt / 1000 * mul));
+    if (!s.resolving) addHp(-dt / 1000 * mul * (TC ? C_HP.decay : 1));
     if (s.pend.some(p => nowT - p.t >= B_FORCE_LAND)) {
       const keep = []; let dmg = 0, oj = 0;
       s.pend.forEach(p => { if (nowT - p.t >= B_FORCE_LAND) { dmg += p.dmg; oj += p.oj; } else keep.push(p); });
@@ -7131,7 +7207,8 @@ function createBEngine(o) {
       s.resolving = true; s.combo = 0;
       s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, timeout: true, ms: qe });
       fx('timeout');
-      damage(Math.round((DIFFICULTY_TIMEOUT_EXTRA[o.diff] || 0) * mul));
+      if (TC) s.lastMissAt = fbNow();
+      damage(Math.round((DIFFICULTY_TIMEOUT_EXTRA[o.diff] || 0) * mul * (TC ? C_HP.miss : 1)));
       if (s.over) return;
       s.nextAt = nowT + 420;
     }
@@ -7140,7 +7217,7 @@ function createBEngine(o) {
     // 逆転勝ちの判定用：ピンチになった、または1位に3問以上差をつけられた
     if (!s.behind) {
       const v = o.view(), live = v.live || {};
-      const lead = Math.max(0, ...o.ids.filter(u => u !== o.uid).map(u => (live[u] && live[u].c) || 0));
+      const lead = Math.max(0, ...o.ids.filter(u => u !== o.uid && !(TC && tm[u] === myT)).map(u => (live[u] && live[u].c) || 0));
       if (s.hp <= PINCH_HP || lead - s.c >= 3) s.behind = true;
     }
     E.writeLive(false);
@@ -7192,10 +7269,10 @@ function CpuBots({ code, state, bank, N, viewRef, claims, onClear }) {
     const bots = uids.map(uid => {
       const lvKey = cpu[uid], conf = state.gp && state.gp[uid] ? ghostConf(state.gp[uid]) : (CPU_LEVELS[lvKey] || CPU_LEVELS.normal);
       const bot = { uid, lvKey, conf, plan: 0, planQ: null, lockUntil: 0, spAt: 0, useSp: Math.random() < (conf.sp == null ? 1 : conf.sp) };
-      if (mode === 'B') {
-        bot.eng = createBEngine({ code, gid, uid, ids, bank, N, diff, hc: (state.handi || {})[uid] || 0, view: () => viewRef.current, sound: null, fx: null, onClear });
+      if (isBm(mode)) {
+        bot.eng = createBEngine({ code, gid, uid, ids, bank, N, diff, hc: (state.handi || {})[uid] || 0, tm: mode === 'C' ? state.tm : null, view: () => viewRef.current, sound: null, fx: null, onClear });
         const r = fref(`rooms/${code}/ev/${gid}/${uid}`), fn = snap => bot.eng.receive(snap.val());
-        r.on('value', fn); offs.push(() => r.off('value', fn));
+        r.on('value', fn); offs.push(() => r.off('value', fn)); offs.push(() => bot.eng.dispose());
         bot.eng.writeLive(true);
       }
       return bot;
@@ -7204,7 +7281,7 @@ function CpuBots({ code, state, bank, N, viewRef, claims, onClear }) {
       const now = fbNow();
       if (now < state.startAt) { bots.forEach(b => { if (b.eng) { b.eng.s.qStart = Date.now(); b.eng.s.lastT = Date.now(); } }); return; }
       bots.forEach(b => {
-        if (mode === 'B') {
+        if (isBm(mode)) {
           const e = b.eng, s = e.s;
           e.tick();
           if (s.over) return;
@@ -7544,9 +7621,10 @@ function BattleApp({ acct: who, onExit }) {
     DBX = makeLocalDb();
     const ids = ['me'], names = { me: myName }, cpu = {};
     const pl = { me: { name: myName, acct: '', nick: myNick || '', joinedAt: Date.now() } };
-    for (let i = 1; i <= cfg.n; i++) { const u = 'cpu' + i; ids.push(u); names[u] = `CPU${cfg.n > 1 ? i : ''}（${CPU_LEVELS[cfg.lv].label}）`; cpu[u] = cfg.lv; pl[u] = { name: names[u], cpu: cfg.lv, joinedAt: Date.now() + i }; }
+    const nC = cfg.mode === 'C' ? 3 : cfg.n;
+    for (let i = 1; i <= nC; i++) { const u = 'cpu' + i; ids.push(u); names[u] = cfg.mode === 'C' ? `${i === 1 ? '味方' : '相手'}CPU（${CPU_LEVELS[cfg.lv].label}）`.slice(0, 10) : `CPU${nC > 1 ? i : ''}（${CPU_LEVELS[cfg.lv].label}）`; cpu[u] = cfg.lv; pl[u] = { name: names[u], cpu: cfg.lv, joinedAt: Date.now() + i }; }
     await fref('rooms/local/players').set(pl);
-    await fref('rooms/local/state').set({ phase: 'lobby', mode: cfg.mode, diff: cfg.diff, handi: {} });
+    await fref('rooms/local/state').set({ phase: 'lobby', mode: cfg.mode, diff: cfg.diff, handi: {}, ...(cfg.mode === 'C' ? { tm: { me: 0, cpu1: 0, cpu2: 1, cpu3: 1 } } : {}) });
     setIsHost(true); setSpectator(false); setCode('local');
     setTimeout(() => startMatch(), 0);
   }
@@ -7581,17 +7659,20 @@ function BattleApp({ acct: who, onExit }) {
       if (acct && FB.db) { try { myRt = ratingOf((await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).get()).val()); } catch (e) {} }
       if (myRt != null) ids.forEach(k => { if (!pl[k].cpu) rt[k] = myRt; });
     } else rt = await fetchRatings(accts, bty);
-    await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
+    await Promise.all(['claims', 'ev', 'live', 'result', 'ko', 'thp'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
+    const modeN = opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B'));
+    if (modeN === 'C' && ids.length !== 4) return;
     await fref(`rooms/${c}/state`).set({
+      ...(modeN === 'C' ? { tm: teamsOf(ids, st.tm) } : {}),
       // すぐ遊ぶの部屋：方式は投票の結果（なければランダム）、難易度はランダム
-      phase: 'play', mode: opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B')), diff: opt.diff || (st.qm ? 'easy' : (st.diff || 'easy')), qm: !!st.qm,
+      phase: 'play', mode: modeN, diff: opt.diff || (st.qm ? 'easy' : (st.diff || 'easy')), qm: !!st.qm,
       ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), bty, ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}), ...(st.gp ? { gp: st.gp, ghost: st.ghost || '', ghostKey: st.ghostKey || '' } : {}),
       gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
       startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts, handi, rt, cpu, nicks,
     });
   }
   const setRule = patch => fref(`rooms/${code}/state`).update(patch).catch(() => {});
-  const backToLobby = () => fref(`rooms/${code}/state`).set({ phase: 'lobby', mode: (state && state.mode) || 'B', diff: (state && state.diff) || 'easy', handi: (state && state.handi) || {} }).catch(() => {});
+  const backToLobby = () => fref(`rooms/${code}/state`).set({ phase: 'lobby', mode: (state && state.mode) || 'B', diff: (state && state.diff) || 'easy', handi: (state && state.handi) || {}, ...(state && state.tm ? { tm: state.tm } : {}) }).catch(() => {});
 
   /* ---- クラス協力レイド ---- */
   async function raidStart(hp) {
@@ -8114,10 +8195,11 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       <div className="v7-col">
         <div className="v7-panel">
           {cap('CPUと練習', <span className="text-[10px]">記録には残りません</span>)}
-          <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color]]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
+          <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color], ['C', 'C 2対2', BATTLE_MODES.C.color]]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
           <div className="mt-1.5"><Seg items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={pc.diff} onPick={v => setPcv({ diff: v })} /></div>
           <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの強さ</span><div className="flex-1"><Seg items={Object.entries(CPU_LEVELS).map(([k, c]) => [k, c.label, k === 'weak' ? '#3FA55F' : k === 'normal' ? '#E9A82A' : '#DD4A3A'])} cur={pc.lv} onPick={v => setPcv({ lv: v })} /></div></div>
-          <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの人数</span><div className="flex-1"><Seg items={[[1, '1人'], [2, '2人'], [3, '3人']]} cur={pc.n} onPick={v => setPcv({ n: v })} /></div></div>
+          {pc.mode === 'C' ? <div className="text-[11px] font-black mt-1.5" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>あなた＋味方CPU 対 相手CPU2人（体力はチームで共有）</div>
+            : <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの人数</span><div className="flex-1"><Seg items={[[1, '1人'], [2, '2人'], [3, '3人']]} cur={pc.n} onPick={v => setPcv({ n: v })} /></div></div>}
           <div className="mt-2.5"><BigBtn color="#1D2633" onClick={() => onPractice(pc)}>CPUと練習スタート</BigBtn></div>
         </div>
 
@@ -8320,6 +8402,14 @@ function VsTable({ vs, nameOf }) {
 function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart, onLeave }) {
   const list = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).slice(0, ROOM_MAX);
   const mode = state.mode || 'B', diff = state.diff || 'easy', handi = state.handi || {};
+  // C：チーム分けとCPU
+  const TCm = mode === 'C';
+  const tmL = teamsOf(list.map(e => e[0]), state.tm);
+  const tcount = [0, 1].map(t => list.filter(e => tmL[e[0]] === t).length);
+  const cpuLv = state.cpuLv || 'normal';
+  const addCpu = () => { const used = new Set(Object.keys(players)); let i = 1; while (used.has('cpu' + i)) i++; fref(`rooms/${code}/players/cpu${i}`).set({ name: `CPU${i}（${CPU_LEVELS[cpuLv].label}）`, cpu: cpuLv, joinedAt: Date.now() }).catch(() => {}); };
+  const delCpu = k => { fref(`rooms/${code}/players/${k}`).remove().catch(() => {}); onRule({ [`tm/${k}`]: null }); };
+  const cOk = list.length === 4 && tcount[0] === 2 && tcount[1] === 2;
   return (<>
     <Card className="mb-4 text-center">
       <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>部屋コード</div>
@@ -8334,10 +8424,13 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
         return (
           <div key={i} className="py-1.5" style={{ borderBottom: i < 3 ? `1px solid ${COLORS.paperDark}` : 'none' }}>
             <div className="flex items-center gap-2">
-              <span className="font-black w-6" style={{ color: PCOLORS[i] }}>{i + 1}P</span>
+              <span className="font-black w-6" style={{ color: TCm && e ? TEAM_INFO_C[tmL[e[0]]].color : PCOLORS[i] }}>{i + 1}P</span>
               <span className="flex-1 font-bold truncate" style={{ color: e ? COLORS.ink : COLORS.inkSoft, ...bFont }}>{e && e[1].nick ? <Nick id={e[1].nick} size={9} block /> : null}{e ? e[1].name : 'あき'}</span>
               {e && e[1].acct && <span className="text-[10px] font-bold rounded-full px-2" style={{ background: `${COLORS.leaf}22`, color: COLORS.leafDeep }}>記録あり</span>}
               {e && !isHost && h > 0 && <span className="text-xs font-black" style={{ color: COLORS.amber }}>ハンデ{HANDI_LABEL[h]}</span>}
+              {e && TCm && (isHost ? <button onClick={() => onRule({ [`tm/${e[0]}`]: 1 - tmL[e[0]] })} className="v7-cur rounded-full px-2 py-0.5 text-[11px] font-black text-white" style={{ background: TEAM_INFO_C[tmL[e[0]]].color }}>{TEAM_INFO_C[tmL[e[0]]].name} ⇄</button>
+                : <span className="rounded-full px-2 py-0.5 text-[11px] font-black text-white" style={{ background: TEAM_INFO_C[tmL[e[0]]].color }}>{TEAM_INFO_C[tmL[e[0]]].name}</span>)}
+              {e && isHost && e[1].cpu && <button onClick={() => delCpu(e[0])} className="v7-cur rounded-full px-2 py-0.5 text-[11px] font-black" style={{ background: '#fff', border: '1.5px solid var(--v7-line)', color: COLORS.ink }}>✕</button>}
             </div>
             {e && isHost && (
               <div className="flex items-center gap-1 mt-1 pl-8">
@@ -8351,18 +8444,23 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
           </div>
         );
       })}
-      <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>ハンデ★1つごとに：Bは受けるダメージ−15%／Aはお手つきが0.5秒短く・得点+10%</p>
+      {TCm && isHost && list.length < 4 && <div className="flex items-center gap-2 mt-2">
+        <div className="flex-1"><Seg items={Object.entries(CPU_LEVELS).map(([k, c]) => [k, c.label])} cur={cpuLv} onPick={v => onRule({ cpuLv: v })} /></div>
+        <button onClick={addCpu} className="v7-cur rounded-xl px-3 py-2 text-xs font-black text-white" style={{ background: '#1D2633' }}>＋ CPUを入れる</button>
+      </div>}
+      {TCm && <p className="text-[11px] font-black mt-2" style={{ color: cOk ? COLORS.leafDeep : '#C2410C' }}>{cOk ? '赤チーム2人・青チーム2人で準備OK！' : `4人（赤2人・青2人）そろうと始められます（いま 赤${tcount[0]}・青${tcount[1]}）${isHost ? '。人数が足りないときはCPUを入れよう' : ''}`}</p>}
+      <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>ハンデ★1つごとに：B・Cは受けるダメージ−15%／Aはお手つきが0.5秒短く・得点+10%</p>
     </Card>
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>対戦方式{isHost ? '' : '（ホストが決めます）'}</div>
-      <Seg disabled={!isHost} items={[['A', BATTLE_MODES.A.label, BATTLE_MODES.A.color], ['B', BATTLE_MODES.B.label, BATTLE_MODES.B.color]]} cur={mode} onPick={v => onRule({ mode: v })} />
+      <Seg disabled={!isHost} items={[['A', 'A：早い者勝ち', BATTLE_MODES.A.color], ['B', 'B：レース＋攻撃', BATTLE_MODES.B.color], ['C', 'C：2対2タッグ', BATTLE_MODES.C.color]]} cur={mode} onPick={v => onRule({ mode: v })} />
       <ul className="mt-2 text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.inkSoft }}>
         {BATTLE_MODES[mode].desc.map(d => <li key={d}>{d}</li>)}
       </ul>
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>難易度</div>
       <Seg disabled={!isHost} items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={diff} onPick={v => onRule({ diff: v })} />
     </Card>
-    {isHost && <div className="mb-3"><BigBtn color={COLORS.coral} disabled={list.length < 2} onClick={onStart}>{list.length < 2 ? '相手を待っています…' : `対戦スタート！（${list.length}人）`}</BigBtn></div>}
+    {isHost && <div className="mb-3"><BigBtn color={COLORS.coral} disabled={TCm ? !cOk : list.length < 2} onClick={onStart}>{TCm ? (cOk ? '2対2 スタート！' : 'チームがそろうのを待っています…') : list.length < 2 ? '相手を待っています…' : `対戦スタート！（${list.length}人）`}</BigBtn></div>}
     <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
   </>);
 }
@@ -8401,7 +8499,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (lv > cheerPow.current) {
       cheerPow.current = lv;
       const eng = mine.current.eng;
-      if (mode === 'B' && eng && eng.cheer(CHEER_HEAL)) { FX.band('📣 応援パワー！', { color: '#ff7b00', sub: `観戦しているみんなの応援で 体力+${CHEER_HEAL}%`, ms: 1600 }); FX.flash('#ffd54a', 0.3, 250); }
+      if (isBm(mode) && eng && eng.cheer(CHEER_HEAL)) { FX.band('📣 応援パワー！', { color: '#ff7b00', sub: `観戦しているみんなの応援で 体力+${CHEER_HEAL}%`, ms: 1600 }); FX.flash('#ffd54a', 0.3, 250); }
       else FX.band('📣 みんなの応援が届いた！', { color: '#ff7b00', sub: 'がんばれー！', ms: 1400 });
       fxSound('fever', muted);
     }
@@ -8431,7 +8529,12 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     const { live: L0, ko: K } = viewRef.current;
     const L = u => (L0 || {})[u] || {};
     const rank = {}, extra = {};
-    if (mode === 'A') {
+    if (mode === 'C') {
+      // C：勝ったチームの2人が1位、負けたチームの2人が2位
+      const T = state.tm || {}, wt = T[winner];
+      ids.forEach(u => { rank[u] = T[u] === wt ? 1 : 2; });
+      extra.team = wt == null ? -1 : wt;
+    } else if (mode === 'A') {
       const sc = scoreA(bank, claimsRef.current, ids, N, hc).sc;
       const order = [...ids].sort((a, b) => (a === winner ? -1 : b === winner ? 1 : 0) || (sc[b] || 0) - (sc[a] || 0));
       order.forEach((u, i) => { const p = order[i - 1]; rank[u] = (i > 0 && p !== winner && (sc[u] || 0) === (sc[p] || 0)) ? rank[p] : i + 1; });
@@ -8453,6 +8556,13 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
   useEffect(() => {
     if (result || counting || ids.length < 2) return;
     const alive = ids.filter(u => !ko[u]);
+    if (mode === 'C') {
+      const T = state.tm || {}, at = [...new Set(alive.map(u => T[u]))];
+      const allLeftC = ids.filter(u => ko[u]).every(u => ko[u].left);
+      if (at.length === 1) writeResult(alive[0], allLeftC ? 'leave' : 'ko');
+      else if (at.length === 0) writeResult([...ids].sort((a, b) => (ko[b].at || 0) - (ko[a].at || 0))[0], 'ko');
+      return;
+    }
     const allLeft = ids.filter(u => ko[u]).every(u => ko[u].left);
     if (alive.length === 1) writeResult(alive[0], allLeft ? 'leave' : 'ko');
     else if (alive.length === 0) writeResult([...ids].sort((a, b) => (ko[b].at || 0) - (ko[a].at || 0))[0], 'ko');
@@ -8489,21 +8599,22 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     const rank = result.rank || {};
     const myRank = rank[me] || (result.winner === me ? 1 : 2);
     const firsts = ids.filter(u => rank[u] === 1);
-    const outcome = result.draw && myRank === 1 ? 'd' : myRank === 1 && firsts.length <= 1 ? 'w' : myRank === 1 ? 'd' : 'l';
+    const outcome = mode === 'C' ? (result.team === (state.tm || {})[me] ? 'w' : 'l') : result.draw && myRank === 1 ? 'd' : myRank === 1 && firsts.length <= 1 ? 'w' : myRank === 1 ? 'd' : 'l';
     sound.play(outcome === 'w' ? 'clear' : outcome === 'l' ? 'lose' : 'combo');
     const rel = u => { const a = myRank, b = rank[u] || 99; return a < b ? 'w' : a > b ? 'l' : 'd'; };
     const accts = state.accts || {}, rt = state.rt || {};
-    const vs = others.filter(u => accts[u]).map(u => ({ key: accts[u], o: rel(u) }));
-    const opps = others.filter(u => (accts[u] || state.bot) && rt[u] != null).map(u => ({ r: rt[u], s: rel(u) === 'w' ? 1 : rel(u) === 'l' ? 0 : 0.5 }));
+    const foesR = mode === 'C' ? others.filter(u => (state.tm || {})[u] !== (state.tm || {})[me]) : others;
+    const vs = foesR.filter(u => accts[u]).map(u => ({ key: accts[u], o: rel(u) }));
+    const opps = foesR.filter(u => (accts[u] || state.bot) && rt[u] != null).map(u => ({ r: rt[u], s: rel(u) === 'w' ? 1 : rel(u) === 'l' ? 0 : 0.5 }));
     let dr = opps.length && acct ? ratingDelta(rt[me] != null ? rt[me] : RATING_INIT, opps) / opps.length : 0;
     if (Object.values(hc).some(h => h > 0)) dr *= 0.5;
-    const perfects = mode === 'B' ? ((mine.current.eng && mine.current.eng.s.perfects) || 0) : claimsRef.current.filter(c => c && c.uid === me && c.j === 'Perfect').length;
-    const behind = mode === 'B' ? !!(mine.current.eng && mine.current.eng.s.behind) : mine.current.behind;
+    const perfects = isBm(mode) ? ((mine.current.eng && mine.current.eng.s.perfects) || 0) : claimsRef.current.filter(c => c && c.uid === me && c.j === 'Perfect').length;
+    const behind = isBm(mode) ? !!(mine.current.eng && mine.current.eng.s.behind) : mine.current.behind;
     // 称号用の記録
     const win = outcome === 'w', eng = mine.current.eng, es = eng ? eng.s : null;
     const add = {}, mx = {}, mn = {}, orr = {};
     let lvMask = 0;
-    if (mode === 'B' && es) {
+    if (isBm(mode) && es) {
       const oks = es.hist.filter(h => h.ok);
       if (oks.length) mn.bestMs = Math.round(Math.min(...oks.map(h => h.ms)));
       mx.maxCombo = es.best;
@@ -8514,10 +8625,11 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       if (win && es.minHp <= 1) add.miracleWins = 1;
       if (win && es.dmgTaken === 0) add.flawlessWins = 1;
       mx.maxSpMatch = es.spUsed;
-      add.bGames = 1; add.spGames = es.spUsed > 0 ? 1 : 0;
-      if (win && !es.spUsed) add.noSpWins = 1;
+      if (mode === 'B') { add.bGames = 1; add.spGames = es.spUsed > 0 ? 1 : 0; }
+      if (win && !es.spUsed && mode === 'B') add.noSpWins = 1;
       oks.forEach(h => { if (h.j === 'Perfect') lvMask |= 1 << h.lv; });
-      if (win && ids.length === 4 && result.reason === 'ko') add.survivors = 1;
+      if (win && ids.length === 4 && result.reason === 'ko' && mode !== 'C') add.survivors = 1;
+      if (mode === 'C') { add.cGames = 1; add.unites = es.unites; add.covers = es.covers; if (win) add.cWins = 1; }
     }
     if (mode === 'A') {
       const scA = scoreA(bank, claimsRef.current, ids, N, hc);
@@ -8559,7 +8671,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     else addExp(who, exp).then(r => { if (r) setRec(x => ({ ...x, exp: r })); });
     // 苦手分析・図鑑用の記録（CPU練習もふくむ）
     const lrec = [];
-    if (mode === 'B' && es) es.hist.forEach(h => { const b = bank.get(h.lv, h.k); lrec.push({ lv: h.lv, pid: patternOf(h.lv, b.factors), ok: h.ok, ms: h.ms, j: h.j }); });
+    if (isBm(mode) && es) es.hist.forEach(h => { const b = bank.get(h.lv, h.k); lrec.push({ lv: h.lv, pid: patternOf(h.lv, b.factors), ok: h.ok, ms: h.ms, j: h.j }); });
     if (mode === 'A') claimsRef.current.forEach((c, q) => {
       const p = problemForA(bank, q), pid = patternOf(p.level, p.factors);
       if (mine.current.aMiss[q]) lrec.push({ lv: p.level, pid, ok: false, ms: 0 });
@@ -8585,7 +8697,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
 
   const header = (extra) => (
     <div className="flex items-start justify-between gap-2 flex-wrap" style={{ flexShrink: 0, position: 'relative' }}>
-      {cheerN > 0 && <div className="absolute text-[10px] font-black rounded-full px-2 py-0.5 shadow text-white" style={{ left: '50%', top: '-0.2rem', transform: 'translateX(-50%)', background: 'linear-gradient(90deg,#ff7b00,#ff2e63)', zIndex: 5, whiteSpace: 'nowrap' }}>📣 応援 {cheerN}{cheerPow.current < CHEER_MAX ? `（あと${CHEER_STEP - cheerN % CHEER_STEP}で${mode === 'B' ? '回復' : 'パワー'}）` : ''}</div>}
+      {cheerN > 0 && <div className="absolute text-[10px] font-black rounded-full px-2 py-0.5 shadow text-white" style={{ left: '50%', top: '-0.2rem', transform: 'translateX(-50%)', background: 'linear-gradient(90deg,#ff7b00,#ff2e63)', zIndex: 5, whiteSpace: 'nowrap' }}>📣 応援 {cheerN}{cheerPow.current < CHEER_MAX ? `（あと${CHEER_STEP - cheerN % CHEER_STEP}で${isBm(mode) ? '回復' : 'パワー'}）` : ''}</div>}
       <div className={`flex gap-1 ${others.length > 2 ? 'flex-row flex-wrap items-center w-full' : 'flex-col items-start'}`}>
         <div className="flex items-center gap-1">
           <button onClick={() => { if (window.confirm(practice ? '練習をやめますか？' : '対戦をやめて部屋を出ますか？（負けになります）')) { uiSnd('back'); onLeave(); } }} className="v7-bar-btn">✕ 退出</button>
@@ -8604,7 +8716,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       <V7Theme.Provider value={true}>
         {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>{children}</div>}
       </V7Theme.Provider>
-      {state.cpu && !result && <CpuBots code={code} state={state} bank={bank} N={N} viewRef={viewRef} claims={claims} onClear={u => writeResult(u, 'clear')} />}
+      {state.cpu && !result && (isHost || practice || code === 'bot' || code === 'local') && <CpuBots code={code} state={state} bank={bank} N={N} viewRef={viewRef} claims={claims} onClear={u => writeResult(u, 'clear')} />}
     </div>
   );
 
@@ -8612,10 +8724,10 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     mine={mine.current} isHost={isHost} acct={acct} practice={practice} players={players} code={code} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} onBack={onBack} />);
   if (counting) return wrap(<>
     {header(null)}
-    <VsCutIn ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} bty={state.bty || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
+    <VsCutIn tm={mode === 'C' ? state.tm : null} ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} bty={state.bty || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
     <div className="flex flex-col items-center justify-center" style={{ flex: '1 1 auto' }}>
       <div key={cd} className="leading-none" style={{ color: cd > 3 ? 'var(--v7-gold)' : '#fff', fontSize: cd > 3 ? 'clamp(3rem, 16vw, 7rem)' : 'clamp(4rem, 24vw, 10rem)', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,0.35)', animation: 'fxVsPop 450ms ease both' }}>{cd > 3 ? 'READY' : Math.max(1, cd)}</div>
-      <div className="text-sm font-bold mt-8 text-center" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>
+      <div className="text-sm font-bold mt-8 text-center" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : mode === 'C' ? `${TEAM_INFO_C[(state.tm || {})[me] || 0].name}：体力は2人で共有！ 仲間の予告もカバー、息をあわせて合体攻撃` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>
     </div>
   </>);
   const props = { code, state, me, ids, others, names, diff, N, bank, live, ko, now, sound, header, players, hc, mine, viewRef, muted, nicks: state.nicks || {} };
@@ -8667,12 +8779,12 @@ const statBox = (label, value, color) => (
   </div>
 );
 /* 相手たち（右上に並べる） */
-function OppList({ ids, others, names, nicks, mode, live, ko, players, N, scores, combos, target }) {
+function OppList({ ids, others, names, nicks, mode, live, ko, players, N, scores, combos, target, tm, me }) {
   const compact = others.length > 1;
   return (
     <div className="grid gap-1" style={{ gridTemplateColumns: others.length > 2 ? 'repeat(3, minmax(0, 1fr))' : others.length > 1 ? 'repeat(2, auto)' : 'auto', width: others.length > 2 ? '100%' : undefined }}>
       {others.map(u => <OppMini wide={others.length > 2} key={u} uid={u} nick={(nicks || {})[u]} name={names[u]} mode={mode} live={mode === 'A' ? { ...(live[u] || {}), combo: combos ? combos[u] : 0 } : live[u]} clearCount={N}
-        scoreA={scores ? scores[u] : 0} online={!!players[u]} ko={!!ko[u]} target={target === u} color={PCOLORS[ids.indexOf(u)]} compact={compact} />)}
+        scoreA={scores ? scores[u] : 0} online={!!players[u]} ko={!!ko[u]} target={target === u} color={tm ? TEAM_INFO_C[tm[u]].color : PCOLORS[ids.indexOf(u)]} compact={compact} mate={!!(tm && me && tm[u] === tm[me])} />)}
     </div>
   );
 }
@@ -8706,13 +8818,17 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     if (t === 'blocked') { const c = rectC(hpRef.current); if (c) FX.ring(c.x, c.y, '#457b9d'); }
     if (t === 'special') { const c = rectC(hpRef.current); FX.flash(p === 'big' ? '#fff' : p === 'heal' ? '#7CFFB2' : '#9ad0ff', 0.5, 300); if (c) { if (p === 'heal') { FX.burst(c.x, c.y, { color: '#43C97B', n: 22, r: 100 }); FX.text(c.x, c.y, `+${SP_HEAL}%`, '#43C97B', 26); } else FX.ring(c.x, c.y, p === 'big' ? '#e63946' : '#457b9d'); } }
     if (t === 'ko') { FX.shards(rectC(hpRef.current), '#e63946'); FX.shake(root(), true); fxSound('shatter', muted); }
+    if (t === 'unite') { FX.flash('#ffd54a', 0.45, 300); FX.band('🤝 合体攻撃！', { color: '#7b2cbf', sub: `${nm(p.mate)}と息をあわせた！`, ms: 1400 }); fxSound('fever', muted); }
+    if (t === 'covered') { const c = rectC(warnRef.current); if (c) { FX.burst(c.x, c.y, { color: '#6BD4E8', n: 16, r: 70 }); FX.text(c.x, c.y, 'カバー！', '#6BD4E8', 22); } }
     if (t === 'ojama') showBanner(`💥 おじゃまタイルが${p}枚まざった！`, COLORS.coral, 1600);
     else if (t === 'incoming') showBanner(`⚠ ${others.length > 1 ? nm(p.from) + 'から' : ''}${p.sp ? '必殺技が' : '攻撃が'}来る！ ${p.dmg ? `体力-${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `おじゃま${p.oj}枚` : ''}　正解して相殺しよう！`, '#b3402c', 1800);
     else if (t === 'hit') showBanner(`💢 攻撃を受けた！ ${p.dmg ? `体力 -${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `次の問題におじゃま+${p.oj}` : ''}`, COLORS.coral);
     else if (t === 'blocked') showBanner('🛡 シールドで攻撃をふせいだ！', '#457b9d');
+    else if (t === 'covered') showBanner(`🤝 ${nm(p.from)}がカバー！ ${p.units}ぶん打ち消してくれた`, '#2F6FD6');
     else if (t === 'send') {
-      const atk = p.to ? `${others.length > 1 ? nm(p.to) + 'に' : ''}攻撃！ ${p.dmg ? `体力-${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `おじゃま${p.oj}枚` : ''}${p.pinch ? '（ピンチ×1.3）' : ''}` : '';
-      if (p.cancelled > 0) showBanner(`🛡 相殺！ ${p.cancelled}ぶん打ち消した${atk ? ' ／ ⚔ ' + atk : ''}`, COLORS.sky);
+      const atk = p.to ? `${p.unite ? '合体攻撃で' : ''}${others.length > 1 ? nm(p.to) + 'に' : ''}攻撃！ ${p.dmg ? `体力-${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `おじゃま${p.oj}枚` : ''}${p.pinch ? '（ピンチ×1.3）' : ''}${p.follow ? '（フォロー×1.2）' : ''}` : '';
+      if (p.covered > 0) showBanner(`🤝 仲間をカバー！ ${p.covered}ぶん打ち消した${atk ? ' ／ ⚔ ' + atk : ''}`, '#2F6FD6');
+      else if (p.cancelled > 0) showBanner(`🛡 相殺！ ${p.cancelled}ぶん打ち消した${atk ? ' ／ ⚔ ' + atk : ''}`, COLORS.sky);
       else if (atk) showBanner(`⚔ ${atk}`, COLORS.leafDeep);
     }
     else if (t === 'special') pop(SP_INFO[p].name, SP_INFO[p].color, false, 1000);
@@ -8722,13 +8838,13 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   };
   const engRef = useRef(null);
   if (!engRef.current) {
-    engRef.current = createBEngine({ code, gid, uid: me, ids, bank, N, diff, hc: hc[me] || 0, view: () => viewRef.current, sound, fx: (t, p) => fxRef.current(t, p), onClear });
+    engRef.current = createBEngine({ code, gid, uid: me, ids, bank, N, diff, hc: hc[me] || 0, tm: state.mode === 'C' ? state.tm : null, view: () => viewRef.current, sound, fx: (t, p) => fxRef.current(t, p), onClear });
     mine.current.eng = engRef.current;
   }
   const eng = engRef.current;
   const evs = useFbValue(`rooms/${code}/ev/${gid}/${me}`);
   useEffect(() => { eng.receive(evs); rerender(); }, [evs]);
-  useEffect(() => { eng.writeLive(true); const t = setInterval(() => { eng.tick(); rerender(); }, 100); return () => clearInterval(t); }, []);
+  useEffect(() => { eng.writeLive(true); const t = setInterval(() => { eng.tick(); rerender(); }, 100); return () => { clearInterval(t); eng.flush(true); eng.dispose(); }; }, []);
 
   const onMatch = useCallback((id1, id2) => {
     const s = eng.s;
@@ -8757,7 +8873,10 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);
   const soonest = s.pend.length ? Math.max(0, B_LAND_DELAY - (Date.now() - Math.min(...s.pend.map(p => p.t)))) : 0;
   const tgt = eng.target();
-  const leader = others.length > 1 && !s.over && others.every(u => ko[u] || ((live[u] || {}).c || 0) < s.c);
+  const TC = state.mode === 'C', mate = eng.mate, tmC = state.tm || {};
+  const teamC = TC ? s.c + ((live[mate] || {}).c || 0) : 0;
+  const leader = !TC && others.length > 1 && !s.over && others.every(u => ko[u] || ((live[u] || {}).c || 0) < s.c);
+  const oppOrder = TC ? [mate, ...others.filter(u => u !== mate)].filter(Boolean) : others;
   const full = s.sp >= SP_MAX;
   const shieldLeft = Math.max(0, s.shieldUntil - Date.now());
   return (<>
@@ -8766,20 +8885,21 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     <PinchVignette on={pinchNow} muted={muted} />
     {s.ko && <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 45, background: 'rgba(5,8,20,.55)' }}>
       <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(3rem,16vw,6rem)', color: '#FF8A75', WebkitTextStroke: '2px #fff', textShadow: '0 4px 0 rgba(0,0,0,.3)' }}>KO…</div>
-      <div className="v7-wnd text-sm font-black px-4 py-1">体力が0になりました。決着まで見守ろう</div>
+      <div className="v7-wnd text-sm font-black px-4 py-1">{TC ? 'チームの体力が0になりました' : '体力が0になりました。決着まで見守ろう'}</div>
     </div>}
     <div className="v7-play">
       <div className="v7-zone">
-        {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="B" live={live} ko={ko} players={players} N={N} target={tgt} />)}
+        {header(<OppList ids={ids} others={oppOrder} names={names} nicks={nicks} mode="B" live={live} ko={ko} players={players} N={TC ? N * 2 : N} target={tgt} tm={TC ? tmC : null} me={me} />)}
         <div className="v7-msg">
           {banner ? <div className="v7-wnd" style={{ color: '#fff', background: `linear-gradient(180deg, ${banner.color}, ${banner.color}cc)` }}>{banner.text}</div>
             : leader ? <div className="v7-wnd" style={{ color: 'var(--v7-gold)' }}>👑 あなたが1位！ みんなの攻撃が集まってくる</div> : null}
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {v7Stat('SCORE', s.score)}{v7Stat('SOLVED', `${s.c}/${N}`)}{v7Stat('COMBO', s.combo, s.combo > 0 ? 'var(--v7-gold)' : null)}
+          {v7Stat('SCORE', s.score)}{TC ? v7Stat('TEAM', `${teamC}/${N * 2}`, TEAM_INFO_C[eng.team].color === '#E4572E' ? '#FF9B7A' : '#8FB7FF') : v7Stat('SOLVED', `${s.c}/${N}`)}{v7Stat('COMBO', s.combo, s.combo > 0 ? 'var(--v7-gold)' : null)}
         </div>
         <div ref={hpRef} className="relative" style={{ flexShrink: 0 }}>
           <HpBar v7 hp={s.hp} height={22} />
+          {TC && <span className="absolute left-2 -top-2 text-[10px] font-black rounded-full px-2 text-white" style={{ background: TEAM_INFO_C[eng.team].color }}>🤝 {TEAM_INFO_C[eng.team].name}の体力</span>}
           {shieldLeft > 0 ? <span className="absolute right-2 -top-2 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡 {(shieldLeft / 1000).toFixed(1)}秒</span>
             : eng.pinch() && !s.over ? <span className="absolute right-2 -top-2 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span> : null}
         </div>
@@ -8807,10 +8927,10 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
           <JudgePop judge={judge} at="ph" />
-          {cur && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={`問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
+          {cur && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
         </div>
         {cur && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
-        <p className="v7-hint" style={{ flexShrink: 0 }}>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</p>
+        <p className="v7-hint" style={{ flexShrink: 0 }}>{TC ? '仲間の予告も正解でカバー・2人で3コンボ以上を同時に→合体攻撃' : <>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</>}</p>
       </div>
     </div>
   </>);
@@ -8964,7 +9084,7 @@ function BadgeReveal({ badges }) {
   );
 }
 /* 対戦前の VS カットイン */
-function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty }) {
+function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty, tm }) {
   bty = bty || {};
   useEffect(() => {
     if (final) FX.band('FINAL', { color: '#d4a017', sub: '決勝戦', ms: 1600 });
@@ -8973,7 +9093,7 @@ function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty }) {
     else if (bty[me]) setTimeout(() => FX.band(`💰 あなたは賞金首！`, { color: '#b7791f', sub: `懸賞金${bty[me]}。負けると相手に取られる！`, ms: 1800 }), 500);
   }, []);
   const card = (u, i, side) => (
-    <div key={u} className="v7-wnd px-3 py-2" style={{ borderLeft: `6px solid ${PCOLORS[i]}`, animation: `${side === 'L' ? 'fxSlideL' : 'fxSlideR'} 420ms ${i * 90}ms cubic-bezier(.2,.9,.3,1.2) both`, minWidth: 0, textAlign: side === 'R' && ids.length === 2 ? 'right' : 'left' }}>
+    <div key={u} className="v7-wnd px-3 py-2" style={{ borderLeft: `6px solid ${tm ? TEAM_INFO_C[tm[u]].color : PCOLORS[i]}`, animation: `${side === 'L' ? 'fxSlideL' : 'fxSlideR'} 420ms ${i * 90}ms cubic-bezier(.2,.9,.3,1.2) both`, minWidth: 0, textAlign: side === 'R' && ids.length === 2 ? 'right' : 'left' }}>
       {nicks[u] && <div style={{ filter: 'brightness(1.6)' }}><Nick id={nicks[u]} size={10} block /></div>}
       <div className="font-black text-lg truncate" style={{ color: u === me ? 'var(--v7-gold)' : '#fff', ...bFont }}>{names[u]}{u === me ? <span className="text-[10px]">（あなた）</span> : ''}</div>
       <div className="text-[11px] font-bold" style={{ color: '#AAB6E0' }}>{rt[u] != null && <RankPill r={rt[u]} size={10} />}{rt[u] != null ? ` レート ${Math.round(rt[u])}` : ''}{hc[u] ? ` ハンデ${HANDI_LABEL[hc[u]]}` : ''}</div>
@@ -8988,6 +9108,11 @@ function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty }) {
           {card(ids[0], 0, 'L')}
           <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 48, color: 'var(--v7-gold)', WebkitTextStroke: '2px #fff', animation: 'fxVsPop 500ms 350ms both' }}>VS</div>
           {card(ids[1], 1, 'R')}
+        </div>
+      ) : tm ? (
+        <div className="grid items-center gap-2" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+          {[0, 1].map(t => <div key={t} className="flex flex-col gap-1.5" style={{ order: t ? 3 : 1, alignSelf: 'start' }}><div className="text-center text-xs font-black" style={{ color: TEAM_INFO_C[t].color }}>{TEAM_INFO_C[t].name}</div>{ids.filter(u => tm[u] === t).map((u, i) => card(u, i, t ? 'R' : 'L'))}</div>)}
+          <div style={{ order: 2, fontFamily: 'var(--v7-f-fx)', fontSize: 40, color: 'var(--v7-gold)', WebkitTextStroke: '2px #fff', animation: 'fxVsPop 500ms 350ms both' }}>VS</div>
         </div>
       ) : <div className="grid grid-cols-2 gap-2">{ids.map((u, i) => card(u, i, i % 2 ? 'R' : 'L'))}</div>}
     </div>
@@ -9009,6 +9134,9 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
     leave: result.winner === me ? '相手が退出した（不戦勝）' : '退出した',
     points: '得点で勝負',
   }[result.reason] || '';
+  const TCr = mode === 'C', tmR = state.tm || {};
+  const myTeamWon = TCr && result.team === tmR[me];
+  const reasonC = TCr ? ({ ko: myTeamWon ? '相手チームの体力を0にした！' : 'チームの体力が0になった', clear: myTeamWon ? `チームで${N * 2}問を先に解き切った！` : `相手チームが先に${N * 2}問を解き切った`, leave: myTeamWon ? '相手チームが退出した（不戦勝）' : '退出した' }[result.reason] || '') : '';
   let tourNote = null;
   if (state.tour && result.draw) {
     if (state.swissStage) tourNote = '引き分け（両者に1点）';
@@ -9023,16 +9151,16 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
     return (
       <div key={uid} className="flex items-center gap-2 py-2" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: uid === me ? `${COLORS.sky}12` : 'transparent' }}>
         <span className="font-black w-8 text-center" style={{ color: r === 1 ? COLORS.amber : COLORS.inkSoft }}>{r === 1 ? '👑' : `${r}位`}</span>
-        <span className="flex-1 font-bold truncate" style={{ color: PCOLORS[ids.indexOf(uid)] || COLORS.ink, ...bFont }}>{(state.nicks || {})[uid] && <Nick id={state.nicks[uid]} size={9} block />}{nm(uid)}{ko[uid] ? <span className="text-[10px] ml-1" style={{ color: COLORS.coral }}>{ko[uid].left ? '退出' : 'KO'}</span> : null}</span>
+        <span className="flex-1 font-bold truncate" style={{ color: TCr ? TEAM_INFO_C[tmR[uid]].color : PCOLORS[ids.indexOf(uid)] || COLORS.ink, ...bFont }}>{TCr && <span className="text-[10px] font-black mr-1">{TEAM_INFO_C[tmR[uid]].name}</span>}{(state.nicks || {})[uid] && <Nick id={state.nicks[uid]} size={9} block />}{nm(uid)}{ko[uid] ? <span className="text-[10px] ml-1" style={{ color: COLORS.coral }}>{ko[uid].left ? '退出' : 'KO'}</span> : null}</span>
         {mode === 'A' ? <span className="font-black" style={{ color: COLORS.ink }}>{(sc && sc[uid]) || 0}点 <span className="text-[10px]" style={{ color: COLORS.inkSoft }}>最大{(scA && scA.best[uid]) || 0}コンボ</span></span>
-          : <span className="text-xs font-bold text-right" style={{ color: COLORS.ink }}>{l.c || 0}/{N}問 ・ ❤{(l.hp == null ? 0 : l.hp).toFixed(0)}% ・ {l.score || 0}点</span>}
+          : <span className="text-xs font-bold text-right" style={{ color: COLORS.ink }}>{l.c || 0}{TCr ? '問' : `/${N}問`} ・ ❤{(l.hp == null ? 0 : l.hp).toFixed(0)}% ・ {l.score || 0}点</span>}
       </div>
     );
   };
   // ふり返り
   const review = useMemo(() => {
     const out = [];
-    if (mode === 'B') {
+    if (isBm(mode)) {
       ((mine.eng && mine.eng.s.hist) || []).forEach((h, i) => {
         const b = bank.get(h.lv, h.k);
         out.push({ n: i + 1, lv: h.lv, poly: b.poly, ans: answerOf(b), good: h.ok, mark: h.ok ? `${h.j} ${(h.ms / 1000).toFixed(1)}秒` : h.timeout ? '時間切れ' : `ミス（${(h.ms / 1000).toFixed(1)}秒）` });
@@ -9054,10 +9182,11 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
     <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
       <div className="text-center mb-3">
         <div className="v7-open" style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(2.8rem, 14vw, 5rem)', lineHeight: 1.1, color: outcome === 'w' ? 'var(--v7-gold)' : outcome === 'l' ? '#FF8A75' : '#7FD8FF', WebkitTextStroke: '2px #0B1430', textShadow: '0 4px 0 rgba(0,0,0,.35)' }}>
-          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi ? `${myRank}位` : 'LOSE…'}
+          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi && !TCr ? `${myRank}位` : 'LOSE…'}
         </div>
-        {outcome === 'l' && multi && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
-        <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{reason}</div>
+        {outcome === 'l' && multi && !TCr && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
+        <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{TCr ? reasonC : reason}</div>
+        {TCr && rec && mine.eng && <div className="text-xs font-black mt-0.5" style={{ color: '#B9A8FF' }}>🤝 合体攻撃 {mine.eng.s.unites}回 ・ カバー {mine.eng.s.covers}</div>}
         {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
         {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>🔄 逆転勝ち！</div>}
         {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
@@ -9088,10 +9217,10 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
         : <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>名前と合言葉を登録すると、勝敗・レーティング・称号が記録されます</p>}
       <Card className="mb-3">
         <button onClick={() => setShowRev(v => !v)} className="w-full flex items-center justify-between text-sm font-black" style={{ color: COLORS.ink }}>
-          <span>📝 ふり返り（{review.length}問 ・ {mode === 'B' ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）</span><span>{showRev ? '▲' : '▼'}</span>
+          <span>📝 ふり返り（{review.length}問 ・ {isBm(mode) ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）</span><span>{showRev ? '▲' : '▼'}</span>
         </button>
         {showRev && (<>
-          <label className="flex items-center gap-1 text-[11px] font-bold mt-2" style={{ color: COLORS.inkSoft }}><input type="checkbox" checked={onlyMiss} onChange={e => setOnlyMiss(e.target.checked)} /> {mode === 'B' ? 'まちがえた・時間切れの問題だけ' : '取れなかった問題だけ'}</label>
+          <label className="flex items-center gap-1 text-[11px] font-bold mt-2" style={{ color: COLORS.inkSoft }}><input type="checkbox" checked={onlyMiss} onChange={e => setOnlyMiss(e.target.checked)} /> {isBm(mode) ? 'まちがえた・時間切れの問題だけ' : '取れなかった問題だけ'}</label>
           <div className="mt-1">
             {rv.length === 0 && <p className="text-xs" style={{ color: COLORS.inkSoft }}>ありません</p>}
             {rv.map(r => (
@@ -9176,7 +9305,7 @@ function SpectatorView({ code, state, players, onLeave }) {
   const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
   const slots = [0, 1, 2, 3].map(i => ids[i] || null);
   const rank = (result && result.rank) || {};
-  const feed = useCommentary(ids, live, ko, names, mode === 'B' ? N : null);
+  const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
   const [split, setSplit] = useState(false);
   if (split) return <SplitView ids={ids} names={names} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={state.startAt} title={`観戦 ・ 部屋${code}`} onClose={() => setSplit(false)} cheer={{ code, gid: state.gid }} />;
   return (<>
@@ -9198,14 +9327,14 @@ function SpectatorView({ code, state, players, onLeave }) {
         if (!uid) return (<div key={i} className="rounded-2xl p-4 flex items-center justify-center text-sm font-bold" style={{ border: `2px dashed ${COLORS.inkSoft}55`, color: COLORS.inkSoft, minHeight: '9rem' }}>空き</div>);
         const l = live[uid] || {};
         const on = !!players[uid];
-        const p = mode === 'B' && l.lv ? bank.get(l.lv, l.k || 0) : null;
+        const p = isBm(mode) && l.lv ? bank.get(l.lv, l.k || 0) : null;
         return (
           <Card key={uid} style={{ borderTop: `6px solid ${PCOLORS[i]}`, opacity: ko[uid] ? 0.6 : 1 }}>
             <div className="flex items-center justify-between mb-1">
               <span className="font-black text-lg truncate" style={{ color: COLORS.ink, ...bFont }}>{(state.nicks || {})[uid] && <Nick id={state.nicks[uid]} size={10} block />}{result && rank[uid] ? (rank[uid] === 1 ? '👑 ' : `${rank[uid]}位 `) : ''}{names[uid]}</span>
               {ko[uid] ? <span className="text-xs font-black" style={{ color: COLORS.coral }}>{ko[uid].left ? '退出' : 'KO'}</span> : !on && <span className="text-xs font-bold" style={{ color: COLORS.coral }}>切断中</span>}
             </div>
-            {mode === 'B' ? (<>
+            {isBm(mode) ? (<>
               <HpBar hp={l.hp == null ? 100 : l.hp} height={20} />
               <div className="flex justify-between text-sm font-bold mt-2" style={{ color: COLORS.ink }}>
                 <span>{l.c || 0}/{N}問</span><span>{l.score || 0}点</span><span style={{ color: l.combo ? COLORS.coral : COLORS.inkSoft }}>{l.combo || 0}コンボ</span>
@@ -9349,7 +9478,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
   const N = DIFFICULTY_CONFIG[diff].clearCount;
   const live = useFbValue(m.b ? `rooms/${code}/live/${m.gid}` : null) || {};
   const ko = useFbValue(m.b ? `rooms/${code}/ko/${m.gid}` : null) || {};
-  const feed = useCommentary(m.b ? [m.a, m.b] : [], live, ko, state.names || {}, mode === 'B' ? N : null);
+  const feed = useCommentary(m.b ? [m.a, m.b] : [], live, ko, state.names || {}, isBm(mode) ? N : null);
   useEffect(() => { const f = feed[feed.length - 1]; if (f && onFeed) onFeed(f); }, [feed]);
   const claimsV = useFbValue(m.b && mode === 'A' ? `rooms/${code}/claims/${m.gid}` : null);
   const bank = useMemo(() => makeBank(m.seed, DIFFICULTY_CONFIG[diff].tileCount), [m.seed, diff]);
@@ -9366,7 +9495,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
     return (
       <div className="flex items-center gap-1.5" style={{ opacity: lost ? 0.45 : 1 }}>
         <span className={`flex-1 font-black truncate ${big ? 'text-base' : 'text-sm'}`} style={{ color: u === me ? COLORS.sky : COLORS.ink, ...bFont }}>{won ? '👑' : ''}{!isSwissRound(state, r || 0) && seeds[u] ? <span className="text-[9px] mr-0.5" style={{ color: COLORS.inkSoft }}>[{seeds[u]}]</span> : null}{names[u]}{players[u] ? '' : <span className="text-[9px] ml-1" style={{ color: COLORS.coral }}>切断</span>}</span>
-        {mode === 'B' ? (<>
+        {isBm(mode) ? (<>
           <div style={{ width: big ? '5rem' : '3.6rem' }}><HpBar hp={w ? (l.hp || 0) : l.hp == null ? 100 : l.hp} height={8} label={false} /></div>
           <span className="text-[10px] font-bold w-9 text-right" style={{ color: COLORS.inkSoft }}>{l.c || 0}/{N}</span>
         </>) : <span className="text-xs font-black w-12 text-right" style={{ color: col }}>{(sc && sc.sc[u]) || 0}点</span>}
