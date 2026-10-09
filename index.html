@@ -2423,7 +2423,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             <button className="v7-sub-btn v7-cur" onClick={() => onBattle && onBattle()}><V7Icon name="vs" />オンライン対戦・CPU練習</button>
             <div className="v7-tiles4">
               <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />
-              <WeeklyTileV7 onOpen={() => onMode && onMode('raidw')} />
+              <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />
               <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
               <button className="v7-tile v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><div className="top"><span className="v7-ico"><V7Icon name="help" /></span></div><b>あそびかた</b><span className="s">チュートリアル</span></button>
             </div>
@@ -2433,7 +2433,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.4</span>
+              <span className="v7-ver">ver.7.5</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3347,6 +3347,10 @@ const SKIN_TILES = [
   { id: 'master', name: 'マスター', bg: 'linear-gradient(135deg,#ff7bd5,#a020f0 50%,#ff2e63)', bc: '#ffd54a', color: '#ffffff', glow: '0 0 12px #ff2e63aa', need: { rank: 5 } },
   { id: 'rainbow', name: '虹', bg: 'linear-gradient(135deg,#ffb3b3,#ffe0a3,#fff6a3,#c4f5b5,#b3e0ff,#d7b8ff)', bc: '#ffffff', color: '#123A52', need: { badges: 20 } },
   { id: 'mission', name: '皆勤スタンプ', bg: 'linear-gradient(135deg,#e7fff4,#bff0dc)', bc: '#2a9d8f', color: '#0e4d44', need: { mis: 3 } },
+  // 今週のボスの討伐記念
+  { id: 'scale', name: 'ドラゴンの鱗', bg: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', bc: '#0e4d44', color: '#ffffff', glow: '0 0 8px #2a9d8f88', need: { boss: 'dragon' } },
+  { id: 'inkt', name: 'クラーケンの墨', bg: 'radial-gradient(circle at 30% 30%,#5b4bb7,#1d1640 70%)', bc: '#b9a8ff', color: '#ffffff', glow: '0 0 8px #7B61FF88', need: { boss: 'kraken' } },
+  { id: 'rock', name: 'ゴーレムの岩', bg: 'linear-gradient(135deg,#a1887f,#6d4c41)', bc: '#3e2723', color: '#fff8e1', need: { boss: 'golem' } },
 ];
 const SKIN_BGS = [
   { id: 'sky', name: '標準（夜空）', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)', need: null },
@@ -3358,6 +3362,10 @@ const SKIN_BGS = [
   { id: 'goldbg', name: '金屏風', bg: 'linear-gradient(135deg,#FFF6D5,#F3D27A 60%,#E8B84A)', need: { rank: 3 } },
   { id: 'hunter', name: '賞金稼ぎの荒野', bg: 'linear-gradient(180deg,#FFF1D6,#E9B97A)', need: { bounty: 1 } },
   { id: 'aurora', name: 'オーロラ', bg: 'linear-gradient(160deg,#E0FFF6,#B8F0FF 40%,#E6C8FF 75%,#FFD6EC)', need: { badges: 30 } },
+  // 今週のボスの討伐記念
+  { id: 'castle', name: '魔王城', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #5b2a86, #1a0a2a 70%)', need: { boss: 'maou' } },
+  { id: 'jelly', name: 'スライムの森', bg: 'radial-gradient(circle at 20% 80%, #b8f5c4 0 12%, transparent 13%), radial-gradient(circle at 75% 30%, #d6ffdd 0 9%, transparent 10%), linear-gradient(180deg,#e9ffe9,#9be7a8)', need: { boss: 'slime' } },
+  { id: 'circuit', name: '電脳回路', bg: 'repeating-linear-gradient(90deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), repeating-linear-gradient(0deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), linear-gradient(180deg,#0b2a3a,#08202d)', need: { boss: 'robot' } },
 ];
 const SKIN_FX = [
   { id: 'std', name: '判定の色', color: null, need: null },
@@ -3389,12 +3397,13 @@ function skinOpen(need, info) {
   if (need.badges) return info.badges >= need.badges;
   if (need.mis) return info.mis >= need.mis;
   if (need.bounty) return info.bounty >= need.bounty;
+  if (need.boss) return !!(info.boss && info.boss[need.boss]);
   return false;
 }
-const skinNeedText = need => !need ? '' : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
 function skinInfo(st, exp) {
   st = st || {};
-  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0 };
+  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {} };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose }) {
@@ -4982,70 +4991,300 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
 }
 
 /* =====================================================================
-   常設：今週のボス（全員の累計ダメージで倒す）
+   今週のボス（v7.5）：個性・弱点タイム・反撃／討伐報酬／称号／ボス図鑑／先週のMVP／毎日の初出撃は経験値2倍
+   記録：raidw/<週>/dmg/<アカウント> = { d 合計, s 出撃回数, b 1回の最高, name, nick, at }、raidw/<週>/kill = { by, name, at }（とどめ）
+   成績：accounts/<k>/stats/wk = { last 最後に出撃した週, streak, maxStreak, weeks, kills, ace, best, lastHit, boss:{id:回数}, done:{週:'k'討伐報酬・'s'週の締め}, day }
    ===================================================================== */
+const prevWeek = wk => weekKey(Date.parse(wk + 'T03:00:00Z') - 7 * 86400000);
+function weeklyInfo(wk, v) {
+  const boss = weeklyBoss(wk), T = traitOf(boss.id);
+  const hpMax = Math.round(WEEKLY_HP * (T.hpK || 1));
+  const rows = Object.entries(v || {}).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).sort((a, b) => b.d - a.d);
+  const total = rows.reduce((a, e) => a + (e.d || 0), 0);
+  const revived = !!(T.revive && total >= hpMax * 0.5);   // 魔王：半分を切ると一度だけ回復
+  const hp = hpMax - total + (revived ? Math.round(hpMax * T.revive) : 0);
+  return { wk, boss, T, hpMax, total, hp, dead: hp <= 0, revived, rows };
+}
+// 出撃（60秒）の中の弱点タイムと反撃（秒）。ボスの個性で変わる
+const WK_WEAK = { slime: [], kraken: [[18, 38]], robot: [[8, 23], [33, 48]] };
+const WK_CTR = { slime: [], dragon: [22, 44], kraken: [34], golem: [45], maou: [28, 50], robot: [30, 52] };
+const wkWeakOf = id => WK_WEAK[id] || [[20, 35]];
+// 今週のボス（60秒の出撃）での個性の説明
+const WK_DESC = {
+  slime: ['部位も弱点もない、ただのぷるぷる', '反撃してこない', '共通因数（Lv1・2）の問題でダメージ1.5倍', '体力は少なめ（0.8倍）'],
+  dragon: ['攻撃型：出撃中に2回「炎のブレス」（予告は3秒だけ）', '受けると4.5秒しびれて、おじゃまタイル+1'],
+  kraken: ['反撃「墨はき」：しびれないが、4秒間 画面が見えにくい', '弱点はいつも「たすきがけ」（弱点タイム20秒）'],
+  golem: ['かたい：体力1.3倍。Lv1〜3の問題はダメージ半分', '3乗の和・差（Lv7）はいつでもダメージ1.5倍', '反撃は出撃中に1回だけ。でも当たると6秒しびれる'],
+  maou: ['体力が半分を切ると第2形態に変身して、体力が回復する', 'ボスの体力が減るほど、反撃のしびれが長くなる', '弱点はいつも「2乗の差」'],
+  robot: ['反撃「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが出撃中に2回ある'],
+};
+const wkCtrOf = id => WK_CTR[id] || [35];
+// 討伐報酬の経験値：参加20 ＋ ダメージの割合（最大60）＋ 1位30・2〜3位15
+const wkBonus = (info, me) => { if (!me) return 0; const rk = info.rows.indexOf(me) + 1; return 20 + Math.min(60, Math.round(me.d / info.hpMax * 400)) + (rk === 1 ? 30 : rk <= 3 ? 15 : 0); };
+/* 成績を書きかえて、新しく取った称号をお知らせする */
+async function statsTx(acct, fn) {
+  if (!isReal(acct) || !FB.db) return null;
+  let before = null, after = null, out = null;
+  try {
+    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); out = fn(s); after = s; return s; });
+    if (!r || !r.committed) return null;
+  } catch (e) { return null; }
+  const had = new Set(badgesOf(before).map(b => b.id));
+  const got = badgesOf(after).filter(b => !had.has(b.id));
+  got.forEach((b, i) => setTimeout(() => { FX.band(`${b.icon} 称号ゲット！「${b.label}」`, { color: '#d4a017', sub: b.desc, ms: 2000 }); fxSound('badge'); }, 600 + i * 2200));
+  return { out, before, after, got };
+}
+const wkOf = s => { s.wk = s.wk || {}; const W = s.wk; W.boss = W.boss || {}; W.done = W.done || {}; return W; };
+const pruneDone = W => { const ks = Object.keys(W.done).sort(); while (ks.length > 8) delete W.done[ks.shift()]; };
+/* 討伐報酬・週の締め（1位ならエース）を受け取る。info は weeklyInfo、final は週が終わっているか */
+async function settleWeek(acct, info, final) {
+  const me = info.rows.find(r => r.k === acct.key);
+  if (!me) return null;
+  const rk = info.rows.indexOf(me) + 1;
+  const r = await statsTx(acct, s => {
+    const W = wkOf(s); const f = W.done[info.wk] || '';
+    let exp = 0, kill = false, ace = false, nf = f;
+    if (info.dead && !f.includes('k')) { kill = true; exp = wkBonus(info, me); W.kills = (W.kills || 0) + 1; W.boss[info.boss.id] = (W.boss[info.boss.id] || 0) + 1; nf += 'k'; }
+    if (final && !f.includes('s')) { if (rk === 1) { ace = true; W.ace = (W.ace || 0) + 1; } nf += 's'; }
+    if (nf === f) return null;
+    W.done[info.wk] = nf; pruneDone(W);
+    const before = s.exp || 0; s.exp = before + exp;
+    return { exp, kill, ace, rk, before, after: s.exp };
+  });
+  return r && r.out;
+}
+// まだ受け取っていない報酬があるか（タイトルの札・画面のボタン用）
+const wkPending = (st, info, final) => {
+  if (!st || !info || !info.rows) return false;
+  const me = info.rows.find(r => r.k === st.__k); if (!me) return false;
+  const f = ((st.wk || {}).done || {})[info.wk] || '';
+  return (info.dead && !f.includes('k')) || (final && !f.includes('s'));
+};
+
+/* ボス図鑑 */
+function BossDex({ st }) {
+  const B = (st && st.wk && st.wk.boss) || {};
+  const n = BOSSES.filter(b => B[b.id]).length;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2"><span className="text-xs font-black" style={{ color: COLORS.inkSoft }}>ボス図鑑（討伐に参加したボス）</span><span className="v7-badge">{n}/{BOSSES.length}</span></div>
+      <div className="grid grid-cols-3 gap-2">
+        {BOSSES.map(b => { const k = B[b.id] || 0, T = traitOf(b.id); return (
+          <div key={b.id} className="rounded-xl px-1 py-2 text-center" style={{ background: k ? `${b.color}14` : '#F3F0EA', border: `1.5px solid ${k ? b.color : 'var(--v7-line)'}` }}>
+            <div className="text-3xl leading-none" style={{ filter: k ? 'none' : 'brightness(0) opacity(.25)' }}>{b.icon}</div>
+            <div className="text-[11px] font-black mt-1" style={{ color: k ? b.color : COLORS.inkSoft, ...bFont }}>{k ? b.name : '？？？'}</div>
+            <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{k ? `${T.tag} ・ 討伐${k}回` : '未討伐'}</div>
+          </div>); })}
+      </div>
+      <p className="text-[10px] font-bold mt-1.5" style={{ color: COLORS.inkSoft }}>討伐に参加すると、そのボスの記念きせかえが解放されます</p>
+    </div>
+  );
+}
+
 function WeeklyRaidApp({ acct, onExit }) {
-  const wk = weekKey();
-  const boss = weeklyBoss(wk);
+  const wk = weekKey(), pwk = prevWeek(wk);
   const fb = useFbReady();
   const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
-  const [sortBy, setSortBy] = useState('d');   // d 合計 / avg 平均 / s 挑戦回数
-  const rowsAll = useMemo(() => Object.entries(v).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).map(e => ({ ...e, avg: e.s ? Math.round(e.d / e.s) : null })), [v]);
-  const rows = useMemo(() => [...rowsAll].sort((a, b) => b.d - a.d), [rowsAll]);
-  const shown = useMemo(() => [...rowsAll].sort((a, b) => sortBy === 'avg' ? ((b.avg || 0) - (a.avg || 0) || b.d - a.d) : sortBy === 's' ? ((b.s || 0) - (a.s || 0) || b.d - a.d) : b.d - a.d), [rowsAll, sortBy]);
-  const total = rows.reduce((a, e) => a + (e.d || 0), 0);
-  const hp = WEEKLY_HP - total;
+  const pv = useFbValue(fb.ready ? `raidw/${pwk}/dmg` : null);
+  const kill = useFbValue(fb.ready ? `raidw/${wk}/kill` : null);
   const meKey = isReal(acct) ? acct.key : null;
+  const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
+  const info = useMemo(() => weeklyInfo(wk, v), [v]);
+  const pinfo = useMemo(() => pv ? weeklyInfo(pwk, pv) : null, [pv]);
+  const { boss, T, hpMax, total, hp, rows } = info;
   const mine = meKey ? rows.find(r => r.k === meKey) : null;
+  const lastMvp = pinfo && pinfo.rows[0] ? pinfo.rows[0].k : null;
+  const [sortBy, setSortBy] = useState('d');   // d 合計 / avg 平均 / s 挑戦回数
+  const shown = useMemo(() => rows.map(e => ({ ...e, avg: e.s ? Math.round(e.d / e.s) : null })).sort((a, b) => sortBy === 'avg' ? ((b.avg || 0) - (a.avg || 0) || b.d - a.d) : sortBy === 's' ? ((b.s || 0) - (a.s || 0) || b.d - a.d) : b.d - a.d), [rows, sortBy]);
   const [scr, setScr] = useState('home');
   const [endAt, setEndAt] = useState(0);
   const [res, setRes] = useState(null);
+  const [reward, setReward] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [showDex, setShowDex] = useState(false);
   const lrec = useRef([]);
-  const sess = useRef({ d: 0 });
-  useTick(500, scr === 'play');
+  const sess = useRef({ d: 0, t0: 0, seed: 0, lastOk: 0, fired: {}, oj: 0 });
+  const [stunUntil, setStunUntil] = useState(0);
+  const [fogUntil, setFogUntil] = useState(0);
+  useTick(250, scr === 'play');
   const nick = useRef('');
   useEffect(() => { if (meKey && FB.db) FB.db.ref(`games/factor/accounts/${meKey}/stats/nick`).get().then(s => { nick.current = s.val() || ''; }).catch(() => {}); }, [meKey]);
+  // F：今日の初出撃は経験値2倍（ゲストはこの端末で数える）
+  const today = jstDate();
+  const firstToday = meKey ? !(st && st.wk && st.wk.day === today) : loadLS('fxf_wk_day', '') !== today;
+  // B：まだ受け取っていない報酬（今週の討伐／先週の討伐・締め）
+  const stK = meKey ? { ...(st || {}), __k: meKey } : null;   // 成績がまだない新しいアカウントも報酬を受け取れる
+  const pendNow = wkPending(stK, info, false), pendPrev = wkPending(stK, pinfo, true);
+  const claim = async () => {
+    if (busy || !meKey) return; setBusy(true);
+    const out = [];
+    if (pendPrev) { const r = await settleWeek(acct, pinfo, true); if (r) out.push({ ...r, info: pinfo }); }
+    if (pendNow) { const r = await settleWeek(acct, info, false); if (r) out.push({ ...r, info }); }
+    setBusy(false);
+    if (!out.length) return;
+    const exp = out.reduce((a, r) => a + r.exp, 0);
+    setReward({ list: out, exp, before: out[0].before, after: out[out.length - 1].after });
+    if (exp) { FX.confetti(70); fxSound('levelup'); }
+  };
+
+  /* ---- 出撃のしかけ（ボスの個性しだい） ---- */
+  const sec = scr === 'play' ? (Date.now() - sess.current.t0) / 1000 : 0;
+  const weakWin = scr === 'play' ? wkWeakOf(boss.id).find(([a, b]) => sec >= a && sec < b) : null;
+  const weakFam = weakWin ? (T.weakFam ? RAID_FAMS.find(f => f.id === T.weakFam) : RAID_FAMS[hashSeed(`${sess.current.seed}:${weakWin[0]}`) % RAID_FAMS.length]) : null;
+  const C = ctrOf(boss.id);
+  const ctrT = scr === 'play' ? wkCtrOf(boss.id).find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
+  const ctrWarn = ctrT != null && sec < ctrT;
+  useEffect(() => {
+    if (scr !== 'play') return;
+    const S = sess.current;
+    if (weakWin && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1500 }); }
+    if (ctrT != null && ctrWarn && !S.fired['c' + ctrT]) { S.fired['c' + ctrT] = 1; fxSound('roar'); }
+    if (ctrT != null && !ctrWarn && !S.fired['s' + ctrT]) {
+      S.fired['s' + ctrT] = 1;
+      const phase = info.hp / hpMax <= 0.25 ? 3 : info.hp / hpMax <= 0.5 ? 2 : info.hp / hpMax <= 0.75 ? 1 : 0;
+      const stun = C.stunByPhase ? C.stunByPhase[phase] : C.stun;
+      if (Date.now() - S.lastOk <= RAID_CTR_GUARD) FX.band('🛡 ガード成功！', { color: '#457b9d', sub: `正解していたので「${C.name.replace(/^\S+\s/, '')}」をふせいだ`, ms: 1400 });
+      else {
+        if (stun) setStunUntil(Date.now() + stun);
+        if (C.fog) setFogUntil(Date.now() + C.fog);
+        if (C.oj) S.oj = Math.min(4, S.oj + C.oj);
+        FX.flash(C.fog ? '#1a1033' : '#ff2020', 0.45, 400); FX.shake(qs('.game-lock'), true);
+        FX.band(C.name, { color: '#b3402c', sub: [stun ? `${stun / 1000}秒しびれた` : '', C.fog ? `${C.fog / 1000}秒 見えにくい` : '', C.oj ? `おじゃまタイル+${C.oj}` : ''].filter(Boolean).join('・') + '…', ms: 1500 });
+      }
+    }
+  });
+  const takeOj = useCallback(() => { const n = sess.current.oj; sess.current.oj = 0; return n; }, []);
+  const pickLevel = useCallback((lv, how) => {
+    let n = lv;
+    if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
+    n = Math.max(1, Math.min(9, how === 'init' ? 1 : n));
+    if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
+    return n;
+  }, [weakFam && weakFam.id]);
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((T.lvMul || {})[lv] || 1), [weakFam && weakFam.id, boss.id]);
+
   const sessionOver = scr === 'play' && Date.now() >= endAt;
   useEffect(() => {
     if (!sessionOver) return;
-    // 出撃回数（ダメージを与えた出撃だけ数える）と、1回の出撃の最高ダメージ
     const sd = sess.current.d;
-    if (meKey && FB.db && sd > 0) FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = e.d || 0; e.s = (e.s || 0) + 1; e.b = Math.max(e.b || 0, sd); e.name = acct.name; return e; }).catch(() => {});
     flushLearn(acct, lrec.current, { raid: 1 }); lrec.current = [];
-    addExp(acct, 10 + Math.min(30, Math.floor(sess.current.d / 15))).then(e => setRes({ d: sess.current.d, exp: e }));
+    const base = 10 + Math.min(30, Math.floor(sd / 15));
+    (async () => {
+      let e = null, dbl = false;
+      if (meKey && FB.db) {
+        // 出撃回数・最高ダメージ（このボスの記録）
+        if (sd > 0) FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(x => { x = x || {}; x.d = x.d || 0; x.s = (x.s || 0) + 1; x.b = Math.max(x.b || 0, sd); x.name = acct.name; return x; }).catch(() => {});
+        // 成績：週の連続出撃・最高ダメージ・今日の初出撃（経験値2倍）
+        const r = await statsTx(acct, s => {
+          const W = wkOf(s);
+          if (sd > 0 && W.last !== wk) { W.weeks = (W.weeks || 0) + 1; W.streak = W.last === prevWeek(wk) ? (W.streak || 0) + 1 : 1; W.maxStreak = Math.max(W.maxStreak || 0, W.streak); W.last = wk; }
+          if (sd > 0) W.best = Math.max(W.best || 0, sd);
+          const first = W.day !== today; if (first) W.day = today;
+          const add = base * (first ? 2 : 1);
+          const before = s.exp || 0; s.exp = before + add;
+          return { before, after: s.exp, first };
+        });
+        if (r && r.out) { e = { before: r.out.before, after: r.out.after }; dbl = r.out.first; }
+      } else {
+        dbl = loadLS('fxf_wk_day', '') !== today; if (dbl) saveLS('fxf_wk_day', today);
+        e = await addExp(acct, base * (dbl ? 2 : 1));
+      }
+      setRes({ d: sd, exp: e, dbl });
+    })();
     setScr('done');
   }, [sessionOver]);
   useResultBgm(scr === 'done', false);
-  if (scr === 'play') return <RaidPlay boss={boss} hp={hp} max={WEEKLY_HP} endAt={endAt} ended={false} title={`🗓 今週のボス ・ 出撃中`}
+
+  if (scr === 'play') return <RaidPlay boss={boss} hp={hp} max={hpMax} endAt={endAt} ended={false} title={`今週のボス ・ 出撃中`}
     onQuit={() => { setEndAt(Date.now()); }}
-    onHit={(d, info) => {
-      lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms, j: info.j });
-      if (info.miss || !d) return;
-      sess.current.d += d;
-      if (meKey && FB.db) FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = (e.d || 0) + d; e.name = acct.name; e.nick = nick.current || ''; e.at = Date.now(); return e; }).catch(() => {});
+    opts={{
+      pickLevel, dmgMul, stunUntil, takeOj,
+      hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
+      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
+      overlay: (<>
+        {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
+        {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(26,16,51,.92), rgba(26,16,51,.7) 45%, rgba(26,16,51,.88))' }} />}
+        {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>しびれた…</div></div>}
+      </>),
+      topExtra: (weakFam || ctrWarn) ? (<div className="text-center font-black text-[12px] py-0.5" style={{ color: ctrWarn ? '#b3402c' : '#C2410C', ...bFont }}>
+        {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒`}
+      </div>) : null,
+    }}
+    onHit={(d, info2) => {
+      lrec.current.push({ lv: info2.lv, pid: info2.pid, ok: !info2.miss, ms: info2.ms, j: info2.j });
+      if (info2.miss || !d) return;
+      sess.current.d += d; sess.current.lastOk = Date.now();
+      if (!meKey || !FB.db) return;
+      FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = (e.d || 0) + d; e.name = acct.name; e.nick = nick.current || ''; e.at = Date.now(); return e; }).catch(() => {});
+      // とどめ：この一撃で体力が0になったら記録（早い者勝ち）
+      if (!info.dead && info.hp - d <= 0 && !kill) {
+        FB.db.ref(`games/factor/raidw/${wk}/kill`).transaction(k => k ? undefined : { by: meKey, name: acct.name, at: Date.now() }).then(r => {
+          if (r && r.committed) { FX.band('🗡 とどめの一撃！', { color: '#e63946', sub: `${boss.name}を撃破した！`, ms: 2400 }); FX.confetti(80); statsTx(acct, s => { const W = wkOf(s); W.lastHit = (W.lastHit || 0) + 1; }); }
+        }).catch(() => {});
+      }
     }} />;
+
+  const prevBoss = pinfo ? pinfo.boss : weeklyBoss(pwk);
   return (
-    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '30rem' }}>
         <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
         <div className="text-center mb-3">
-          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>今週のボス</div>
+          <div className="v7-name" style={{ fontSize: 24 }}>今週のボス</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{wk.replace(/-/g, '/')} の週 ・ みんなのダメージを合わせて倒そう（月曜に新しいボス）</div>
         </div>
-        <div className="mb-3"><BossPanel boss={boss} hp={hp} max={WEEKLY_HP} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}</div>} /></div>
+        <div className="mb-3"><BossPanel boss={boss} hp={hp} max={hpMax} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}{info.revived ? ' ・ 第2形態' : ''}{kill ? ` ・ とどめ：${kill.name}` : ''}</div>} /></div>
+        {WK_DESC[boss.id] && <Card className="mb-3">
+          <div className="text-xs font-black mb-1" style={{ color: boss.color }}>このボスの個性：{T.tag}</div>
+          <ul className="text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.ink }}>{WK_DESC[boss.id].map(d => <li key={d}>{d}</li>)}</ul>
+        </Card>}
+
+        {meKey && (pendNow || pendPrev) && <Card className="mb-3 text-center" style={{ borderColor: '#d4a017', borderWidth: 2 }}>
+          <div className="text-sm font-black" style={{ color: '#9a6a12' }}>{pendNow || (pinfo && pinfo.dead) ? '討伐報酬があります！' : '先週の結果が出ました'}</div>
+          <div className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>{[pendPrev && `先週の${prevBoss.name}`, pendNow && `今週の${boss.name}`].filter(Boolean).join('・')}</div>
+          <BigBtn color="#d4a017" disabled={busy} onClick={claim}>受け取る</BigBtn>
+        </Card>}
+        {reward && <Card className="mb-3 text-center">
+          {reward.list.map(r => <div key={r.info.wk} className="text-sm font-black mb-1" style={{ color: COLORS.ink }}>
+            {r.info.boss.icon} {r.info.wk === wk ? '今週' : '先週'}の{r.info.boss.name}：{r.kill ? `討伐ボーナス +${r.exp} EXP（${r.rk}位）` : `${r.rk}位で終了`}{r.ace ? ' 👑 週のエース！' : ''}
+          </div>)}
+          {reward.exp > 0 && <div className="mt-2 text-left"><ExpGain before={reward.before} after={reward.after} label="討伐報酬の経験値" /></div>}
+          {reward.list.some(r => r.kill) && <div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>ボス図鑑に登録・記念きせかえが解放されました</div>}
+        </Card>}
+
         {scr === 'done' && res && <Card className="mb-3 text-center">
           <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>出撃おつかれさま！</div>
-          <div className="text-3xl font-black" style={{ color: '#ff7b00', ...bFont }}>{res.d} ダメージ</div>
+          <div className="text-3xl font-black" style={{ color: '#E4572E', ...bFont }}>{res.d} ダメージ</div>
+          {res.dbl && <div className="text-xs font-black" style={{ color: '#d4a017' }}>今日の初出撃ボーナス：経験値2倍！</div>}
           {!meKey && <div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>ゲストのダメージはボスに届きません（ログインすると届きます）</div>}
           {res.exp && <div className="mt-2 text-left"><ExpGain before={res.exp.before} after={res.exp.after} label="出撃の経験値" /></div>}
         </Card>}
         <Card className="mb-3">
-          {hp <= 0 ? <div className="text-center text-lg font-black mb-2" style={{ color: '#d4a017' }}>🎉 今週のボスは撃破されました！ 来週のボスを待とう（出撃するとランキングは伸ばせます）</div> : null}
-          <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{WEEKLY_SESSION / 1000}秒。正解するとダメージ！ 2問続けて正解でレベルが上がり、ダメージも大きくなります。</p>
-          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0 }; setRes(null); setEndAt(Date.now() + WEEKLY_SESSION + 600); setScr('play'); }}>⚔ 出撃する（{WEEKLY_SESSION / 1000}秒）</BigBtn>
+          {hp <= 0 ? <div className="text-center text-base font-black mb-2" style={{ color: '#d4a017' }}>🎉 今週のボスは撃破されました！ 出撃するとランキングは伸ばせます</div> : null}
+          <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{WEEKLY_SESSION / 1000}秒。正解するとダメージ！ 弱点タイムは2倍、反撃の予告が出たら正解して身を守ろう。</p>
+          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + WEEKLY_SESSION + 600); setScr('play'); }}>⚔ 出撃する（{WEEKLY_SESSION / 1000}秒）</BigBtn>
+          <div className="flex justify-center gap-1.5 mt-2 flex-wrap">
+            {firstToday && <span className="v7-chip" style={{ background: '#d4a017' }}>今日の初出撃は経験値2倍！</span>}
+            {meKey && st && st.wk && st.wk.streak > 1 && st.wk.last === prevWeek(wk) && <span className="v7-chip" style={{ background: '#2a9d8f' }}>{st.wk.streak}週連続出撃中 → 今週も出撃で{st.wk.streak + 1}週</span>}
+            {meKey && st && st.wk && st.wk.streak > 0 && st.wk.last === wk && <span className="v7-chip" style={{ background: '#2a9d8f' }}>{st.wk.streak}週連続出撃中</span>}
+          </div>
           {mine && <p className="text-xs font-black text-center mt-2" style={{ color: COLORS.leafDeep }}>あなたの今週のダメージ {mine.d}（{rows.indexOf(mine) + 1}位）{mine.s ? ` ・ ${mine.s}回出撃 ・ 平均${Math.round(mine.d / mine.s)} ・ 最高${mine.b || 0}` : ''}</p>}
         </Card>
+
+        {pinfo && pinfo.rows.length > 0 && <Card className="mb-3">
+          <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>先週のMVP ・ {prevBoss.icon} {prevBoss.name}（{pinfo.dead ? '撃破！' : `のこり${Math.max(0, Math.round(pinfo.hp / pinfo.hpMax * 100))}%で逃げられた`}）</div>
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            {pinfo.rows.slice(0, 3).map((r, i) => (
+              <div key={r.k} className="rounded-xl px-1 py-2 text-center" style={{ background: i === 0 ? '#FFF6D5' : '#F7F4EE', border: `1.5px solid ${i === 0 ? '#d4a017' : 'var(--v7-line)'}` }}>
+                <div className="text-xl leading-none">{MEDALS[i]}</div>
+                {r.nick ? <Nick id={r.nick} size={8} block /> : null}
+                <div className="text-[12px] font-black" style={{ color: COLORS.ink, overflowWrap: 'anywhere', lineHeight: 1.25, ...bFont }}>{r.name}</div>
+                <div className="text-[10px] font-bold" style={{ color: '#E4572E' }}>{r.d.toLocaleString()}</div>
+              </div>))}
+          </div>
+        </Card>}
+
         <Card className="mb-3">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
             <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>今週のダメージランキング</div>
@@ -5058,14 +5297,18 @@ function WeeklyRaidApp({ acct, onExit }) {
             {shown.slice(0, 30).map((r, i) => (
               <div key={r.k} className="grid items-center text-sm py-1" style={{ gridTemplateColumns: '1.9rem 1fr 3.6rem 2.6rem 3.4rem', gap: 6, borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
                 <span className="text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-                <span className="min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
+                <span className="min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}{r.k === lastMvp && <span className="v7-chip ml-1 align-middle" style={{ background: '#d4a017', fontSize: 9, padding: '1px 6px' }}>👑先週MVP</span>}{kill && kill.by === r.k && <span className="v7-chip ml-1 align-middle" style={{ background: '#e63946', fontSize: 9, padding: '1px 6px' }}>🗡とどめ</span>}</span></span>
                 <span className="text-right font-black" style={{ color: '#E4572E' }}>{r.d.toLocaleString()}</span>
                 <span className="text-right font-bold" style={{ color: COLORS.ink }}>{r.s ? `${r.s}回` : '−'}</span>
                 <span className="text-right font-bold" style={{ color: COLORS.ink }}>{r.avg != null ? r.avg.toLocaleString() : '−'}</span>
               </div>
             ))}
-            <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>平均＝合計 ÷ 挑戦回数（1回の出撃あたり）。挑戦回数は今回の更新から数えはじめます</p>
+            <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>平均＝合計 ÷ 挑戦回数（1回の出撃あたり）。撃破されたら、ダメージを与えた全員に討伐報酬（1位はさらにボーナス）</p>
           </>)}
+        </Card>
+
+        <Card className="mb-3">
+          {meKey ? <BossDex st={st} /> : <p className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ボス図鑑・討伐報酬・称号は、ログインすると記録されます</p>}
         </Card>
       </div>
     </div>
@@ -5131,15 +5374,21 @@ function DailyTileV7({ acct, onOpen }) {
     </button>
   );
 }
-function WeeklyTileV7({ onOpen }) {
-  const wk = weekKey(), boss = weeklyBoss(wk);
+function WeeklyTileV7({ acct, onOpen }) {
+  const wk = weekKey();
   const fb = useFbReady();
   const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
-  const total = Object.values(v).reduce((a, e) => a + ((e && e.d) || 0), 0);
-  const r = Math.max(0, 1 - total / WEEKLY_HP);
+  const pv = useFbValue(fb.ready ? `raidw/${prevWeek(wk)}/dmg` : null);
+  const meKey = isReal(acct) ? acct.key : null;
+  const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
+  const info = weeklyInfo(wk, v), boss = info.boss;
+  const r = Math.max(0, info.hp / info.hpMax);
+  const stK = meKey ? { ...(st || {}), __k: meKey } : null;   // 成績がまだない新しいアカウントも報酬を受け取れる
+  const pend = wkPending(stK, info, false) || wkPending(stK, pv ? weeklyInfo(prevWeek(wk), pv) : null, true);
+  const first = meKey ? !(st && st.wk && st.wk.day === jstDate()) : loadLS('fxf_wk_day', '') !== jstDate();
   return (
     <button className="v7-tile v7-cur" onClick={onOpen}>
-      <div className="top"><span className="v7-ico">{boss.icon}</span><span className="v7-badge">{r <= 0 ? '撃破！' : `のこり${Math.round(r * 100)}%`}</span></div>
+      <div className="top"><span className="v7-ico">{boss.icon}</span>{pend ? <span className="v7-badge hot">報酬あり</span> : <span className="v7-badge">{r <= 0 ? '撃破！' : first ? 'EXP2倍' : `のこり${Math.round(r * 100)}%`}</span>}</div>
       <b>今週のボス</b>
       <span className="s">{boss.name}</span>
       <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${r * 100}%`, background: boss.color }} /></div>
@@ -5447,6 +5696,21 @@ const BADGES = [
   { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
   { id: 'mis7', g: 'mis', r: 3, icon: '📆', label: 'ミッション皆勤', desc: 'デイリーミッションを7日コンプリートする', test: st => (st.misDays || 0) >= 7 },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
+  // 今週のボス
+  { id: 'wk1', g: 'wk', r: 1, icon: '🗓️', label: '初陣', desc: '今週のボスに初めて出撃する', test: st => ((st.wk || {}).weeks || 0) >= 1 },
+  { id: 'wkst3', g: 'wkst', r: 2, icon: '🔁', label: '皆勤の戦士', desc: '今週のボスに3週続けて出撃', test: st => ((st.wk || {}).maxStreak || 0) >= 3 },
+  { id: 'wkst5', g: 'wkst', r: 3, icon: '🛡️', label: '歴戦の戦士', desc: '今週のボスに5週続けて出撃', test: st => ((st.wk || {}).maxStreak || 0) >= 5 },
+  { id: 'wkst10', g: 'wkst', r: 5, icon: '🏯', label: '不屈の守護者', desc: '今週のボスに10週続けて出撃', test: st => ((st.wk || {}).maxStreak || 0) >= 10 },
+  { id: 'wkk1', g: 'wkk', r: 2, icon: '⚔️', label: '討伐隊', desc: '今週のボスの討伐に参加（撃破された週にダメージを与える）', test: st => ((st.wk || {}).kills || 0) >= 1 },
+  { id: 'wkk5', g: 'wkk', r: 3, icon: '🎖️', label: '討伐隊長', desc: '今週のボスの討伐に5回参加', test: st => ((st.wk || {}).kills || 0) >= 5 },
+  { id: 'wkk10', g: 'wkk', r: 4, icon: '🦁', label: '救国の英雄', desc: '今週のボスの討伐に10回参加', test: st => ((st.wk || {}).kills || 0) >= 10 },
+  { id: 'wkace', g: 'wkace', r: 3, icon: '🏅', label: '今週のエース', desc: '今週のボスのダメージで週1位になる', test: st => ((st.wk || {}).ace || 0) >= 1 },
+  { id: 'wkace5', g: 'wkace', r: 5, icon: '🌟', label: '絶対的エース', desc: '今週のボスのダメージで週1位を5回', test: st => ((st.wk || {}).ace || 0) >= 5 },
+  { id: 'wkone', g: 'wkone', r: 3, icon: '💥', label: '一撃必殺', desc: '今週のボスに1回の出撃で600ダメージ', test: st => ((st.wk || {}).best || 0) >= 600 },
+  { id: 'wkone2', g: 'wkone', r: 4, icon: '☄️', label: '会心の出撃', desc: '今週のボスに1回の出撃で1200ダメージ', test: st => ((st.wk || {}).best || 0) >= 1200 },
+  { id: 'wkdex3', g: 'wkdex', r: 3, icon: '📖', label: 'ボス図鑑', desc: '3種類のボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },
+  { id: 'wkdex6', g: 'wkdex', r: 5, icon: '🐲', label: 'ボスハンター', desc: '6種類すべてのボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },
+  { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
