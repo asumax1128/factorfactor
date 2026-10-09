@@ -734,7 +734,7 @@ const TUTORIAL_STEPS = [
   { title: '⑤ コンボ・レベルアップ', body: '連続正解でコンボが増えて得点アップ！3問正解ごとにレベルアップ、5コンボごとにファンファーレが鳴るよ。' },
   { title: '⑥ 難易度を選ぼう', body: 'イージー・ノーマル・ハードから選べる。クリアに必要な問題数と、まちがえた時に減るHPの量が違うよ。' },
   { title: '⑦ オンライン対戦', body: 'タイトルの「オンライン対戦」から遊べるよ。「すぐ遊ぶ」は空いている相手と自動でマッチ（待っている間は練習できる）。「部屋をつくる／入る」なら部屋番号で友だちと最大4人、CPU練習もあるよ。' },
-  { title: '⑧ 方式を決めよう', body: '対戦にはA方式とB方式がある。「すぐ遊ぶ」では2人がそろったら投票！ 同じ方式を選んだらその方式、分かれたらランダムで決まるよ。' },
+  { title: '⑧ 方式を決めよう', body: '対戦にはA方式とB方式がある。「すぐ遊ぶ」では2人がそろったら「方式×難易度」の4つから投票！ 方式は同じならその方式、分かれたらランダム。難易度は2人ともノーマルのときだけノーマルになるよ。' },
   { title: '⑨ A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」で操作できない。最後の3問は得点2倍のラストスパート！' },
   { title: '⑩ B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfect・Excellentでおじゃまタイルも送れる。攻撃が来たら予告中に正解すると相殺できるよ。' },
   { title: '⑪ 必殺技とピンチ', body: '正解で必殺技ゲージがたまると、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
@@ -2062,7 +2062,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.6.2
+              ver.6.3
             </span>
           </div>
 
@@ -6058,11 +6058,14 @@ function BattleApp({ acct: who, onExit }) {
     const decide = () => {
       if (voteDone.current === vid || ids.length < 2) return;
       voteDone.current = vid;
-      const got = vs.filter(Boolean);
-      const same = got.length === ids.length && got.every(x => x === got[0]);
-      const mode = same ? got[0] : (Math.random() < 0.5 ? 'A' : 'B');
-      const voteNote = same ? '投票で決定！' : got.length < ids.length ? '時間切れ… ランダムで決定！' : '投票が分かれたのでランダム！';
-      startMatch(code, { mode, voteNote });
+      // 票は「A-easy」の形。方式：全員同じならその方式、分かれたらランダム。難易度：全員ノーマルのときだけノーマル
+      const got = vs.filter(Boolean).map(v => { const [m, d] = v.split('-'); return { m, d: d || 'easy' }; });
+      const all = got.length === ids.length;
+      const sameMode = all && got.every(x => x.m === got[0].m);
+      const mode = sameMode ? got[0].m : (Math.random() < 0.5 ? 'A' : 'B');
+      const diff = all && got.every(x => x.d === 'normal') ? 'normal' : 'easy';
+      const voteNote = !all ? '時間切れ… 方式はランダム！' : sameMode ? '投票で決定！' : '方式が分かれたのでランダム！';
+      startMatch(code, { mode, diff, voteNote });
     };
     if (vs.every(Boolean)) { const t = setTimeout(decide, 700); return () => clearTimeout(t); }
     const t = setTimeout(decide, Math.max(0, (state.voteEnd || 0) - fbNow()));
@@ -6073,7 +6076,7 @@ function BattleApp({ acct: who, onExit }) {
     if (code !== 'bot' || !state || state.phase !== 'vote' || !state.vid) return;
     const bid = Object.keys(players).find(k => players[k] && players[k].cpu);
     if (!bid) return;
-    const t = setTimeout(() => fref(`rooms/bot/players/${bid}`).update({ vote: `${state.vid}:${Math.random() < 0.5 ? 'A' : 'B'}` }).catch(() => {}), 1500 + Math.random() * 3000);
+    const t = setTimeout(() => fref(`rooms/bot/players/${bid}`).update({ vote: `${state.vid}:${Math.random() < 0.5 ? 'A' : 'B'}-${Math.random() < 0.55 ? 'easy' : 'normal'}` }).catch(() => {}), 1500 + Math.random() * 3000);
     return () => clearTimeout(t);
   }, [code, state && state.vid]);
   // CPU練習：端末の中だけのデータベースで動かす（通信しない）
@@ -6121,7 +6124,7 @@ function BattleApp({ acct: who, onExit }) {
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
     await fref(`rooms/${c}/state`).set({
       // すぐ遊ぶの部屋：方式は投票の結果（なければランダム）、難易度はランダム
-      phase: 'play', mode: opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B')), diff: st.qm ? (Math.random() < 0.5 ? 'easy' : 'normal') : (st.diff || 'easy'), qm: !!st.qm,
+      phase: 'play', mode: opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B')), diff: opt.diff || (st.qm ? 'easy' : (st.diff || 'easy')), qm: !!st.qm,
       ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), bty, ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}),
       gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
       startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts, handi, rt, cpu, nicks,
@@ -6294,27 +6297,33 @@ function QmVote({ state, players, me, onVote, onLeave }) {
   const mine = vOf(me);
   const left = Math.max(0, Math.ceil(((state.voteEnd || 0) - fbNow()) / 1000));
   const alone = ids.length < 2;
-  const opt = (m, icon) => {
-    const info = BATTLE_MODES[m], on = mine === m;
+  const label = v => { const [m, d] = v.split('-'); return `${m === 'A' ? '🏁' : '⚔️'}${BATTLE_MODES[m].short}・${DIFFICULTY_CONFIG[d].label}`; };
+  const opt = (m, d) => {
+    const key = `${m}-${d}`, info = BATTLE_MODES[m], on = mine === key, dc = DIFFICULTY_CONFIG[d];
     return (
-      <button onClick={() => !mine && onVote(m)} disabled={!!mine || alone} className="flex-1 rounded-2xl p-3 text-left active:scale-95 transition-transform shadow"
+      <button key={key} onClick={() => !mine && onVote(key)} disabled={!!mine || alone} className="rounded-2xl p-2.5 text-left active:scale-95 transition-transform shadow"
         style={{ background: on ? info.color : COLORS.paper, color: on ? '#fff' : COLORS.ink, opacity: mine && !on ? 0.45 : 1, outline: on ? '4px solid #FFD54A' : 'none' }}>
-        <div className="text-3xl text-center mb-1">{icon}</div>
-        <div className="text-center text-lg font-black mb-1" style={bFont}>{info.short}</div>
-        {[info.desc[0], info.desc[2]].map((t, i) => <div key={i} className="text-[11px] font-bold leading-snug mb-0.5" style={{ color: on ? '#ffffffdd' : COLORS.inkSoft }}>・{t}</div>)}
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-2xl">{m === 'A' ? '🏁' : '⚔️'}</span>
+          <div className="min-w-0">
+            <div className="text-base font-black leading-tight" style={bFont}>{info.short}</div>
+            <span className="text-[11px] font-black rounded-full px-2 inline-block" style={{ background: on ? '#ffffff33' : dc.color, color: '#fff' }}>{dc.label}（{dc.clearCount}問）</span>
+          </div>
+        </div>
+        <div className="text-[10px] font-bold leading-snug" style={{ color: on ? '#ffffffdd' : COLORS.inkSoft }}>{info.desc[0]}</div>
       </button>
     );
   };
   return (
-    <div className="text-center pt-6">
-      <div className="text-2xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>🗳 方式を投票しよう！</div>
-      <div className="text-xs font-bold mb-4" style={{ color: COLORS.inkSoft }}>同じ方式を選んだらその方式、分かれたらランダムで決まります</div>
-      <div className="text-4xl font-black mb-4" style={{ color: left <= 3 ? COLORS.coral : COLORS.ink, ...bFont }}>{alone ? '−' : left}</div>
-      <div className="flex gap-3 mb-4">{opt('A', '🏁')}{opt('B', '⚔️')}</div>
+    <div className="text-center pt-4">
+      <div className="text-2xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>🗳 投票しよう！</div>
+      <div className="text-[11px] font-bold mb-3 leading-snug" style={{ color: COLORS.inkSoft }}>方式：同じならその方式、分かれたらランダム<br />難易度：2人ともノーマルのときだけノーマル（どちらかがイージーならイージー）</div>
+      <div className="text-4xl font-black mb-3" style={{ color: left <= 3 ? COLORS.coral : COLORS.ink, ...bFont }}>{alone ? '−' : left}</div>
+      <div className="grid grid-cols-2 gap-2 mb-4">{opt('A', 'easy')}{opt('B', 'easy')}{opt('A', 'normal')}{opt('B', 'normal')}</div>
       <div className="flex justify-center gap-2 mb-4 flex-wrap">
         {ids.map(u => { const v = vOf(u); return (
           <span key={u} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: v ? '#ffffff' : COLORS.paperDark, color: v ? COLORS.leafDeep : COLORS.inkSoft }}>
-            {v ? '✓' : '…'} {u === me ? 'あなた' : players[u].name}{u === me && v ? `（${BATTLE_MODES[v].short}）` : v ? '（投票ずみ）' : ''}
+            {v ? '✓' : '…'} {u === me ? 'あなた' : players[u].name}{u === me && v ? `（${label(v)}）` : v ? '（投票ずみ）' : ''}
           </span>); })}
       </div>
       {alone && <p className="text-sm font-bold mb-3" style={{ color: COLORS.coral }}>相手が部屋を出ました</p>}
@@ -6604,7 +6613,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
     {!fb.ready && <Card className="mb-4"><p className="text-sm text-center font-bold" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</p></Card>}
     <div className="mb-4">
       <button disabled={!fb.ready} onClick={onQuick} className="w-full rounded-2xl py-4 font-black shadow-xl transition-transform active:scale-95" style={{ background: fb.ready ? 'linear-gradient(90deg,#ff7b00,#ff2e63)' : '#ccc', color: '#fff', fontSize: '1.25rem', animation: fb.ready ? 'fxPulseGold 1.6s ease-in-out infinite' : 'none', ...bFont }}>⚡ すぐ遊ぶ（ランダム対戦）</button>
-      <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>待っている人がいればすぐ対戦。いなければ待つあいだCPUと練習でき、相手が来たら乱入！（1 vs 1・方式は投票、難易度はランダム。30秒だれも来なければ別の相手を用意）</p>
+      <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>待っている人がいればすぐ対戦。いなければ待つあいだCPUと練習でき、相手が来たら乱入！（1 vs 1・方式と難易度は投票。30秒だれも来なければ別の相手を用意）</p>
       {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: COLORS.coral }}>{err}</p>}
     </div>
 
