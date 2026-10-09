@@ -733,6 +733,13 @@ const TUTORIAL_STEPS = [
   { title: '④ タイム判定', body: 'Perfect〜Fairの6段階で判定され、HPが回復するよ。ミスや20秒の時間切れは Bad でHPが大きく減ってコンボも途切れるので注意！' },
   { title: '⑤ コンボ・レベルアップ', body: '連続正解でコンボが増えて得点アップ！3問正解ごとにレベルアップ、5コンボごとにファンファーレが鳴るよ。' },
   { title: '⑥ 難易度を選ぼう', body: 'イージー・ノーマル・ハードから選べる。クリアに必要な問題数と、まちがえた時に減るHPの量が違うよ。' },
+  { title: '⑦ オンライン対戦', body: 'タイトルの「オンライン対戦」から遊べるよ。「すぐ遊ぶ」は空いている相手と自動でマッチ（待っている間は練習できる）。「部屋をつくる／入る」なら部屋番号で友だちと最大4人、CPU練習もあるよ。' },
+  { title: '⑧ 方式を決めよう', body: '対戦にはA方式とB方式がある。「すぐ遊ぶ」では2人がそろったら投票！ 同じ方式を選んだらその方式、分かれたらランダムで決まるよ。' },
+  { title: '⑨ A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」で操作できない。最後の3問は得点2倍のラストスパート！' },
+  { title: '⑩ B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfect・Excellentでおじゃまタイルも送れる。攻撃が来たら予告中に正解すると相殺できるよ。' },
+  { title: '⑪ 必殺技とピンチ', body: '正解で必殺技ゲージがたまると、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
+  { title: '⑫ レート・称号・レベル', body: 'ログインして遊ぶと、勝ち負けでレートが上下し、経験値でレベルアップ。条件を満たすと称号がもらえて、二つ名として名前の上に飾れるよ（取り方はゲットするまでヒミツ）。' },
+  { title: '⑬ ほかの遊び方', body: '毎日1回の「デイリー」10問タイムアタックでランキング、「学びの部屋」で苦手分析とドリル、クラスみんなでボスに挑む「レイド」もあるよ！' },
 ];
 
 function TutorialVisual({ step }) {
@@ -810,6 +817,54 @@ function TutorialVisual({ step }) {
       </div>
     );
   }
+  const chip = (t, bg, fg = '#fff') => <span className="rounded-lg px-2 py-1 text-xs font-black" style={{ background: bg, color: fg }}>{t}</span>;
+  const card = (icon, t, sub, bg) => (
+    <div className="rounded-xl px-3 py-2 text-center" style={{ background: bg, minWidth: '78px' }}>
+      <div style={{ fontSize: '20px' }}>{icon}</div>
+      <div style={{ fontSize: '11px', fontWeight: 900, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{t}</div>
+      {sub && <div style={{ fontSize: '9px', fontWeight: 700, color: '#FFFFFFDD' }}>{sub}</div>}
+    </div>
+  );
+  if (step === 6) return (
+    <div className="flex gap-2 flex-wrap justify-center">
+      {card('⚡', 'すぐ遊ぶ', '自動マッチ', COLORS.coral)}{card('🚪', '部屋', '最大4人', COLORS.sky)}{card('🤖', 'CPU練習', '1人でOK', COLORS.leaf)}
+    </div>
+  );
+  if (step === 7) return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex gap-2">{card('🏁', 'A方式', '早い者勝ち', '#3a7bd5')}{card('⚔️', 'B方式', 'レース＋攻撃', '#e76f51')}</div>
+      <span style={{ fontSize: '11px', color: COLORS.inkSoft, fontWeight: 700 }}>そろったら投票 → かぶれば決定・分かれたらランダム</span>
+    </div>
+  );
+  if (step === 8) return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex gap-2">{chip('先に正解 +点', COLORS.leaf)}{chip('ミス → 2秒お手つき', COLORS.coral)}</div>
+      {chip('🔥 最後の3問は得点2倍', '#FFD54A', '#5c3a00')}
+    </div>
+  );
+  if (step === 9) return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex gap-2 items-center">{chip('コンボ', COLORS.sky)}<span style={{ fontSize: '18px' }}>→</span>{chip('相手の体力 −', '#e76f51')}</div>
+      <div className="flex gap-2">{chip('Perfect → おじゃま', '#FFD54A', '#5c3a00')}{chip('🛡 予告中に正解で相殺', '#6BD4E8')}</div>
+    </div>
+  );
+  if (step === 10) return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex gap-2">{chip('💥 大攻撃', '#e63946')}{chip('💚 回復', COLORS.leaf)}{chip('🛡 シールド', '#3a7bd5')}</div>
+      {chip('体力30%以下 → PINCH 攻撃×1.3', '#e63946')}
+    </div>
+  );
+  if (step === 11) return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex gap-2">{chip('レート 1500 → 1516 ▲', COLORS.leaf)}{chip('Lv.12', COLORS.sky)}</div>
+      <div className="rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paperDark }}><div className="text-[10px] font-black" style={{ color: '#b7791f' }}>〈🥋必殺技いらず〉</div><div className="text-sm font-black" style={{ color: COLORS.ink }}>たろう</div></div>
+    </div>
+  );
+  if (step === 12) return (
+    <div className="flex gap-2 flex-wrap justify-center">
+      {card('📅', 'デイリー', '1日1回', '#f4a261')}{card('📚', '学びの部屋', '苦手ドリル', COLORS.sky)}{card('🐉', 'レイド', 'みんなで', '#7b2cbf')}
+    </div>
+  );
   return (
     <div className="flex gap-2">
       {['easy', 'normal', 'hard'].map(d => (
@@ -2003,7 +2058,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.8
+              ver.5.9
             </span>
           </div>
 
@@ -4508,6 +4563,7 @@ const BADGES = [
   { id: 'revenge', g: 'revenge', r: 2, icon: '⚔️', label: 'リベンジ成功', desc: '前の試合で負けた相手に勝つ', test: st => (st.revenges || 0) >= 1 },
   { id: 'calm', g: 'calm', r: 3, icon: '🧘', label: '冷静沈着', desc: 'Aでお手つき0のまま、6問以上取って勝つ', test: st => (st.calmWins || 0) >= 1 },
   { id: 'flawless', g: 'flawless', r: 3, icon: '💎', label: '無傷の勝利', desc: 'Bで攻撃を一度も受けずに勝つ', test: st => (st.flawlessWins || 0) >= 1 },
+  { id: 'nosp', g: 'nosp', r: 3, icon: '🥋', label: '必殺技いらず', desc: 'B方式で必殺技を一度も使わずに勝つ', test: st => (st.noSpWins || 0) >= 1 },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
@@ -4763,10 +4819,10 @@ function ratingDelta(myR, opps) {
 }
 /* 試合の結果を自分の成績に足す。新しく取った称号を返す */
 async function recordMatch(acct, info) {
-  if (!acct || DBX || !FB.db) return { badges: [] };
+  if (!acct || !acct.key || (DBX && !info.bot) || !FB.db) return { badges: [] };
   let before = null, after = null, applied = 0, expB = 0, expA = 0;
   try {
-    const res = await fref(`accounts/${acct.key}/stats`).transaction(s => {
+    const res = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => {
       before = s ? JSON.parse(JSON.stringify(s)) : {};
       s = s || {};
       const o = info.outcome;
@@ -5315,6 +5371,7 @@ function BattleApp({ acct: who, onExit }) {
   const sound = useBattleSound(muted);
   const myName = (who && who.name) || 'ゲスト';
   const practice = code === 'local';
+  const localRoom = practice || code === 'bot';   // 端末の中だけで動く部屋（CPU練習・すぐ遊ぶの代役）
 
   const players = useFbValue(code ? `rooms/${code}/players` : null) || {};
   const state = useFbValue(code ? `rooms/${code}/state` : null);
@@ -5328,20 +5385,20 @@ function BattleApp({ acct: who, onExit }) {
   useEffect(() => () => { DBX = null; }, []);
 
   const announce = useCallback(() => {
-    if (!code || practice || !FB.uid || spectator) return;
+    if (!code || localRoom || !FB.uid || spectator) return;
     if ((isTour || isRaid) && isHost) return; // 大会・レイドのホスト（先生）は参加しない
     const r = fref(`rooms/${code}/players/${FB.uid}`);
     r.set({ name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: TSV() }).catch(() => {});
     r.onDisconnect().remove();
-  }, [code, spectator, myName, acct, practice, isTour, isRaid, isHost, myNick]);
+  }, [code, spectator, myName, acct, localRoom, isTour, isRaid, isHost, myNick]);
   useEffect(() => { if (code && !spectator) announce(); }, [code, spectator, announce]);
   // 通信が戻ったら名簿に入り直す
   useEffect(() => {
-    if (!code || practice || spectator || !FB.db) return;
+    if (!code || localRoom || spectator || !FB.db) return;
     const c = FB.db.ref('.info/connected'), fn = s => { if (s.val()) announce(); };
     c.on('value', fn);
     return () => c.off('value', fn);
-  }, [code, spectator, announce, practice]);
+  }, [code, spectator, announce, localRoom]);
 
   // 部屋の状態に合わせて画面を切り替える
   useEffect(() => {
@@ -5431,7 +5488,7 @@ function BattleApp({ acct: who, onExit }) {
       placed = r2.committed;
     } catch (e) {}
     if (!placed) { closeQmRoom(c); if (retry < 2) return quickMatch(retry + 1); setErr('混みあっています。もう一度押してください'); return; }
-    setQm({ code: c, since: Date.now(), found: null });
+    setQm({ code: c, since: Date.now(), found: null, botAfter: QM_BOT_MS() });
     setScr('qmwait');
   }
   function closeQmRoom(c) {
@@ -5467,16 +5524,80 @@ function BattleApp({ acct: who, onExit }) {
       }, 1700);
     };
     pref.on('value', fn);
-    return () => { clearInterval(hb); pref.off('value', fn); };
+    // 30秒くらい待ってもだれも来なければ、代わりの相手（CPU・ふつう）と対戦する
+    const botT = setTimeout(() => summonBot(qm), Math.max(1000, qm.since + qm.botAfter - Date.now()));
+    return () => { clearInterval(hb); clearTimeout(botT); pref.off('value', fn); };
   }, [qm && qm.code, qm && !!qm.found]);
+  async function summonBot(q) {
+    if (!q || q.found || !qmRef.current || qmRef.current.code !== q.code || qmRef.current.found) return;
+    // 待ち枠を自分で取り消せたときだけ（その直前に人が入ってきていたら、そちらを優先）
+    let mine = false;
+    try { const r = await slotRef().transaction(cur => { if (cur && cur.host === FB.uid && cur.code === q.code) { mine = true; return null; } return; }); mine = mine && r.committed; } catch (e) { mine = false; }
+    if (!mine) return;
+    try { const pl = (await FB.db.ref(`games/factor/rooms/${q.code}/players`).get()).val() || {}; if (Object.keys(pl).some(k => k !== FB.uid && pl[k] && pl[k].name)) return; } catch (e) {}
+    if (!qmRef.current || qmRef.current.found) return;
+    closeQmRoom(q.code);
+    const bot = makeBotProfile();
+    let myRt = null;
+    if (acct && FB.db) { try { myRt = ratingOf((await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).get()).val()); } catch (e) {} }
+    setQm(x => x ? { ...x, found: bot.name } : x);
+    sound.play('special'); FX.flash('#fff', 0.6, 300);
+    FX.band('⚔ 挑戦者あらわる！', { color: '#E76F51', sub: `${bot.name} が対戦を申しこんできた`, ms: 1700 });
+    setTimeout(async () => {
+      sound.bgm(false);
+      DBX = makeLocalDb();
+      const bid = 'u' + Math.random().toString(36).slice(2, 9);
+      await fref('rooms/bot/players').set({
+        me: { name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: Date.now() },
+        [bid]: { name: bot.name, acct: '', nick: bot.nick, cpu: 'normal', joinedAt: Date.now() + 1 },
+      });
+      await fref('rooms/bot/state').set({ phase: 'lobby', qm: true, bot: true, botRt: bot.rt, ...(myRt != null ? { myRt } : {}) });
+      setSpectator(false); setIsHost(true); setSeenGid({});
+      setCode('bot'); setScr('lobby');
+      setQm(null);
+    }, 1700);
+  }
   useEffect(() => () => { if (qmRef.current) cancelQm(); }, []);
   // すぐ遊ぶの部屋：2人そろったらホストが自動で始める
   const qmStarted = useRef('');
   useEffect(() => {
     if (!code || !isHost || !state || !state.qm || state.phase !== 'lobby') return;
     const n = Object.entries(players).filter(([k, p]) => p && p.name).length;
-    if (n >= 2 && qmStarted.current !== code + ':' + (state.gid || '')) { qmStarted.current = code + ':' + (state.gid || ''); setTimeout(() => startMatch(code), 900); }
+    if (n >= 2 && qmStarted.current !== code + ':' + (state.gid || '')) { qmStarted.current = code + ':' + (state.gid || ''); setTimeout(() => startQmVote(code), 900); }
   }, [code, isHost, state && state.phase, players]);
+  /* すぐ遊ぶ：方式は投票で決める（同じならその方式、分かれたらランダム） */
+  async function startQmVote(cArg) {
+    const c = (typeof cArg === 'string' && cArg) || code;
+    if (!c) return;
+    await fref(`rooms/${c}/state`).update({ phase: 'vote', vid: 'v' + Date.now(), voteEnd: fbNow() + QM_VOTE_MS }).catch(() => {});
+  }
+  const voteDone = useRef('');
+  useEffect(() => {
+    if (!code || !isHost || !state || state.phase !== 'vote' || !state.vid) return;
+    const ids = Object.entries(players).filter(([k, p]) => p && p.name).map(([k]) => k);
+    const vid = state.vid;
+    const vs = ids.map(u => { const v = (players[u] && players[u].vote) || ''; return v.indexOf(vid + ':') === 0 ? v.slice(vid.length + 1) : null; });
+    const decide = () => {
+      if (voteDone.current === vid || ids.length < 2) return;
+      voteDone.current = vid;
+      const got = vs.filter(Boolean);
+      const same = got.length === ids.length && got.every(x => x === got[0]);
+      const mode = same ? got[0] : (Math.random() < 0.5 ? 'A' : 'B');
+      const voteNote = same ? '投票で決定！' : got.length < ids.length ? '時間切れ… ランダムで決定！' : '投票が分かれたのでランダム！';
+      startMatch(code, { mode, voteNote });
+    };
+    if (vs.every(Boolean)) { const t = setTimeout(decide, 700); return () => clearTimeout(t); }
+    const t = setTimeout(decide, Math.max(0, (state.voteEnd || 0) - fbNow()));
+    return () => clearTimeout(t);
+  }, [code, isHost, state && state.phase, state && state.vid, players]);
+  // 代役の相手も、少し考えてから投票する
+  useEffect(() => {
+    if (code !== 'bot' || !state || state.phase !== 'vote' || !state.vid) return;
+    const bid = Object.keys(players).find(k => players[k] && players[k].cpu);
+    if (!bid) return;
+    const t = setTimeout(() => fref(`rooms/bot/players/${bid}`).update({ vote: `${state.vid}:${Math.random() < 0.5 ? 'A' : 'B'}` }).catch(() => {}), 1500 + Math.random() * 3000);
+    return () => clearTimeout(t);
+  }, [code, state && state.vid]);
   // CPU練習：端末の中だけのデータベースで動かす（通信しない）
   async function startPractice(cfg) {
     DBX = makeLocalDb();
@@ -5492,7 +5613,7 @@ function BattleApp({ acct: who, onExit }) {
     // すぐ遊ぶで待っているあいだの練習をやめたときは、待ち画面にもどる
     if (practice && qmRef.current && !qmRef.current.found) { DBX = null; sound.bgm(false); setCode(''); setIsHost(false); setScr('qmwait'); return; }
     if (qmRef.current) cancelQm();
-    if (code && !practice && FB.uid) {
+    if (code && !localRoom && FB.uid) {
       if (isHost) fref(`rooms/${code}/state`).set({ phase: 'closed' }).catch(() => {});
       if (!spectator) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
     }
@@ -5501,7 +5622,8 @@ function BattleApp({ acct: who, onExit }) {
     setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
     if (!silent) setErr('');
   }
-  async function startMatch(cArg) {
+  async function startMatch(cArg, opt) {
+    opt = opt || {};
     const c = (typeof cArg === 'string' && cArg) || code || 'local';
     const st = (await fref(`rooms/${c}/state`).get()).val() || state || {};
     const pl = (await fref(`rooms/${c}/players`).get()).val() || players;
@@ -5509,11 +5631,20 @@ function BattleApp({ acct: who, onExit }) {
     if (ids.length < 2) return;
     const names = {}, accts = {}, handi = {}, cpu = {}, nicks = {};
     ids.forEach(k => { names[k] = pl[k].name; accts[k] = pl[k].acct || ''; nicks[k] = pl[k].nick || ''; handi[k] = ((st.handi || {})[k]) || 0; if (pl[k].cpu) cpu[k] = pl[k].cpu; });
-    const rt = await fetchRatings(accts);
+    let rt;
+    if (st.bot) {
+      // 代役の相手：レートは部屋を作ったときに決めたもの。自分のレートは毎回サーバーから読み直す
+      rt = {};
+      ids.forEach(k => { if (pl[k].cpu) rt[k] = st.botRt || RATING_INIT; });
+      let myRt = st.myRt;
+      if (acct && FB.db) { try { myRt = ratingOf((await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).get()).val()); } catch (e) {} }
+      if (myRt != null) ids.forEach(k => { if (!pl[k].cpu) rt[k] = myRt; });
+    } else rt = await fetchRatings(accts);
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
     await fref(`rooms/${c}/state`).set({
-      // すぐ遊ぶの部屋は、方式と難易度を毎回ランダムに
-      phase: 'play', mode: st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B'), diff: st.qm ? (Math.random() < 0.5 ? 'easy' : 'normal') : (st.diff || 'easy'), qm: !!st.qm,
+      // すぐ遊ぶの部屋：方式は投票の結果（なければランダム）、難易度はランダム
+      phase: 'play', mode: opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B')), diff: st.qm ? (Math.random() < 0.5 ? 'easy' : 'normal') : (st.diff || 'easy'), qm: !!st.qm,
+      ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}),
       gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
       startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts, handi, rt, cpu, nicks,
     });
@@ -5611,6 +5742,8 @@ function BattleApp({ acct: who, onExit }) {
     <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => quickMatch()}
       onCreate={createRoom} onJoin={joinRoom} onPractice={startPractice} onExit={onExit} />);
 
+  if (scr === 'lobby' && state && state.phase === 'vote') return shell(<QmVote state={state} players={players} me={myUid()}
+    onVote={m => fref(`rooms/${code}/players/${myUid()}`).update({ vote: `${state.vid}:${m}` }).catch(() => {})} onLeave={() => leave()} />);
   if (scr === 'lobby') {
     if (isRaid) return shell(<RaidLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
       onRule={setRule} onStart={raidStart} onLeave={() => leave()} />, isHost);
@@ -5647,7 +5780,7 @@ function BattleApp({ acct: who, onExit }) {
   const amPlayer = !spectator && (state.players || []).includes(myUid());
   if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
   return <>{qmChip}<BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
-    sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;
+    sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={state.qm ? () => startQmVote(code) : startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;
 }
 const tourRoundLabel = (r, rounds, state) => {
   if (state && isSwissRound(state, r)) return `予選 第${r + 1}回戦`;
@@ -5657,6 +5790,57 @@ const tourRoundLabel = (r, rounds, state) => {
 };
 
 /* ---------- すぐ遊ぶ：待ち画面と、練習中に出す小さな札 ---------- */
+/* すぐ遊ぶ：30秒前後待ってもだれも来ないときの代役（CPU・ふつう）。ふつうのプレイヤーに見える名前をつける */
+const QM_BOT_MS = () => 28000 + Math.random() * 6000;
+const QM_VOTE_MS = 10000;
+const BOT_NAMES = ['ゆうと', 'さくら', 'はると', 'みお', 'そうた', 'ひなた', 'りく', 'あおい', 'こはる', 'れん', 'ゆい', 'たくみ', 'めい', 'かいと', 'ねね', 'しょう', 'あかり', 'だいち', 'みつき', 'こうき',
+  'ゆな', 'そら', 'はるか', 'けんた', 'りこ', 'ひろと', 'まなみ', 'つばさ', 'すず', 'ゆうき', 'いちか', 'りょう', 'ことね', 'あきと', 'ほのか', 'なぎ', 'ももか', 'しゅん', 'えま', 'たいが',
+  'Yuto', 'sakura', 'りくまる', 'はるぴょん', 'みおっち', 'そうちゃん', 'ねこまる', 'いんすう王', 'たこやき', 'もちもち', 'ぺんぎん', 'すうがくマン', 'あおぞら', 'くまさん', 'ぴよ', 'しろくま', 'だんご', 'まめ', 'ぽてと', 'ちくわ'];
+function makeBotProfile() {
+  let name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+  const r = Math.random();
+  if (r < 0.2) name += String(Math.floor(Math.random() * 99) + 1);
+  else if (r < 0.28) name += ['☆', '★', '♪', '_'][Math.floor(Math.random() * 4)];
+  const low = BADGES.filter(b => (b.r || 1) <= 2);
+  const nick = Math.random() < 0.4 && low.length ? low[Math.floor(Math.random() * low.length)].id : '';
+  return { name, nick, rt: 1490 + Math.floor(Math.random() * 21) };
+}
+/* すぐ遊ぶ：方式の投票 */
+function QmVote({ state, players, me, onVote, onLeave }) {
+  useTick(250, true);
+  const ids = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).map(([k]) => k);
+  const vOf = u => { const v = (players[u] && players[u].vote) || ''; return v.indexOf(state.vid + ':') === 0 ? v.slice(state.vid.length + 1) : null; };
+  const mine = vOf(me);
+  const left = Math.max(0, Math.ceil(((state.voteEnd || 0) - fbNow()) / 1000));
+  const alone = ids.length < 2;
+  const opt = (m, icon) => {
+    const info = BATTLE_MODES[m], on = mine === m;
+    return (
+      <button onClick={() => !mine && onVote(m)} disabled={!!mine || alone} className="flex-1 rounded-2xl p-3 text-left active:scale-95 transition-transform shadow"
+        style={{ background: on ? info.color : COLORS.paper, color: on ? '#fff' : COLORS.ink, opacity: mine && !on ? 0.45 : 1, outline: on ? '4px solid #FFD54A' : 'none' }}>
+        <div className="text-3xl text-center mb-1">{icon}</div>
+        <div className="text-center text-lg font-black mb-1" style={bFont}>{info.short}</div>
+        {[info.desc[0], info.desc[2]].map((t, i) => <div key={i} className="text-[11px] font-bold leading-snug mb-0.5" style={{ color: on ? '#ffffffdd' : COLORS.inkSoft }}>・{t}</div>)}
+      </button>
+    );
+  };
+  return (
+    <div className="text-center pt-6">
+      <div className="text-2xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>🗳 方式を投票しよう！</div>
+      <div className="text-xs font-bold mb-4" style={{ color: COLORS.inkSoft }}>同じ方式を選んだらその方式、分かれたらランダムで決まります</div>
+      <div className="text-4xl font-black mb-4" style={{ color: left <= 3 ? COLORS.coral : COLORS.ink, ...bFont }}>{alone ? '−' : left}</div>
+      <div className="flex gap-3 mb-4">{opt('A', '🏁')}{opt('B', '⚔️')}</div>
+      <div className="flex justify-center gap-2 mb-4 flex-wrap">
+        {ids.map(u => { const v = vOf(u); return (
+          <span key={u} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: v ? '#ffffff' : COLORS.paperDark, color: v ? COLORS.leafDeep : COLORS.inkSoft }}>
+            {v ? '✓' : '…'} {u === me ? 'あなた' : players[u].name}{u === me && v ? `（${BATTLE_MODES[v].short}）` : v ? '（投票ずみ）' : ''}
+          </span>); })}
+      </div>
+      {alone && <p className="text-sm font-bold mb-3" style={{ color: COLORS.coral }}>相手が部屋を出ました</p>}
+      <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+    </div>
+  );
+}
 function QmWait({ qm, onPractice, onCancel }) {
   useTick(500, true);
   const sec = Math.floor((Date.now() - qm.since) / 1000);
@@ -5886,10 +6070,11 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose }) {
     if (FB.db) FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(v || null).catch(() => {});
     if (v) { const b = nickOf(v); FX.text(window.innerWidth / 2, window.innerHeight / 2, `〈${b.icon}${b.label}〉`, '#ffd54a', 26); fxSound('badge'); }
   };
-  const box = (label, v, color) => (
+  const box = (label, v, color, sub) => (
     <div className="flex-1 rounded-xl px-2 py-2 text-center" style={{ background: COLORS.paperDark }}>
       <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{label}</div>
       <div className="font-black" style={{ color: color || COLORS.ink, ...bFont }}>{v}</div>
+      {sub && <div className="text-[8.5px] font-bold leading-tight" style={{ color: COLORS.inkSoft }}>{sub}</div>}
     </div>
   );
   const modeLine = (m, label) => {
@@ -5922,7 +6107,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose }) {
             {box('Perfect', `${st.perfects || 0}回`, '#c99a00')}{box('逆転勝ち', `${st.comebacks || 0}回`)}{box('大会優勝', `${st.tourWins || 0}回`, COLORS.coral)}
           </div>
           <div className="flex gap-2 mb-3">
-            {box('最速の正解', st.bestMs != null ? `${(st.bestMs / 1000).toFixed(2)}秒` : '−')}{box('最大コンボ', st.maxCombo || 0)}{box('必殺技', `${st.spUsed || 0}回`)}
+            {box('最速の正解', st.bestMs != null ? `${(st.bestMs / 1000).toFixed(2)}秒` : '−')}{box('最大コンボ', st.maxCombo || 0)}{box('必殺技使用率', st.bGames ? `${Math.round(100 * (st.spGames || 0) / st.bGames)}%` : '−', null, `B方式${st.bGames || 0}戦中${st.spGames || 0}戦・通算${st.spUsed || 0}回`)}
           </div>
           {modeLine('A', 'A 早い者勝ち')}{modeLine('B', 'B レース＋攻撃')}
         </>)}
@@ -6130,7 +6315,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     const rel = u => { const a = myRank, b = rank[u] || 99; return a < b ? 'w' : a > b ? 'l' : 'd'; };
     const accts = state.accts || {}, rt = state.rt || {};
     const vs = others.filter(u => accts[u]).map(u => ({ key: accts[u], o: rel(u) }));
-    const opps = others.filter(u => accts[u] && rt[u] != null).map(u => ({ r: rt[u], s: rel(u) === 'w' ? 1 : rel(u) === 'l' ? 0 : 0.5 }));
+    const opps = others.filter(u => (accts[u] || state.bot) && rt[u] != null).map(u => ({ r: rt[u], s: rel(u) === 'w' ? 1 : rel(u) === 'l' ? 0 : 0.5 }));
     let dr = opps.length && acct ? ratingDelta(rt[me] != null ? rt[me] : RATING_INIT, opps) / opps.length : 0;
     if (Object.values(hc).some(h => h > 0)) dr *= 0.5;
     const perfects = mode === 'B' ? ((mine.current.eng && mine.current.eng.s.perfects) || 0) : claimsRef.current.filter(c => c && c.uid === me && c.j === 'Perfect').length;
@@ -6150,6 +6335,8 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       if (win && es.minHp <= 1) add.miracleWins = 1;
       if (win && es.dmgTaken === 0) add.flawlessWins = 1;
       mx.maxSpMatch = es.spUsed;
+      add.bGames = 1; add.spGames = es.spUsed > 0 ? 1 : 0;
+      if (win && !es.spUsed) add.noSpWins = 1;
       oks.forEach(h => { if (h.j === 'Perfect') lvMask |= 1 << h.lv; });
       if (win && ids.length === 4 && result.reason === 'ko') add.survivors = 1;
     }
@@ -6170,7 +6357,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (state.final && win && rt[me] != null) { const rs = Object.values(rt); if (rs.length >= 4 && rt[me] <= Math.min(...rs)) add.darkHorse = 1; }
     // 経験値：勝ち30・引き分け20・負け15（Perfect 1回ごとに+1、最大+10）。CPU練習は 勝ち8・それ以外5
     const exp = practice ? (win ? 8 : 5) : (win ? 30 : outcome === 'd' ? 20 : 15) + Math.min(10, perfects);
-    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr, exp };
+    const info = { outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr, exp, bot: !!state.bot };
     setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [], exp: null });
     if (win) setTimeout(() => FX.confetti(70), 300);
     if (acct && !practice) recordMatch(acct, info).then(r => setRec(x => ({ ...x, badges: r.badges || [], dr: r.dr != null ? r.dr : x.dr, exp: r.exp || null })));
@@ -6185,11 +6372,19 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     });
     flushLearn(who, lrec);
   }, [!!result]);
+  // すぐ遊ぶの代役：少ししたら「準備OK」を押す
+  useEffect(() => {
+    if (!result || !state.bot) return;
+    const bid = ids.find(u => (state.cpu || {})[u]);
+    if (!bid) return;
+    const t = setTimeout(() => fref(`rooms/${code}/players/${bid}`).update({ ready: gid }).catch(() => {}), 2000 + Math.random() * 3500);
+    return () => clearTimeout(t);
+  }, [!!result]);
   // もう一戦：全員（CPUをのぞく）が「準備OK」を押したら、ホストが自動で始める
   const startedNext = useRef(false);
   useEffect(() => {
     if (!result || !isHost || practice || state.tour || startedNext.current) return;
-    const humans = ids.filter(u => !(state.cpu || {})[u]);
+    const humans = state.bot ? ids : ids.filter(u => !(state.cpu || {})[u]);
     if (humans.length && humans.every(u => players[u] && players[u].ready === gid)) { startedNext.current = true; onRematch(); }
   }, [players, !!result]);
 
@@ -6218,7 +6413,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     mine={mine.current} isHost={isHost} acct={acct} practice={practice} players={players} code={code} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} onBack={onBack} />);
   if (counting) return wrap(<>
     {header(null)}
-    <VsCutIn ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
+    <VsCutIn ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
     <div className="flex flex-col items-center justify-center" style={{ flex: '1 1 auto' }}>
       <div key={cd} className="font-black leading-none" style={{ color: '#fff', fontSize: 'clamp(4rem, 24vw, 10rem)', textShadow: `0 6px 0 ${COLORS.forestDeep}, 0 10px 24px rgba(0,0,0,0.35)`, animation: 'fxVsPop 450ms ease both', ...bFont }}>{cd > 3 ? 'READY' : Math.max(1, cd)}</div>
       <div className="text-sm font-bold mt-8 text-center" style={{ color: '#ffffffcc' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>
@@ -6661,7 +6856,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
         <BigBtn small onClick={onLobby}>CPUの設定にもどる</BigBtn>
       </div>) : (<div className="flex flex-col gap-2">
         {(() => {
-          const humans = ids.filter(u => !(state.cpu || {})[u]);
+          const humans = state.bot ? ids : ids.filter(u => !(state.cpu || {})[u]);
           const rd = u => players[u] && players[u].ready === state.gid;
           return (<>
             <BigBtn color={COLORS.coral} disabled={!humansOnline || rd(me)} onClick={() => fref(`rooms/${code}/players/${me}`).update({ ready: state.gid }).catch(() => {})}>
