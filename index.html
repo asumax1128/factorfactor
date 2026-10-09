@@ -2433,7 +2433,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.3</span>
+              <span className="v7-ver">ver.7.4</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4989,7 +4989,10 @@ function WeeklyRaidApp({ acct, onExit }) {
   const boss = weeklyBoss(wk);
   const fb = useFbReady();
   const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
-  const rows = useMemo(() => Object.entries(v).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).sort((a, b) => b.d - a.d), [v]);
+  const [sortBy, setSortBy] = useState('d');   // d 合計 / avg 平均 / s 挑戦回数
+  const rowsAll = useMemo(() => Object.entries(v).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).map(e => ({ ...e, avg: e.s ? Math.round(e.d / e.s) : null })), [v]);
+  const rows = useMemo(() => [...rowsAll].sort((a, b) => b.d - a.d), [rowsAll]);
+  const shown = useMemo(() => [...rowsAll].sort((a, b) => sortBy === 'avg' ? ((b.avg || 0) - (a.avg || 0) || b.d - a.d) : sortBy === 's' ? ((b.s || 0) - (a.s || 0) || b.d - a.d) : b.d - a.d), [rowsAll, sortBy]);
   const total = rows.reduce((a, e) => a + (e.d || 0), 0);
   const hp = WEEKLY_HP - total;
   const meKey = isReal(acct) ? acct.key : null;
@@ -5005,6 +5008,9 @@ function WeeklyRaidApp({ acct, onExit }) {
   const sessionOver = scr === 'play' && Date.now() >= endAt;
   useEffect(() => {
     if (!sessionOver) return;
+    // 出撃回数（ダメージを与えた出撃だけ数える）と、1回の出撃の最高ダメージ
+    const sd = sess.current.d;
+    if (meKey && FB.db && sd > 0) FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = e.d || 0; e.s = (e.s || 0) + 1; e.b = Math.max(e.b || 0, sd); e.name = acct.name; return e; }).catch(() => {});
     flushLearn(acct, lrec.current, { raid: 1 }); lrec.current = [];
     addExp(acct, 10 + Math.min(30, Math.floor(sess.current.d / 15))).then(e => setRes({ d: sess.current.d, exp: e }));
     setScr('done');
@@ -5038,17 +5044,28 @@ function WeeklyRaidApp({ acct, onExit }) {
           {hp <= 0 ? <div className="text-center text-lg font-black mb-2" style={{ color: '#d4a017' }}>🎉 今週のボスは撃破されました！ 来週のボスを待とう（出撃するとランキングは伸ばせます）</div> : null}
           <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{WEEKLY_SESSION / 1000}秒。正解するとダメージ！ 2問続けて正解でレベルが上がり、ダメージも大きくなります。</p>
           <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0 }; setRes(null); setEndAt(Date.now() + WEEKLY_SESSION + 600); setScr('play'); }}>⚔ 出撃する（{WEEKLY_SESSION / 1000}秒）</BigBtn>
-          {mine && <p className="text-xs font-black text-center mt-2" style={{ color: COLORS.leafDeep }}>あなたの今週のダメージ {mine.d}（{rows.indexOf(mine) + 1}位）</p>}
+          {mine && <p className="text-xs font-black text-center mt-2" style={{ color: COLORS.leafDeep }}>あなたの今週のダメージ {mine.d}（{rows.indexOf(mine) + 1}位）{mine.s ? ` ・ ${mine.s}回出撃 ・ 平均${Math.round(mine.d / mine.s)} ・ 最高${mine.b || 0}` : ''}</p>}
         </Card>
         <Card className="mb-3">
-          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>今週のダメージランキング</div>
-          {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも出撃していません</p> : rows.slice(0, 30).map((r, i) => (
-            <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
-              <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-              <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
-              <span className="font-black" style={{ color: '#ff7b00' }}>{r.d}</span>
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>今週のダメージランキング</div>
+            <div style={{ width: '13.5rem' }}><Seg items={[['d', '合計'], ['avg', '平均'], ['s', '挑戦回数']]} cur={sortBy} onPick={setSortBy} /></div>
+          </div>
+          {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも出撃していません</p> : (<>
+            <div className="grid items-end text-[10px] font-black py-1" style={{ gridTemplateColumns: '1.9rem 1fr 3.6rem 2.6rem 3.4rem', color: COLORS.inkSoft, borderBottom: `2px solid ${COLORS.paperDark}`, gap: 6 }}>
+              <span className="text-center">順位</span><span>名前</span><span className="text-right" style={{ color: sortBy === 'd' ? '#C2410C' : undefined }}>合計</span><span className="text-right" style={{ color: sortBy === 's' ? '#C2410C' : undefined }}>回数</span><span className="text-right" style={{ color: sortBy === 'avg' ? '#C2410C' : undefined }}>平均</span>
             </div>
-          ))}
+            {shown.slice(0, 30).map((r, i) => (
+              <div key={r.k} className="grid items-center text-sm py-1" style={{ gridTemplateColumns: '1.9rem 1fr 3.6rem 2.6rem 3.4rem', gap: 6, borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
+                <span className="text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+                <span className="min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
+                <span className="text-right font-black" style={{ color: '#E4572E' }}>{r.d.toLocaleString()}</span>
+                <span className="text-right font-bold" style={{ color: COLORS.ink }}>{r.s ? `${r.s}回` : '−'}</span>
+                <span className="text-right font-bold" style={{ color: COLORS.ink }}>{r.avg != null ? r.avg.toLocaleString() : '−'}</span>
+              </div>
+            ))}
+            <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>平均＝合計 ÷ 挑戦回数（1回の出撃あたり）。挑戦回数は今回の更新から数えはじめます</p>
+          </>)}
         </Card>
       </div>
     </div>
