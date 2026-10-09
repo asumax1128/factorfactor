@@ -2003,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.5
+              ver.5.6
             </span>
           </div>
 
@@ -4311,7 +4311,10 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
         <div style={{ width: '4rem' }} />
       </div>
       {now < startAt && <div className="text-center text-3xl font-black mb-2" style={{ color: '#fff', textShadow: '0 3px 0 rgba(0,0,0,.25)', ...bFont }}>まもなく開始 {Math.max(1, Math.ceil((startAt - now) / 1000))}</div>}
-      {result && <div className="text-center text-3xl font-black mb-2" style={{ color: COLORS.amber, textShadow: '0 3px 0 rgba(0,0,0,.3)', ...bFont }}>{result.draw ? '引き分け！' : `👑 ${names[result.winner]} の勝ち！`}</div>}
+      {result && <div className="flex items-center justify-center gap-3 mb-2 flex-wrap">
+        <div className="text-center text-3xl font-black" style={{ color: COLORS.amber, textShadow: '0 3px 0 rgba(0,0,0,.3)', ...bFont }}>{result.draw ? '引き分け！' : `👑 ${names[result.winner]} の勝ち！`}</div>
+        <button onClick={onClose} className="rounded-xl px-4 py-1.5 font-black shadow text-white" style={{ background: COLORS.sky, ...bFont }}>表にもどる</button>
+      </div>}
       <div className="relative flex-1 grid gap-2" style={{ minHeight: 0, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridTemplateRows: two ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
         {ids.map((u, i) => <PlayerMirror key={u} idx={i} name={names[u]} nick={(nicks || {})[u]} mode={mode} N={N} bank={bank} live={(live || {})[u]} ko={(ko || {})[u]}
           won={result && !result.draw && result.winner === u} rank={result ? rank[u] : null} score={scA ? scA.sc[u] : null} combo={scA ? scA.cb[u] : (live[u] || {}).combo} lock={((live || {})[u] || {}).lock > now} probA={probA} big={two} />)}
@@ -6891,7 +6894,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
       {m.b && <div className="flex items-center justify-between mt-0.5">
         <span className="text-[9px] font-bold" style={{ color: w ? COLORS.leafDeep : started ? COLORS.coral : COLORS.inkSoft }}>{oc.done ? (swissDraw ? '引き分け（両者1点）' : res && res.draw ? (state.fmt === 'swiss' ? '引き分け→上位シード' : '引き分け→抽選') : res && res.reason === 'judge' ? 'ホスト判定' : '決着') : started ? '対戦中' : 'まもなく開始'}</span>
         <span className="flex items-center gap-1">
-          {onWatch && <button onClick={() => onWatch(m.gid)} className="text-[10px] font-black rounded px-1.5" style={{ background: `${COLORS.sky}22`, color: COLORS.sky }}>📺 見る</button>}
+          {onWatch && <button onClick={() => onWatch(m.gid)} className="text-[11px] font-black rounded-lg px-2 py-0.5 shadow" style={{ background: COLORS.sky, color: '#fff' }}>📺 大きく見る</button>}
           {isHost && !oc.done && started && <button onClick={() => { if (window.confirm('この試合を打ち切って勝ち上がりを決めますか？（つながっている人／いなければ抽選）')) force(); }} className="text-[9px] font-bold rounded px-1.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>打ち切り</button>}
         </span>
       </div>}
@@ -6950,8 +6953,15 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     else if (!names[me]) myMsg = ['観戦中', COLORS.inkSoft];
     else myMsg = ['試合の準備中…', COLORS.inkSoft];
   }
+  // 決勝は、先生の画面で自動的に大きく映す（もどるで表にもどれる）
+  const autoFinal = useRef('');
+  useEffect(() => {
+    if (!isHost || champion || cur.length !== 1 || !cur[0].b || isSwissRound(state, r)) return;
+    if (autoFinal.current !== cur[0].gid) { autoFinal.current = cur[0].gid; setTimeout(() => setWatch(cur[0].gid), 2200); }
+  }, [r, champion]);
   const watchM = watch && cur.find(m => m.gid === watch);
   if (watchM && watchM.b) return <TourSplit code={code} state={state} m={watchM} onClose={() => setWatch(null)} />;
+  const liveMatches = cur.filter((m, k) => m.b && !outs[k].done);
   return (<>
     <div className="flex items-center justify-between mb-3 gap-2">
       <button onClick={() => { if (!isHost || window.confirm('大会を閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? '大会を閉じる' : '部屋を出る'}</button>
@@ -6968,6 +6978,12 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     )}
     {myMsg && <Card className="mb-3 text-center"><div className="font-black" style={{ color: myMsg[1], ...bFont }}>{myMsg[0]}</div></Card>}
     {!champion && <CommentaryFeed feed={feed} big={isHost} />}
+    {!champion && liveMatches.length > 0 && <div className="mb-3 rounded-2xl px-3 py-2 shadow" style={{ background: COLORS.paper }}>
+      <div className="text-xs font-black mb-1" style={{ color: COLORS.sky }}>📺 対戦中の試合を大きく見る（左右に分けて表示）</div>
+      <div className="flex flex-wrap gap-2">
+        {liveMatches.map(m => <button key={m.gid} onClick={() => setWatch(m.gid)} className="rounded-xl px-3 py-1.5 text-sm font-black shadow transition-transform active:scale-95" style={{ background: COLORS.sky, color: '#fff', ...bFont }}>{names[m.a]} <span style={{ color: '#ffd54a' }}>VS</span> {names[m.b]}</button>)}
+      </div>
+    </div>}
     {!champion && <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${isHost ? '15rem' : '13rem'}, 1fr))` }}>
       {cur.map(m => <TourMatchCard key={m.gid} code={code} m={m} state={state} players={players} res={results[m.gid]} isHost={isHost} me={me} big={isHost && cur.length <= 4} onFeed={onFeed} onWatch={setWatch} r={r} />)}
     </div>}
