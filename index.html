@@ -658,10 +658,11 @@ function aggregateTotalRanking(allRecords) {
 async function fetchNetRanking() {
   let res;
   try {
-    res = await fetch(GAS_ENDPOINT_URL);
+    try { res = await fetch(GAS_ENDPOINT_URL); }
+    catch (e1) { await new Promise(r => setTimeout(r, 1500)); res = await fetch(GAS_ENDPOINT_URL); } // 1回だけやり直す
   } catch (e) {
     // ネットワーク断、またはGASの公開設定が「全員」以外でCORSに弾かれた場合
-    throw new Error('サーバーに接続できません(通信環境かGASの公開設定を確認してください)');
+    throw new Error('ランキングのサーバーに接続できません（ゲームはそのまま遊べます。いちばん下の「📶 接続チェック」で原因を確かめられます）');
   }
   if (!res.ok) throw new Error(`サーバー応答エラー (HTTP ${res.status})`);
   const text = await res.text();
@@ -2002,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.1
+              ver.5.2
             </span>
           </div>
 
@@ -2262,6 +2263,11 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             style={{ fontSize: '10px', color: '#FFFFFF6b', fontFamily: "'Zen Kaku Gothic New', sans-serif", letterSpacing: '0.06em' }}
           >
             © 2026 FACTOR × FACTOR | Created by Syusuke F.
+          </span>
+        </div>
+        <div className="w-full text-center mb-2">
+          <ConnCheck />
+          <span>
           </span>
         </div>
       </div>
@@ -3015,6 +3021,7 @@ function AccountGate({ onDone }) {
             <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>あとで登録すると、ゲストの記録を引き継げます</p>
           </div>
         </div>
+        <div className="text-center mt-3"><ConnCheck /></div>
       </div>
     </div>
   );
@@ -3932,6 +3939,154 @@ function WeeklyCard({ onOpen }) {
   );
 }
 
+/* =====================================================================
+   観戦：対戦中の画面を左右（3〜4人なら4分割）に並べて見る
+   ===================================================================== */
+function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, score, combo, lock, probA, big }) {
+  const l = live || {};
+  const ref = useRef(null);
+  const prev = useRef({});
+  const color = PCOLORS[idx] || COLORS.sky;
+  // 正解・被弾・KO の演出（相手の画面と同じタイミングで光る）
+  useEffect(() => {
+    const p = prev.current;
+    prev.current = { c: l.c, hp: l.hp, ko: !!ko, s: score };
+    const c = rectC(ref.current);
+    if (!c) return;
+    if (mode === 'B' && p.c != null && (l.c || 0) > p.c) { FX.burst(c.x, c.t + c.h * 0.45, { color: '#FFD54A', colors: ['#FFD54A', '#fff', color], n: 16, r: 90 }); }
+    if (mode === 'B' && p.hp != null && l.hp != null && p.hp - l.hp >= 3) { FX.shake(ref.current, p.hp - l.hp >= 15); FX.text(c.x, c.t + 60, `-${Math.round(p.hp - l.hp)}%`, '#ff4d4d', 26); }
+    if (mode === 'A' && p.s != null && (score || 0) > p.s) { FX.burst(c.x, c.t + c.h * 0.45, { color, n: 16, r: 90 }); FX.text(c.x, c.t + 70, `+${score - p.s}`, color, 28); }
+    if (ko && !p.ko) { FX.shards({ ...c, l: c.l + c.w * 0.2, t: c.t + c.h * 0.3, w: c.w * 0.6, h: c.h * 0.3 }, color); fxSound('shatter'); }
+  }, [l.c, l.hp, !!ko, score]);
+  const prob = mode === 'B' ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA;
+  const hp = l.hp == null ? 100 : l.hp;
+  const sp = l.sp || 0;
+  const rows = prob ? Math.max(1, Math.ceil(prob.tiles.length / 3)) : 2;
+  return (
+    <div ref={ref} className="rounded-2xl p-2 flex flex-col relative overflow-hidden" style={{ background: `${COLORS.paper}f2`, borderTop: `8px solid ${color}`, minHeight: 0, height: '100%', opacity: ko ? 0.55 : 1, filter: ko ? 'grayscale(.8)' : 'none', boxShadow: won ? `0 0 0 4px ${COLORS.amber}, 0 0 30px ${COLORS.amber}` : '0 6px 20px rgba(0,0,0,.15)' }}>
+      <div className="flex items-end justify-between gap-2 mb-1" style={{ flexShrink: 0 }}>
+        <div className="min-w-0">
+          {nick && <Nick id={nick} size={big ? 12 : 10} block />}
+          <div className="font-black truncate" style={{ color, fontSize: big ? 'clamp(1.2rem, 2.6vw, 2rem)' : '1rem', ...bFont }}>{won ? '👑 ' : rank ? `${rank}位 ` : ''}{name}</div>
+        </div>
+        {ko ? <span className="text-sm font-black rounded-full px-3 py-0.5 text-white shrink-0" style={{ background: COLORS.coral }}>{ko.left ? '退出' : 'KO'}</span>
+          : mode === 'A' ? <span className="font-black shrink-0" style={{ color, fontSize: big ? '2rem' : '1.3rem', ...bFont }}>{score || 0}点</span>
+          : <span className="font-black shrink-0" style={{ color: COLORS.ink, fontSize: big ? '1.6rem' : '1.1rem', ...bFont }}>{l.c || 0}/{N}</span>}
+      </div>
+      {mode === 'B' ? (<div style={{ flexShrink: 0 }}>
+        <div className="relative"><HpBar hp={hp} height={big ? 26 : 18} />{l.sh ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡</span> : hp <= PINCH_HP && !ko ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH</span> : null}</div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs font-black" style={{ color: COLORS.inkSoft }}>{l.score || 0}点</span>
+          <span className="text-xs font-black" style={{ color: (l.combo || 0) >= 10 ? '#ff7b00' : (l.combo || 0) ? COLORS.coral : COLORS.inkSoft }}>{l.combo || 0}コンボ{(l.combo || 0) >= 10 ? ' 🔥' : ''}</span>
+          <div className="flex gap-0.5 flex-1">{Array.from({ length: SP_MAX }).map((_, k) => <div key={k} className="flex-1 rounded-sm" style={{ height: 7, background: k < sp ? (sp >= SP_MAX ? '#FFC300' : '#9b5de5') : `${COLORS.ink}18` }} />)}</div>
+        </div>
+        <div className="text-[11px] font-black mt-0.5" style={{ color: '#b3402c', minHeight: '1.1em' }}>{(l.pd > 0 || l.po > 0) ? `⚠ 攻撃が来る！ ${l.pd ? `体力-${l.pd}%` : ''} ${l.po ? `おじゃま${l.po}枚` : ''}` : l.oj ? `💥 おじゃまタイル${l.oj}枚入り` : ''}</div>
+      </div>) : (
+        <div className="flex items-center gap-2 mb-1 text-xs font-black" style={{ flexShrink: 0, color: COLORS.inkSoft }}>
+          <span style={{ color: combo ? COLORS.coral : COLORS.inkSoft }}>{combo || 0}コンボ</span>
+          {lock && <span className="rounded-full px-2 text-white" style={{ background: COLORS.coral }}>お手つき中</span>}
+        </div>
+      )}
+      {prob && !ko ? (<>
+        <div className="rounded-xl text-center py-2 my-1" style={{ background: '#fff', borderTop: `4px solid ${LEVEL_INFO[prob.level || l.lv || 1] ? LEVEL_INFO[prob.level || l.lv || 1].color : color}`, flexShrink: 0 }}>
+          <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>Lv.{prob.level || l.lv}</div>
+          <div className="font-black" style={{ color: COLORS.ink, fontSize: big ? 'clamp(1.2rem, 3.2vw, 2.4rem)' : '1.3rem', ...bFont }}><MathText text={formatPoly(prob.poly)} /></div>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 flex-1" style={{ gridTemplateRows: `repeat(${rows}, 1fr)`, minHeight: 0 }}>
+          {prob.tiles.map(t => <div key={t.id} className="rounded-lg flex items-center justify-center font-bold" style={{ background: COLORS.tile, border: `2px solid ${COLORS.sky}33`, color: COLORS.ink, fontSize: big ? 'clamp(0.8rem, 1.8vw, 1.5rem)' : '0.85rem', transform: `rotate(${hashRotation(t.id)}deg)`, ...bFont }}><MathText text={formatFactorTile(t.factor)} /></div>)}
+        </div>
+      </>) : <div className="flex-1 flex items-center justify-center text-3xl font-black" style={{ color: COLORS.inkSoft, ...bFont }}>{ko ? '💀' : won ? '🏆' : '…'}</div>}
+    </div>
+  );
+}
+function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, claims, startAt, title, onClose }) {
+  useTick(250, true);
+  const N = DIFFICULTY_CONFIG[diff || 'easy'].clearCount;
+  const now = fbNow();
+  const cl = claims || [];
+  let q = 0; while (cl[q]) q++;
+  const scA = mode === 'A' ? scoreA(bank, cl, ids, N, {}) : null;
+  const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
+  const rank = (result && result.rank) || {};
+  const two = ids.length === 2;
+  const feed = useCommentary(ids, live, ko, names, mode === 'B' ? N : null);
+  return (
+    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 85, background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, padding: '0.6rem', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="flex items-center justify-between gap-2 mb-2" style={{ flexShrink: 0 }}>
+        <button onClick={onClose} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paper, color: COLORS.inkSoft }}>← もどる</button>
+        <div className="text-sm font-black rounded-full px-4 py-1 text-white truncate" style={{ background: BATTLE_MODES[mode].color, ...bFont }}>📺 {title} ・ {BATTLE_MODES[mode].short}{mode === 'A' && probA ? ` ・ 問${q + 1}/${N}${q >= N - A_LASTSPURT ? ' 🔥2倍' : ''}` : ''}</div>
+        <div style={{ width: '4rem' }} />
+      </div>
+      {now < startAt && <div className="text-center text-3xl font-black mb-2" style={{ color: '#fff', textShadow: '0 3px 0 rgba(0,0,0,.25)', ...bFont }}>まもなく開始 {Math.max(1, Math.ceil((startAt - now) / 1000))}</div>}
+      {result && <div className="text-center text-3xl font-black mb-2" style={{ color: COLORS.amber, textShadow: '0 3px 0 rgba(0,0,0,.3)', ...bFont }}>{result.draw ? '引き分け！' : `👑 ${names[result.winner]} の勝ち！`}</div>}
+      <div className="relative flex-1 grid gap-2" style={{ minHeight: 0, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridTemplateRows: two ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
+        {ids.map((u, i) => <PlayerMirror key={u} idx={i} name={names[u]} nick={(nicks || {})[u]} mode={mode} N={N} bank={bank} live={(live || {})[u]} ko={(ko || {})[u]}
+          won={result && !result.draw && result.winner === u} rank={result ? rank[u] : null} score={scA ? scA.sc[u] : null} combo={scA ? scA.cb[u] : (live[u] || {}).combo} lock={((live || {})[u] || {}).lock > now} probA={probA} big={two} />)}
+        {two && <div className="absolute pointer-events-none font-black" style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: 'clamp(2rem, 5vw, 4rem)', color: COLORS.coral, textShadow: '0 3px 0 #fff, 0 0 18px #fff', ...bFont }}>VS</div>}
+      </div>
+      {feed.length > 0 && <div className="mt-2" style={{ flexShrink: 0 }}>{feed.slice(-1).map(f => <div key={f.id} className="rounded-xl px-3 py-1 text-center font-black shadow" style={{ background: '#ffffffee', color: f.color, animation: 'fxFeed 5s ease forwards', ...bFont }}>{f.txt}</div>)}</div>}
+    </div>
+  );
+}
+/* 大会：選んだ試合を分割画面で見る */
+function TourSplit({ code, state, m, onClose }) {
+  const mode = state.mode || 'B', diff = state.diff || 'easy';
+  const live = useFbValue(`rooms/${code}/live/${m.gid}`) || {};
+  const ko = useFbValue(`rooms/${code}/ko/${m.gid}`) || {};
+  const result = useFbValue(`rooms/${code}/result/${m.gid}`);
+  const claimsV = useFbValue(mode === 'A' ? `rooms/${code}/claims/${m.gid}` : null);
+  const claims = useMemo(() => claimsArr(claimsV), [claimsV]);
+  const bank = useMemo(() => makeBank(m.seed, DIFFICULTY_CONFIG[diff].tileCount), [m.seed, diff]);
+  const rounds = toArrB(state.rounds).map(toArrB);
+  return <SplitView ids={[m.a, m.b]} names={state.names || {}} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={m.startAt}
+    title={`${tourRoundLabel(state.round || 0, rounds, state)}`} onClose={onClose} />;
+}
+
+/* ---------- 接続チェック：つながらない端末の原因を調べる ---------- */
+function ConnCheck() {
+  const [open, setOpen] = useState(false);
+  const [r, setR] = useState(null);
+  const run = async () => {
+    setR(null);
+    const out = [];
+    out.push(['インターネット', navigator.onLine ? 'ok' : 'ng', navigator.onLine ? 'つながっている' : 'オフライン']);
+    out.push(['オンライン機能の読み込み', window.firebase ? 'ok' : 'ng', window.firebase ? '読み込めた' : 'Firebaseの部品が読み込めない（フィルタリングの可能性）']);
+    fbStart();
+    const t0 = Date.now();
+    while (!FB.uid && !FB.err && Date.now() - t0 < 6000) await new Promise(x => setTimeout(x, 200));
+    out.push(['サーバーへのログイン', FB.uid ? 'ok' : 'ng', FB.uid ? 'OK' : `できない（${FB.errCode || FB.err || '時間切れ'}）`]);
+    const t1 = Date.now();
+    while (FB.db && !FB.conn && Date.now() - t1 < 5000) await new Promise(x => setTimeout(x, 200));
+    out.push(['データベース', FB.conn ? 'ok' : 'ng', FB.conn ? `つながっている（時計のずれ ${Math.round((FB.off || 0) / 1000)}秒）` : 'つながらない（学校のネットワークで止められている可能性）']);
+    let gas = 'ng', gasMsg = '';
+    try { const c = new AbortController(); const tm = setTimeout(() => c.abort(), 8000); const res = await fetch(GAS_ENDPOINT_URL, { signal: c.signal }); clearTimeout(tm); gas = res.ok ? 'ok' : 'ng'; gasMsg = res.ok ? 'OK' : `HTTP ${res.status}`; }
+    catch (e) { gasMsg = `つながらない（${e.name || 'error'}）`; }
+    out.push(['ランキング（Google）', gas, gasMsg]);
+    let ls = 'ok'; try { localStorage.setItem('fxf_t', '1'); localStorage.removeItem('fxf_t'); } catch (e) { ls = 'ng'; }
+    out.push(['端末への保存', ls, ls === 'ok' ? 'できる' : 'できない（プライベートモードなど）']);
+    out.push(['ブラウザ', 'info', navigator.userAgent.replace(/Mozilla\/5\.0 /, '').slice(0, 120)]);
+    setR(out);
+  };
+  const text = r ? r.map(([a, st, b]) => `${st === 'ok' ? '○' : st === 'ng' ? '×' : '・'} ${a}：${b}`).join('\n') : '';
+  return (<>
+    <button onClick={() => { setOpen(true); run(); }} className="text-[10px] font-bold rounded-full px-3 py-1" style={{ background: '#ffffff33', color: '#ffffffcc' }}>📶 接続チェック</button>
+    {open && <div onClick={() => setOpen(false)} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 90 }}>
+      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl text-left" style={{ background: COLORS.paper, maxWidth: '26rem' }}>
+        <div className="flex items-center justify-between mb-2"><div className="font-black" style={{ color: COLORS.ink }}>📶 接続チェック</div><button onClick={() => setOpen(false)} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button></div>
+        {!r ? <p className="text-sm" style={{ color: COLORS.inkSoft }}>調べています…（10秒ほど）</p> : (<>
+          {r.map(([a, st, b]) => <div key={a} className="flex gap-2 text-xs py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}><span className="font-black w-5">{st === 'ok' ? '✅' : st === 'ng' ? '❌' : 'ℹ️'}</span><span className="font-black w-28 shrink-0" style={{ color: COLORS.ink }}>{a}</span><span className="break-all" style={{ color: COLORS.inkSoft }}>{b}</span></div>)}
+          <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>うまくいかないときは、この画面を先生に見せてください。</p>
+          <div className="flex gap-2 mt-2">
+            <button onClick={() => { try { navigator.clipboard.writeText(text); } catch (e) {} }} className="flex-1 rounded-xl py-2 text-xs font-black" style={{ background: COLORS.paperDark, color: COLORS.ink }}>結果をコピー</button>
+            <button onClick={run} className="flex-1 rounded-xl py-2 text-xs font-black text-white" style={{ background: COLORS.sky }}>もう一度調べる</button>
+            <button onClick={() => location.reload()} className="flex-1 rounded-xl py-2 text-xs font-black text-white" style={{ background: COLORS.leaf }}>読み込みなおす</button>
+          </div>
+        </>)}
+      </div>
+    </div>}
+  </>);
+}
+
 function FontImport() {
   return (
     <style>{`
@@ -4073,8 +4228,22 @@ function fbStart() {
     firebase.initializeApp(FB_CONFIG);
     FB.db = firebase.database();
     FB.db.ref('.info/serverTimeOffset').on('value', s => { FB.off = s.val() || 0; });
+    FB.db.ref('.info/connected').on('value', s => { FB.conn = !!s.val(); if (FB.conn) FB.everConn = true; });
     firebase.auth().onAuthStateChanged(u => { if (u) { FB.uid = u.uid; FB.err = ''; FB.subs.forEach(f => f()); } });
-    firebase.auth().signInAnonymously().catch(e => { FB.err = 'サーバーにログインできませんでした（' + (e.code || 'error') + '）'; FB.subs.forEach(f => f()); });
+    // 匿名ログイン：失敗したら少し待って3回までやり直す。端末に保存できないブラウザ（プライベートモードなど）では保存なしで入る
+    let tries = 0;
+    const signIn = () => firebase.auth().signInAnonymously().catch(e => {
+      FB.errCode = e.code || String(e.message || e);
+      if (e.code === 'auth/web-storage-unsupported' && firebase.auth.Auth && !FB.noPersist) {
+        FB.noPersist = true;
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE).then(signIn).catch(() => {});
+        return;
+      }
+      if (tries++ < 3) { setTimeout(signIn, 1500 * tries); return; }
+      FB.err = 'サーバーにログインできませんでした（' + (e.code || 'error') + '）。「📶 接続チェック」で原因を確かめられます';
+      FB.subs.forEach(f => f());
+    });
+    signIn();
   } catch (e) { FB.err = 'オンライン機能の初期化に失敗しました'; }
 }
 /* CPU練習のあいだは、端末の中だけで動く小さなデータベース（LDB）を使う */
@@ -6185,9 +6354,12 @@ function SpectatorView({ code, state, players, onLeave }) {
   const slots = [0, 1, 2, 3].map(i => ids[i] || null);
   const rank = (result && result.rank) || {};
   const feed = useCommentary(ids, live, ko, names, mode === 'B' ? N : null);
+  const [split, setSplit] = useState(false);
+  if (split) return <SplitView ids={ids} names={names} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={state.startAt} title={`観戦 ・ 部屋${code}`} onClose={() => setSplit(false)} />;
   return (<>
     <div className="flex items-center justify-between mb-3">
       <button onClick={onLeave} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← 観戦をやめる</button>
+      <button onClick={() => setSplit(true)} className="text-xs font-black rounded-full px-3 py-1 shadow" style={{ background: COLORS.sky, color: '#fff' }}>📺 対戦画面で見る</button>
       <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: BATTLE_MODES[mode].color }}>👀 観戦中 ・ {BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label} ・ 部屋{code}</div>
     </div>
     {now < state.startAt && <Card className="mb-3 text-center"><div className="text-3xl font-black" style={{ color: COLORS.sky, ...bFont }}>まもなく開始 {Math.max(0, Math.ceil((state.startAt - now) / 1000))}</div></Card>}
@@ -6269,7 +6441,7 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
 /* 1試合の勝ち上がり（結果がまだなら null） */
 const tourWinner = (m, res) => !m.b ? m.a : !res ? null : res.winner ? res.winner : (hashSeed(m.gid) % 2 ? m.b : m.a);
 
-function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed }) {
+function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, onWatch }) {
   const mode = state.mode || 'B', diff = state.diff || 'easy';
   const N = DIFFICULTY_CONFIG[diff].clearCount;
   const live = useFbValue(m.b ? `rooms/${code}/live/${m.gid}` : null) || {};
@@ -6309,7 +6481,10 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed }
       </div>)}
       {m.b && <div className="flex items-center justify-between mt-0.5">
         <span className="text-[9px] font-bold" style={{ color: w ? COLORS.leafDeep : started ? COLORS.coral : COLORS.inkSoft }}>{w ? (res && res.draw ? '引き分け→抽選' : res && res.reason === 'judge' ? 'ホスト判定' : '決着') : started ? '対戦中' : 'まもなく開始'}</span>
-        {isHost && !w && started && <button onClick={() => { if (window.confirm('この試合を打ち切って勝ち上がりを決めますか？（つながっている人／いなければ抽選）')) force(); }} className="text-[9px] font-bold rounded px-1.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>打ち切り</button>}
+        <span className="flex items-center gap-1">
+          {onWatch && <button onClick={() => onWatch(m.gid)} className="text-[10px] font-black rounded px-1.5" style={{ background: `${COLORS.sky}22`, color: COLORS.sky }}>📺 見る</button>}
+          {isHost && !w && started && <button onClick={() => { if (window.confirm('この試合を打ち切って勝ち上がりを決めますか？（つながっている人／いなければ抽選）')) force(); }} className="text-[9px] font-bold rounded px-1.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>打ち切り</button>}
+        </span>
       </div>}
     </div>
   );
@@ -6317,6 +6492,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed }
 
 function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLobby }) {
   const results = useFbValue(`rooms/${code}/result`) || {};
+  const [watch, setWatch] = useState(null);   // 分割画面で見ている試合の gid
   useTick(500, true);
   const rounds = toArrB(state.rounds).map(toArrB);
   const r = state.round || 0;
@@ -6356,6 +6532,8 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     else if (!names[me]) myMsg = ['観戦中', COLORS.inkSoft];
     else myMsg = ['試合の準備中…', COLORS.inkSoft];
   }
+  const watchM = watch && cur.find(m => m.gid === watch);
+  if (watchM && watchM.b) return <TourSplit code={code} state={state} m={watchM} onClose={() => setWatch(null)} />;
   return (<>
     <div className="flex items-center justify-between mb-3 gap-2">
       <button onClick={() => { if (!isHost || window.confirm('大会を閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? '大会を閉じる' : '部屋を出る'}</button>
@@ -6373,7 +6551,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     {myMsg && <Card className="mb-3 text-center"><div className="font-black" style={{ color: myMsg[1], ...bFont }}>{myMsg[0]}</div></Card>}
     {!champion && <CommentaryFeed feed={feed} big={isHost} />}
     {!champion && <div className="grid gap-2 mb-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${isHost ? '15rem' : '13rem'}, 1fr))` }}>
-      {cur.map(m => <TourMatchCard key={m.gid} code={code} m={m} state={state} players={players} res={results[m.gid]} isHost={isHost} me={me} big={isHost && cur.length <= 4} onFeed={onFeed} />)}
+      {cur.map(m => <TourMatchCard key={m.gid} code={code} m={m} state={state} players={players} res={results[m.gid]} isHost={isHost} me={me} big={isHost && cur.length <= 4} onFeed={onFeed} onWatch={setWatch} />)}
     </div>}
     {isHost && !champion && <div className="mb-3"><BigBtn color={COLORS.amber} disabled={!allDone} onClick={() => onAdvance(winners)}>{!allDone ? `試合中…（${winners.filter(Boolean).length}/${cur.length} 決着）` : cur.length === 1 ? '優勝者を決定！' : `次の回戦へ（${nextLabel}）`}</BigBtn></div>}
     {isHost && champion && <div className="mb-3"><BigBtn color={COLORS.amber} onClick={onLobby}>同じメンバーでもう一度大会をひらく</BigBtn></div>}
