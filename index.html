@@ -2062,7 +2062,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.6.0
+              ver.6.1
             </span>
           </div>
 
@@ -5921,6 +5921,8 @@ function BattleApp({ acct: who, onExit }) {
   const qmRef = useRef(null); qmRef.current = qm;
   const QM_STALE = 25000;
   const slotRef = () => FB.db.ref('games/factor/qm/slot');
+  // 待ち枠をいつも読んでおく（トランザクションが最新の値で動くように）
+  useEffect(() => { if (!fb.ready) return; const r = slotRef(), f = () => {}; r.on('value', f, () => {}); return () => r.off('value', f); }, [fb.ready]);
   async function createQmRoom() {
     const db = FB.db;
     for (let t = 0; t < 12; t++) {
@@ -5942,9 +5944,12 @@ function BattleApp({ acct: who, onExit }) {
     // 1) 待っている人がいれば、その部屋に入る（いちばん先に取った人だけが入れる）
     let taken = null;
     try {
+      // ※トランザクションは最初「手元の値（まだ読んでいなければ null）」で呼ばれる。
+      //   null のときに中止（undefined）すると本物の値で呼び直されないので、null を返して呼び直してもらう
       const r = await slotRef().transaction(cur => {
         taken = null;
-        if (cur && cur.host !== FB.uid && cur.at > fbNow() - QM_STALE) { taken = cur; return null; }
+        if (!cur) return null;
+        if (cur.host !== FB.uid && cur.at > fbNow() - QM_STALE) { taken = cur; return null; }
         return;
       });
       if (r.committed && taken) {
@@ -5972,14 +5977,14 @@ function BattleApp({ acct: who, onExit }) {
   function cancelQm() {
     const q = qmRef.current;
     if (!q) return;
-    slotRef().transaction(cur => cur && cur.host === FB.uid && cur.code === q.code ? null : undefined).catch(() => {});
+    slotRef().transaction(cur => !cur || (cur.host === FB.uid && cur.code === q.code) ? null : undefined).catch(() => {});
     closeQmRoom(q.code);
     setQm(null);
   }
   // 待っているあいだ：ハートビート（自分がまだいることを知らせる）と、相手が来たかの見張り
   useEffect(() => {
     if (!qm || qm.found) return;
-    const hb = setInterval(() => { slotRef().transaction(cur => cur && cur.host === FB.uid && cur.code === qm.code ? { ...cur, at: fbNow() } : undefined).catch(() => {}); }, 8000);
+    const hb = setInterval(() => { slotRef().transaction(cur => !cur ? null : cur.host === FB.uid && cur.code === qm.code ? { ...cur, at: fbNow() } : undefined).catch(() => {}); }, 8000);
     const pref = FB.db.ref(`games/factor/rooms/${qm.code}/players`);
     const fn = snap => {
       const pl = snap.val() || {};
@@ -6005,7 +6010,7 @@ function BattleApp({ acct: who, onExit }) {
     if (!q || q.found || !qmRef.current || qmRef.current.code !== q.code || qmRef.current.found) return;
     // 待ち枠を自分で取り消せたときだけ（その直前に人が入ってきていたら、そちらを優先）
     let mine = false;
-    try { const r = await slotRef().transaction(cur => { if (cur && cur.host === FB.uid && cur.code === q.code) { mine = true; return null; } return; }); mine = mine && r.committed; } catch (e) { mine = false; }
+    try { const r = await slotRef().transaction(cur => { mine = false; if (!cur) return null; if (cur.host === FB.uid && cur.code === q.code) { mine = true; return null; } return; }); mine = mine && r.committed; } catch (e) { mine = false; }
     if (!mine) return;
     try { const pl = (await FB.db.ref(`games/factor/rooms/${q.code}/players`).get()).val() || {}; if (Object.keys(pl).some(k => k !== FB.uid && pl[k] && pl[k].name)) return; } catch (e) {}
     if (!qmRef.current || qmRef.current.found) return;
