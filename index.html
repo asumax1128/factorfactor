@@ -2002,12 +2002,13 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.4.5
+              ver.5.0
             </span>
           </div>
 
           {acct && <AccountBar acct={acct} onLogout={onLogout} />}
           <DailyCard acct={acct} onOpen={() => onMode && onMode('daily')} />
+          <WeeklyCard onOpen={() => onMode && onMode('raidw')} />
           <button onClick={() => onMode && onMode('learn')} className="w-full rounded-2xl py-2.5 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95" style={{ background: 'linear-gradient(90deg,#7B61FF,#6BD4E8)', color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>📈 学びの部屋（苦手分析・苦手ドリル・型の図鑑）</button>
 
           <button
@@ -3538,6 +3539,399 @@ function LearnApp({ acct, onExit }) {
   );
 }
 
+/* =====================================================================
+   クラス協力レイド（v5）
+   ・授業用：先生が部屋を開き、プロジェクターに巨大ボス。全員で制限時間内に体力を削る
+   ・常設：今週のボスを、全員の累計ダメージで倒す（1回60秒の出撃）
+   ・問題はひとりひとりに合わせて出る（2問続けて正解でレベルアップ、ミスでレベルダウン）
+   ・ダメージ＝レベルの点 ×（Perfect 1.5／Excellent 1.3／Great 1.1）×（コンボで最大1.5倍）
+   ===================================================================== */
+const BOSSES = [
+  { id: 'dragon', name: '因数ドラゴン', icon: '🐉', color: '#2a9d8f' },
+  { id: 'kraken', name: 'たすきがけクラーケン', icon: '🦑', color: '#7B61FF' },
+  { id: 'golem', name: '3乗ゴーレム', icon: '🗿', color: '#8d6e63' },
+  { id: 'maou', name: '平方の魔王', icon: '👿', color: '#b5487e' },
+  { id: 'slime', name: '共通因数スライム', icon: '🫠', color: '#43C97B' },
+  { id: 'robot', name: '展開ロボ Ω', icon: '🤖', color: '#457b9d' },
+];
+const bossOf = id => BOSSES.find(b => b.id === id) || BOSSES[0];
+const RAID_JMUL = { Perfect: 1.5, Excellent: 1.3, Great: 1.1 };
+const raidDamage = (lv, judge, combo) => Math.round((LEVEL_POINTS[lv] || 10) * (RAID_JMUL[judge] || 1) * (1 + 0.05 * Math.min(10, combo)));
+const RAID_POWER = { easy: { label: 'やさしい', k: 0.7 }, normal: { label: 'ふつう', k: 1 }, hard: { label: 'つよい', k: 1.4 } };
+const RAID_PER_MIN = 100;             // ひとり1分あたりのめやすダメージ（ボスの体力の計算に使う）
+const WEEKLY_HP = 30000, WEEKLY_SESSION = 60000;
+/* 今週（月曜はじまり・日本時間）のキー */
+function weekKey(t = Date.now()) { const d = new Date(t + 9 * 3600e3); const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); }
+const weeklyBoss = wk => BOSSES[hashSeed('wk:' + wk) % BOSSES.length];
+
+/* ---------- ボスの表示 ---------- */
+function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
+  const ref = useRef(null);
+  const v = Math.max(0, hp), r = max ? v / max : 0;
+  const dead = v <= 0;
+  useEffect(() => { if (hitKey && ref.current) FX.shake(ref.current, false); }, [hitKey]);
+  return (
+    <div className="rounded-2xl px-3 py-2 shadow-lg relative overflow-hidden" style={{ background: dead ? 'linear-gradient(180deg,#fff3c4,#fff)' : r < 0.3 ? 'linear-gradient(180deg,#ffe1d9,#fff)' : COLORS.paper, flexShrink: 0, border: `3px solid ${boss.color}55` }}>
+      <div className="flex items-center gap-3">
+        <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.icon}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between flex-wrap gap-x-2">
+            <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}</span>
+            {timeLeft != null && !dead && <span className={`font-black ${big ? 'text-3xl' : 'text-sm'}`} style={{ color: timeLeft < 30000 ? COLORS.coral : COLORS.ink, ...bFont }}>⏱ {Math.floor(Math.max(0, timeLeft) / 60000)}:{String(Math.floor(Math.max(0, timeLeft) / 1000) % 60).padStart(2, '0')}</span>}
+          </div>
+          <div className="relative rounded-full overflow-hidden mt-1" style={{ height: big ? 34 : 16, background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
+            <div className="h-full rounded-full" style={{ width: `${r * 100}%`, background: r < 0.3 ? 'linear-gradient(90deg,#ff2e2e,#ff7b00)' : `linear-gradient(90deg, ${boss.color}, #ff7b00)`, transition: 'width 400ms ease' }} />
+            <div className="absolute inset-0 flex items-center justify-center font-black" style={{ fontSize: big ? '1.1rem' : '0.65rem', color: r > 0.5 ? '#fff' : COLORS.ink, textShadow: r > 0.5 ? '0 1px 2px rgba(0,0,0,.4)' : 'none' }}>{dead ? '撃破！' : `HP ${Math.ceil(v).toLocaleString()} / ${Math.round(max).toLocaleString()}`}</div>
+          </div>
+          {extra}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- レイドで問題を解く画面（授業用・常設 共通） ---------- */
+function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, sessionInfo }) {
+  const [muted, setMuted] = useState(false);
+  const sound = useBattleSound(muted);
+  const seen = useRef(new Set());
+  const S = useRef({ lv: 1, streak: 0, combo: 0, dmg: 0, n: 0, pf: 0, best: 0, stunUntil: 0, qs: Date.now() });
+  const [prob, setProb] = useState(() => { const b = buildBoard(1, seen.current, 6); return { level: 1, ...b }; });
+  const [flash, setFlash] = useState({});
+  const [judge, setJudge] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [hitKey, setHitKey] = useState(0);
+  useTick(200, true);
+  useEffect(() => { sound.bgm(true); return () => sound.bgm(false); }, []);
+  useEffect(() => { if (ended) sound.bgm(false); }, [ended]);
+  useEffect(() => {
+    const block = e => { if (e.cancelable && !(e.target.closest && e.target.closest('.fx-scroll'))) e.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    return () => document.removeEventListener('touchmove', block);
+  }, []);
+  const s = S.current;
+  const nextProb = lv => { const b = buildBoard(lv, seen.current, 6); setProb({ level: lv, ...b }); setFlash({}); setBusy(false); s.qs = Date.now(); };
+  const onMatch = useCallback((id1, id2) => {
+    if (busy || ended || Date.now() < s.stunUntil) return;
+    const t1 = prob.tiles.find(t => t.id === id1), t2 = prob.tiles.find(t => t.id === id2);
+    if (!t1 || !t2) return;
+    const ms = Date.now() - s.qs;
+    const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
+    if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
+      const j = getJudgment(ms);
+      const d = raidDamage(prob.level, j.label, s.combo);
+      s.combo++; s.best = Math.max(s.best, s.combo); s.dmg += d; s.n++; if (j.label === 'Perfect') s.pf++;
+      s.streak++;
+      setBusy(true); setFlash({ [id1]: 'correct', [id2]: 'correct' });
+      fxMerge(els, j.color);
+      sound.play('ok', 1 + Math.min(s.combo, 15) * 0.035);
+      setJudge({ label: j.label, color: j.color }); setTimeout(() => setJudge(null), 600);
+      setTimeout(() => {
+        const tg = rectC(qs('[data-fxtarget]')), bc = rectC(qs('[data-boss]'));
+        FX.fly(tg, bc, { color: '#ff7b00', label: d, big: d >= 40, dur: 420, onEnd: () => { if (bc) { FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 16, r: 70 }); FX.text(bc.x, bc.y - 10, `-${d}`, '#ff2e2e', d >= 40 ? 34 : 26); } setHitKey(k => k + 1); sound.play('hit'); } });
+      }, 300);
+      onHit && onHit(d, { j: j.label, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms, combo: s.combo, pf: s.pf, best: s.best, total: s.dmg, n: s.n });
+      let lv = prob.level;
+      if (s.streak >= 2 && lv < 9) { lv++; s.streak = 0; }
+      setTimeout(() => nextProb(lv), 420);
+    } else {
+      sound.play('buzz'); s.combo = 0; s.streak = 0;
+      setFlash({ [id1]: 'wrong', [id2]: 'wrong' });
+      FX.shake(els[0] && els[0].parentElement);
+      s.stunUntil = Date.now() + 1200;
+      onHit && onHit(0, { miss: true, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms });
+      const lv = Math.max(1, prob.level - 1);
+      setBusy(true);
+      setTimeout(() => nextProb(lv), 900);
+    }
+  }, [busy, ended, prob]);
+  const left = endAt ? endAt - fbNow() : null;
+  return (
+    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+      <FontImport />
+      <JudgePop judge={judge} />
+      <ComboAura combo={s.combo} />
+      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
+        <div className="flex items-center justify-between mb-1" style={{ flexShrink: 0 }}>
+          <button onClick={() => { if (window.confirm('レイドをぬけますか？')) onQuit(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ ぬける</button>
+          <div className="text-xs font-black rounded-full px-3 py-0.5 text-white" style={{ background: boss.color, ...bFont }}>{title}</div>
+          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
+        </div>
+        <div className="mb-1"><BossPanel boss={boss} hp={hp} max={max} timeLeft={left} hitKey={hitKey} /></div>
+        <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
+          {statBox('あなたのダメージ', s.dmg.toLocaleString(), '#ff7b00')}{statBox('レベル', `Lv.${prob.level}`, LEVEL_INFO[prob.level].color)}{statBox('COMBO', s.combo, s.combo ? COLORS.coral : null)}
+        </div>
+        {sessionInfo}
+        {ended ? <div className="fx-scroll flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>{footer}</div> : (<>
+          <TargetCard poly={prob.poly} level={prob.level} qLabel={Date.now() < s.stunUntil ? 'ひるみ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} />
+          <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || Date.now() < s.stunUntil} dim={Date.now() < s.stunUntil} flash={flash} />
+          <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 授業用レイド：ロビー（先生が設定） ---------- */
+function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStart, onLeave }) {
+  const list = Object.entries(players).filter(([k, p]) => p && p.name && k !== me).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+  const boss = bossOf(state.boss);
+  const minutes = state.minutes || 3, power = state.power || 'normal';
+  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k);
+  return (<>
+    <Card className="mb-4 text-center" style={{ background: 'linear-gradient(180deg,#e8fff6,#fff)' }}>
+      <div className="text-sm font-black" style={{ color: boss.color }}>🐉 クラス協力レイド</div>
+      <div className="font-black tracking-widest my-1" style={{ color: COLORS.sky, fontSize: isHost ? 'clamp(3rem,10vw,6rem)' : '3rem', ...bFont }}>{code}</div>
+      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? 'みんなは部屋コードを入れて「参加」。先生（ホスト）の画面をプロジェクターに映してください' : 'エントリーしました！ 先生がスタートするのを待っています…'}</div>
+    </Card>
+    <Card className="mb-4 text-center">
+      <div style={{ fontSize: '5rem', animation: 'fxPulseGold 1.6s ease-in-out infinite' }}>{boss.icon}</div>
+      <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name}</div>
+      <div className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}</div>
+    </Card>
+    {isHost && <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ボス</div>
+      <div className="grid grid-cols-3 gap-2 mb-3">{BOSSES.map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="rounded-xl py-2 text-xs font-black shadow" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : COLORS.paperDark, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}</button>)}</div>
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>制限時間</div>
+      <Seg items={[[2, '2分'], [3, '3分'], [5, '5分'], [7, '7分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
+      <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>ボスの強さ（体力は人数×時間で自動で決まります）</div>
+      <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
+    </Card>}
+    <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>参加者（{list.length}人）</div>
+      {list.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも来ていません</p> : (
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${isHost ? '8.5rem' : '6.5rem'}, 1fr))` }}>
+          {list.map(([k, p], i) => <div key={k} className="rounded-lg px-2 py-1 text-sm font-bold truncate" style={{ background: k === me ? `${COLORS.sky}33` : COLORS.paperDark, color: COLORS.ink, animation: `fxEnter 420ms ${Math.min(i, 20) * 30}ms both`, ...bFont }}>{p.nick ? <Nick id={p.nick} size={8} block /> : null}{p.name}</div>)}
+        </div>
+      )}
+    </Card>
+    {isHost && <div className="mb-3"><BigBtn color={boss.color} disabled={list.length < 1} onClick={() => onStart(hp)}>{list.length < 1 ? '参加者を待っています…' : `レイド開始！（${list.length}人）`}</BigBtn></div>}
+    <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>{isHost ? 'レイドを閉じる' : '部屋を出る'}</BigBtn>
+  </>);
+}
+
+/* 授業用レイドの記録を読む（だれが何ダメージ与えたか） */
+function useRaidTally(code, gid) {
+  const v = useFbValue(code && gid ? `rooms/${code}/rd/${gid}` : null) || {};
+  return useMemo(() => {
+    const rows = Object.entries(v).map(([u, e]) => ({ u, ...e })).filter(e => e && e.d != null);
+    const total = rows.reduce((a, e) => a + (e.d || 0), 0);
+    return { rows: rows.sort((a, b) => b.d - a.d), total, raw: v };
+  }, [v]);
+}
+/* 実況：だれかの最後の一撃が変わったら流す */
+function useRaidFeed(raw) {
+  const [feed, setFeed] = useState([]);
+  const prev = useRef({});
+  useEffect(() => {
+    Object.entries(raw || {}).forEach(([u, e]) => {
+      const l = e && e.last; if (!l || prev.current[u] === l.at) return;
+      prev.current[u] = l.at;
+      if (l.j === 'Perfect' || l.d >= 40 || (l.c && l.c % 5 === 0)) setFeed(f => [...f.slice(-5), { id: `${u}${l.at}`, txt: `${l.j === 'Perfect' ? '⭐' : '💥'} ${e.name}${l.c >= 5 ? ` ${l.c}コンボ` : ''} ${l.j === 'Perfect' ? 'Perfect！' : ''} ${l.d}ダメージ`, color: l.j === 'Perfect' ? '#c99a00' : '#e76f51' }]);
+    });
+  }, [raw]);
+  return feed;
+}
+
+/* ---------- 授業用レイド：プロジェクター（先生）・観戦の画面 ---------- */
+function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
+  const { rows, total, raw } = useRaidTally(code, state.gid);
+  const feed = useRaidFeed(raw);
+  useTick(250, true);
+  const boss = bossOf(state.boss);
+  const hp = state.hpMax - total;
+  const now = fbNow();
+  const counting = now < state.startAt;
+  const left = state.endAt - now;
+  const won = hp <= 0, over = won || left <= 0;
+  const [hitKey, setHitKey] = useState(0);
+  const lastTotal = useRef(0);
+  useEffect(() => {
+    const d = total - lastTotal.current; lastTotal.current = total;
+    if (d > 0) { setHitKey(k => k + 1); const bc = rectC(qs('[data-boss]')); if (bc) { FX.text(bc.x + (Math.random() - 0.5) * 120, bc.y - 20, `-${d}`, '#ff2e2e', 30); FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 10, r: 60 }); } }
+  }, [total]);
+  const shown = useRef(false);
+  useEffect(() => {
+    if (!over || shown.current) return; shown.current = true;
+    if (won) { FX.band('🎉 ボス撃破！', { color: '#d4a017', sub: `${rows.length}人の力を合わせて勝利！`, ms: 2600 }); FX.confetti(100); fxSound('levelup'); }
+    else FX.band('⏱ タイムアップ…', { color: '#457b9d', sub: `のこり体力 ${Math.ceil(hp)}`, ms: 2400 });
+  }, [over]);
+  const mvp = rows[0];
+  const pfKing = [...rows].sort((a, b) => (b.pf || 0) - (a.pf || 0))[0];
+  const comboKing = [...rows].sort((a, b) => (b.mc || 0) - (a.mc || 0))[0];
+  return (<>
+    <div className="flex items-center justify-between mb-3 gap-2">
+      <button onClick={() => { if (!isHost || window.confirm('レイドを閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? 'レイドを閉じる' : '観戦をやめる'}</button>
+      <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: boss.color }}>🐉 クラス協力レイド ・ 部屋{code} ・ {rows.length}人参加</div>
+    </div>
+    {counting ? <Card className="mb-3 text-center"><div className="text-5xl font-black" style={{ color: boss.color, ...bFont }}>まもなく開始 {Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div></Card>
+      : <div className="mb-3"><BossPanel boss={boss} hp={hp} max={state.hpMax} timeLeft={over ? 0 : left} big hitKey={hitKey} extra={<div className="text-sm font-black mt-1" style={{ color: COLORS.inkSoft }}>みんなの合計ダメージ {total.toLocaleString()}</div>} /></div>}
+    {over && <Card className="mb-3 text-center">
+      <div className="text-3xl font-black mb-2" style={{ color: won ? '#d4a017' : COLORS.sky, ...bFont }}>{won ? '🎉 撃破成功！' : '⏱ 時間切れ… 次こそ！'}</div>
+      <div className="grid grid-cols-3 gap-2">
+        {[['🏅 MVP（ダメージ）', mvp && `${mvp.name}`, mvp && `${mvp.d}`], ['⭐ Perfect王', pfKing && pfKing.name, pfKing && `${pfKing.pf || 0}回`], ['🔥 コンボ王', comboKing && comboKing.name, comboKing && `${comboKing.mc || 0}コンボ`]].map(([t, n, v]) => (
+          <div key={t} className="rounded-xl py-2 px-1" style={{ background: COLORS.paperDark }}><div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>{t}</div><div className="font-black text-lg truncate" style={{ color: COLORS.ink, ...bFont }}>{n || '−'}</div><div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{v || ''}</div></div>
+        ))}
+      </div>
+      {isHost && <div className="mt-3"><BigBtn color={boss.color} onClick={onAgain}>もう一度（ロビーへ）</BigBtn></div>}
+    </Card>}
+    {!over && <CommentaryFeed feed={feed} big={isHost} />}
+    <Card className="mb-3">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ダメージランキング</div>
+      <div className="grid gap-x-4" style={{ gridTemplateColumns: isHost ? 'repeat(auto-fill, minmax(16rem, 1fr))' : '1fr' }}>
+        {rows.slice(0, isHost ? 40 : 20).map((r, i) => (
+          <div key={r.u} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+            <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+            <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+            <div className="rounded-full overflow-hidden" style={{ width: '5rem', height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${mvp ? r.d / mvp.d * 100 : 0}%`, background: boss.color }} /></div>
+            <span className="font-black w-14 text-right" style={{ color: '#ff7b00' }}>{r.d}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  </>);
+}
+
+/* ---------- 授業用レイド：参加者の画面 ---------- */
+function RaidClassPlay({ code, state, acct, who, onLeave }) {
+  const { rows, total } = useRaidTally(code, state.gid);
+  const boss = bossOf(state.boss);
+  const me = myUid();
+  const hp = state.hpMax - total;
+  useTick(500, true);
+  const now = fbNow();
+  const over = hp <= 0 || now >= state.endAt;
+  const lrec = useRef([]);
+  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0 });
+  const [exp, setExp] = useState(null);
+  const done = useRef(false);
+  useEffect(() => {
+    if (!over || done.current) return; done.current = true;
+    if (hp <= 0) { FX.band('🎉 ボス撃破！', { color: '#d4a017', ms: 2200 }); FX.confetti(80); }
+    flushLearn(who, lrec.current);
+    addExp(who, (hp <= 0 ? 30 : 15) + Math.min(30, Math.floor(S.current.d / 20))).then(setExp);
+  }, [over]);
+  if (now < state.startAt) return (
+    <div className="min-h-screen w-full flex flex-col items-center justify-center" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})` }}>
+      <FontImport />
+      <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}>{boss.icon}</div>
+      <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name} があらわれた！</div>
+      <div className="font-black mt-4" style={{ fontSize: '5rem', color: '#fff', textShadow: `0 6px 0 ${COLORS.forestDeep}`, ...bFont }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
+    </div>
+  );
+  const myRank = rows.findIndex(r => r.u === me) + 1;
+  return <RaidPlay boss={boss} hp={hp} max={state.hpMax} endAt={state.endAt} ended={over} title={`🐉 クラス協力レイド ・ ${rows.length}人`}
+    onQuit={onLeave}
+    onHit={(d, info) => {
+      lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms });
+      if (info.miss) return;
+      const s = S.current; s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n;
+      fref(`rooms/${code}/rd/${state.gid}/${me}`).set({ d: s.d, pf: s.pf, mc: s.mc, n: s.n, name: (who && who.name) || 'ゲスト', last: { d, j: info.j, c: info.combo, at: Date.now() } }).catch(() => {});
+    }}
+    footer={<div className="py-2">
+      <Card className="mb-2 text-center">
+        <div className="text-2xl font-black" style={{ color: hp <= 0 ? '#d4a017' : COLORS.sky, ...bFont }}>{hp <= 0 ? '🎉 撃破成功！' : '⏱ 時間切れ…'}</div>
+        <div className="text-sm font-bold" style={{ color: COLORS.ink }}>あなたのダメージ {S.current.d}（{myRank || '-'}位 / {rows.length}人）・ Perfect {S.current.pf}回 ・ 最大{S.current.mc}コンボ</div>
+        {exp && <div className="mt-2 text-left"><ExpGain before={exp.before} after={exp.after} label="レイドの経験値" /></div>}
+      </Card>
+      <p className="text-center text-xs font-bold mb-2" style={{ color: COLORS.inkSoft }}>先生が次のレイドを始めるのを待っています…</p>
+      <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+    </div>} />;
+}
+
+/* =====================================================================
+   常設：今週のボス（全員の累計ダメージで倒す）
+   ===================================================================== */
+function WeeklyRaidApp({ acct, onExit }) {
+  const wk = weekKey();
+  const boss = weeklyBoss(wk);
+  const fb = useFbReady();
+  const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
+  const rows = useMemo(() => Object.entries(v).map(([k, e]) => ({ k, ...e })).filter(e => e && e.d).sort((a, b) => b.d - a.d), [v]);
+  const total = rows.reduce((a, e) => a + (e.d || 0), 0);
+  const hp = WEEKLY_HP - total;
+  const meKey = isReal(acct) ? acct.key : null;
+  const mine = meKey ? rows.find(r => r.k === meKey) : null;
+  const [scr, setScr] = useState('home');
+  const [endAt, setEndAt] = useState(0);
+  const [res, setRes] = useState(null);
+  const lrec = useRef([]);
+  const sess = useRef({ d: 0 });
+  useTick(500, scr === 'play');
+  const nick = useRef('');
+  useEffect(() => { if (meKey && FB.db) FB.db.ref(`games/factor/accounts/${meKey}/stats/nick`).get().then(s => { nick.current = s.val() || ''; }).catch(() => {}); }, [meKey]);
+  const sessionOver = scr === 'play' && Date.now() >= endAt;
+  useEffect(() => {
+    if (!sessionOver) return;
+    flushLearn(acct, lrec.current); lrec.current = [];
+    addExp(acct, 10 + Math.min(30, Math.floor(sess.current.d / 15))).then(e => setRes({ d: sess.current.d, exp: e }));
+    setScr('done');
+  }, [sessionOver]);
+  if (scr === 'play') return <RaidPlay boss={boss} hp={hp} max={WEEKLY_HP} endAt={endAt} ended={false} title={`🗓 今週のボス ・ 出撃中`}
+    onQuit={() => { setEndAt(Date.now()); }}
+    onHit={(d, info) => {
+      lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms });
+      if (info.miss || !d) return;
+      sess.current.d += d;
+      if (meKey && FB.db) FB.db.ref(`games/factor/raidw/${wk}/dmg/${meKey}`).transaction(e => { e = e || {}; e.d = (e.d || 0) + d; e.name = acct.name; e.nick = nick.current || ''; e.at = Date.now(); return e; }).catch(() => {});
+    }} />;
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <FontImport />
+      <div className="w-full" style={{ maxWidth: '30rem' }}>
+        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <div className="text-center mb-3">
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>🗓 今週のボス</div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{wk.replace(/-/g, '/')} の週 ・ みんなのダメージを合わせて倒そう（月曜に新しいボス）</div>
+        </div>
+        <div className="mb-3"><BossPanel boss={boss} hp={hp} max={WEEKLY_HP} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}</div>} /></div>
+        {scr === 'done' && res && <Card className="mb-3 text-center">
+          <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>出撃おつかれさま！</div>
+          <div className="text-3xl font-black" style={{ color: '#ff7b00', ...bFont }}>{res.d} ダメージ</div>
+          {!meKey && <div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>ゲストのダメージはボスに届きません（ログインすると届きます）</div>}
+          {res.exp && <div className="mt-2 text-left"><ExpGain before={res.exp.before} after={res.exp.after} label="出撃の経験値" /></div>}
+        </Card>}
+        <Card className="mb-3">
+          {hp <= 0 ? <div className="text-center text-lg font-black mb-2" style={{ color: '#d4a017' }}>🎉 今週のボスは撃破されました！ 来週のボスを待とう（出撃するとランキングは伸ばせます）</div> : null}
+          <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{WEEKLY_SESSION / 1000}秒。正解するとダメージ！ 2問続けて正解でレベルが上がり、ダメージも大きくなります。</p>
+          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0 }; setRes(null); setEndAt(Date.now() + WEEKLY_SESSION + 600); setScr('play'); }}>⚔ 出撃する（{WEEKLY_SESSION / 1000}秒）</BigBtn>
+          {mine && <p className="text-xs font-black text-center mt-2" style={{ color: COLORS.leafDeep }}>あなたの今週のダメージ {mine.d}（{rows.indexOf(mine) + 1}位）</p>}
+        </Card>
+        <Card className="mb-3">
+          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>今週のダメージランキング</div>
+          {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも出撃していません</p> : rows.slice(0, 30).map((r, i) => (
+            <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
+              <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+              <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} /> : null}{r.name}</span>
+              <span className="font-black" style={{ color: '#ff7b00' }}>{r.d}</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+    </div>
+  );
+}
+/* タイトル画面の札 */
+function WeeklyCard({ onOpen }) {
+  const wk = weekKey(), boss = weeklyBoss(wk);
+  const fb = useFbReady();
+  const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
+  const total = Object.values(v).reduce((a, e) => a + ((e && e.d) || 0), 0);
+  const r = Math.max(0, 1 - total / WEEKLY_HP);
+  return (
+    <button onClick={onOpen} className="w-full rounded-2xl px-3 py-2 mb-3 shadow-lg text-left transition-transform active:scale-95" style={{ background: COLORS.paper, border: `2px solid ${boss.color}55` }}>
+      <div className="flex items-center gap-2">
+        <span className="text-3xl leading-none">{boss.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-sm" style={{ color: boss.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}>今週のボス：{boss.name}</div>
+          <div className="rounded-full overflow-hidden mt-1" style={{ height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${r * 100}%`, background: `linear-gradient(90deg, ${boss.color}, #ff7b00)` }} /></div>
+        </div>
+        <span className="text-[11px] font-black rounded-full px-2 py-1 shrink-0 text-white" style={{ background: r <= 0 ? '#d4a017' : boss.color }}>{r <= 0 ? '撃破！' : `のこり${Math.round(r * 100)}%`}</span>
+      </div>
+    </button>
+  );
+}
+
 function FontImport() {
   return (
     <style>{`
@@ -4443,6 +4837,7 @@ function BattleApp({ acct: who, onExit }) {
   const players = useFbValue(code ? `rooms/${code}/players` : null) || {};
   const state = useFbValue(code ? `rooms/${code}/state` : null);
   const isTour = !!(state && state.tour);
+  const isRaid = !!(state && state.raid);
 
   useEffect(() => {
     if (!fb.ready || !acct) return;
@@ -4452,11 +4847,11 @@ function BattleApp({ acct: who, onExit }) {
 
   const announce = useCallback(() => {
     if (!code || practice || !FB.uid || spectator) return;
-    if (isTour && isHost) return; // 大会のホストは試合に出ない
+    if ((isTour || isRaid) && isHost) return; // 大会・レイドのホスト（先生）は参加しない
     const r = fref(`rooms/${code}/players/${FB.uid}`);
     r.set({ name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: TSV() }).catch(() => {});
     r.onDisconnect().remove();
-  }, [code, spectator, myName, acct, practice, isTour, isHost, myNick]);
+  }, [code, spectator, myName, acct, practice, isTour, isRaid, isHost, myNick]);
   useEffect(() => { if (code && !spectator) announce(); }, [code, spectator, announce]);
   // 通信が戻ったら名簿に入り直す
   useEffect(() => {
@@ -4470,20 +4865,21 @@ function BattleApp({ acct: who, onExit }) {
   useEffect(() => {
     if (!code) return;
     if (state && state.phase === 'closed' && !isHost) { setErr('ホストが部屋を閉じました'); leave(true); return; }
-    if (state && (state.phase === 'play' || state.phase === 'tour')) setScr('game');
+    if (state && (state.phase === 'play' || state.phase === 'tour' || state.phase === 'raid')) setScr('game');
     else if (scr === 'game') setScr('lobby');
   }, [state && state.phase, state && state.gid]);
 
-  async function createRoom(tour) {
+  async function createRoom(kind) {
     setErr('');
+    const tour = kind === true || kind === 'tour', raid = kind === 'raid';
     for (let t = 0; t < 12; t++) {
       const c = String(randInt(1000, 9999));
       let res;
-      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour }; }); }
+      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid }; }); }
       catch (e) { setErr('部屋を作れませんでした（' + (e.code || e.message) + '）'); return; }
       if (res.committed) {
-        await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
-        await fref(`rooms/${c}/state`).set({ phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
+        await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
+        await fref(`rooms/${c}/state`).set(raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
         return;
       }
@@ -4500,7 +4896,7 @@ function BattleApp({ acct: who, onExit }) {
     const host = m.host === FB.uid;
     if (!asSpectator && !host) {
       const others = Object.keys(pl).filter(k => k !== FB.uid);
-      const max = m.tour ? TOUR_MAX : m.qm ? 2 : ROOM_MAX;
+      const max = m.tour || m.raid ? TOUR_MAX : m.qm ? 2 : ROOM_MAX;
       if (others.length >= max) { setErr(`この部屋はもう${max}人そろっています。「観戦」なら入れます`); return false; }
       if (m.tour && st.phase === 'tour' && !(st.names || {})[FB.uid]) { setErr('大会はもう始まっています。「観戦」なら入れます'); return false; }
     }
@@ -4643,6 +5039,13 @@ function BattleApp({ acct: who, onExit }) {
   const setRule = patch => fref(`rooms/${code}/state`).update(patch).catch(() => {});
   const backToLobby = () => fref(`rooms/${code}/state`).set({ phase: 'lobby', mode: (state && state.mode) || 'B', diff: (state && state.diff) || 'easy', handi: (state && state.handi) || {} }).catch(() => {});
 
+  /* ---- クラス協力レイド ---- */
+  async function raidStart(hp) {
+    const st = state || {};
+    const startAt = fbNow() + 3500;
+    await fref(`rooms/${code}/rd`).remove().catch(() => {});
+    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, boss: st.boss || 'dragon', minutes: st.minutes || 3, power: st.power || 'normal', gid: 'r' + Date.now(), hpMax: hp, startAt, endAt: startAt + (st.minutes || 3) * 60000 });
+  }
   /* ---- 大会（トーナメント） ---- */
   async function tourStart() {
     const st = state || {};
@@ -4697,12 +5100,20 @@ function BattleApp({ acct: who, onExit }) {
       onCreate={createRoom} onJoin={joinRoom} onPractice={startPractice} onExit={onExit} />);
 
   if (scr === 'lobby') {
+    if (isRaid) return shell(<RaidLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
+      onRule={setRule} onStart={raidStart} onLeave={() => leave()} />, isHost);
     if (isTour) return shell(<TourLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
       onRule={setRule} onStart={tourStart} onLeave={() => leave()} />, isHost);
     return shell(<BattleLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}}
       onRule={setRule} onStart={startMatch} onLeave={() => leave()} />);
   }
 
+  // クラス協力レイド
+  if (state && state.phase === 'raid') {
+    if (isHost || spectator) return shell(<RaidBoard code={code} state={state} isHost={isHost} onLeave={() => leave()}
+      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, boss: state.boss, minutes: state.minutes, power: state.power })} />, true);
+    return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} onLeave={() => leave()} />;
+  }
   // 大会
   if (state && state.phase === 'tour') {
     const me = FB.uid;
@@ -4841,6 +5252,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       {err && <p className="text-xs font-bold mt-2" style={{ color: COLORS.coral }}>{err}</p>}
       <div className="mt-3 pt-3" style={{ borderTop: `1px dashed ${COLORS.sky}55` }}>
         <BigBtn small color={COLORS.amber} disabled={!fb.ready} onClick={() => onCreate(true)}>🏆 クラス大会を開く（{TOUR_MAX}人まで）</BigBtn>
+        <div className="mt-2"><BigBtn small color="#2a9d8f" disabled={!fb.ready} onClick={() => onCreate('raid')}>🐉 クラス協力レイドを開く（授業用・先生がホスト）</BigBtn></div>
       </div>
     </Card>
 
@@ -5959,6 +6371,7 @@ function AppRoot() {
     {mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} />
       : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} />
+      : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
       : <FactorHunt acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={go} />}
   </>);
 }
