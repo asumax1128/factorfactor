@@ -116,6 +116,132 @@
     .fxf-net-col-normal { order: 2; }
     .fxf-net-col-hard   { order: 3; }
   }
+
+  /* =================================================================
+     ver.7 新UI（A＋D案）：メニューは明るいノート＋FF風カーソル、対戦は暗転して紺のウィンドウ
+     ================================================================= */
+  :root {
+    --v7-bg: #F5F2EC; --v7-card: #FFFFFF; --v7-ink: #1D2633; --v7-sub: #6F7785; --v7-line: #E4DED3;
+    --v7-accent: #E4572E; --v7-accent-dk: #B5401F; --v7-accent-soft: #FBE7DF;
+    --v7-easy: #3FA55F; --v7-normal: #E9A82A; --v7-hard: #DD4A3A;
+    --v7-win-top: #2A3F95; --v7-win-mid: #18266A; --v7-win-bot: #101B52; --v7-win-line: #E6ECFF; --v7-night: #0B1430; --v7-gold: #FFC94D;
+    --v7-f-ui: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+    --v7-f-fx: "Russo One", "Zen Maru Gothic", sans-serif;
+  }
+  .v7-open { animation: v7open .28s cubic-bezier(.2,.9,.3,1); }
+  @keyframes v7open { from { transform: scaleY(.04); opacity: .4; } }
+  /* ---- メニュー ---- */
+  .v7-menu { min-height: 100dvh; width: 100%; background: var(--v7-bg); color: var(--v7-ink); font-family: "Zen Kaku Gothic New", sans-serif; display: flex; justify-content: center; }
+  .v7-menu-in { width: 100%; max-width: 30rem; padding: 10px 16px 10px 30px; display: flex; flex-direction: column; gap: 10px; }
+  .v7-logo { display: flex; justify-content: center; }
+  .v7-logo img { width: 170px; height: auto; }
+  .v7-col { display: contents; }
+  .v7-panel { background: var(--v7-card); border: 1px solid var(--v7-line); border-radius: 14px; padding: 12px 14px; }
+  .v7-name { font-family: var(--v7-f-ui); font-weight: 900; font-size: 18px; line-height: 1.2; }
+  .v7-pill { display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid var(--v7-line); background: var(--v7-card); border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 700; font-family: var(--v7-f-ui); min-height: 34px; color: var(--v7-ink); white-space: nowrap; }
+  .v7-pill svg, .v7-ico svg, .v7-sub-btn svg { stroke: var(--v7-accent); fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+  .v7-pill svg { width: 15px; height: 15px; }
+  .v7-cap { font-family: var(--v7-f-ui); font-size: 13px; font-weight: 900; color: var(--v7-sub); letter-spacing: .06em; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .v7-diff { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .v7-diff button { border: 2px solid var(--v7-line); background: var(--v7-card); border-radius: 12px; padding: 8px 0 7px; font-family: var(--v7-f-ui); font-weight: 900; font-size: 15px; position: relative; color: var(--v7-ink); }
+  .v7-diff button small { display: block; font-size: 10px; font-weight: 700; color: var(--v7-sub); }
+  .v7-diff button::after { content: ""; position: absolute; left: 10px; right: 10px; top: -2px; height: 4px; border-radius: 0 0 4px 4px; background: var(--c); }
+  .v7-diff button[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+  .v7-diff button[aria-pressed="true"] small { color: #fff; opacity: .92; }
+  .v7-go { width: 100%; border: none; border-radius: 12px; padding: 13px; font-family: var(--v7-f-ui); font-weight: 900; font-size: 18px; background: var(--v7-accent); color: #fff; box-shadow: 0 3px 0 var(--v7-accent-dk); }
+  .v7-go:active { transform: translateY(3px); box-shadow: none; }
+  .v7-go:disabled { opacity: .45; }
+  .v7-sub-btn { width: 100%; border: 1.5px solid var(--v7-line); background: var(--v7-card); border-radius: 12px; padding: 13px; font-family: var(--v7-f-ui); font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--v7-ink); }
+  .v7-sub-btn svg { width: 18px; height: 18px; }
+  .v7-tiles4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .v7-tile { background: var(--v7-card); border: 1px solid var(--v7-line); border-radius: 14px; padding: 11px 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 84px; color: var(--v7-ink); min-width: 0; }
+  .v7-tile .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 4px; }
+  .v7-ico { width: 28px; height: 28px; border-radius: 8px; background: var(--v7-accent-soft); display: grid; place-items: center; flex-shrink: 0; font-size: 18px; line-height: 1; }
+  .v7-ico svg { width: 16px; height: 16px; }
+  .v7-badge { font-size: 10px; font-weight: 900; font-family: var(--v7-f-ui); padding: 2px 8px; border-radius: 99px; background: var(--v7-accent-soft); color: var(--v7-accent-dk); white-space: nowrap; }
+  .v7-badge.hot { background: #2a9d8f; color: #fff; animation: v7pulse 1.2s ease-in-out infinite; }
+  @keyframes v7pulse { 50% { box-shadow: 0 0 0 4px #2a9d8f33; } }
+  .v7-tile b { font-family: var(--v7-f-ui); font-size: 14px; font-weight: 900; }
+  .v7-tile span.s { font-size: 11px; color: var(--v7-sub); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .v7-foot { display: flex; justify-content: center; gap: 8px; margin-top: auto; flex-wrap: wrap; align-items: center; }
+  .v7-ver { font-size: 11px; color: var(--v7-sub); font-family: var(--v7-f-ui); }
+  .v7-credit { width: 100%; text-align: center; font-size: 10px; color: #A39C8E; letter-spacing: .06em; }
+  .v7-input { width: 100%; border: 1.5px solid var(--v7-line); border-radius: 10px; padding: 8px 10px; font-weight: 700; font-size: 16px; background: #FBFAF7; color: var(--v7-ink); }
+  .v7-link { font-size: 11px; font-weight: 900; color: var(--v7-accent-dk); font-family: var(--v7-f-ui); background: none; border: none; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
+  /* FF風カーソル：指をのせる・選ぶと ▶ が出て「ピッ」 */
+  .v7-cur { position: relative; }
+  .v7-cur::before { content: ""; position: absolute; left: -17px; top: 50%; border-left: 11px solid var(--v7-ink); border-top: 7px solid transparent; border-bottom: 7px solid transparent; transform: translateY(-50%); opacity: 0; pointer-events: none; }
+  .v7-cur.on::before { opacity: 1; animation: v7curs .5s ease-in-out infinite alternate; }
+  .v7-cur.on { border-color: var(--v7-accent); }
+  .v7-diff .v7-cur.on[aria-pressed="true"] { border-color: var(--c); }
+  @keyframes v7curs { to { left: -13px; } }
+  /* タブレット・PCの横長画面：上の中央にロゴ、その下に左右2列 */
+  @media (min-width: 900px) and (orientation: landscape) {
+    .v7-menu { align-items: center; }
+    .v7-menu-in { max-width: 1120px; display: grid; grid-template-columns: 1fr 1fr; align-items: start; align-content: center; gap: 18px 40px; padding: 18px 56px 14px 64px; min-height: 100dvh; }
+    .v7-logo { grid-column: 1 / 3; }
+    .v7-logo img { width: min(300px, 26vh * 1.85); }
+    .v7-col { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+    .v7-tile { min-height: 104px; }
+    .v7-credit { grid-column: 1 / 3; }
+  }
+  /* ウィンドウ（成績・ランキングなど） */
+  .v7-modal { position: fixed; inset: 0; z-index: 90; background: rgba(29,38,51,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .v7-modal-win { width: 100%; max-width: 46rem; max-height: calc(100dvh - 32px); overflow: auto; background: var(--v7-card); border-radius: 18px; border: 1px solid var(--v7-line); box-shadow: 0 16px 40px rgba(0,0,0,.25); padding: 16px; color: var(--v7-ink); }
+  .v7-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .v7-modal-head h3 { margin: 0; font-family: var(--v7-f-ui); font-weight: 900; font-size: 18px; }
+  .v7-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .v7-tabs button { border: 1.5px solid var(--v7-line); background: var(--v7-card); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 900; font-family: var(--v7-f-ui); color: var(--v7-ink); }
+  .v7-tabs button[aria-pressed="true"] { background: var(--v7-ink); color: #fff; border-color: var(--v7-ink); }
+  /* 対戦に入る暗転（時計回りに黒くなる） */
+  @property --v7a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  .v7-wipe { position: fixed; inset: 0; z-index: 200; pointer-events: none; background: conic-gradient(from 0deg, #000 0 var(--v7a), transparent var(--v7a) 360deg); animation: v7wipe .7s linear forwards; }
+  @keyframes v7wipe { 0% { --v7a: 0deg; opacity: 1; } 70% { --v7a: 360deg; opacity: 1; } 100% { --v7a: 360deg; opacity: 0; } }
+  /* ---- 対戦・プレイ画面：紺のFF風ウィンドウ ---- */
+  .v7-battle { color: #F1F4FF; }
+  .v7-wnd { background: linear-gradient(180deg, var(--v7-win-top), var(--v7-win-mid) 60%, var(--v7-win-bot)); border: 2px solid var(--v7-win-line); box-shadow: inset 0 0 0 2px var(--v7-night), 0 3px 0 rgba(0,0,0,.35); border-radius: 10px; color: #F1F4FF; }
+  .v7-bar-btn { border: none; background: rgba(11,20,48,.55); border-radius: 8px; font-size: 12px; font-weight: 700; color: #C9D3F5; padding: 4px 8px; font-family: var(--v7-f-ui); }
+  .v7-chip { font-size: 11px; font-weight: 900; font-family: var(--v7-f-ui); color: #fff; border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+  .v7-st { padding: 4px 6px; text-align: center; }
+  .v7-st small { display: block; font-size: 10px; color: #AAB6E0; letter-spacing: .12em; font-family: var(--v7-f-fx); }
+  .v7-st b { font-family: var(--v7-f-fx); font-size: 22px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .v7-hpb { height: 22px; border-radius: 99px; background: #0B1430; border: 1px solid #8EA0E0; overflow: hidden; position: relative; }
+  .v7-hpb i { position: absolute; inset: 0 auto 0 0; transition: width .35s ease, background .35s ease; }
+  .v7-hpb em { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: 12px; color: #fff; font-family: var(--v7-f-fx); text-shadow: 0 1px 2px #000; letter-spacing: .04em; }
+  .v7-target { background: #FFFDF7; color: #1D2633; border-radius: 14px; padding: 12px 10px 10px; text-align: center; position: relative; overflow: hidden; border: 3px solid var(--v7-gold); box-shadow: 0 0 0 2px var(--v7-night), 0 0 22px rgba(255,201,77,.25); }
+  .v7-target.rev { background: linear-gradient(160deg, #3a0d0d, #6b1414); border-color: #ff5c5c; color: #fff; box-shadow: 0 0 0 2px var(--v7-night), 0 0 18px rgba(255,46,46,.55); }
+  .v7-hint { font-size: 10px; color: #8C99C7; text-align: center; font-weight: 700; font-family: var(--v7-f-ui); margin: 0; }
+  .v7-judge { position: absolute; left: 50%; font-family: var(--v7-f-fx); font-size: clamp(26px, 8vw, 40px); -webkit-text-stroke: 2px #fff; white-space: nowrap; pointer-events: none; z-index: 30; animation: v7jpop .7s cubic-bezier(.2,.9,.3,1.3) forwards; letter-spacing: .03em; }
+  @keyframes v7jpop { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 0; } 25% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; } 70% { transform: translate(-50%,-60%); opacity: 1; } 100% { transform: translate(-50%,-90%); opacity: 0; } }
+  .v7-fxbox { display: none; }
+  .v7-fxcombo { display: none; position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-family: var(--v7-f-fx); color: rgba(255,201,77,.22); line-height: 1; }
+  .v7-fxcombo b { font-size: 120px; font-weight: 400; }
+  .v7-fxcombo small { font-size: 22px; letter-spacing: .2em; }
+  .v7-poly { font-size: clamp(1.4rem, 5.5vh, 3rem); }
+  .v7-msg { min-height: 2.2rem; display: flex; align-items: center; justify-content: center; }
+  .v7-msg > div { width: 100%; text-align: center; font-family: var(--v7-f-ui); font-weight: 900; font-size: 13px; padding: 6px 10px; line-height: 1.25; }
+  .v7-play { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 44rem; height: 100%; min-height: 0; }
+  .v7-zone { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; position: relative; }
+  .v7-main { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+  .v7-judge-ph { top: -4px; }
+  .v7-judge-tb { display: none; }
+  @media (min-width: 900px) and (orientation: landscape) {
+    .v7-play { display: grid; grid-template-columns: 340px 1fr; gap: 14px; max-width: 1280px; }
+    .v7-zone { height: 100%; min-height: 0; }
+    .v7-fxbox { display: flex; flex: 1; min-height: 120px; position: relative; border-radius: 10px; border: 2px dashed rgba(230,236,255,.18); align-items: center; justify-content: center; overflow: hidden; }
+    .v7-judge-ph { display: none; }
+    .v7-judge-tb { display: block; top: 40%; font-size: 64px; -webkit-text-stroke: 3px #fff; }
+    .v7-fxcombo { display: flex; }
+    .v7-st b { font-size: 26px; }
+    .v7-poly { font-size: clamp(2rem, 8vh, 3.8rem); }
+    .v7-target { padding: 16px 12px 14px; }
+  }
+  .v7-result { width: 100%; max-width: 30rem; padding: 18px 16px; text-align: center; }
+  .v7-result .big { font-family: var(--v7-f-fx); font-size: 56px; color: var(--v7-gold); line-height: 1.1; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  .v7-result .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; padding: 5px 2px; border-bottom: 1px solid rgba(230,236,255,.15); font-family: var(--v7-f-ui); }
+  .v7-result .row span:first-child { color: #AAB6E0; }
+  .v7-btn-w { width: 100%; border: 1.5px solid #8EA0E0; background: rgba(11,20,48,.5); color: #E6ECFF; border-radius: 12px; padding: 12px; font-family: var(--v7-f-ui); font-weight: 900; font-size: 15px; }
+  @media (prefers-reduced-motion: reduce) { .v7-open, .v7-cur.on::before, .v7-wipe, .v7-judge { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
   #boot-error {
     display: none; font-family: ui-monospace, monospace; white-space: pre-wrap; word-break: break-word;
     padding: 16px; background: #fff3f0; color: #7a1f10; border: 2px solid #e76f51;
@@ -213,6 +339,96 @@ function useResultBgm(show, muted) {
   useEffect(() => { if (!show) return; ResultBgm.start(muted); return () => ResultBgm.stop(); }, [!!show]);
   useEffect(() => { if (show) ResultBgm.mute(muted); }, [muted]);
 }
+
+/* =====================================================================
+   ver.7 新UI の部品：メニューの効果音・FF風カーソル・暗転・ウィンドウ・線アイコン
+   ===================================================================== */
+const MENU_DIFF_LS = 'fxf_menu_diff_v1';
+const UI_MUTE_LS = 'fxf_ui_mute_v1';
+let UI_MUTE = (() => { try { return localStorage.getItem(UI_MUTE_LS) === '1'; } catch (e) { return false; } })();
+function setUiMute(v) { UI_MUTE = !!v; try { localStorage.setItem(UI_MUTE_LS, v ? '1' : '0'); } catch (e) {} }
+function uiCtx() { try { const c = Tone.getContext().rawContext; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; } catch (e) { return null; } }
+function uiTone(c, f, t, d, type, v, f2) {
+  const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + t;
+  o.type = type; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+  g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + d);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.05);
+}
+// cur＝カーソル「ピッ」、ok＝決定「ピコッ」、back＝もどる「ポン」、swirl＝暗転
+function uiSnd(kind) {
+  if (UI_MUTE) return;
+  const c = uiCtx(); if (!c || c.state !== 'running') return;
+  try {
+    if (kind === 'cur') uiTone(c, 1320, 0, 0.035, 'square', 0.05);
+    else if (kind === 'ok') { uiTone(c, 988, 0, 0.06, 'square', 0.07); uiTone(c, 1480, 0.06, 0.09, 'square', 0.07); }
+    else if (kind === 'back') uiTone(c, 660, 0, 0.08, 'square', 0.06, 440);
+    else if (kind === 'swirl') { for (let i = 0; i < 10; i++) uiTone(c, 300 + i * 90, i * 0.05, 0.08, 'square', 0.05); }
+  } catch (e) {}
+}
+/* カーソル：.v7-cur の部品に指をのせる・タップ・キーボードで選ぶと ▶ が出て「ピッ」。
+   クリックすると data-snd の音（なければ決定音）。 */
+function useMenuCursor() {
+  const off = useRef(null);
+  useEffect(() => () => { if (off.current) off.current(); }, []);
+  return useCallback(root => {
+    if (off.current) { off.current(); off.current = null; }
+    if (!root) return;
+    let cur = null;
+    const move = e => {
+      if (e.__v7m) return; e.__v7m = 1;   // ウィンドウが重なっていても1回だけ
+      const el = e.target && e.target.closest ? e.target.closest('.v7-cur') : null;
+      if (!el || !root.contains(el) || el === cur) return;
+      if (cur) cur.classList.remove('on');
+      cur = el; el.classList.add('on'); uiSnd('cur');
+    };
+    const click = e => {
+      if (e.__v7c) return; e.__v7c = 1;
+      const el = e.target && e.target.closest ? e.target.closest('.v7-cur,[data-snd]') : null;
+      if (!el || !root.contains(el) || el.disabled) return;
+      const k = el.getAttribute('data-snd') || 'ok';
+      if (k !== 'none') uiSnd(k);
+    };
+    root.addEventListener('pointerover', move); root.addEventListener('focusin', move); root.addEventListener('pointerdown', move);
+    root.addEventListener('click', click);
+    off.current = () => { root.removeEventListener('pointerover', move); root.removeEventListener('focusin', move); root.removeEventListener('pointerdown', move); root.removeEventListener('click', click); };
+  }, []);
+}
+/* 対戦・プレイに入るときの暗転（時計回りに黒くなって、画面が切りかわる） */
+function v7Wipe(cb) {
+  uiSnd('swirl');
+  const w = document.createElement('div'); w.className = 'v7-wipe'; document.body.appendChild(w);
+  setTimeout(() => { try { cb && cb(); } catch (e) { console.error(e); } }, 500);
+  setTimeout(() => w.remove(), 760);
+}
+/* ウィンドウ（メニューから開く画面）。開くときにウィンドウのように広がる */
+function V7Modal({ title, onClose, children, wide }) {
+  const ref = useMenuCursor();
+  return (
+    <div className="v7-modal" onClick={() => { uiSnd('back'); onClose(); }} ref={ref}>
+      <div className="v7-modal-win v7-open" onClick={e => e.stopPropagation()} style={wide ? { maxWidth: '64rem' } : null}>
+        <div className="v7-modal-head"><h3>{title}</h3><button className="v7-pill" data-snd="back" onClick={onClose}>とじる</button></div>
+        {children}
+      </div>
+    </div>
+  );
+}
+/* 線アイコン（飾りの絵文字のかわり） */
+const V7_ICON = {
+  stats: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  skin: 'M12 3l3 3 4-1-1 4 3 3-4 1-1 4-4-2-4 2-1-4-4-1 3-3-1-4 4 1z',
+  vs: 'M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5L21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2',
+  cal: 'M3 5h18v16H3zM3 10h18M8 3v4M16 3v4',
+  star: 'M12 2l3 6 6 1-4.5 4 1 6.5L12 17l-5.5 2.5 1-6.5L3 9l6-1z',
+  book: 'M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM8 7h7',
+  help: 'M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9a2.5 2.5 0 015 .5c0 2-2.5 2-2.5 4M12 17h.01',
+  cup: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM17 6h3v2a3 3 0 01-3 3M7 6H4v2a3 3 0 003 3',
+  wifi: 'M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0M12 19.5h.01',
+  door: 'M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10',
+  snd: 'M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11',
+  mute: 'M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6',
+  list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+};
+function V7Icon({ name }) { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={V7_ICON[name]} /></svg>; }
 
 
 
@@ -1169,6 +1385,12 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   const [rankedIn, setRankedIn] = useState(false);
   const [cleared, setCleared] = useState(false); // 難易度ごとの目標問題数に到達したクリア達成フラグ
   const [difficulty, setDifficulty] = useState('normal'); // easy | normal | hard
+  // ver.7 メニュー：選んでいる難易度（スタートで開始）・開いているウィンドウ・ランキングのタブ・メニューの音
+  const [menuDiff, setMenuDiff] = useState(() => { const d = loadLS(MENU_DIFF_LS, 'normal'); return DIFFICULTY_CONFIG[d] ? d : 'normal'; });
+  const [menuWin, setMenuWin] = useState(null);
+  const [rankTab, setRankTab] = useState('best');
+  const [uiMuted, setUiMuted] = useState(UI_MUTE);
+  const menuRef = useMenuCursor();
   const [tutorialStep, setTutorialStep] = useState(0);
   const [clearTimeBonus, setClearTimeBonus] = useState(0); // クリア時に加算したタイムボーナス(解いた問題数×15秒 - 実経過秒数)
 
@@ -2101,107 +2323,98 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
      画面: メニュー
      ============================================================ */
   if (screen === 'menu') {
+    const soloBest = ((loadLS(ghostKey, {}) || {})[menuDiff] || {}).score || 0;
+    const goSolo = () => {
+      try { Tone.start(); } catch (e) {}   // 音の許可はタップの瞬間に（iPad対策）
+      v7Wipe(() => startGame(menuDiff));
+    };
     return (
-      <div className="min-h-screen w-full flex flex-col items-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="v7-menu" ref={menuRef}>
         <FontImport />
-        <div className="fxf-menu-container">
-          <div className="relative mb-3">
-            <div className="flex justify-center">
-              <img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} />
-            </div>
-            <span
-              className="absolute font-mono font-bold"
-              style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
-            >
-              ver.6.7
-            </span>
-          </div>
-
-          {acct && <AccountBar acct={acct} onLogout={onLogout} />}
-          <DailyCard acct={acct} onOpen={() => onMode && onMode('daily')} />
-          <WeeklyCard onOpen={() => onMode && onMode('raidw')} />
-          <button onClick={() => onMode && onMode('learn')} className="w-full rounded-2xl py-2.5 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95" style={{ background: 'linear-gradient(90deg,#7B61FF,#6BD4E8)', color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>📈 学びの部屋（苦手分析・苦手ドリル・型の図鑑）</button>
-
-          <button
-            onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}
-            className="w-full rounded-2xl py-3 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95"
-            style={{ background: COLORS.paper, color: COLORS.sky, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
-          >
-            📖 チュートリアルを読む
-          </button>
-
-          {/* オンライン対戦・CPU練習・クラス大会への入口 */}
-          <button
-            onClick={() => onBattle && onBattle()}
-            className="w-full rounded-2xl py-3 mb-3 text-base font-black shadow-lg transition-transform active:scale-95"
-            style={{ background: `linear-gradient(90deg, ${COLORS.sky}, ${COLORS.coral})`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
-          >
-            ⚔️ オンライン対戦・CPU練習
-          </button>
-
-          {!isReal(acct) && <div className="mb-6">
-            <label className="text-xs font-bold block mb-1" style={{ color: COLORS.inkSoft }}>なまえ（ゲスト）</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
-              onBlur={() => window.scrollTo(0, 0)}
-              placeholder="なまえ (省略可・10文字まで)"
-              maxLength={10}
-              className="w-full rounded-xl px-3 py-2 font-bold"
-              style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }}
-            />
-          </div>}
-
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            {['easy', 'normal', 'hard'].map(diff => {
-              const cfg = DIFFICULTY_CONFIG[diff];
-              const missPenalty = DIFFICULTY_MISS_PENALTY[diff];
-              return (
-                <button
-                  key={diff}
-                  onClick={() => startGame(diff)}
-                  className="rounded-2xl py-3 px-1 text-center shadow-lg transition-transform active:scale-95"
-                  style={{ background: cfg.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}
-                >
-                  <div className="text-sm font-black" style={{ color: '#FFFFFF' }}>{cfg.label}</div>
-                  <div className="text-[10px] font-bold mt-1" style={{ color: '#FFFFFFDD' }}>{cfg.clearCount}問</div>
-                  <div className="text-[10px] font-bold" style={{ color: '#FFFFFFDD' }}>ミス-{missPenalty}%</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* 名前未入力のままゲームを終えた場合、ここから登録できる */}
-          {GAS_ENDPOINT_URL !== '' && pendingNetEntry && (netSubmitState === 'pending' || netSubmitState === 'error') && (
-            <div className="rounded-2xl p-3 mb-6 shadow-lg" style={{ background: COLORS.paperDark }}>
-              <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.ink }}>
-                {netSubmitState === 'error'
-                  ? '⚠️ 送信に失敗しました。もう一度試してね'
-                  : `🌏 さっきの ${pendingNetEntry.score}点 が未登録です。なまえを入れて登録しよう！`}
+        <div className="v7-menu-in v7-open">
+          <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
+          <div className="v7-col">
+            {acct && <AccountPanelV7 acct={acct} onLogout={onLogout} />}
+            <div className="v7-panel">
+              <div className="v7-cap"><span>ソロで遊ぶ</span><span className="flex items-center gap-2">{soloBest > 0 && <span>ベスト {soloBest.toLocaleString()}点</span>}<button className="v7-link" onClick={() => setMenuWin('lv')}>レベル表</button></span></div>
+              {!isReal(acct) && <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
+                onBlur={() => window.scrollTo(0, 0)}
+                placeholder="なまえ（ゲスト・省略可・10文字まで）"
+                maxLength={10}
+                className="v7-input mb-3"
+              />}
+              <div className="v7-diff" role="group" aria-label="難易度">
+                {['easy', 'normal', 'hard'].map(diff => {
+                  const cfg = DIFFICULTY_CONFIG[diff];
+                  return (
+                    <button key={diff} className="v7-cur" aria-pressed={menuDiff === diff} style={{ '--c': `var(--v7-${diff})` }} onClick={() => { setMenuDiff(diff); saveLS(MENU_DIFF_LS, diff); }}>
+                      {cfg.label}<small>{cfg.clearCount}問・ミス-{DIFFICULTY_MISS_PENALTY[diff]}%</small>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={submitPendingScore}
-                  disabled={!playerName.trim()}
-                  className="flex-1 rounded-xl px-4 py-2 text-sm font-black shadow active:scale-95 transition-transform"
-                  style={{ background: playerName.trim() ? COLORS.sky : `${COLORS.sky}55`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
-                >
-                  {playerName.trim() ? (netSubmitState === 'error' ? '再送信する' : 'この記録を登録する') : '上のなまえ欄を入力してね'}
-                </button>
-                <button
-                  onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }}
-                  className="rounded-xl px-3 py-2 text-xs font-bold shrink-0"
-                  style={{ background: COLORS.paper, color: COLORS.inkSoft }}
-                >
-                  やめる
-                </button>
-              </div>
-            </div>
-          )}
+              <button className="v7-go v7-cur" data-snd="none" onClick={goSolo}>スタート</button>
+              {/* 名前未入力のままゲームを終えた場合、ここから登録できる */}
+              {GAS_ENDPOINT_URL !== '' && pendingNetEntry && (netSubmitState === 'pending' || netSubmitState === 'error') && (
+                <div className="rounded-xl p-3 mt-3" style={{ background: "#FBF3E8", border: "1px solid var(--v7-line)" }}>
+                  <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.ink }}>
+                    {netSubmitState === 'error'
+                      ? '⚠️ 送信に失敗しました。もう一度試してね'
+                      : `🌏 さっきの ${pendingNetEntry.score}点 が未登録です。なまえを入れて登録しよう！`}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={submitPendingScore}
+                      disabled={!playerName.trim()}
+                      className="flex-1 rounded-xl px-4 py-2 text-sm font-black shadow active:scale-95 transition-transform"
+                      style={{ background: playerName.trim() ? COLORS.sky : `${COLORS.sky}55`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                    >
+                      {playerName.trim() ? (netSubmitState === 'error' ? '再送信する' : 'この記録を登録する') : '上のなまえ欄を入力してね'}
+                    </button>
+                    <button
+                      onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }}
+                      className="rounded-xl px-3 py-2 text-xs font-bold shrink-0"
+                      style={{ background: COLORS.paper, color: COLORS.inkSoft }}
+                    >
+                      やめる
+                    </button>
+                  </div>
+                </div>
+              )}
 
+            </div>
+          </div>
+          <div className="v7-col">
+            <button className="v7-sub-btn v7-cur" onClick={() => onBattle && onBattle()}><V7Icon name="vs" />オンライン対戦・CPU練習</button>
+            <div className="v7-tiles4">
+              <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />
+              <WeeklyTileV7 onOpen={() => onMode && onMode('raidw')} />
+              <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
+              <button className="v7-tile v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><div className="top"><span className="v7-ico"><V7Icon name="help" /></span></div><b>あそびかた</b><span className="s">チュートリアル</span></button>
+            </div>
+            <div className="v7-foot">
+              {GAS_ENDPOINT_URL !== '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); loadNetRanking(); }}><V7Icon name="cup" />ランキング</button>}
+              {GAS_ENDPOINT_URL === '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); setRankTab('local'); }}><V7Icon name="cup" />ランキング</button>}
+              <ConnCheck v7 />
+              <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
+              {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
+              <span className="v7-ver">ver.7.0</span>
+            </div>
+          </div>
+          <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
+        </div>
+        {menuWin === 'rank' && <V7Modal title="ランキング" wide onClose={() => setMenuWin(null)}>
+          <div className="v7-tabs">
+            {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'best'} onClick={() => setRankTab('best')}>みんなのベスト</button>}
+            {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'total'} onClick={() => setRankTab('total')}>みんなの総得点</button>}
+            <button className="v7-cur" aria-pressed={rankTab === 'local'} onClick={() => setRankTab('local')}>この端末 TOP3</button>
+          </div>
+          {rankTab === 'best' && (<>
           {GAS_ENDPOINT_URL !== '' && (
-            <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+            <div className="mb-1">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>
                   🌎 みんなのランキング <br className="fxf-title-br" />（全期間）
@@ -2256,10 +2469,12 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             </div>
           )}
 
+          </>)}
+          {rankTab === 'total' && (<>
           {/* みんなの総得点ランキング: GASの全プレイ履歴をプレイヤー名×難易度で集計したもの。
               ローカルストレージは使わず、常にGASの最新データから計算し直す。 */}
           {GAS_ENDPOINT_URL !== '' && (
-            <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+            <div className="mb-1">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-xs font-bold text-center" style={{ color: COLORS.inkSoft }}>🏅 みんなの総得点ランキング</div>
                 <button onClick={loadNetRanking} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>↻ 更新</button>
@@ -2319,7 +2534,9 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             </div>
           )}
 
-          <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+          </>)}
+          {rankTab === 'local' && (<>
+          <div className="mb-1">
             <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.inkSoft }}>🏆 ランキング TOP3</div>
             {!STORAGE_AVAILABLE && (
               <div className="text-[10px] text-center mb-1 rounded-lg px-2 py-1" style={{ background: `${COLORS.coral}22`, color: COLORS.coral, fontWeight: 700 }}>
@@ -2348,7 +2565,10 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             )}
           </div>
 
-          <div className="rounded-2xl p-4 mb-6 shadow-lg" style={{ background: COLORS.paper }}>
+          </>)}
+        </V7Modal>}
+        {menuWin === 'lv' && <V7Modal title="レベル表" onClose={() => setMenuWin(null)}>
+          <div className="mb-1">
             <p className="text-xs font-bold mb-3" style={{ color: COLORS.inkSoft }}>正解するごとに、だんだん難しくなるよ！</p>
             <div className="flex flex-col gap-2">
               {LEVEL_IDS.map(lv => {
@@ -2364,22 +2584,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             </div>
           </div>
 
-        </div>
-
-        {/* クレジット: 控えめで世界観を邪魔しない半透明表示 */}
-        <div className="w-full text-center" style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-          <span
-            className="font-light tracking-wide"
-            style={{ fontSize: '10px', color: '#FFFFFF6b', fontFamily: "'Zen Kaku Gothic New', sans-serif", letterSpacing: '0.06em' }}
-          >
-            © 2026 FACTOR × FACTOR | Created by Syusuke F.
-          </span>
-        </div>
-        <div className="w-full text-center mb-2">
-          <ConnCheck />
-          <span>
-          </span>
-        </div>
+        </V7Modal>}
       </div>
     );
   }
@@ -2391,9 +2596,9 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
     const step = TUTORIAL_STEPS[tutorialStep];
     const isLast = tutorialStep === TUTORIAL_STEPS.length - 1;
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
-        <div className="max-w-md sm:max-w-xl w-full rounded-3xl p-6 shadow-2xl" style={{ background: COLORS.paper }}>
+        <div className="max-w-md sm:max-w-xl w-full rounded-3xl p-6 v7-open" style={{ background: "#fff", border: "1px solid var(--v7-line)" }}>
           <div className="flex justify-center gap-1.5 mb-4">
             {TUTORIAL_STEPS.map((_, i) => (
               <div key={i} className="rounded-full" style={{ width: i === tutorialStep ? '18px' : '6px', height: '6px', background: i === tutorialStep ? COLORS.sky : `${COLORS.sky}44`, transition: 'all 200ms' }} />
@@ -2410,18 +2615,18 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
 
           <div className="flex gap-2">
             {tutorialStep > 0 && (
-              <button onClick={() => setTutorialStep(s => s - 1)} className="flex-1 rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>戻る</button>
+              <button onClick={() => { uiSnd('back'); setTutorialStep(s => s - 1); }} className="flex-1 rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>戻る</button>
             )}
             <button
-              onClick={() => { if (isLast) setScreen('menu'); else setTutorialStep(s => s + 1); }}
+              onClick={() => { uiSnd(isLast ? 'back' : 'ok'); if (isLast) setScreen('menu'); else setTutorialStep(s => s + 1); }}
               className="flex-1 rounded-xl py-3 font-bold shadow active:scale-95 transition-transform"
-              style={{ background: COLORS.amber, color: COLORS.ink }}
+              style={{ background: 'var(--v7-accent)', color: '#fff', boxShadow: '0 3px 0 var(--v7-accent-dk)' }}
             >
               {isLast ? 'とじる' : '次へ'}
             </button>
           </div>
           {!isLast && (
-            <button onClick={() => setScreen('menu')} className="w-full text-center text-xs font-bold mt-3 py-1" style={{ color: COLORS.inkSoft }}>スキップしてタイトルへ</button>
+            <button onClick={() => { uiSnd('back'); setScreen('menu'); }} className="w-full text-center text-xs font-bold mt-3 py-1" style={{ color: COLORS.inkSoft }}>スキップしてタイトルへ</button>
           )}
         </div>
       </div>
@@ -2429,39 +2634,40 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   }
 
   /* ============================================================
-     画面: ゲームオーバー
+     画面: ゲームオーバー（結果）— ver.7：紺のウィンドウ
      ============================================================ */
   if (screen === 'gameover') {
     const isRecord = score >= best && score > 0;
+    const diffCfg = DIFFICULTY_CONFIG[difficulty];
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center py-6 px-4" style={{ background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
         <FontImport />
-        <div className="max-w-sm sm:max-w-md md:max-w-lg w-full rounded-3xl p-6 shadow-2xl text-center" style={{ background: COLORS.paper }}>
-          <div className="text-sm font-bold mb-1" style={{ color: cleared ? COLORS.leafDeep : COLORS.coral, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{cleared ? `🎉 クリア！(${DIFFICULTY_CONFIG[difficulty].clearCount}問達成)` : '💔 体力切れ…ゲームオーバー'}</div>
-          <div className="text-5xl font-black mb-1" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{score}</div>
-          {cleared && (
-            <div className="text-xs font-bold mb-1" style={{ color: clearTimeBonus >= 0 ? COLORS.leafDeep : COLORS.coral }}>
-              (タイムボーナス {clearTimeBonus >= 0 ? '+' : ''}{clearTimeBonus})
-            </div>
-          )}
-          <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>プレイ時間：{Math.floor(Math.round(elapsedSeconds) / 60)}分{Math.round(elapsedSeconds) % 60}秒</div>
-          <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>捕獲した因数ペア: {caught}組</div>
-          <div className="text-xs mb-1" style={{ color: COLORS.inkSoft }}>難易度: {DIFFICULTY_CONFIG[difficulty].label}</div>
-          <div className="text-xs mb-4" style={{ color: COLORS.inkSoft }}>到達レベル: Lv.{unlockedLevel} {LEVEL_INFO[unlockedLevel].name}</div>
-          {isRecord && <div className="text-xs font-bold mb-1" style={{ color: COLORS.leafDeep }}>🏆 自己ベスト更新！</div>}
-          {rankedIn && <div className="text-xs font-bold mb-4" style={{ color: COLORS.coral }}>🎉 ランキング入り！</div>}
-          {!rankedIn && <div className="mb-4" />}
-          {soloExp && <div className="mb-4 text-left"><ExpGain before={soloExp.before} after={soloExp.after} label={isReal(acct) ? 'プレイの経験値' : 'プレイの経験値（ゲスト：この端末に保存）'} /></div>}
+        <div className="v7-wnd v7-result v7-open">
+          <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 30, letterSpacing: '.06em', color: cleared ? 'var(--v7-gold)' : '#FF8A75', textShadow: '0 3px 0 rgba(0,0,0,.35)' }}>{cleared ? 'CLEAR!' : 'GAME OVER'}</div>
+          <div className="text-xs font-bold mb-1" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{cleared ? `${diffCfg.clearCount}問達成！` : '体力切れ…'}</div>
+          <div className="big">{score}</div>
+          {cleared && <div className="text-xs font-bold mb-2" style={{ color: clearTimeBonus >= 0 ? '#8BE38F' : '#FF8A75' }}>（タイムボーナス {clearTimeBonus >= 0 ? '+' : ''}{clearTimeBonus}）</div>}
+          {(isRecord || rankedIn) && <div className="flex justify-center gap-2 mb-2 flex-wrap">
+            {isRecord && <span className="v7-chip" style={{ background: '#2D6A4F' }}>自己ベスト更新！</span>}
+            {rankedIn && <span className="v7-chip" style={{ background: 'var(--v7-accent)' }}>ランキング入り！</span>}
+          </div>}
+          <div className="text-left mb-3">
+            <div className="row"><span>プレイ時間</span><span>{Math.floor(Math.round(elapsedSeconds) / 60)}分{Math.round(elapsedSeconds) % 60}秒</span></div>
+            <div className="row"><span>捕獲した因数ペア</span><span>{caught}組</span></div>
+            <div className="row"><span>難易度</span><span>{diffCfg.label}</span></div>
+            <div className="row"><span>到達レベル</span><span>Lv.{unlockedLevel} {LEVEL_INFO[unlockedLevel].name}</span></div>
+          </div>
+          {soloExp && <div className="mb-3 text-left rounded-xl p-3" style={{ background: '#fff' }}><ExpGain before={soloExp.before} after={soloExp.after} label={isReal(acct) ? 'プレイの経験値' : 'プレイの経験値（ゲスト：この端末に保存）'} /></div>}
 
           {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
           {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
-            <div className="rounded-2xl p-3 mb-4 text-left" style={{ background: COLORS.paperDark }}>
+            <div className="rounded-xl p-3 mb-3 text-left" style={{ background: '#fff', color: 'var(--v7-ink)' }}>
               {(netSubmitState === 'pending' || netSubmitState === 'error') && (
                 <div>
-                  <div className="text-xs font-bold mb-2 text-center" style={{ color: COLORS.ink }}>
+                  <div className="text-xs font-bold mb-2 text-center">
                     {netSubmitState === 'error'
                       ? '⚠️ 送信に失敗しました。もう一度試してね'
-                      : '🌏 なまえを入れて、みんなのランキングに登録しよう！'}
+                      : 'なまえを入れて、みんなのランキングに登録しよう！'}
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -2470,52 +2676,46 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
                       onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
                       placeholder="なまえ (10文字まで)"
                       maxLength={10}
-                      className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm font-bold"
-                      style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                      className="v7-input flex-1 min-w-0"
+                      style={{ fontSize: 16 }}
                     />
                     <button
                       onClick={submitPendingScore}
                       disabled={!playerName.trim()}
-                      className="rounded-xl px-4 py-2 text-sm font-black shadow active:scale-95 transition-transform shrink-0"
-                      style={{ background: playerName.trim() ? COLORS.sky : `${COLORS.sky}55`, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}
+                      className="v7-go shrink-0"
+                      style={{ width: 'auto', padding: '8px 16px', fontSize: 14 }}
                     >
                       {netSubmitState === 'error' ? '再送信' : '送信'}
                     </button>
                   </div>
                   {netSubmitState === 'pending' && (
-                    <button onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }} className="w-full text-center text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>
+                    <button onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }} className="w-full text-center text-[10px] font-bold mt-2" style={{ color: 'var(--v7-sub)' }}>
                       送信しないでスキップ
                     </button>
                   )}
                 </div>
               )}
-              {netSubmitState === 'sending' && (
-                <div className="text-xs font-bold text-center py-1" style={{ color: COLORS.inkSoft }}>🌏 みんなのランキングに送信中…</div>
-              )}
-              {netSubmitState === 'sent' && (
-                <div className="text-xs font-bold text-center py-1" style={{ color: COLORS.leafDeep }}>✅ みんなのランキングに登録しました！</div>
-              )}
+              {netSubmitState === 'sending' && <div className="text-xs font-bold text-center py-1" style={{ color: 'var(--v7-sub)' }}>みんなのランキングに送信中…</div>}
+              {netSubmitState === 'sent' && <div className="text-xs font-bold text-center py-1" style={{ color: '#2D6A4F' }}>✅ みんなのランキングに登録しました！</div>}
             </div>
           )}
 
           <div className="flex flex-col gap-2">
-            <button onClick={() => startGame(difficulty)} className="rounded-xl py-3 font-bold shadow active:scale-95 transition-transform" style={{ background: COLORS.amber, color: COLORS.ink }}>もう一度あそぶ({DIFFICULTY_CONFIG[difficulty].label})</button>
-            <button onClick={() => setScreen('menu')} className="rounded-xl py-3 font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: COLORS.sky, color: COLORS.sky }}>タイトルに戻る</button>
+            <button onClick={() => { uiSnd('ok'); startGame(difficulty); }} className="v7-go">もう一度あそぶ（{diffCfg.label}）</button>
+            <button onClick={() => { uiSnd('back'); setScreen('menu'); }} className="v7-btn-w">タイトルにもどる</button>
           </div>
         </div>
 
         {/* エンディングメッセージ: 余韻を感じさせる、控えめで半透明なクレジット表示 */}
-        <div className="max-w-sm sm:max-w-md md:max-w-lg w-full text-center" style={{ marginTop: '1.75rem', marginBottom: '0.5rem' }}>
-          <div style={{ opacity: 0.35, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: '0.6rem' }}>━━━━━━━━━━━━━━━━━━━━━━</div>
-          <div className="font-light" style={{ opacity: 0.75, fontSize: '13px', color: '#FFFFFF', fontFamily: "'Zen Kaku Gothic New', sans-serif", letterSpacing: '0.04em', lineHeight: 1.9 }}>
+        <div className="max-w-sm w-full text-center" style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>
+          <div className="font-light" style={{ opacity: 0.7, fontSize: '12px', color: '#FFFFFF', letterSpacing: '0.04em', lineHeight: 1.8 }}>
             Thank you for playing.<br />
             Calculation complete.<br />
             You did an amazing job.
           </div>
-          <div className="font-light" style={{ opacity: 0.45, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.08em', marginTop: '0.7rem' }}>
+          <div className="font-light" style={{ opacity: 0.45, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.08em', marginTop: '0.5rem' }}>
             Created by Syusuke F.
           </div>
-          <div style={{ opacity: 0.35, fontSize: '10px', color: '#FFFFFF', letterSpacing: '0.25em', marginTop: '0.6rem' }}>━━━━━━━━━━━━━━━━━━━━━━</div>
         </div>
       </div>
     );
@@ -2529,14 +2729,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
     const isGo = countdown <= 0;
     return (
       <div
-        className="game-lock w-full flex flex-col items-center justify-center px-4"
-        style={{
-          height: '100dvh',
-          maxHeight: '100dvh',
-          overflow: 'hidden',
-          background: skinBg(),
-          fontFamily: "'Zen Kaku Gothic New', sans-serif",
-        }}
+        className="game-lock v7-battle w-full flex flex-col items-center justify-center px-4"
+        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif" }}
       >
         <FontImport />
         <style>{`
@@ -2548,26 +2742,24 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
           }
           .fxf-count { animation: fxfCountPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         `}</style>
-
-        <div className="text-sm font-black rounded-full px-5 py-1.5 mb-8 shadow-lg" style={{ background: diffCfg.color, color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>
-          {diffCfg.label}
+        <div className="v7-wnd px-5 py-2 mb-8 v7-open" style={{ fontFamily: 'var(--v7-f-ui)', fontWeight: 900 }}>
+          <span className="v7-chip mr-2" style={{ background: diffCfg.color }}>{diffCfg.label}</span>ソロ・{diffCfg.clearCount}問
         </div>
-
         {/* keyを変えることで数字が変わるたびにアニメーションを再生する */}
         <div
           key={countdown}
-          className="fxf-count font-black leading-none text-center"
+          className="fxf-count leading-none text-center"
           style={{
-            color: '#fff',
-            fontFamily: "'Zen Maru Gothic', sans-serif",
-            fontSize: isGo ? 'clamp(2.5rem, 14vw, 6rem)' : 'clamp(5rem, 30vw, 12rem)',
-            textShadow: `0 6px 0 ${COLORS.forestDeep}, 0 10px 24px rgba(0,0,0,0.35)`,
+            color: isGo ? 'var(--v7-gold)' : '#fff',
+            fontFamily: 'var(--v7-f-fx)',
+            fontSize: isGo ? 'clamp(4rem, 22vw, 9rem)' : 'clamp(5rem, 30vw, 12rem)',
+            WebkitTextStroke: '3px #0B1430',
+            textShadow: '0 6px 0 rgba(0,0,0,0.35), 0 0 30px rgba(255,201,77,0.25)',
           }}
         >
-          {isGo ? 'スタート！' : countdown}
+          {isGo ? 'GO!' : countdown}
         </div>
-
-        <div className="text-sm font-bold mt-10 text-center" style={{ color: '#ffffffaa' }}>
+        <div className="text-sm font-bold mt-10 text-center" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>
           式に合う2枚の因数を くっつけよう！
         </div>
       </div>
@@ -2575,18 +2767,26 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   }
 
   /* ============================================================
-     画面: プレイ中
+     画面: プレイ中 — ver.7：紺のFF風ウィンドウ。
+     スマホ縦＝上に状況、下に問題とタイル。タブレット横＝左に状況（演出の欄つき）、右に大きな問題とタイル。
+     判定の文字・カットインは問題とタイルにかぶらない場所に出す。
      ============================================================ */
+  const diffCfgP = DIFFICULTY_CONFIG[difficulty];
+  const lvInfo = LEVEL_INFO[questionLevel];
+  const judgeEl = cls => judgePopup && (
+    <div key={`${cls}-${caught}-${judgePopup.label}`} className={`v7-judge ${cls}`} style={{ color: judgePopup.color, textShadow: `0 0 18px ${judgePopup.color}, 0 3px 0 rgba(0,0,0,.35)` }}>{judgePopup.label}</div>
+  );
+  const hpColor = life <= 10 ? 'linear-gradient(90deg,#E53935,#FF8A65)' : life <= 30 ? 'linear-gradient(90deg,#F2A516,#FFD54A)' : 'linear-gradient(90deg,#3FBF73,#8BE38F)';
   return (
     <div
-      className="game-lock w-full flex flex-col items-center px-3"
+      className="game-lock v7-battle w-full flex flex-col items-center px-3"
       style={{
         height: '100dvh',
         maxHeight: '100dvh',
         overflow: 'hidden',
         paddingTop: 'max(0.6rem, env(safe-area-inset-top))',
         paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-        background: skinBg(),
+        background: skinBg(V7_NIGHT),
         fontFamily: "'Zen Kaku Gothic New', sans-serif",
         touchAction: 'none',
         overscrollBehavior: 'none',
@@ -2605,232 +2805,172 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
         />
       )}
 
-      {/* 音ゲー風の判定ポップアップ(Perfect/Excellent/Great/Good/OK/Fair/Bad)。画面中央に大きく一瞬表示する */}
-      {judgePopup && (
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
-          style={{ zIndex: 50 }}
-        >
-          <div
-            className="font-black"
-            style={{
-              color: judgePopup.color,
-              fontFamily: "'Zen Maru Gothic', sans-serif",
-              fontSize: 'clamp(2.2rem, 12vw, 5rem)',
-              textShadow: '0 3px 0 rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4)',
-              animation: 'fxfJudgePop 700ms cubic-bezier(0.2, 0.9, 0.3, 1) both',
-              letterSpacing: '0.03em',
-            }}
-          >
-            {judgePopup.label}
+      <div className="v7-play">
+        {/* ---- 状況（スマホ＝上 / タブレット＝左の欄） ---- */}
+        <div className="v7-zone">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button onClick={() => { uiSnd('back'); finishGame(score, caught, 'menu'); }} className="v7-bar-btn">✕ やめる</button>
+            <span className="v7-chip" style={{ background: diffCfgP.color }}>ソロ・{diffCfgP.label}</span>
+            <span className="v7-chip" style={{ background: lvInfo.color }}>Lv.{questionLevel} {lvInfo.name}</span>
+            {ghost && (() => { const gc = (ghost.splits || []).filter(x => x <= elapsedSeconds * 1000).length; const d = caught - gc; return <span className="v7-chip" title="自分の過去ベストのゴースト" style={{ background: d >= 0 ? '#2D6A4F' : '#9B2C2C' }}>👻ベスト{gc}問 {d >= 0 ? `+${d}` : d}</span>; })()}
+            <button onClick={() => setMuted(m => !m)} className="v7-bar-btn ml-auto" aria-label={muted ? '音を出す' : '音を消す'}>{muted ? '🔇' : '🔊'}</button>
           </div>
-        </div>
-      )}
 
-      <div className="max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-3xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
+          {/* メッセージ（レベルアップ・コンボなど）: いつも同じ高さを確保してレイアウトがずれないようにする */}
+          <div className="v7-msg">
+            {topMessage && (
+              <div className="v7-wnd" style={{ color: topMessage.kind === 'levelup' ? 'var(--v7-gold)' : topMessage.kind === 'combo' ? '#7FD8FF' : '#F1F4FF' }}>
+                {topMessage.text}
+              </div>
+            )}
+          </div>
 
-        {/* メッセージ表示エリア: 内容があってもなくても常に同じ高さを確保し、下のレイアウトがズレないようにする */}
-        <div className="mb-2 flex items-center justify-center text-center px-1" style={{ height: '3.2rem', flexShrink: 0 }}>
-          {topMessage && (
-            <div
-              className="text-xs sm:text-sm font-black rounded-xl py-1.5 px-3 w-full shadow-lg leading-tight"
-              style={{
-                background: topMessage.kind === 'levelup' ? COLORS.amber : topMessage.kind === 'combo' ? COLORS.sky : COLORS.paper,
-                color: COLORS.ink,
-                fontFamily: "'Zen Maru Gothic', sans-serif",
-              }}
-            >
-              {topMessage.text}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="v7-wnd v7-st"><small>SCORE</small><b>{score}</b></div>
+            <div className="v7-wnd v7-st"><small>TIME</small><b>{mm}:{ss}</b></div>
+            <div className="v7-wnd v7-st"><small>COMBO</small><b style={{ color: combo > 0 ? 'var(--v7-gold)' : undefined }}>x{multiplier.toFixed(1)}</b></div>
+          </div>
+
+          {/* ライフ(体力)ゲージ: 100%が満タン。0%でゲームオーバー */}
+          <div className="relative">
+            <div className="v7-hpb" style={{ boxShadow: life <= 10 ? '0 0 10px rgba(255,77,77,0.7)' : 'none' }}>
+              <i style={{ width: `${Math.max(0, Math.min(100, life))}%`, background: hpColor }} />
+              <em>HP {life.toFixed(1)}%</em>
             </div>
-          )}
-        </div>
+            {lastLifeChange !== null && (
+              <div
+                className="absolute -top-2 right-1 text-xs font-black animate-pulse rounded-md px-1"
+                style={{ color: '#fff', background: lastLifeChange.amount >= 0 ? '#2D6A4F' : '#b3402c', fontFamily: 'var(--v7-f-fx)' }}
+              >
+                {lastLifeChange.amount >= 0 ? '+' : ''}{lastLifeChange.amount}%
+              </div>
+            )}
+          </div>
 
-        {/* ヘッダー (縮まない) */}
-        <div className="flex items-center justify-between mb-2 px-1" style={{ flexShrink: 0 }}>
-          <button onClick={() => finishGame(score, caught, 'menu')} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ やめる</button>
-          <div className="flex items-center gap-1">
-            <div className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: COLORS.paper, background: `${LEVEL_INFO[questionLevel].color}99` }}>Lv.{questionLevel} {LEVEL_INFO[questionLevel].name}</div>
-            {ghost && (() => { const gc = (ghost.splits || []).filter(x => x <= elapsedSeconds * 1000).length; const d = caught - gc; return <div className="text-[10px] font-black px-2 py-1 rounded-full" title="自分の過去ベストのゴースト" style={{ background: d >= 0 ? `${COLORS.leaf}33` : `${COLORS.coral}22`, color: d >= 0 ? COLORS.leafDeep : COLORS.coral }}>👻ベスト{gc}問 {d >= 0 ? `+${d}` : d}</div>; })()}
-          </div>
-          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
-        </div>
-
-        <div className="flex items-center justify-between mb-2 gap-2" style={{ flexShrink: 0 }}>
-          <div className="flex-1 rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paper }}>
-            <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>SCORE</div>
-            <div className="text-xl md:text-2xl font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{score}</div>
-          </div>
-          <div className="flex-1 rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paper }}>
-            <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>TIME</div>
-            <div className="text-xl md:text-2xl font-black" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{mm}:{ss}</div>
-          </div>
-          <div className="flex-1 rounded-xl px-3 py-1.5 text-center" style={{ background: COLORS.paper }}>
-            <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>COMBO</div>
-            <div className="text-xl md:text-2xl font-black" style={{ color: combo > 0 ? COLORS.coral : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>x{multiplier.toFixed(1)}</div>
+          {/* タブレット横：判定の文字とカットインはこの欄に出す */}
+          <div className="v7-fxbox" data-fxband="1">
+            {combo >= 2 && <div className="v7-fxcombo" key={combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{combo}</b><small>COMBO</small></div>}
+            {judgeEl('v7-judge-tb')}
           </div>
         </div>
 
-        {/* ライフ(体力)ゲージ: 100%が満タン。0%でゲームオーバー。残量で色が緑→黄→赤に変わる */}
-        <div className="relative rounded-full overflow-hidden mb-2" style={{ height: '28px', background: COLORS.paperDark, flexShrink: 0, border: `2px solid ${COLORS.ink}14` }}>
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${Math.max(0, Math.min(100, life))}%`,
-              background: life <= 10 ? '#FF4D4D' : life <= 30 ? '#FFB020' : 'linear-gradient(90deg, #43C97B, #8BE38F)',
-              transition: 'width 350ms ease, background 350ms ease',
-              boxShadow: life <= 10 ? '0 0 10px rgba(255,77,77,0.7)' : 'none',
-            }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center text-sm font-black" style={{ color: life > 45 ? '#0b3d20' : '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
-            ❤ HP {life.toFixed(1)}%
-          </div>
-          {lastLifeChange !== null && (
-            <div
-              className="absolute -top-1 right-1 text-xs font-black animate-pulse"
-              style={{ color: lastLifeChange.amount >= 0 ? COLORS.leafDeep : '#fff', background: lastLifeChange.amount >= 0 ? 'transparent' : '#b3402c', padding: lastLifeChange.amount >= 0 ? 0 : '0 4px', borderRadius: '6px' }}
-            >
-              {lastLifeChange.amount >= 0 ? '+' : ''}{lastLifeChange.amount}%
+        {/* ---- 問題とタイル ---- */}
+        <div className="v7-main">
+          <div className="relative" style={{ flexShrink: 0 }}>
+            {/* スマホ：判定の文字は問題のすぐ上（問題・タイルにはかぶらない） */}
+            {judgeEl('v7-judge-ph')}
+            <div data-fxtarget="1" className={`v7-target${isReverseStage ? ' rev' : ''}`} style={{ transition: 'background 300ms, border-color 300ms, box-shadow 300ms' }}>
+              {/* テンポ・ゲージ: 出題から20秒かけて減る。key=caughtで問題が変わるたびリセットされる */}
+              <div className="absolute top-0 left-0 w-full" style={{ height: '5px', background: 'rgba(0,0,0,0.12)', zIndex: 6 }}>
+                <div key={caught} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: 'fxfJudgeGauge 20000ms linear forwards' }} />
+              </div>
+              {reverseFlash && <div className="absolute inset-0 pointer-events-none" style={{ background: '#fff', animation: 'fxfReverseFlash 550ms ease-out forwards', zIndex: 5 }} />}
+              {isReverseStage ? (
+                <div className="text-[11px] font-black mb-1 tracking-wide animate-pulse" style={{ color: '#ffb3b3', fontFamily: 'var(--v7-f-ui)' }}>⚡ REVERSE BONUS! ⚡ 赤いときは「展開」して当てよう！</div>
+              ) : (
+                <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>この式を因数分解しよう</div>
+              )}
+              <div className="font-black v7-poly" style={{ color: isReverseStage ? '#fff' : '#1D2633', fontFamily: "'Zen Maru Gothic', sans-serif" }}><MathText text={targetText} /></div>
+              <div className="absolute bottom-1.5 right-3 text-[11px] font-bold tracking-wide" style={{ color: isReverseStage ? '#ffb3b3' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>問{caught + 1}/{diffCfgP.clearCount}</div>
+              {lastGain !== null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: isReverseStage ? '#ffe680' : '#2D6A4F', fontFamily: 'var(--v7-f-fx)' }}>+{lastGain}</div>}
             </div>
-          )}
-        </div>
-
-        {/* お題 (縮まない) */}
-        <div
-          data-fxtarget="1"
-          className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden"
-          style={{
-            background: isReverseStage ? 'linear-gradient(160deg, #3a0d0d, #6b1414)' : COLORS.paper,
-            border: isReverseStage ? '2px solid #ff5c5c' : `2px dashed ${COLORS.sky}45`,
-            borderTop: isReverseStage ? '5px solid #ff2e2e' : `5px solid ${LEVEL_INFO[questionLevel].color}`,
-            boxShadow: isReverseStage ? '0 0 18px rgba(255,46,46,0.55)' : 'none',
-            transition: 'background 300ms, border-color 300ms, box-shadow 300ms',
-            flexShrink: 0,
-          }}
-        >
-          {/* テンポ・ゲージ: 出題から3秒かけて100%→0%に減る。key=caughtで問題が変わるたびリセットされる */}
-          <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)', zIndex: 6 }}>
-            <div
-              key={caught}
-              className="h-full"
-              style={{ width: '100%', background: '#FFD54A', animation: 'fxfJudgeGauge 20000ms linear forwards' }}
-            />
           </div>
 
-          {reverseFlash && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: '#fff', animation: 'fxfReverseFlash 550ms ease-out forwards', zIndex: 5 }}
-            />
-          )}
           {isReverseStage ? (
-            <div className="text-[10px] font-black mb-1 tracking-wide animate-pulse" style={{ color: '#ffb3b3' }}>
-              ⚡ REVERSE BONUS! ⚡ 赤いときは「展開」して当てよう！
+            /* 逆引き展開ボーナス: 4択タップ形式 */
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5" style={{ flex: '1 1 auto', minHeight: 0, alignContent: 'start' }}>
+              {reverseChoices.map(choice => {
+                const state = reverseChoiceState[choice.id]; // 'correct' | 'wrong' | undefined
+                return (
+                  <button
+                    key={choice.id}
+                    onClick={() => attemptReverseAnswer(choice.id)}
+                    disabled={resolving}
+                    className="rounded-2xl px-3 py-4 font-black active:scale-95 transition-transform"
+                    style={{
+                      background: state === 'correct' ? '#2D6A4F' : state === 'wrong' ? '#8a1f1f' : '#fff5f5',
+                      color: state === 'correct' || state === 'wrong' ? '#fff' : '#3a0d0d',
+                      border: '2px solid #ff8a8a',
+                      boxShadow: '0 4px 0 #0A1230',
+                      fontFamily: "'Zen Maru Gothic', sans-serif",
+                      fontSize: 'clamp(1rem, 4vh, 1.6rem)',
+                    }}
+                  >
+                    <MathText text={choice.text} />
+                  </button>
+                );
+              })}
             </div>
           ) : (
-            <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: COLORS.inkSoft }}>この式を因数分解しよう</div>
-          )}
-          <div className="font-black" style={{ color: isReverseStage ? '#fff' : COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif", fontSize: 'clamp(1.4rem, 5.5vh, 3rem)' }}><MathText text={targetText} /></div>
-          <div className="absolute bottom-1.5 right-3 text-[10px] font-bold tracking-wide" style={{ color: isReverseStage ? '#ffb3b3' : COLORS.inkSoft }}>問{caught + 1}/{DIFFICULTY_CONFIG[difficulty].clearCount}</div>
-          {lastGain !== null && (
-            <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: isReverseStage ? '#ffe680' : COLORS.leafDeep }}>+{lastGain}</div>
-          )}
-        </div>
+          /* 盤面: 残りの高さいっぱいまで可変に広がる (画面の高さが低くても必ず収まる) */
+          <div className="w-full flex" style={{ flex: '1 1 auto', minHeight: 0 }}>
+            <div
+              ref={gridRef}
+              className="relative grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-full"
+              style={{ touchAction: 'none', gridTemplateRows: `repeat(${Math.max(1, Math.ceil(board.length / 3))}, 1fr)`, height: '100%' }}
+            >
+              <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 10 }}>
+                {dragging && selectedId && (() => {
+                  const c = getCenter(selectedId);
+                  return (
+                    <>
+                      <line x1={c.x} y1={c.y} x2={dragPos.x} y2={dragPos.y} stroke="#FFC94D" strokeWidth="4" strokeLinecap="round" strokeDasharray="2 8" />
+                      <circle cx={dragPos.x} cy={dragPos.y} r="16" fill="none" stroke="#FFC94D" strokeWidth="3" />
+                      <circle cx={c.x} cy={c.y} r="6" fill="#FFC94D" />
+                    </>
+                  );
+                })()}
+              </svg>
 
-        {isReverseStage ? (
-          /* 逆引き展開ボーナス: 4択タップ形式 */
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5" style={{ flex: '1 1 auto', minHeight: 0, alignContent: 'start' }}>
-            {reverseChoices.map(choice => {
-              const state = reverseChoiceState[choice.id]; // 'correct' | 'wrong' | undefined
-              return (
-                <button
-                  key={choice.id}
-                  onClick={() => attemptReverseAnswer(choice.id)}
-                  disabled={resolving}
-                  className="rounded-2xl px-3 py-4 font-black shadow-lg active:scale-95 transition-transform"
-                  style={{
-                    background: state === 'correct' ? COLORS.leafDeep : state === 'wrong' ? '#8a1f1f' : '#fff5f5',
-                    color: state === 'correct' || state === 'wrong' ? '#fff' : '#3a0d0d',
-                    border: '2px solid #ff8a8a',
-                    fontFamily: "'Zen Maru Gothic', sans-serif",
-                    fontSize: 'clamp(1rem, 4vh, 1.6rem)',
-                  }}
-                >
-                  <MathText text={choice.text} />
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-        /* 盤面: 残りの高さいっぱいまで可変に広がる (画面の高さが低くても必ず収まる) */
-        <div className="w-full flex" style={{ flex: '1 1 auto', minHeight: 0 }}>
-          <div
-            ref={gridRef}
-            className="relative grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-full"
-            style={{ touchAction: 'none', gridTemplateRows: `repeat(${Math.max(1, Math.ceil(board.length / 3))}, 1fr)`, height: '100%' }}
-          >
-            <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 10 }}>
-              {dragging && selectedId && (() => {
-                const c = getCenter(selectedId);
+              {board.map(tile => {
+                const isSelected = selectedId === tile.id;
+                const flash = flashMap[tile.id];
+                const sk = tileSkin(true);
+                let bg = sk.bg;
+                let borderColor = sk.bc, tc = sk.color, shadow = sk.glow || '0 4px 0 #0A1230';
+                if (flash === 'correct') { bg = '#7FD8FF'; borderColor = '#fff'; tc = '#14204A'; }
+                if (flash === 'wrong') { bg = '#FF8A75'; borderColor = '#fff'; tc = '#14204A'; }
+                if (isSelected && !flash) { borderColor = '#FFC94D'; shadow = '0 0 0 3px rgba(255,201,77,.6), 0 4px 0 #0A1230'; }
+                const fontSize = tile.factor.type === 'const'
+                  ? 'clamp(1.4rem, 7.6vmin, 3.2rem)'
+                  : tile.factor.type === 'quadratic'
+                  ? 'clamp(0.8rem, 3.9vmin, 1.6rem)'
+                  : 'clamp(1.05rem, 5.4vmin, 2.3rem)';
                 return (
-                  <>
-                    <line x1={c.x} y1={c.y} x2={dragPos.x} y2={dragPos.y} stroke={COLORS.amber} strokeWidth="4" strokeLinecap="round" strokeDasharray="2 8" />
-                    <circle cx={dragPos.x} cy={dragPos.y} r="16" fill="none" stroke={COLORS.amber} strokeWidth="3" />
-                    <circle cx={c.x} cy={c.y} r="6" fill={COLORS.amber} />
-                  </>
+                  <div
+                    key={tile.id}
+                    data-tile-id={tile.id}
+                    ref={el => { tileRefs.current[tile.id] = el; }}
+                    onPointerDown={(e) => onTilePointerDown(e, tile.id)}
+                    className="rounded-xl flex items-center justify-center font-bold select-none cursor-pointer"
+                    style={{
+                      background: bg,
+                      border: `2px solid ${borderColor}`,
+                      color: tc,
+                      boxShadow: shadow,
+                      transform: isSelected ? 'translateY(-3px) scale(1.04)' : 'none',
+                      transition: 'transform 120ms ease, background 150ms ease',
+                      fontSize,
+                      fontFamily: "'Zen Maru Gothic', sans-serif",
+                      touchAction: 'none',
+                    }}
+                  >
+                    <MathText text={formatFactorTile(tile.factor)} />
+                  </div>
                 );
-              })()}
-            </svg>
-
-            {board.map(tile => {
-              const isSelected = selectedId === tile.id;
-              const flash = flashMap[tile.id];
-              const rot = hashRotation(tile.id);
-              const sk = tileSkin();
-              let bg = sk.bg;
-              let borderColor = sk.bc, tc = sk.color;
-              if (flash === 'correct') { bg = '#6FCBEF'; borderColor = COLORS.sky; tc = COLORS.ink; }
-              if (flash === 'wrong') { bg = COLORS.coral; borderColor = '#b3402c'; tc = COLORS.ink; }
-              if (isSelected && !flash) { borderColor = COLORS.amber; }
-              const fontSize = tile.factor.type === 'const'
-                ? 'clamp(1.4rem, 7.6vmin, 3.2rem)'
-                : tile.factor.type === 'quadratic'
-                ? 'clamp(0.8rem, 3.9vmin, 1.6rem)'
-                : 'clamp(1.05rem, 5.4vmin, 2.3rem)';
-              return (
-                <div
-                  key={tile.id}
-                  data-tile-id={tile.id}
-                  ref={el => { tileRefs.current[tile.id] = el; }}
-                  onPointerDown={(e) => onTilePointerDown(e, tile.id)}
-                  className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer transition-colors duration-150"
-                  style={{
-                    background: bg,
-                    border: `2px solid ${borderColor}`,
-                    color: tc,
-                    boxShadow: sk.glow,
-                    transform: `rotate(${rot}deg) ${isSelected ? 'scale(1.08)' : 'scale(1)'}`,
-                    transition: 'transform 120ms ease, background 150ms ease',
-                    fontSize,
-                    fontFamily: "'Zen Maru Gothic', sans-serif",
-                    touchAction: 'none',
-                  }}
-                >
-                  <MathText text={formatFactorTile(tile.factor)} />
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
-        </div>
-        )}
+          )}
 
-        <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>
-          {isReverseStage ? '正しく展開した式をタップしよう' : 'タイルをドラッグしてもう一枚とつなげよう'}
-        </p>
+          <p className="v7-hint" style={{ flexShrink: 0 }}>
+            {isReverseStage ? '正しく展開した式をタップしよう' : 'タイルをドラッグしてもう一枚とつなげよう'}
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-
 /* =====================================================================
    演出（v5）：画面いっぱいの演出レイヤー（パーティクル・弾・破片・紙吹雪・カットイン）
    どこからでも FX.burst(x, y) のように呼べる。座標は画面（ビューポート）基準。
@@ -2893,6 +3033,8 @@ function fxMerge(els, color) {
   });
   setTimeout(() => { if (tc) { FX.burst(tc.x, tc.y, { color, colors: [color, '#ffffff', '#FFD54A'], n: 18, r: 90 }); FX.punch(tg, 1.05); } }, 320);
 }
+/* タブレット横の新UI：カットインの帯は左の欄（data-fxband）の中に出す。見えていなければ従来どおり画面の上 */
+function bandBox() { const el = qs('[data-fxband]'); if (!el) return null; const r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 40) return null; return { l: r.left, t: r.top, w: r.width, h: r.height }; }
 function FxLayer() {
   const [, set] = useState(0);
   useEffect(() => { const f = () => set(x => x + 1); FXBUS.subs.add(f); return () => FXBUS.subs.delete(f); }, []);
@@ -2908,6 +3050,12 @@ function FxLayer() {
         if (it.t === 'shards') return <React.Fragment key={it.id}>{it.parts.map((p, i) => <span key={i} style={{ position: 'absolute', left: it.rc.l + p.x, top: it.rc.t + p.y, width: p.w, height: p.h, background: it.color, border: '1px solid #ffffffaa', clipPath: i % 2 ? 'polygon(0 0,100% 10%,80% 100%)' : 'polygon(10% 0,100% 0,100% 100%,0 80%)', '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, '--r': `${p.r}deg`, animation: 'fxShard 880ms cubic-bezier(.3,.6,.7,1) forwards' }} />)}</React.Fragment>;
         if (it.t === 'confetti') return <React.Fragment key={it.id}>{it.parts.map((p, i) => <span key={i} style={{ position: 'absolute', left: `${p.x}%`, top: 0, width: p.w, height: p.w * 0.45, background: p.c, '--dx': `${p.dx}px`, '--r': `${p.r}deg`, animation: `fxConfetti ${p.d}s linear ${p.delay}s forwards`, transform: 'translate(0,-5vh)' }} />)}</React.Fragment>;
         if (it.t === 'flash') return <div key={it.id} style={{ position: 'absolute', inset: 0, background: it.color, '--o': it.o, animation: `fxFlashOut ${it.ms}ms ease-out forwards` }} />;
+        if (it.t === 'band') { const bx = !it.center && bandBox(); if (bx) return <div key={it.id} style={{ position: 'absolute', left: bx.l, top: bx.t, width: bx.w, height: bx.h, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: 10 }}>
+          <div style={{ width: '120%', padding: '0.8rem 0', background: `linear-gradient(90deg, ${it.color}00, ${it.color} 12%, ${it.color} 88%, ${it.color}00)`, textAlign: 'center', animation: `fxBand ${it.ms}ms cubic-bezier(.2,.8,.3,1) forwards`, boxShadow: '0 6px 24px rgba(0,0,0,.25)' }}>
+            <div style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.2rem, 2.4vw, 2rem)', letterSpacing: '0.05em', textShadow: '0 3px 0 rgba(0,0,0,.3)', fontFamily: "'Zen Maru Gothic', sans-serif", padding: '0 10%' }}>{it.label}</div>
+            {it.sub && <div style={{ color: '#fff', fontWeight: 800, fontSize: '0.85rem', fontFamily: "'Zen Maru Gothic', sans-serif", padding: '0 10%' }}>{it.sub}</div>}
+          </div>
+        </div>; }
         if (it.t === 'band') return <div key={it.id} style={{ position: 'absolute', left: 0, right: 0, top: it.center ? '38%' : 'max(0.3rem, env(safe-area-inset-top))', display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '120%', padding: it.center ? '0.7rem 0' : '0.35rem 0', background: `linear-gradient(90deg, ${it.color}00, ${it.color} 15%, ${it.color} 85%, ${it.color}00)`, textAlign: 'center', animation: `fxBand ${it.ms}ms cubic-bezier(.2,.8,.3,1) forwards`, boxShadow: '0 6px 24px rgba(0,0,0,.25)' }}>
             <div style={{ color: '#fff', fontWeight: 900, fontSize: it.center ? 'clamp(1.6rem, 7vw, 3rem)' : 'clamp(1.1rem, 5vw, 1.8rem)', letterSpacing: '0.06em', textShadow: '0 3px 0 rgba(0,0,0,.3)', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{it.label}</div>
@@ -3121,29 +3269,29 @@ function AccountGate({ onDone }) {
     setBusy(false);
     onDone(r.acct);
   };
-  const inputStyle = { background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' };
+  const inputStyle = { background: '#FBFAF7', color: '#1D2633', border: '1.5px solid #E4DED3', fontSize: '16px' };
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '26rem' }}>
         <div className="flex justify-center mb-4" style={{ animation: 'fxEnter 600ms ease both' }}><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} /></div>
-        <div className="rounded-3xl p-5 shadow-2xl" style={{ background: COLORS.paper, animation: 'fxEnter 600ms 120ms ease both' }}>
+        <div className="rounded-3xl p-5 v7-open" style={{ background: '#fff', border: '1px solid var(--v7-line)' }}>
           <div className="text-center font-black text-lg mb-1" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>ようこそ！</div>
           <p className="text-[11px] font-bold mb-3 text-center" style={{ color: COLORS.inkSoft }}>名前と4桁の合言葉でログインすると、成績・称号・レベル・苦手分析などが<br />どの端末からでも続きから遊べます</p>
           <input value={nm} onChange={e => setNm(e.target.value.slice(0, 10))} placeholder="名前（10文字まで）" maxLength={10} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
           <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="合言葉（4桁の数字）" inputMode="numeric" type="password" maxLength={4} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
           <div className="grid grid-cols-2 gap-2">
-            <BigBtn small disabled={!fb.ready || busy} onClick={() => doLogin(false)}>ログイン</BigBtn>
-            <BigBtn small disabled={!fb.ready || busy} color={COLORS.leaf} onClick={() => doLogin(true)}>新しく登録</BigBtn>
+            <BigBtn small disabled={!fb.ready || busy} color="#E4572E" onClick={() => { uiSnd('ok'); doLogin(false); }}>ログイン</BigBtn>
+            <BigBtn small disabled={!fb.ready || busy} color="#1D2633" onClick={() => { uiSnd('ok'); doLogin(true); }}>新しく登録</BigBtn>
           </div>
           {!fb.ready && <p className="text-[11px] font-bold mt-2 text-center" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}</p>}
           {msg && <p className="text-xs font-bold mt-2 text-center" style={{ color: COLORS.coral }}>{msg}</p>}
-          <div className="mt-4 pt-3" style={{ borderTop: `1px dashed ${COLORS.sky}55` }}>
-            <button onClick={() => { const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }} className="w-full rounded-2xl py-2.5 text-sm font-black shadow transition-transform active:scale-95" style={{ background: COLORS.paperDark, color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
+          <div className="mt-4 pt-3" style={{ borderTop: '1px dashed var(--v7-line)' }}>
+            <button onClick={() => { uiSnd('ok'); const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }} className="v7-sub-btn" style={{ fontSize: 14, padding: 11 }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
             <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>あとで登録すると、ゲストの記録を引き継げます</p>
           </div>
         </div>
-        <div className="text-center mt-3"><ConnCheck /></div>
+        <div className="text-center mt-3"><ConnCheck v7 /></div>
       </div>
     </div>
   );
@@ -3155,7 +3303,7 @@ function AccountGate({ onDone }) {
    ===================================================================== */
 const SKIN_LS = 'fxf_skin_v1';
 const SKIN_TILES = [
-  { id: 'std', name: 'スタンダード', bg: '#EAF7FD', bc: '#0E86C633', color: '#123A52', need: null },
+  { id: 'std', name: 'スタンダード', bg: '#F4F7FF', bc: '#C9D5F5', color: '#14204A', need: null },
   { id: 'wood', name: '木のタイル', bg: 'linear-gradient(135deg,#f3dcb8,#e2bd8a)', bc: '#a0703c88', color: '#4a2c12', need: { lv: 3 } },
   { id: 'board', name: '黒板', bg: 'linear-gradient(135deg,#2f5d4a,#1f4535)', bc: '#c9b58a', color: '#f4f1e0', need: { lv: 5 } },
   { id: 'washi', name: '和紙', bg: 'linear-gradient(135deg,#fffaf0,#f3e7d3)', bc: '#c0392b66', color: '#3a2a1a', need: { lv: 8 } },
@@ -3169,7 +3317,7 @@ const SKIN_TILES = [
   { id: 'mission', name: '皆勤スタンプ', bg: 'linear-gradient(135deg,#e7fff4,#bff0dc)', bc: '#2a9d8f', color: '#0e4d44', need: { mis: 3 } },
 ];
 const SKIN_BGS = [
-  { id: 'sky', name: '青空', bg: 'linear-gradient(180deg,#E3F6FD,#A9DDF0)', need: null },
+  { id: 'sky', name: '標準', bg: 'linear-gradient(180deg,#E3F6FD,#A9DDF0)', need: null },
   { id: 'sunset', name: '夕焼け', bg: 'linear-gradient(180deg,#FFF0E0,#FFC09A)', need: { lv: 4 } },
   { id: 'forest', name: '森', bg: 'linear-gradient(180deg,#EAFBEA,#A9E2B4)', need: { lv: 7 } },
   { id: 'sakura', name: '桜', bg: 'radial-gradient(circle at 20% 15%,#ffffff 0 6%,transparent 7%),radial-gradient(circle at 80% 40%,#ffe3ee 0 5%,transparent 6%),linear-gradient(180deg,#FFF2F7,#FFC7DC)', need: { lv: 10 } },
@@ -3194,8 +3342,11 @@ function setSkin(patch, acct) {
   SKIN = { ...SKIN, ...patch }; saveLS(SKIN_LS, SKIN); SKINBUS.forEach(f => f());
   if (isReal(acct) && FB.db) FB.db.ref(`games/factor/accounts/${acct.key}/stats/skin`).set(SKIN).catch(() => {});
 }
-const tileSkin = () => SKIN_TILES.find(t => t.id === SKIN.tile) || SKIN_TILES[0];
-const skinBg = () => (SKIN_BGS.find(t => t.id === SKIN.bg) || SKIN_BGS[0]).bg;
+// v7=true のとき（新UIの画面）、標準のタイル・背景は新しい見た目（白いタイル・夜空の紺）にする
+const V7_TILE = { id: 'std', bg: '#F4F7FF', bc: '#C9D5F5', color: '#14204A', glow: '0 4px 0 #0A1230' };
+const V7_NIGHT = 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)';
+const tileSkin = v7 => { const t = SKIN_TILES.find(x => x.id === SKIN.tile); if (v7 && (!t || t.id === 'std')) return V7_TILE; return t || SKIN_TILES[0]; };
+const skinBg = dflt => { const t = SKIN_BGS.find(x => x.id === SKIN.bg); if (dflt && (!t || t.id === 'sky')) return dflt; return (t || SKIN_BGS[0]).bg; };
 const RAINBOW = ['#ff4d4d', '#ffb020', '#ffe14d', '#43c97b', '#3aa0ff', '#9b5bff'];
 const skinFxColor = c => { const f = SKIN_FX.find(t => t.id === SKIN.fx); if (!f || !f.color) return c; return f.color === 'rainbow' ? RAINBOW[Math.floor(Math.random() * RAINBOW.length)] : f.color; };
 /* 解放の条件 */
@@ -4791,6 +4942,81 @@ function WeeklyRaidApp({ acct, onExit }) {
   );
 }
 /* タイトル画面の札 */
+/* ---------- ver.7 メニューの部品 ---------- */
+function AccountPanelV7({ acct, onLogout }) {
+  const fb = useFbReady();
+  const st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
+  const [open, setOpen] = useState(false);
+  const [wd, setWd] = useState(false);
+  const [nameOf, setNameOf] = useState({});
+  const g = !isReal(acct) ? loadGuest() : null;
+  // 別の端末で選んだきせかえを、この端末にも反映
+  const synced = useRef('');
+  useEffect(() => { if (st && st.skin && synced.current !== acct.key) { synced.current = acct.key; SKIN = { ...st.skin }; saveLS(SKIN_LS, SKIN); SKINBUS.forEach(f => f()); } }, [st && !!st.skin]);
+  const exp = isReal(acct) ? (st && st.exp) || 0 : (g && g.exp) || 0;
+  const L = levelOf(exp);
+  const openProf = () => {
+    setOpen(true);
+    fref('accounts').get().then(s => { const nm = {}; Object.entries(s.val() || {}).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm); }).catch(() => {});
+  };
+  return (<>
+    <div className="v7-panel">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1" style={{ minWidth: '7rem' }}>
+          {isReal(acct) && st && st.nick && <Nick id={st.nick} size={11} block />}
+          <div className="v7-name truncate">{acct.name}{!isReal(acct) && <span className="text-[10px] ml-1 font-bold rounded-full px-2 align-middle" style={{ background: '#EFEAE0', color: 'var(--v7-sub)' }}>ゲスト</span>}</div>
+          {isReal(acct) && st && <div className="flex items-center gap-1 mt-0.5 flex-wrap">{st.games > 0 && <RankPill r={ratingOf(st)} size={10} />}{bountyOf(st) > 0 && <span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: '#b7791f' }}>賞金 {bountyOf(st)}</span>}<BadgeIcons st={st} max={4} /></div>}
+        </div>
+        {isReal(acct) && <button className="v7-pill v7-cur" onClick={openProf}><V7Icon name="stats" />成績</button>}
+        <button className="v7-pill v7-cur" onClick={() => setWd(true)}><V7Icon name="skin" />きせかえ</button>
+      </div>
+      <div className="flex items-center gap-2 mt-2 text-xs font-bold" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>
+        <span style={{ color: 'var(--v7-ink)', fontWeight: 900 }}>Lv.{L.lv}</span>
+        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'var(--v7-accent)', transition: 'width 600ms ease' }} /></div>
+        <span>{L.cur}/{L.need}</span>
+      </div>
+      {open && <PlayerProfile name={acct.name} st={st || {}} nameOf={nameOf} me acctKey={acct.key} onClose={() => setOpen(false)} />}
+      {wd && <Wardrobe acct={acct} st={isReal(acct) ? st : g} exp={exp} onClose={() => setWd(false)} />}
+    </div>
+    {isReal(acct) && st && <GhostNews acct={acct} st={st} />}
+  </>);
+}
+function DailyTileV7({ acct, onOpen }) {
+  const date = jstDate();
+  const rows = useDailyBoard(date);
+  const prof = useProf(acct, 0);
+  const mis = useMissions(acct, prof);
+  const got = mis.rows.filter(r => r.got).length, ready = mis.rows.filter(r => r.done && !r.got).length;
+  const meKey = isReal(acct) ? acct.key : null;
+  const mine = (meKey && rows.find(r => r.k === meKey)) || loadLS(dailyDoneKey(date, acct), null);
+  const rk = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
+  const all = mis.rows.length && got === mis.rows.length;
+  return (
+    <button className="v7-tile v7-cur" onClick={onOpen}>
+      <div className="top"><span className="v7-ico"><V7Icon name="cal" /></span>
+        {ready > 0 ? <span className="v7-badge hot">受け取れる {ready}</span> : <span className="v7-badge">{all ? 'コンプリート' : `${got}/${mis.rows.length}`}</span>}</div>
+      <b>デイリーミッション</b>
+      <span className="s">{mine ? `チャレンジ ${fmtSec(mine.t)}秒${rk ? `・${rk}位` : ''}` : '今日の10問に挑戦'}</span>
+      <div className="flex gap-1 mt-1">{mis.rows.map(r => <div key={r.key} className="flex-1 rounded-full" style={{ height: 4, background: r.got ? '#d4a017' : r.done ? '#43C97B' : 'var(--v7-line)' }} />)}</div>
+    </button>
+  );
+}
+function WeeklyTileV7({ onOpen }) {
+  const wk = weekKey(), boss = weeklyBoss(wk);
+  const fb = useFbReady();
+  const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
+  const total = Object.values(v).reduce((a, e) => a + ((e && e.d) || 0), 0);
+  const r = Math.max(0, 1 - total / WEEKLY_HP);
+  return (
+    <button className="v7-tile v7-cur" onClick={onOpen}>
+      <div className="top"><span className="v7-ico">{boss.icon}</span><span className="v7-badge">{r <= 0 ? '撃破！' : `のこり${Math.round(r * 100)}%`}</span></div>
+      <b>今週のボス</b>
+      <span className="s">{boss.name}</span>
+      <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${r * 100}%`, background: boss.color }} /></div>
+    </button>
+  );
+}
+
 function WeeklyCard({ onOpen }) {
   const wk = weekKey(), boss = weeklyBoss(wk);
   const fb = useFbReady();
@@ -4920,7 +5146,7 @@ function TourSplit({ code, state, m, onClose }) {
 }
 
 /* ---------- 接続チェック：つながらない端末の原因を調べる ---------- */
-function ConnCheck() {
+function ConnCheck({ v7 }) {
   const [open, setOpen] = useState(false);
   const [r, setR] = useState(null);
   const run = async () => {
@@ -4946,7 +5172,8 @@ function ConnCheck() {
   };
   const text = r ? r.map(([a, st, b]) => `${st === 'ok' ? '○' : st === 'ng' ? '×' : '・'} ${a}：${b}`).join('\n') : '';
   return (<>
-    <button onClick={() => { setOpen(true); run(); }} className="text-[10px] font-bold rounded-full px-3 py-1" style={{ background: '#ffffff33', color: '#ffffffcc' }}>📶 接続チェック</button>
+    {v7 ? <button onClick={() => { setOpen(true); run(); }} className="v7-pill v7-cur"><V7Icon name="wifi" />接続チェック</button>
+      : <button onClick={() => { setOpen(true); run(); }} className="text-[10px] font-bold rounded-full px-3 py-1" style={{ background: '#ffffff33', color: '#ffffffcc' }}>📶 接続チェック</button>}
     {open && <div onClick={() => setOpen(false)} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 90 }}>
       <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl text-left" style={{ background: COLORS.paper, maxWidth: '26rem' }}>
         <div className="flex items-center justify-between mb-2"><div className="font-black" style={{ color: COLORS.ink }}>📶 接続チェック</div><button onClick={() => setOpen(false)} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button></div>
@@ -4967,7 +5194,7 @@ function ConnCheck() {
 function FontImport() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Russo+One&display=swap');
       html, body { overscroll-behavior-y: contain; }
       .game-lock, .game-lock * { touch-action: none; }
     `}</style>
