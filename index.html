@@ -2003,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.7
+              ver.5.8
             </span>
           </div>
 
@@ -2760,7 +2760,7 @@ const FX = {
     fxAdd({ t: 'confetti', parts }, 4200);
   },
   flash(color = '#fff', o = 0.55, ms = 220) { fxAdd({ t: 'flash', color, o, ms }, ms + 30); },
-  band(label, o = {}) { fxAdd({ t: 'band', label, sub: o.sub || '', color: o.color || '#ff7b00', ms: o.ms || 1700 }, (o.ms || 1700) + 50); },
+  band(label, o = {}) { fxAdd({ t: 'band', label, sub: o.sub || '', color: o.color || '#ff7b00', ms: o.ms || 1700, center: FXBUS.center > 0 }, (o.ms || 1700) + 50); },
   shake(el, strong) {
     if (!el || !el.animate || FX_REDUCE) return;
     const k = strong ? 9 : 5;
@@ -2768,6 +2768,8 @@ const FX = {
   },
   punch(el, s = 1.04) { if (!el || !el.animate) return; try { el.animate([{ transform: 'scale(1)' }, { transform: `scale(${s})` }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' }); } catch (e) {} },
 };
+/* プロジェクター向けの画面（大会・レイドの先生の画面・分割画面）では、帯を画面のまん中に出す */
+function useBandCenter() { useEffect(() => { FXBUS.center = (FXBUS.center || 0) + 1; return () => { FXBUS.center = Math.max(0, (FXBUS.center || 1) - 1); }; }, []); }
 /* 正解した2枚のタイルが、お題に吸いこまれて弾ける */
 function fxMerge(els, color) {
   const tg = qs('[data-fxtarget]'), tc = rectC(tg);
@@ -2793,9 +2795,9 @@ function FxLayer() {
         if (it.t === 'shards') return <React.Fragment key={it.id}>{it.parts.map((p, i) => <span key={i} style={{ position: 'absolute', left: it.rc.l + p.x, top: it.rc.t + p.y, width: p.w, height: p.h, background: it.color, border: '1px solid #ffffffaa', clipPath: i % 2 ? 'polygon(0 0,100% 10%,80% 100%)' : 'polygon(10% 0,100% 0,100% 100%,0 80%)', '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, '--r': `${p.r}deg`, animation: 'fxShard 880ms cubic-bezier(.3,.6,.7,1) forwards' }} />)}</React.Fragment>;
         if (it.t === 'confetti') return <React.Fragment key={it.id}>{it.parts.map((p, i) => <span key={i} style={{ position: 'absolute', left: `${p.x}%`, top: 0, width: p.w, height: p.w * 0.45, background: p.c, '--dx': `${p.dx}px`, '--r': `${p.r}deg`, animation: `fxConfetti ${p.d}s linear ${p.delay}s forwards`, transform: 'translate(0,-5vh)' }} />)}</React.Fragment>;
         if (it.t === 'flash') return <div key={it.id} style={{ position: 'absolute', inset: 0, background: it.color, '--o': it.o, animation: `fxFlashOut ${it.ms}ms ease-out forwards` }} />;
-        if (it.t === 'band') return <div key={it.id} style={{ position: 'absolute', left: 0, right: 0, top: '38%', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '120%', padding: '0.7rem 0', background: `linear-gradient(90deg, ${it.color}00, ${it.color} 15%, ${it.color} 85%, ${it.color}00)`, textAlign: 'center', animation: `fxBand ${it.ms}ms cubic-bezier(.2,.8,.3,1) forwards`, boxShadow: '0 6px 24px rgba(0,0,0,.25)' }}>
-            <div style={{ color: '#fff', fontWeight: 900, fontSize: 'clamp(1.6rem, 7vw, 3rem)', letterSpacing: '0.06em', textShadow: '0 3px 0 rgba(0,0,0,.3)', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{it.label}</div>
+        if (it.t === 'band') return <div key={it.id} style={{ position: 'absolute', left: 0, right: 0, top: it.center ? '38%' : 'max(0.3rem, env(safe-area-inset-top))', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '120%', padding: it.center ? '0.7rem 0' : '0.35rem 0', background: `linear-gradient(90deg, ${it.color}00, ${it.color} 15%, ${it.color} 85%, ${it.color}00)`, textAlign: 'center', animation: `fxBand ${it.ms}ms cubic-bezier(.2,.8,.3,1) forwards`, boxShadow: '0 6px 24px rgba(0,0,0,.25)' }}>
+            <div style={{ color: '#fff', fontWeight: 900, fontSize: it.center ? 'clamp(1.6rem, 7vw, 3rem)' : 'clamp(1.1rem, 5vw, 1.8rem)', letterSpacing: '0.06em', textShadow: '0 3px 0 rgba(0,0,0,.3)', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{it.label}</div>
             {it.sub && <div style={{ color: '#fff', fontWeight: 800, fontSize: '0.9rem', fontFamily: "'Zen Maru Gothic', sans-serif" }}>{it.sub}</div>}
           </div>
         </div>;
@@ -3721,9 +3723,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   const s = S.current;
   const nextProb = lv => { const b = buildBoard(lv, seen.current, 6); setProb({ level: lv, ...b }); setFlash({}); setBusy(false); s.qs = Date.now(); };
   // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
-  const forceKey = o.forceKey || '';
-  const lastForce = useRef(forceKey);
-  useEffect(() => { if (lastForce.current !== forceKey) { lastForce.current = forceKey; if (!busy && o.pickLevel) nextProb(o.pickLevel(prob.level, 'init')); } }, [forceKey]);
+  // 弱点タイムや「ねらう部位」が変わっても、いま解いている問題はそのまま。次の問題から反映する
   const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
   const onMatch = useCallback((id1, id2) => {
     if (busy || ended || stunned()) return;
@@ -3783,7 +3783,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
         {o.topExtra}
         {sessionInfo}
         {ended ? <div className="fx-scroll flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>{footer}</div> : (<>
-          <TargetCard poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} />
+          <TargetCard poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} spurt={o.hot ? o.hot(prob.level) : false} />
           <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} />
           <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
         </>)}
@@ -3869,6 +3869,7 @@ function useRaidEvents(state, raw, calc, now, cb) {
 
 /* ---------- 授業用レイド：プロジェクター（先生）・観戦の画面 ---------- */
 function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
+  useBandCenter();
   const raw = useRaidTally(code, state.gid);
   useTick(250, true);
   const now = fbNow();
@@ -4094,9 +4095,10 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
     onQuit={onLeave}
     bossExtra={<PartBars parts={calc.parts} />}
     opts={{
-      pickLevel, dmgMul, stunUntil, forceKey: `${target}:${weakFam ? weakFam.id + sch.weak.k : ''}`,
+      pickLevel, dmgMul, stunUntil,
+      hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
       bgmRate: [1, 1.08, 1.16, 1.26][calc.phase],
-      note: lv => weakFam && weakFam.lv.includes(lv) ? `🎯 弱点「${weakFam.name}」ダメージ2倍！` : null,
+      note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ2倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : null,
       overlay: (<>
         {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
         {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>⚡ しびれた！</div></div>}
@@ -4111,12 +4113,16 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
         </div>
         <div className="flex items-center gap-1 text-[10px] font-black" style={{ minHeight: '1.2rem' }}>
           {calc.chain >= 2 && <span className="rounded-full px-2 text-white" style={{ background: '#ff2e63' }}>🔗{calc.chain}チェイン ×{chainMul.toFixed(2)}</span>}
-          {weakFam && <span className="rounded-full px-2 text-white" style={{ background: '#ff7b00' }}>🎯弱点 {weakFam.name} {Math.ceil((sch.weak.until - now) / 1000)}秒</span>}
+
           {ctrWarn && <span className="rounded-full px-2 text-white animate-pulse" style={{ background: '#b3402c' }}>⚠反撃まで{Math.ceil((sch.counter.at - now) / 1000)}秒！正解して守れ</span>}
           <span className="flex-1" />
           <span style={{ color: '#7B61FF' }}>⚡総攻撃 {calc.gauge}/{calc.G}</span>
         </div>
-        {say && <BossSay say={say} />}
+        {weakFam && <div className="rounded-xl px-2 py-1 mt-1 text-center font-black text-white shadow" style={{ background: 'linear-gradient(90deg,#ff7b00,#ff2e63)', animation: 'fxPulseGold 900ms infinite', ...bFont }}>
+          <div className="text-sm">🎯 弱点タイム！ あと{Math.ceil((sch.weak.until - now) / 1000)}秒</div>
+          <div className="text-[11px]">いまは「{weakFam.name}」の問題が出る。正解するとダメージ2倍！</div>
+        </div>}
+        {!weakFam && say && <BossSay say={say} />}
       </div>),
     }}
     onHit={(d, info) => {
@@ -4293,6 +4299,7 @@ function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, sco
   );
 }
 function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, claims, startAt, title, onClose }) {
+  useBandCenter();
   useTick(250, true);
   const N = DIFFICULTY_CONFIG[diff || 'easy'].clearCount;
   const now = fbNow();
@@ -4908,10 +4915,13 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
       window.removeEventListener('touchmove', mv); window.removeEventListener('touchend', up);
     };
   }, [drag, sel, onMatch]);
-  const rows = Math.max(1, Math.ceil(tiles.length / 3));
+  // おじゃまタイルで枚数が増えても画面に収まるように：10枚以上は4列、行は内容に関係なく等分
+  const cols = tiles.length > 9 ? 4 : 3;
+  const rows = Math.max(1, Math.ceil(tiles.length / cols));
+  const shrink = cols === 4 || rows > 3 ? 0.8 : 1;
   return (
     <div className="w-full flex" style={{ flex: '1 1 auto', minHeight: 0, opacity: dim ? 0.45 : 1, transition: 'opacity 200ms' }}>
-      <div ref={gridRef} className="relative grid grid-cols-3 gap-2 sm:gap-3 w-full" style={{ touchAction: 'none', gridTemplateRows: `repeat(${rows}, 1fr)`, height: '100%' }}>
+      <div ref={gridRef} className="relative grid gap-2 sm:gap-3 w-full" style={{ touchAction: 'none', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, height: '100%', minHeight: 0 }}>
         <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 10 }}>
           {drag && sel && (() => { const c = center(sel); return (<>
             <line x1={c.x} y1={c.y} x2={pos.x} y2={pos.y} stroke={COLORS.amber} strokeWidth="4" strokeLinecap="round" strokeDasharray="2 8" />
@@ -4925,11 +4935,13 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
           if (fl === 'correct') { bg = '#6FCBEF'; bc = COLORS.sky; }
           if (fl === 'wrong') { bg = COLORS.coral; bc = '#b3402c'; }
           if (isSel && !fl) bc = COLORS.amber;
-          const fontSize = tile.factor.type === 'const' ? 'clamp(1.4rem, 7.4vmin, 3.1rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.8rem, 3.8vmin, 1.55rem)' : 'clamp(1.05rem, 5.2vmin, 2.2rem)';
+          const fontSize = shrink < 1
+            ? (tile.factor.type === 'const' ? 'clamp(1.1rem, 5.6vmin, 2.4rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.65rem, 2.9vmin, 1.2rem)' : 'clamp(0.85rem, 4vmin, 1.7rem)')
+            : (tile.factor.type === 'const' ? 'clamp(1.4rem, 7.4vmin, 3.1rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.8rem, 3.8vmin, 1.55rem)' : 'clamp(1.05rem, 5.2vmin, 2.2rem)');
           return (
             <div key={tile.id} data-btile={tile.id} data-f={JSON.stringify(tile.factor)} ref={el => { tileRefs.current[tile.id] = el; }} onPointerDown={e => down(e, tile.id)}
               className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer"
-              style={{ background: bg, border: `2px solid ${bc}`, color: COLORS.ink, transform: `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none' }}>
+              style={{ background: bg, border: `2px solid ${bc}`, color: COLORS.ink, transform: `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
               <MathText text={formatFactorTile(tile.factor)} />
             </div>
           );
@@ -6903,6 +6915,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
 }
 
 function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLobby }) {
+  useBandCenter();
   const results = useFbValue(`rooms/${code}/result`) || {};
   const [watch, setWatch] = useState(null);   // 分割画面で見ている試合の gid
   useTick(500, true);
