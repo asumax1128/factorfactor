@@ -2003,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.3
+              ver.5.4
             </span>
           </div>
 
@@ -3751,10 +3751,25 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
   const counting = now < state.startAt;
   const left = state.endAt - now;
   const won = hp <= 0, over = won || left <= 0;
+  // プロジェクター（先生の画面）の音：カウントダウン・BGM・攻撃の音・勝ち負け
+  const [muted, setMuted] = useState(false);
+  const sound = useBattleSound(muted);
+  const cdRef = useRef(null), hitT = useRef(0);
+  const cd = Math.ceil((state.startAt - now) / 1000);
+  useEffect(() => {
+    if (over) return;
+    if (counting) { if (cd !== cdRef.current && cd >= 1 && cd <= 3) { cdRef.current = cd; sound.play('beep'); } return; }
+    if (cdRef.current !== 0) { cdRef.current = 0; sound.play('go'); sound.bgm(true); }
+  }, [counting, cd, over]);
+  const hurry = !over && !counting && (left < 30000 || hp < state.hpMax * 0.3);
+  useEffect(() => { sound.bgmRate(hurry ? 1.2 : 1); }, [hurry]);
+  useEffect(() => { if (over) { sound.bgm(false); sound.play(won ? 'clear' : 'lose'); } }, [over]);
+  useEffect(() => () => sound.bgm(false), []);
   const [hitKey, setHitKey] = useState(0);
   const lastTotal = useRef(0);
   useEffect(() => {
     const d = total - lastTotal.current; lastTotal.current = total;
+    if (d > 0 && Date.now() - hitT.current > 140) { hitT.current = Date.now(); sound.play(d >= 40 ? 'special' : 'hit'); }
     if (d > 0) { setHitKey(k => k + 1); const bc = rectC(qs('[data-boss]')); if (bc) { FX.text(bc.x + (Math.random() - 0.5) * 120, bc.y - 20, `-${d}`, '#ff2e2e', 30); FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 10, r: 60 }); } }
   }, [total]);
   const shown = useRef(false);
@@ -3769,7 +3784,10 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
   return (<>
     <div className="flex items-center justify-between mb-3 gap-2">
       <button onClick={() => { if (!isHost || window.confirm('レイドを閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? 'レイドを閉じる' : '観戦をやめる'}</button>
-      <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: boss.color }}>🐉 クラス協力レイド ・ 部屋{code} ・ {rows.length}人参加</div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setMuted(m => !m)} className="text-sm font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paper, color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
+        <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: boss.color }}>🐉 クラス協力レイド ・ 部屋{code} ・ {rows.length}人参加</div>
+      </div>
     </div>
     {counting ? <Card className="mb-3 text-center"><div className="text-5xl font-black" style={{ color: boss.color, ...bFont }}>まもなく開始 {Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div></Card>
       : <div className="mb-3"><BossPanel boss={boss} hp={hp} max={state.hpMax} timeLeft={over ? 0 : left} big hitKey={hitKey} extra={<div className="text-sm font-black mt-1" style={{ color: COLORS.inkSoft }}>みんなの合計ダメージ {total.toLocaleString()}</div>} /></div>}
@@ -4523,6 +4541,8 @@ function useBattleSound(muted) {
         r[key] = p;
         const buf = await decodeDataUriToAudioBuffer(uri);
         if (!cancelled) p.buffer = new Tone.ToneAudioBuffer(buf);
+        // 読み込みが終わる前に「BGMを流して」と言われていたら、ここで流す
+        if (!cancelled && key === 'bgm' && r.__wantBgm && p.state !== 'started') { p.mute = mutedRef.current; p.start(); }
       } catch (e) { /* 音が出なくても遊べる */ }
     };
     try {
@@ -4550,6 +4570,8 @@ function useBattleSound(muted) {
     } catch (e) {}
   }, []);
   const bgm = useCallback(on => {
+    ref.current.__wantBgm = !!on;
+    if (on) { try { if (Tone.getContext().state !== 'running') Tone.start().catch(() => {}); } catch (e) {} }
     const p = ref.current.bgm;
     try { if (!p || !p.buffer || !p.buffer.loaded) return; if (on && p.state !== 'started') { p.mute = mutedRef.current; p.start(); } if (!on && p.state === 'started') p.stop(); } catch (e) {}
   }, []);
@@ -6726,6 +6748,12 @@ function AppRoot() {
   const [acct, setAcctS] = useState(() => loadLS(ACCT_LS, null));
   const setAcct = a => { setAcctS(a); saveLS(ACCT_LS, a); };
   useEffect(() => { fbStart(); }, []);
+  // どの画面でも、最初にさわったときに音を出せるようにする（ブラウザの決まり）
+  useEffect(() => {
+    const unlock = () => { try { if (Tone.getContext().state !== 'running') Tone.start().catch(() => {}); } catch (e) {} };
+    window.addEventListener('pointerdown', unlock); window.addEventListener('touchstart', unlock); window.addEventListener('keydown', unlock);
+    return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('touchstart', unlock); window.removeEventListener('keydown', unlock); };
+  }, []);
   const go = m => { setMode(m); window.scrollTo(0, 0); };
   const toSolo = () => go('solo');
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
