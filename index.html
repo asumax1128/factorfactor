@@ -1058,6 +1058,8 @@ const TUTORIAL_STEPS = [
   { ch: 'vs', v: 'sp', title: '必殺技とピンチ', body: '必殺技ゲージがたまったら、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
+  { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
+  { ch: 'team', v: 'tower', title: 'ボスの塔', body: 'ひとりで1階ずつボスを倒して登る。1階45秒、HPは次の階に持ちこし。10階ごとにチェックポイント、50階の真のボスを倒すと「塔を制覇」。その先は無限回廊！' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
@@ -1085,6 +1087,8 @@ function TutVisual({ v }) {
   if (v === 'modeB') return navy(<><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#2D6A4F,#1f4d39)' }}>⚔ 攻撃！ 体力-8%・おじゃま1枚</div><div className="v7-wnd px-3 py-1 text-[12px] font-black" style={{ color: '#fff', background: 'linear-gradient(180deg,#0E86C6,#0b5f8c)' }}>🛡 相殺！ 予告中に正解した</div></>);
   if (v === 'sp') return navy(<><div className="flex gap-1.5">{['⚡大攻撃', '💚回復', '🛡シールド'].map((t, i) => <span key={t} className="rounded-full px-2 py-0.5 text-[11px] font-black text-white" style={{ background: ['#e63946', '#2a9d8f', '#457b9d'][i], border: '1.5px solid #fff' }}>{t}</span>)}</div><span className="rounded-full px-2 text-[11px] font-black text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span></>);
   if (v === 'weekly' || v === 'raid') { const b = BOSSES[v === 'weekly' ? 5 : 0]; return navy(<><div className="w-full"><BossPanel boss={b} hp={v === 'weekly' ? 18000 : 6200} max={v === 'weekly' ? 30000 : 10000} /></div><div className="flex gap-1.5 flex-wrap justify-center">{v === 'weekly' ? <>{chip('🎯 弱点タイム ×2', '#ff7b00')}{chip('🛡 ガード', '#457b9d')}{chip('🏆 討伐報酬', '#d4a017')}</> : <>{chip('🐉 攻撃型', '#2a9d8f')}{chip('🗿 防御型', '#8d6e63')}{chip('👿 変身型', '#b5487e')}</>}</div></>); }
+  if (v === 'fraid') return <div className="grid grid-cols-4 gap-1.5 w-full" style={{ maxWidth: 340 }}>{ROLE_IDS.map(id => <div key={id} className="rounded-xl py-1.5 text-center" style={{ background: '#fff', border: `1.5px solid ${ROLES[id].color}` }}><div className="text-xl leading-none">{ROLES[id].icon}</div><div className="text-[9px] font-black" style={{ color: ROLES[id].color }}>{ROLES[id].name}</div></div>)}</div>;
+  if (v === 'tower') return navy(<><div className="flex items-end gap-1.5">{[1, 2, 3, 4, 5].map(i => <div key={i} className="rounded-md text-center font-black text-white" style={{ width: 44, height: 22 + i * 12, background: i === 5 ? '#E4572E' : '#2B3A7A', fontSize: 10, paddingTop: 2, ...bFont }}>{i * 10}F</div>)}<div style={{ fontSize: 34 }}>👑</div></div><div className="w-full"><HpBar v7 hp={64} height={16} /></div></>);
   if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
   if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📅', 'デイリー', '毎日4つ', '#E4572E')}{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
   if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}{chip('💰 懸賞金 10', '#b7791f')}</div></div>;
@@ -2390,16 +2394,17 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             <div className="v7-tiles4">
               <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />
               <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />
+              <TowerTileV7 acct={acct} onOpen={() => onMode && onMode('tower')} />
               <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
-              <button className="v7-tile v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><div className="top"><span className="v7-ico"><V7Icon name="help" /></span></div><b>あそびかた</b><span className="s">チュートリアル</span></button>
             </div>
             <div className="v7-foot">
               {GAS_ENDPOINT_URL !== '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); loadNetRanking(); }}><V7Icon name="cup" />ランキング</button>}
               {GAS_ENDPOINT_URL === '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); setRankTab('local'); }}><V7Icon name="cup" />ランキング</button>}
+              <button className="v7-pill v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><V7Icon name="help" />あそびかた</button>
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.8.0</span>
+              <span className="v7-ver">ver.8.1</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3280,6 +3285,7 @@ const SKIN_TILES = [
   { id: 'scale', name: 'ドラゴンの鱗', bg: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', bc: '#0e4d44', color: '#ffffff', glow: '0 0 8px #2a9d8f88', need: { boss: 'dragon' } },
   { id: 'inkt', name: 'クラーケンの墨', bg: 'radial-gradient(circle at 30% 30%,#5b4bb7,#1d1640 70%)', bc: '#b9a8ff', color: '#ffffff', glow: '0 0 8px #7B61FF88', need: { boss: 'kraken' } },
   { id: 'treasure', name: '宝箱の金貨', bg: 'radial-gradient(circle at 30% 25%,#fff6c8,#f7c948 45%,#c08a10)', bc: '#7a5200', color: '#3a2600', glow: '0 0 10px #ffd54aaa', need: { shards: 5 } },
+  { id: 'towert', name: '塔の頂', bg: 'linear-gradient(135deg,#fff8dc,#f0c75e 45%,#b8860b)', bc: '#6b4e00', color: '#3a2600', glow: '0 0 10px #f0c75eaa', need: { tower: 50 } },
   { id: 'rock', name: 'ゴーレムの岩', bg: 'linear-gradient(135deg,#a1887f,#6d4c41)', bc: '#3e2723', color: '#fff8e1', need: { boss: 'golem' } },
 ];
 const SKIN_BGS = [
@@ -3295,6 +3301,7 @@ const SKIN_BGS = [
   // 今週のボスの討伐記念
   { id: 'castle', name: '魔王城', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #5b2a86, #1a0a2a 70%)', need: { boss: 'maou' } },
   { id: 'jelly', name: 'スライムの森', bg: 'radial-gradient(circle at 20% 80%, #b8f5c4 0 12%, transparent 13%), radial-gradient(circle at 75% 30%, #d6ffdd 0 9%, transparent 10%), linear-gradient(180deg,#e9ffe9,#9be7a8)', need: { boss: 'slime' } },
+  { id: 'summit', name: '天空の塔', bg: 'radial-gradient(ellipse 80% 40% at 50% 0%, #fff6c8 0, transparent 60%), linear-gradient(180deg,#3b5aa8,#1a2350 60%,#0d1230)', need: { tower: 50 } },
   { id: 'circuit', name: '電脳回路', bg: 'repeating-linear-gradient(90deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), repeating-linear-gradient(0deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), linear-gradient(180deg,#0b2a3a,#08202d)', need: { boss: 'robot' } },
 ];
 const SKIN_FX = [
@@ -3329,12 +3336,13 @@ function skinOpen(need, info) {
   if (need.bounty) return info.bounty >= need.bounty;
   if (need.boss) return !!(info.boss && info.boss[need.boss]);
   if (need.shards) return (info.shards || 0) >= need.shards;
+  if (need.tower) return (info.tower || 0) >= need.tower;
   return false;
 }
-const skinNeedText = need => !need ? '' : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.tower ? `ボスの塔の${need.tower}階を突破すると解放` : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
 function skinInfo(st, exp) {
   st = st || {};
-  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0 };
+  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0, tower: (st.tower && st.tower.best) || 0 };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose }) {
@@ -4489,7 +4497,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
       <div className="v7-play">
         <div className="v7-zone">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <button onClick={() => { if (window.confirm('レイドをぬけますか？')) { uiSnd('back'); onQuit(); } }} className="v7-bar-btn">✕ ぬける</button>
+            <button onClick={() => { if (window.confirm(o.quitMsg || 'レイドをぬけますか？')) { uiSnd('back'); onQuit(); } }} className="v7-bar-btn">✕ ぬける</button>
             <span className="v7-chip" style={{ background: boss.color }}>{title}</span>
             <button onClick={() => setMuted(m => !m)} className="v7-bar-btn ml-auto" aria-label={muted ? '音を出す' : '音を消す'}>{muted ? '🔇' : '🔊'}</button>
           </div>
@@ -5644,6 +5652,314 @@ function WeeklyRaidApp({ acct, onExit }) {
     </div>
   );
 }
+/* ---------- ボスの塔（ひとりで1階ずつ登る） ----------
+   ・1階＝ボス1体を45秒で倒す。時間切れはボスの猛攻（HP−25）で15秒延長
+   ・自分のHPは階をまたいで持ち越し。ミス −5、反撃を受ける −12（大ボス×1.5）。階を突破すると少し回復
+   ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。10階ごとにチェックポイント（次からそこの次の階から始められる）
+   ・50階に真のボス「真・因数の王」→ 称号「塔を制覇」・きせかえ。51階からは無限回廊（最高到達階ランキング） */
+const TOWER_GOAL = 50, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';
+const TOWER_KING = { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' };
+const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
+const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30 };
+function towerFloor(f) {
+  const king = f === TOWER_GOAL, endless = f > TOWER_GOAL, big = !king && f % 5 === 0;
+  const boss = king ? TOWER_KING : BOSSES.find(b => b.id === (endless ? TOWER_ORDER[hashSeed('tw:' + f) % 6] : TOWER_ORDER[(f - 1) % 6]));
+  const T = king ? { weak: {}, counter: {} } : traitOf(boss.id);
+  const base = 140 + 14 * (f - 1);
+  const hpMax = king ? 1600 : Math.round(base * (T.hpK || 1) * (big ? 1.5 : 1) * (endless ? 1 + (f - TOWER_GOAL) * 0.01 : 1));
+  const sec = king ? 60 : TOWER_SEC / 1000;
+  const C = king ? { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' } : T.counter === null ? null : ctrOf(boss.id);
+  const ctr = !C ? [] : king ? [10, 22, 34, 46] : big ? [10, 22, 34] : [14, 30];
+  const weak = T.weak === false ? [] : king ? [[4, 16], [26, 38]] : boss.id === 'robot' ? [[5, 17], [24, 36]] : boss.id === 'kraken' ? [[6, 24]] : [[8, 20]];
+  const name = king ? boss.name : `${big ? '大ボス・' : ''}${boss.name}`;
+  return { f, king, endless, big, boss: { ...boss, name }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), startLv: Math.max(1, Math.min(7, 1 + Math.floor((Math.min(f, 49) - 1) / 6))) };
+}
+const towerOf = st => (st && st.tower) || {};
+const towerCp = tw => Math.floor(Math.min(TOWER_GOAL, tw.best || 0) / 10) * 10;   // チェックポイント（10・20・…・50）
+function loadTowerGuest() { const g = loadGuest(); return g.tower || {}; }
+function TowerApp({ acct, onExit }) {
+  const fb = useFbReady();
+  const meKey = isReal(acct) ? acct.key : null;
+  const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
+  const board = useFbValue(fb.ready ? 'tower/best' : null);
+  const [gTw, setGTw] = useState(loadTowerGuest);
+  const tw = meKey ? towerOf(st) : gTw;
+  const cp = towerCp(tw);
+  const [scr, setScr] = useState('home');   // home / floor（次の階の前）/ play / over
+  const [run, setRunS] = useState(null);    // { start, f, hp, cleared, exp, log:[], last }
+  const runRef = useRef(null);
+  const setRun = r => { runRef.current = r; setRunS(r); };
+  const [showRank, setShowRank] = useState(false);
+  const [res, setRes] = useState(null);
+  const fl = useRef({ dmg: 0, t0: 0, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false });
+  const [endAt, setEndAt] = useState(0);
+  const [stunUntil, setStunUntil] = useState(0);
+  const [fogUntil, setFogUntil] = useState(0);
+  const [, force] = useState(0);
+  const lrec = useRef([]);
+  const nick = useRef('');
+  useEffect(() => { if (meKey && FB.db) FB.db.ref(`games/factor/accounts/${meKey}/stats/nick`).get().then(s => { nick.current = s.val() || ''; }).catch(() => {}); }, [meKey]);
+  useTick(250, scr === 'play');
+  useResultBgm(scr === 'over', false);
+  const F = run ? towerFloor(run.f) : null;
+  const hpBoss = F ? Math.max(0, F.hpMax - fl.current.dmg) : 0;
+
+  const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
+  const enter = () => {
+    fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false };
+    setStunUntil(0); setFogUntil(0); setEndAt(Date.now() + F.sec * 1000 + 600);
+    v7Wipe(() => setScr('play'), { close: 380, hold: 80, open: 260 });
+  };
+  // 記録（チェックポイント・最高到達階）を保存。ログインしていればランキングにも
+  const saveProgress = async (f, king) => {
+    if (meKey) {
+      await statsTx(acct, s => { s.tower = s.tower || {}; const W = s.tower; W.best = Math.max(W.best || 0, f); if (king) W.clears = (W.clears || 0) + 1; });
+      if (FB.db && f > (tw.best || 0)) FB.db.ref(`games/factor/tower/best/${meKey}`).transaction(e => { e = e || {}; if ((e.f || 0) >= f) return e.f ? e : { ...e, f, name: acct.name }; return { f, name: acct.name, nick: nick.current || '', at: Date.now() }; }).catch(() => {});
+    } else {
+      const g = loadGuest(); g.tower = g.tower || {}; g.tower.best = Math.max(g.tower.best || 0, f); if (king) g.tower.clears = (g.tower.clears || 0) + 1; saveGuest(g); setGTw({ ...g.tower });
+    }
+  };
+  const finish = async (why, r) => {
+    r = r || runRef.current;
+    fl.current.dead = true;
+    flushLearn(acct, lrec.current, { raid: 1 }); lrec.current = [];
+    const exp = await addExp(acct, Math.max(3, r.exp));
+    if (meKey) statsTx(acct, s => { s.tower = s.tower || {}; s.tower.runs = (s.tower.runs || 0) + 1; });
+    else { const g = loadGuest(); g.tower = g.tower || {}; g.tower.runs = (g.tower.runs || 0) + 1; saveGuest(g); setGTw({ ...g.tower }); }
+    setRes({ why, reached: r.f, cleared: r.cleared, start: r.start, exp, log: r.log });
+    setScr('over');
+  };
+  // 階を突破
+  const clearFloor = () => {
+    const run = runRef.current; if (!run || run.hp <= 0) return;
+    const S = fl.current, f = run.f, info = towerFloor(f);
+    const nomiss = S.miss === 0;
+    const heal = TOWER_HP.clear + (nomiss ? TOWER_HP.nomiss : 0) + (info.big ? TOWER_HP.big : 0) + (f % 10 === 0 ? TOWER_HP.cp : 0);
+    const t = Math.round((Date.now() - S.t0) / 1000);
+    const gain = info.king ? 100 : info.big ? 8 : 4;
+    const next = { ...run, f: f + 1, hp: Math.min(100, run.hp + heal), cleared: run.cleared + 1, exp: run.exp + gain, log: [...run.log, { f, t, nomiss }], last: { f, t, heal, nomiss, big: info.big, cp: f % 10 === 0, king: info.king } };
+    setRun(next);
+    saveProgress(f, info.king);
+    if (info.king) { FX.confetti(140); fxSound('levelup'); }
+    setScr('floor');
+  };
+  const damageMe = (n, why) => {
+    const r = runRef.current;
+    if (!r || r.hp <= 0 || fl.current.dead) return;
+    const hp = Math.max(0, r.hp - n);
+    setRun({ ...r, hp });
+    if (hp <= 0) { fl.current.dead = true; FX.band('💀 力つきた…', { color: '#7f1d1d', sub: `${r.f}階で倒れた`, ms: 1800 }); setTimeout(() => finish('ko', { ...r, hp: 0 }), 1700); }
+    if (why) FX.text(window.innerWidth / 2, window.innerHeight * 0.3, `HP −${n}`, '#ff4d4d', 30);
+  };
+
+  /* ---- 1階ぶんのしかけ ---- */
+  const sec = scr === 'play' ? (Date.now() - fl.current.t0) / 1000 : 0;
+  const weakWin = scr === 'play' && F ? F.weak.find(([a, b]) => sec >= a && sec < b) : null;
+  const weakFam = weakWin ? (F.T.weakFam ? RAID_FAMS.find(x => x.id === F.T.weakFam) : RAID_FAMS[hashSeed(`tw${run.f}:${weakWin[0]}`) % RAID_FAMS.length]) : null;
+  const C = F && F.C;
+  const ctrT = scr === 'play' && C ? F.ctr.find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
+  const ctrWarn = ctrT != null && sec < ctrT;
+  useEffect(() => {
+    if (scr !== 'play' || !run || run.hp <= 0) return;
+    const S = fl.current;
+    if (S.clearing || S.dead) return;
+    if (weakWin && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1300 }); }
+    if (ctrT != null && ctrWarn && !S.fired['c' + ctrT]) { S.fired['c' + ctrT] = 1; fxSound('roar'); }
+    if (ctrT != null && !ctrWarn && !S.fired['s' + ctrT]) {
+      S.fired['s' + ctrT] = 1;
+      const r = hpBoss / F.hpMax, phase = r <= 0.25 ? 3 : r <= 0.5 ? 2 : r <= 0.75 ? 1 : 0;
+      const stun = Math.round((C.stunByPhase ? C.stunByPhase[phase] : C.stun) * 0.5);
+      if (Date.now() - S.lastOk <= RAID_CTR_GUARD) FX.band('🛡 ガード成功！', { color: '#457b9d', sub: `正解していたので「${C.name.replace(/^\S+\s/, '')}」をふせいだ`, ms: 1300 });
+      else {
+        const dmg = Math.round(TOWER_HP.ctr * F.hpK);
+        if (stun) setStunUntil(Date.now() + stun);
+        if (C.fog) setFogUntil(Date.now() + C.fog);
+        if (C.oj) S.oj = Math.min(4, S.oj + C.oj);
+        FX.flash(C.fog ? '#1a1033' : '#ff2020', 0.45, 400); FX.shake(qs('.game-lock'), true);
+        FX.band(C.name, { color: '#b3402c', sub: [`HP −${dmg}`, stun ? `${stun / 1000}秒しびれた` : '', C.fog ? `${C.fog / 1000}秒 見えにくい` : '', C.oj ? `おじゃま+${C.oj}` : ''].filter(Boolean).join('・'), ms: 1400 });
+        damageMe(dmg);
+      }
+    }
+    // 時間切れ：ボスの猛攻で HP−25、15秒延長
+    if (Date.now() >= endAt && !S.fired['to' + endAt]) {
+      S.fired['to' + endAt] = 1;
+      FX.flash('#ff2020', 0.5, 500); FX.shake(qs('.game-lock'), true); fxSound('roar');
+      FX.band('⏰ 時間切れ！ ボスの猛攻', { color: '#7f1d1d', sub: `HP −${TOWER_HP.timeout}・15秒延長`, ms: 1500 });
+      damageMe(TOWER_HP.timeout);
+      setEndAt(endAt + 15000);
+    }
+  });
+  const takeOj = useCallback(() => { const n = fl.current.oj; fl.current.oj = 0; return n; }, []);
+  const pickLevel = useCallback((lv, how) => {
+    let n = lv;
+    if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
+    n = Math.max(1, Math.min(9, how === 'init' ? (F ? F.startLv : 1) : n));
+    if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
+    return n;
+  }, [weakFam && weakFam.id, run && run.f]);
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((F && F.T.lvMul || {})[lv] || 1), [weakFam && weakFam.id, run && run.f]);
+
+  if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`🗼 ${run.f}階${F.endless ? '・無限回廊' : ''}`}
+    onQuit={() => finish('quit')}
+    opts={{
+      pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '塔の挑戦をやめますか？（ここまでの記録は残ります）',
+      hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
+      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((F.T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (F.T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
+      overlay: (<>
+        {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
+        {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(26,16,51,.92), rgba(26,16,51,.7) 45%, rgba(26,16,51,.88))' }} />}
+        {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>しびれた…</div></div>}
+        <PinchVignette on={run.hp <= 30} />
+      </>),
+      topExtra: (<div className="py-0.5">
+        <div className="flex items-center gap-2"><span className="text-[11px] font-black shrink-0" style={{ color: COLORS.ink, ...bFont }}>あなた</span><div className="flex-1"><HpBar v7 hp={run.hp} height={16} /></div></div>
+        <div className="text-center font-black text-[12px]" style={{ color: ctrWarn ? '#b3402c' : weakFam ? '#C2410C' : COLORS.inkSoft, ...bFont }}>
+          {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : weakFam ? `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒` : `ミス −${TOWER_HP.miss} ・ 反撃 −${Math.round(TOWER_HP.ctr * F.hpK)} ・ 時間切れ −${TOWER_HP.timeout}`}
+        </div>
+      </div>),
+    }}
+    onHit={(d, info2) => {
+      lrec.current.push({ lv: info2.lv, pid: info2.pid, ok: !info2.miss, ms: info2.ms, j: info2.j });
+      const S = fl.current;
+      if (S.clearing || S.dead) return;
+      if (info2.miss) { S.miss++; damageMe(TOWER_HP.miss); return; }
+      S.dmg += d; S.lastOk = Date.now();
+      // 変身（魔王・王）：体力が半分を切ったら一度だけ回復
+      if (F.revive && !S.revived && S.dmg >= F.hpMax * 0.5) {
+        S.revived = true; S.dmg -= Math.round(F.hpMax * F.revive);
+        setTimeout(() => { FX.band(F.king ? '👑 王が真の姿をあらわした！' : '🌑 第2形態に変身！', { color: '#5b2a86', sub: `体力が${Math.round(F.revive * 100)}%回復`, ms: 1600 }); fxSound('roar'); }, 800);
+      }
+      if (S.dmg >= F.hpMax) {
+        S.clearing = true;
+        setTimeout(() => { FX.band(F.king ? '👑 真・因数の王を倒した！' : `${run.f}階 突破！`, { color: '#d4a017', ms: 1400 }); fxSound(F.big || F.king ? 'levelup' : 'badge'); }, 700);
+        setTimeout(() => v7Wipe(clearFloor, { close: 380, hold: 80, open: 260 }), 1500);
+      }
+      force(x => x + 1);
+    }} />;
+
+  /* ---- 画面：塔のロビー・次の階・結果 ---- */
+  const rows = Object.entries(board || {}).map(([k, e]) => ({ k, ...e })).filter(e => e && e.f > 0 && e.name).sort((a, b) => b.f - a.f || (a.at || 0) - (b.at || 0));
+  const myRank = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
+  const starts = [1, ...[10, 20, 30, 40, 50].filter(c => c <= cp).map(c => c + 1)];
+  const bar = (best, h = 12) => (
+    <div className="relative rounded-full" style={{ height: h, background: '#E8E2D6' }}>
+      <div className="h-full rounded-full" style={{ width: `${Math.min(100, (best || 0) / TOWER_GOAL * 100)}%`, background: 'linear-gradient(90deg,#E4572E,#d4a017)' }} />
+      {[10, 20, 30, 40].map(c => <span key={c} className="absolute top-0 h-full" style={{ left: `${c / TOWER_GOAL * 100}%`, width: 2, background: (best || 0) >= c ? '#fff' : '#cfc6b6' }} />)}
+    </div>);
+  const Fn = run ? towerFloor(run.f) : null;
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center py-5 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <FontImport />
+      <div className="w-full" style={{ maxWidth: '30rem' }}>
+        {scr === 'home' && (<>
+          <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
+          <div className="text-center mb-3">
+            <div className="v7-name" style={{ fontSize: 24 }}>🗼 ボスの塔</div>
+            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>1階ごとにボス1体（{TOWER_SEC / 1000}秒）。HPを持ちこして、どこまで登れるか</div>
+          </div>
+          <div className="v7-panel mb-3">
+            <div className="flex items-end justify-between mb-1">
+              <div><div className="text-[10px] font-black" style={{ color: COLORS.inkSoft }}>最高到達</div><div className="font-black" style={{ fontSize: 26, color: '#E4572E', ...bFont }}>{tw.best || 0}<small className="text-sm">階</small>{(tw.best || 0) >= TOWER_GOAL && <span className="v7-chip align-middle ml-1" style={{ background: '#b8860b' }}>👑制覇</span>}</div></div>
+              <div className="text-right text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>チェックポイント {cp ? `${cp}階` : 'なし'}<br />{tw.clears ? `制覇 ${tw.clears}回 ・ ` : ''}挑戦 {tw.runs || 0}回{myRank ? ` ・ ${myRank}位` : ''}</div>
+            </div>
+            {bar(tw.best, 12)}
+            <div className="flex justify-between text-[9px] font-black mt-0.5" style={{ color: COLORS.inkSoft }}><span>1</span><span>10</span><span>20</span><span>30</span><span>40</span><span>👑50</span></div>
+          </div>
+          <Card className="mb-3">
+            <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>どこから登る？</div>
+            <div className="grid grid-cols-3 gap-2">
+              {starts.map(s => <button key={s} className="v7-cur rounded-xl py-2 font-black" onClick={() => begin(s)} style={{ background: s === starts[starts.length - 1] ? '#E4572E' : '#fff', color: s === starts[starts.length - 1] ? '#fff' : COLORS.ink, border: '1.5px solid var(--v7-line)', ...bFont }}>{s}階から<div className="text-[10px] font-bold opacity-80">{s === 1 ? 'はじめから' : s > TOWER_GOAL ? '♾ 無限回廊' : 'チェックポイント'}</div></button>)}
+            </div>
+            <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>
+              <li>ボスを{TOWER_SEC / 1000}秒で倒せないと<b>猛攻（HP−{TOWER_HP.timeout}）</b>を受けて15秒延長。HPが0で終わり</li>
+              <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。突破で回復 +{TOWER_HP.clear}（ノーミス+{TOWER_HP.nomiss}・大ボス+{TOWER_HP.big}）</li>
+              <li>5の倍数の階は<b>大ボス</b>。10階ごとに<b>チェックポイント</b>（HP+{TOWER_HP.cp}、次からそこから始められる）</li>
+              <li><b>50階に真のボス</b>。倒すと称号「塔を制覇」ときせかえ。51階からは<b>無限回廊</b></li>
+            </ul>
+          </Card>
+          <div className="flex gap-2 mb-3">
+            <button className="v7-pill v7-cur flex-1 justify-center" onClick={() => setShowRank(true)}><V7Icon name="cup" />最高到達階ランキング</button>
+          </div>
+          {!meKey && <p className="text-[11px] font-bold text-center" style={{ color: COLORS.inkSoft }}>ゲストの記録はこの端末だけ（ランキングにはのりません）</p>}
+        </>)}
+
+        {scr === 'floor' && run && Fn && (<>
+          {run.last && <div className="v7-panel mb-3 text-center" style={{ borderColor: run.last.king ? '#b8860b' : 'var(--v7-line)' }}>
+            {run.last.king ? (<>
+              <div style={{ fontSize: 44 }}>👑</div>
+              <div className="font-black" style={{ fontSize: 22, color: '#b8860b', ...bFont }}>塔を制覇！</div>
+              <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>真・因数の王を倒した！ 称号「塔を制覇」ときせかえ「塔の頂」「天空の塔」を手に入れた</div>
+            </>) : (<>
+              <div className="font-black" style={{ fontSize: 22, color: '#E4572E', ...bFont }}>{run.last.f}階 突破！</div>
+              <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>{run.last.t}秒{run.last.nomiss ? ' ・ ノーミス' : ''} ・ HP +{run.last.heal}{run.last.cp ? ' ・ 🚩チェックポイント到達' : ''}</div>
+            </>)}
+          </div>}
+          <div className="text-center mb-2">
+            <div className="font-black" style={{ fontSize: 40, color: COLORS.ink, lineHeight: 1.1, ...bFont }}>{run.f}<small className="text-lg">階</small></div>
+            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.endless ? '#7b2cbf' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.king ? '最上階・真のボス' : Fn.endless ? '♾ 無限回廊' : Fn.big ? '大ボスの階' : run.f % 10 === 9 ? '次はチェックポイントの手前' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
+          </div>
+          <Card className="mb-3">
+            <div className="flex items-center gap-3">
+              <div style={{ fontSize: Fn.big || Fn.king ? '3.6rem' : '3rem', lineHeight: 1 }}>{Fn.boss.icon}</div>
+              <div className="min-w-0 flex-1">
+                <div className="v7-name" style={{ color: Fn.boss.color }}>{Fn.boss.name}</div>
+                <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {Fn.hpMax.toLocaleString()} ・ {Fn.sec}秒{Fn.T.tag ? ` ・ ${Fn.T.tag}` : ''}</div>
+              </div>
+            </div>
+            <ul className="text-[11px] font-bold list-disc pl-4 mt-1" style={{ color: COLORS.ink }}>
+              {Fn.king ? [<li key="a">弱点タイムが2回、反撃「王の裁き」が4回（HP−{Math.round(TOWER_HP.ctr * Fn.hpK)}・墨・おじゃま）</li>, <li key="b">体力が半分を切ると真の姿になって30%回復</li>]
+                : (Fn.T.desc || []).slice(0, 2).map(d => <li key={d}>{d}</li>)}
+              {Fn.big && <li>大ボス：体力1.5倍・反撃が3回・反撃のダメージ1.5倍</li>}
+            </ul>
+          </Card>
+          <div className="v7-panel mb-3"><div className="flex items-center gap-2"><span className="text-[11px] font-black" style={{ color: COLORS.ink }}>あなたのHP</span><div className="flex-1"><HpBar v7 hp={run.hp} height={18} /></div></div></div>
+          <BigBtn color={Fn.boss.color} onClick={enter}>{run.f}階へ挑む</BigBtn>
+          <div className="mt-2"><BigBtn small color={COLORS.inkSoft} onClick={() => finish('stop')}>ここでやめる（記録は残る）</BigBtn></div>
+        </>)}
+
+        {scr === 'over' && res && (<>
+          <div className="text-center mb-3">
+            <div className="v7-name" style={{ fontSize: 22 }}>{res.why === 'ko' ? '力つきた…' : '挑戦おわり'}</div>
+            <div className="font-black" style={{ fontSize: 44, color: '#E4572E', lineHeight: 1.1, ...bFont }}>{res.why === 'ko' ? res.reached : res.reached - 1}<small className="text-lg">{res.why === 'ko' ? '階で倒れた' : '階まで突破'}</small></div>
+            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{res.start}階から挑戦 ・ {res.cleared}階ぶん登った</div>
+          </div>
+          {res.log.length > 0 && <Card className="mb-3">
+            <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>きろく</div>
+            <div className="flex flex-wrap gap-1">{res.log.map(l => <span key={l.f} className="text-[10px] font-black rounded-md px-1.5 py-0.5" style={{ background: l.f % 5 === 0 ? '#FFE9DF' : '#F3F0EA', color: COLORS.ink }}>{l.f}F {l.t}秒{l.nomiss ? '✨' : ''}</span>)}</div>
+            <div className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>✨＝ノーミス</div>
+          </Card>}
+          {res.exp && <div className="v7-panel mb-3"><ExpGain before={res.exp.before} after={res.exp.after} label="塔の経験値" /></div>}
+          <BigBtn color="#E4572E" onClick={() => { setScr('home'); setRun(null); }}>塔の入口へ</BigBtn>
+          <div className="mt-2"><BigBtn small color={COLORS.inkSoft} onClick={onExit}>タイトルにもどる</BigBtn></div>
+        </>)}
+      </div>
+      {showRank && <V7Modal title="最高到達階ランキング" onClose={() => setShowRank(false)}>
+        {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p> : rows.slice(0, 30).map((r, i) => (
+          <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
+            <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+            <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', lineHeight: 1.25 }}>{r.name}</span></span>
+            <span className="font-black" style={{ color: r.f > TOWER_GOAL ? '#7b2cbf' : r.f >= TOWER_GOAL ? '#b8860b' : '#E4572E' }}>{r.f}階{r.f > TOWER_GOAL ? ' ♾' : r.f === TOWER_GOAL ? ' 👑' : ''}</span>
+          </div>))}
+        <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>突破した階の最高記録。同じ階なら先に到達した人が上</p>
+      </V7Modal>}
+    </div>
+  );
+}
+function TowerTileV7({ acct, onOpen }) {
+  const fb = useFbReady();
+  const meKey = isReal(acct) ? acct.key : null;
+  const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
+  const tw = meKey ? towerOf(st) : loadTowerGuest();
+  const b = tw.best || 0;
+  return (
+    <button className="v7-tile v7-cur" onClick={onOpen}>
+      <div className="top"><span className="v7-ico">🗼</span><span className="v7-badge">{b >= TOWER_GOAL ? `👑 ${b}階` : b ? `最高${b}階` : 'NEW'}</span></div>
+      <b>ボスの塔</b>
+      <span className="s">{b >= TOWER_GOAL ? '無限回廊に挑戦中' : '1人で50階をめざす'}</span>
+      <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${Math.min(100, b / TOWER_GOAL * 100)}%`, background: '#E4572E' }} /></div>
+    </button>
+  );
+}
 /* タイトル画面の札 */
 /* ---------- ver.7 メニューの部品 ---------- */
 function AccountPanelV7({ acct, onLogout }) {
@@ -6050,6 +6366,11 @@ const BADGES = [
   { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
   { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
   { id: 'wksup100', g: 'wksup', r: 4, icon: '🎺', label: '名サポーター', desc: '応援ポイントを通算100', test: st => ((st.wk || {}).sup || 0) >= 100 },
+  { id: 'tw10', g: 'tower', r: 2, icon: '🗼', label: '塔の挑戦者', desc: 'ボスの塔で10階を突破', test: st => ((st.tower || {}).best || 0) >= 10 },
+  { id: 'tw30', g: 'tower', r: 3, icon: '🏯', label: '塔の熟練者', desc: 'ボスの塔で30階を突破', test: st => ((st.tower || {}).best || 0) >= 30 },
+  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: 'ボスの塔の50階で真・因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
+  { id: 'tw70', g: 'tower', r: 5, icon: '♾️', label: '無限回廊の旅人', desc: 'ボスの塔で70階を突破', test: st => ((st.tower || {}).best || 0) >= 70 },
+  { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '回廊の果て', desc: 'ボスの塔で100階を突破', test: st => ((st.tower || {}).best || 0) >= 100 },
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
@@ -7542,6 +7863,7 @@ const ACT_INFO = {
   daily: { icon: '📅', label: 'デイリー', color: '#f4a261' },
   learn: { icon: '📚', label: '学びの部屋', color: '#7B61FF' },
   raidw: { icon: '🗓', label: '今週のボス', color: '#7b2cbf' },
+  tower: { icon: '🗼', label: 'ボスの塔', color: '#E4572E' },
   dash: { icon: '👩‍🏫', label: 'ダッシュボード', color: '#2a9d8f' },
 };
 function presenceSet(patch) {
@@ -9239,6 +9561,7 @@ function AppRoot() {
       : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
+      : mode === 'tower' ? <TowerApp acct={acct} onExit={toSolo} />
       : <FactorHunt acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={go} />}
   </>);
 }
