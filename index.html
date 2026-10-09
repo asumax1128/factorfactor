@@ -2399,7 +2399,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.7</span>
+              <span className="v7-ver">ver.8.0</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4164,18 +4164,31 @@ const TEACHER_BOSS = { id: 'teacher', name: '先生', icon: '👩‍🏫', color
 const BOSS_TRAITS = {
   slime: { tag: '入門', hpK: 0.8, parts: [], weak: false, counter: null, lvMul: { 1: 1.5, 2: 1.5 },
     desc: ['部位も弱点もない、ただのぷるぷる', '反撃してこない（はじめてのレイドにおすすめ）', '共通因数（Lv1・2）の問題でダメージ1.5倍', '体力は少なめ（0.8倍）'] },
-  dragon: { tag: '攻撃型', parts: ['角', '翼', 'しっぽ'], counter: { start: 25000, every: 30000, warn: 3000, stun: 4500, oj: 1, name: '🔥 炎のブレス' },
+  dragon: { tag: '攻撃型', seal: { part: 'b', text: 'ブレスのしびれが半分', stunK: 0.5 }, parts: ['角', '翼', 'しっぽ'], counter: { start: 25000, every: 30000, warn: 3000, stun: 4500, oj: 1, name: '🔥 炎のブレス' },
     desc: ['攻撃力が高い：反撃が30秒ごと、予告は3秒だけ', '「炎のブレス」を受けると4.5秒しびれて、おじゃまタイル+1', '角・翼・しっぽの3部位'] },
-  kraken: { tag: '妨害型', parts: ['吸盤', '足', '頭'], weakFam: 'tasuki', weak: { len: 20000 }, counter: { stun: 0, fog: 4000, name: '🦑 墨はき' },
+  kraken: { tag: '妨害型', seal: { part: 'b', text: '墨の時間が半分', fogK: 0.5 }, parts: ['吸盤', '足', '頭'], weakFam: 'tasuki', weak: { len: 20000 }, counter: { stun: 0, fog: 4000, name: '🦑 墨はき' },
     desc: ['反撃は「墨はき」：しびれないが、4秒間 画面が見えにくくなる', '弱点はいつも「たすきがけ」（弱点タイムは20秒）'] },
-  golem: { tag: '防御型', hpK: 1.3, parts: ['腕', '胴', '頭'], lvMul: { 1: 0.5, 2: 0.5, 3: 0.5, 7: 1.5 }, counter: { start: 45000, every: 60000, warn: 5000, stun: 6000, name: '🪨 岩おとし' },
+  golem: { tag: '防御型', seal: { part: 'a', text: '岩おとしのしびれが半分', stunK: 0.5 }, hpK: 1.3, parts: ['腕', '胴', '頭'], lvMul: { 1: 0.5, 2: 0.5, 3: 0.5, 7: 1.5 }, counter: { start: 45000, every: 60000, warn: 5000, stun: 6000, name: '🪨 岩おとし' },
     desc: ['かたい：体力1.3倍。かんたんな問題（Lv1〜3）はダメージ半分', '3乗の和・差（Lv7）が大の苦手：いつでもダメージ1.5倍', '反撃はおそい（60秒ごと）けど、当たると6秒しびれる'] },
-  maou: { tag: '変身型', hpK: 0.85, parts: ['角', 'マント', '杖'], weakFam: 'sa', revive: 0.25, counter: { stunByPhase: [2500, 3000, 4000, 5000], name: '🌑 闇の波動' },
+  maou: { tag: '変身型', seal: { part: 'c', text: '第2形態に変身できない', noRevive: true }, hpK: 0.85, parts: ['角', 'マント', '杖'], weakFam: 'sa', revive: 0.25, counter: { stunByPhase: [2500, 3000, 4000, 5000], name: '🌑 闇の波動' },
     desc: ['体力が半分を切ると第2形態に変身して、体力が回復する', '体力が減るほど反撃のしびれが長くなる', '弱点はいつも「2乗の差」'] },
-  robot: { tag: '機械型', parts: ['アンテナ', 'アーム', 'コア'], weak: { every: 30000, len: 20000 }, chainK: 0.08, counter: { every: 35000, stun: 0, oj: 3, name: '📡 ジャミング' },
+  robot: { tag: '機械型', seal: { part: 'a', text: 'ジャミングが止まる', ojK: 0 }, parts: ['アンテナ', 'アーム', 'コア'], weak: { every: 30000, len: 20000 }, chainK: 0.08, counter: { every: 35000, stun: 0, oj: 3, name: '📡 ジャミング' },
     desc: ['反撃は「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが多い（30秒ごとに20秒）', '連携チェインのダメージアップが大きい（最大1.8倍）'] },
 };
 const traitOf = id => BOSS_TRAITS[id] || {};
+// 部位破壊で封じた技（その部位がこわれていれば効果を返す）
+const sealOf = (id, parts) => { const z = traitOf(id).seal; return z && (parts || []).some(p => p.id === z.part && p.broken) ? z : null; };
+/* フレンドレイドの役割（自由に選べる・重複OK） */
+const ROLES = {
+  atk: { icon: '⚔', name: 'アタッカー', color: '#E4572E', mul: 1, short: 'いちばん削る', desc: ['ダメージ1.0倍（いちばん削れる）', 'ボスの反撃は、直前に自分で正解してガード'] },
+  sup: { icon: '📣', name: 'サポーター', color: '#2a9d8f', mul: 0.4, short: 'みんなを強化', desc: ['自分のダメージ0.4倍', '正解で応援ゲージがたまる（Perfectは2）。6たまると「応援！」＝10秒間チーム全員のダメージ1.3倍', 'しびれている仲間がいるときに正解すると、しびれを治せる'] },
+  grd: { icon: '🛡', name: 'ガード', color: '#457b9d', mul: 0.6, short: 'みんなを守る', desc: ['自分のダメージ0.6倍', 'ボスの反撃の予告中に正解すると、チーム全員にバリア（その反撃を無効にする）'] },
+  brk: { icon: '🔨', name: 'ブレイカー', color: '#8d6e63', mul: 0.5, part: 6, short: '技を封じる', desc: ['本体へのダメージ0.5倍・部位へのダメージ3倍', '部位をこわすとボスの技を封じる（ボスごとにちがう）', '「ねらう」で部位を選んで集中攻撃しよう'] },
+  tch: { icon: '🎓', name: 'ティーチャー', color: '#7B61FF', mul: 0.8, short: '仲間を救う', desc: ['自分のダメージ0.8倍', '仲間がミスした問題（同じ問題）が「救援問題」として届く', '救援問題に正解すると、その仲間のコンボが元にもどる。救援問題のダメージは2倍'] },
+  tk: { icon: '⏳', name: 'タイムキーパー', color: '#d4a017', mul: 0.8, short: '時間をのばす', desc: ['自分のダメージ0.8倍', 'Perfectのたびに制限時間+2秒（1戦で最大+60秒）'] },
+  gmb: { icon: '🎲', name: 'ギャンブラー', color: '#b5487e', mul: 3, short: '一発逆転', desc: ['Lv.7〜9の問題だけが出る', 'ダメージ3倍', 'ミスすると4秒しびれる'] },
+};
+const ROLE_IDS = ['atk', 'sup', 'grd', 'brk', 'tch', 'tk', 'gmb'];
 const RAID_CTR_DEF = { name: '💢 ボスの反撃' };
 const ctrOf = id => ({ start: 35000, every: 40000, warn: 4000, stun: 3000, fog: 0, oj: 0, ...RAID_CTR_DEF, ...(traitOf(id).counter || {}) });
 const bossOf = (id, st) => id === 'teacher' ? { ...TEACHER_BOSS, name: st && st.tname ? `${st.tname}先生` : '先生' } : BOSSES.find(b => b.id === id) || BOSSES[0];
@@ -4365,7 +4378,7 @@ function raidCalc(state, raw, now, tb) {
   const heal = state.boss === 'teacher' && tb ? (tb.heal || 0) : 0;   // 先生の回復
   const dealt = total + bursts * burstDmg + broken * partBonus;
   const T = traitOf(state.boss);
-  const revived = !!(T.revive && dealt >= hpMax * 0.5);   // 魔王：体力が半分を切ると一度だけ回復（第2形態）
+  const revived = !!(T.revive && dealt >= hpMax * 0.5 && !(sealOf(state.boss, parts) || {}).noRevive);   // 魔王：体力が半分を切ると一度だけ回復（第2形態）。杖をこわすと変身できない
   const hp = Math.min(hpMax, hpMax - dealt + heal + (revived ? Math.round(hpMax * T.revive) : 0));
   const r = hp / hpMax;
   const phase = r <= 0.25 ? 3 : r <= 0.5 ? 2 : r <= 0.75 ? 1 : 0;
@@ -4418,7 +4431,13 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
     return () => document.removeEventListener('touchmove', block);
   }, []);
   const s = S.current;
-  const nextProb = lv => { const b = buildBoard(lv, seen.current, 6); const k = o.takeOj ? o.takeOj() : 0; setProb({ level: lv, ...b, tiles: k ? addOjama(b.tiles, b.poly, lv, k) : b.tiles }); setFlash({}); setBusy(false); s.qs = Date.now(); };
+  const nextProb = lv => {
+    // 救援問題など、外から差しこむ問題があればそれを出す
+    const ov = o.nextOverride ? o.nextOverride() : null;
+    if (ov) { setProb(ov); setFlash({}); setBusy(false); s.qs = Date.now(); return; }
+    const b = buildBoard(lv, seen.current, 6); const k = o.takeOj ? o.takeOj() : 0; setProb({ level: lv, ...b, tiles: k ? addOjama(b.tiles, b.poly, lv, k) : b.tiles }); setFlash({}); setBusy(false); s.qs = Date.now();
+  };
+  if (o.ctlRef) o.ctlRef.current = { restoreCombo: n => { if (n > s.combo) { s.combo = n; s.best = Math.max(s.best, n); } }, combo: () => s.combo };
   // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
   // 弱点タイムや「ねらう部位」が変わっても、いま解いている問題はそのまま。次の問題から反映する
   const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
@@ -4433,7 +4452,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
       const mul = o.dmgMul ? o.dmgMul(prob.level, j.label, s.combo) : 1;
       const d = Math.round(raidDamage(prob.level, j.label, s.combo) * mul);
       s.combo++; s.best = Math.max(s.best, s.combo); s.dmg += d; s.n++; if (j.label === 'Perfect') s.pf++;
-      s.dp[partOfLv(prob.level)] += d;
+      s.dp[partOfLv(prob.level)] += Math.round(d * (o.partMul || 1));
       s.streak++;
       setBusy(true); setFlash({ [id1]: 'correct', [id2]: 'correct' });
       fxMerge(els, j.color);
@@ -4449,11 +4468,12 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
       else if (s.streak >= 2 && lv < 9) { lv++; s.streak = 0; }
       setTimeout(() => nextProb(lv), 420);
     } else {
+      const c0 = s.combo;
       sound.play('buzz'); s.combo = 0; s.streak = 0;
       setFlash({ [id1]: 'wrong', [id2]: 'wrong' });
       FX.shake(els[0] && els[0].parentElement);
-      s.stunUntil = Date.now() + 1200;
-      onHit && onHit(0, { miss: true, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms });
+      s.stunUntil = Date.now() + (o.missStun || 1200);
+      onHit && onHit(0, { miss: true, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms, prevCombo: c0, prob: { level: prob.level, poly: prob.poly, tiles: prob.tiles, factors: prob.factors || null } });
       const lv = o.pickLevel ? o.pickLevel(prob.level, 'miss') : Math.max(1, prob.level - 1);
       setBusy(true);
       setTimeout(() => nextProb(lv), 900);
@@ -4554,6 +4574,80 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
     </Card>
     {isHost && <div className="mb-3"><BigBtn color={boss.color} disabled={list.length < 1} onClick={() => onStart(hp)}>{list.length < 1 ? '参加者を待っています…' : `レイド開始！（${list.length}人）`}</BigBtn></div>}
     <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>{isHost ? 'レイドを閉じる' : '部屋を出る'}</BigBtn>
+  </>);
+}
+
+/* ---------- フレンドレイド：ロビー（ボス・時間・強さはホスト、役割は各自が自由に選ぶ） ---------- */
+function RoleCard({ id, on, onPick, disabled, count }) {
+  const R = ROLES[id];
+  return (
+    <button disabled={disabled} onClick={() => onPick(id)} className="v7-cur rounded-xl px-2 py-1.5 text-left relative" aria-pressed={on}
+      style={{ background: on ? R.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? R.color : 'var(--v7-line)'}`, opacity: disabled && !on ? 0.6 : 1 }}>
+      <div className="text-[13px] font-black" style={bFont}>{R.icon} {R.name}</div>
+      <div className="text-[10px] font-bold" style={{ opacity: 0.85 }}>{R.short}</div>
+      {count > 0 && <span className="absolute top-1 right-1.5 text-[10px] font-black rounded-full px-1.5" style={{ background: on ? '#ffffff40' : `${R.color}22`, color: on ? '#fff' : R.color }}>{count}人</span>}
+    </button>
+  );
+}
+function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, onRole, onStart, onLeave }) {
+  const list = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).slice(0, 4);
+  const boss = bossOf(state.boss || 'dragon', state); const BT = traitOf(boss.id);
+  const minutes = state.minutes || 3, power = state.power || 'normal';
+  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k * (BT.hpK || 1));
+  const myRole = (players[me] && players[me].role) || 'atk';
+  const [info, setInfo] = useState(myRole);
+  const cnt = id => list.filter(([k, p]) => (p.role || 'atk') === id).length;
+  const R = ROLES[info];
+  const z = BT.seal;
+  return (<>
+    <Card className="mb-3 text-center">
+      <div className="text-sm font-black" style={{ color: '#7b2cbf' }}>👥 フレンドレイド</div>
+      <div className="tracking-widest my-1" style={{ color: 'var(--v7-accent)', fontFamily: 'var(--v7-f-fx)', fontSize: 46, lineHeight: 1.1 }}>{code}</div>
+      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? '友だちは「部屋コード」を入れて「参加」（4人まで）。1人でも遊べます' : 'ホストがボスを選んで始めるのを待っています…'}</div>
+    </Card>
+    <Card className="mb-3">
+      <div className="flex items-center gap-3">
+        <div style={{ fontSize: '3.4rem', lineHeight: 1 }}>{boss.icon}</div>
+        <div className="min-w-0">
+          <div className="v7-name" style={{ color: boss.color }}>{boss.name} <span className="v7-chip align-middle" style={{ background: boss.color }}>{BT.tag}</span></div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}</div>
+          {z && <div className="text-[11px] font-black" style={{ color: '#8d6e63' }}>🔨 {partsOf(state).find(p => p.id === z.part).name}をこわすと「{z.text}」</div>}
+        </div>
+      </div>
+      <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>{(BT.desc || []).map(d => <li key={d}>{d}</li>)}</ul>
+      {isHost && (<div className="mt-3">
+        <div className="grid grid-cols-3 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl">{b.icon}</div>{traitOf(b.id).tag}</button>; })}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <Seg items={[[2, '2分'], [3, '3分'], [5, '5分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
+          <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
+        </div>
+      </div>)}
+    </Card>
+    <Card className="mb-3">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>メンバー（{list.length}/4）</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {[0, 1, 2, 3].map(i => { const e = list[i]; const r = e ? ROLES[e[1].role || 'atk'] : null; return (
+          <div key={i} className="rounded-xl px-2 py-1.5" style={{ background: e ? '#fff' : '#F3F0EA', border: `1.5px solid ${e ? r.color : 'var(--v7-line)'}` }}>
+            {e ? <><div className="text-[13px] font-black truncate" style={{ color: COLORS.ink, ...bFont }}>{e[1].name}{e[0] === me ? '（あなた）' : ''}</div><div className="text-[11px] font-black" style={{ color: r.color }}>{r.icon} {r.name}</div></>
+              : <div className="text-[12px] font-bold" style={{ color: COLORS.inkSoft }}>あき</div>}
+          </div>); })}
+      </div>
+    </Card>
+    {!spectator && <Card className="mb-3">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>あなたの役割（自由に選べる・同じ役割OK）</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">{ROLE_IDS.map(id => <RoleCard key={id} id={id} on={myRole === id} count={cnt(id)} onPick={x => { onRole(x); setInfo(x); }} />)}</div>
+      <div className="mt-3 rounded-xl px-3 py-2" style={{ background: `${R.color}12`, borderLeft: `5px solid ${R.color}` }}>
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <div className="text-sm font-black" style={{ color: R.color, ...bFont }}>{R.icon} {R.name} の能力</div>
+          <div className="flex gap-1 flex-wrap">{ROLE_IDS.map(id => <button key={id} onClick={() => setInfo(id)} className="v7-cur rounded-full px-1.5 text-[10px] font-black" title={ROLES[id].name} style={{ background: info === id ? ROLES[id].color : '#fff', color: info === id ? '#fff' : COLORS.ink, border: '1px solid var(--v7-line)' }}>{ROLES[id].icon}</button>)}</div>
+        </div>
+        <ul className="text-[12px] font-bold list-disc pl-4" style={{ color: COLORS.ink }}>{R.desc.map(d => <li key={d}>{d}</li>)}</ul>
+        {info === 'brk' && <div className="text-[11px] font-bold mt-1" style={{ color: '#8d6e63' }}>{z ? `このボスは「${partsOf(state).find(p => p.id === z.part).name}」をこわすと「${z.text}」` : 'このボスには部位がない（ブレイカーは本体0.5倍だけになる）'}</div>}
+        {info === 'grd' && traitOf(boss.id).counter === null && <div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>このボスは反撃してこない（ガードの出番は少なめ）</div>}
+      </div>
+    </Card>}
+    {isHost && <div className="mb-3"><BigBtn color={boss.color} disabled={list.length < 1} onClick={() => onStart(hp)}>レイド開始！（{list.length}人）</BigBtn></div>}
+    <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>{isHost ? '部屋を閉じる' : '部屋を出る'}</BigBtn>
   </>);
 }
 
@@ -4760,7 +4854,13 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
 }
 
 /* ---------- 授業用レイド：参加者の画面 ---------- */
-function RaidClassPlay({ code, state, acct, who, onLeave }) {
+function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgain }) {
+  // フレンドレイド：役割の効果を送り合う場所（応援・しびれ・治す・バリア・救援問題・時間延長）
+  const FR = !!state0.friend;
+  const fx = useFbValue(FR ? `rooms/${code}/fx/${state0.gid}` : null) || {};
+  const ext = Math.min(60000, fx.ext || 0);
+  const state = useMemo(() => ext ? { ...state0, endAt: state0.endAt + ext } : state0, [state0, ext]);
+  const fxRef = p => fref(`rooms/${code}/fx/${state0.gid}/${p}`);
   const raw = useRaidTally(code, state.gid);
   const tmode = state.boss === 'teacher';
   const tb = useFbValue(tmode ? `rooms/${code}/tb/${state.gid}` : null);
@@ -4774,10 +4874,15 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
   const over = hp <= 0 || now >= state.endAt;
   const sch = raidSchedule(state, now);
   const lrec = useRef([]);
-  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0, dp: { a: 0, b: 0, c: 0 }, lastOk: 0 });
+  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0, dp: { a: 0, b: 0, c: 0 }, lastOk: 0, g: 0, buffs: 0, cures: 0, bars: 0, res: 0, tk: 0 });
+  const role = FR ? ((state.roles || {})[me] || 'atk') : null;
+  const RL = role ? ROLES[role] : null;
+  const myName = (who && who.name) || 'ゲスト';
+  const [, bump] = useState(0);
   const [exp, setExp] = useState(null);
   const [target, setTarget] = useState('auto');     // ねらう部位：auto / a / b / c
-  const [stunUntil, setStunUntil] = useState(0);
+  const [stunUntil, setStunUntil0] = useState(0);
+  const setStunUntil = t => { setStunUntil0(t); if (FR && t > Date.now()) fxRef(`stun/${me}`).set(fbNow() + (t - Date.now())).catch(() => {}); };
   const [say, setSay] = useState(null);
   const team = state.teamCount ? (state.teams || {})[me] : null;
   const done = useRef(false);
@@ -4816,16 +4921,20 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
   useRaidEvents(state, raw, calc, now, (ev, x) => {
     if (ev === 'rage') { FX.shake(qs('.game-lock'), true); FX.flash('#ff0000', 0.25, 250); setSay({ text: LN['rage' + x], id: Math.random() }); }
     if (ev === 'burst') { FX.band('⚡ クラス総攻撃！！', { color: '#7B61FF', ms: 1500 }); FX.flash('#fff', 0.5, 300); }
-    if (ev === 'part') { FX.band(`💥 ${x.name}を破壊！`, { color: x.color, ms: 1400 }); }
+    if (ev === 'part') { const z = traitOf(state.boss).seal; FX.band(`💥 ${x.name}を破壊！`, { color: x.color, sub: z && z.part === x.id ? `🔒 ${z.text}` : '', ms: 1600 }); }
     if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: 'ダメージ2倍！', ms: 1400 }); setSay({ text: LN.weak(x), id: Math.random() }); }
     if (ev === 'warn') { setSay({ text: LN.warn, id: Math.random() }); }
     if (ev === 'revive') { FX.band(`${boss.icon} 第2形態！`, { color: '#5b2a86', sub: `体力が${Math.round((traitOf(state.boss).revive || 0) * 100)}%回復した！`, ms: 1800 }); FX.flash('#5b2a86', 0.4, 400); FX.shake(qs('.game-lock'), true); setSay({ text: LN.revive || '…！', id: Math.random() }); }
     if (ev === 'strike') {
       // 反撃の中身はボスの個性しだい（しびれ・墨で見えにくい・おじゃまタイル）
-      const C = ctrOf(state.boss);
-      const stun = C.stunByPhase ? C.stunByPhase[calc.phase] || C.stunByPhase[0] : C.stun;
-      const guarded = x.at - S.current.lastOk <= RAID_CTR_GUARD;
-      if (guarded) { FX.band('🛡 ガード成功！', { color: '#457b9d', sub: `正解していたので「${C.name.replace(/^\S+\s/, '')}」をふせいだ`, ms: 1400 }); }
+      const C0 = ctrOf(state.boss), Z = sealOf(state.boss, calc.parts) || {};
+      const C = { ...C0, fog: Math.round((C0.fog || 0) * (Z.fogK != null ? Z.fogK : 1)), oj: Math.round((C0.oj || 0) * (Z.ojK != null ? Z.ojK : 1)) };
+      const stun = Math.round((C.stunByPhase ? C.stunByPhase[calc.phase] || C.stunByPhase[0] : C.stun) * (Z.stunK != null ? Z.stunK : 1));
+      const bar = FR && fx.barrier && fx.barrier.k === x.k ? fx.barrier : null;
+      const guarded = !!bar || x.at - S.current.lastOk <= RAID_CTR_GUARD;
+      if (bar) { FX.band(`🛡 ${bar.uid === me ? 'あなた' : bar.by}のバリア！`, { color: '#457b9d', sub: `チーム全員が「${C.name.replace(/^\S+\s/, '')}」から守られた`, ms: 1600 }); FX.ring(window.innerWidth / 2, window.innerHeight / 2, '#6BAEE8'); }
+      else if (guarded) { FX.band('🛡 ガード成功！', { color: '#457b9d', sub: `正解していたので「${C.name.replace(/^\S+\s/, '')}」をふせいだ`, ms: 1400 }); }
+      else if (!stun && !C.fog && !C.oj) { FX.band(`🔒 ${C.name}は封じられている！`, { color: '#6b7a8a', ms: 1300 }); }
       else {
         if (stun) setStunUntil(Date.now() + stun);
         if (C.fog) setFogUntil(Date.now() + C.fog);
@@ -4850,7 +4959,53 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
   const BT = traitOf(state.boss);
   const chainMul = 1 + (BT.chainK || 0.05) * Math.min(10, calc.chain);
   // ボスの個性：レベルごとの得意・苦手（ゴーレムはかんたんな問題が効きにくい、など）
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul * ((BT.lvMul || {})[lv] || 1), [weakFam && weakFam.id, chainMul, state.boss]);
+  // フレンドレイド：役割の倍率・応援（10秒1.3倍）・救援問題は2倍
+  const buffOn = FR && fx.buff && fx.buff.until > now;
+  const curRes = useRef(null);
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul * ((BT.lvMul || {})[lv] || 1) * (RL ? RL.mul : 1) * (buffOn ? 1.3 : 1) * (curRes.current ? 2 : 1), [weakFam && weakFam.id, chainMul, state.boss, role, buffOn]);
+  const pickLevel2 = useCallback((lv, how) => { const n = pickLevel(lv, how); return role === 'gmb' ? Math.max(7, Math.min(9, how === 'init' ? 7 : n)) : n; }, [pickLevel, role]);
+  // ティーチャー：仲間がミスした問題（救援問題）を順番に出す
+  const resList = Object.entries(fx.res || {}).map(([id, r]) => ({ id, ...r })).filter(r => r && r.prob).sort((a, b) => (a.at || 0) - (b.at || 0));
+  const served = useRef({});
+  const resRef = useRef([]); resRef.current = resList;
+  const nextOverride = useCallback(() => {
+    curRes.current = null;
+    if (role !== 'tch') return null;
+    const r = resRef.current.find(x => !x.done && x.from !== me && !served.current[x.id]);
+    if (!r) return null;
+    served.current[r.id] = 1; curRes.current = r;
+    const P = r.prob; return { level: P.level, poly: P.poly, tiles: toArrB(P.tiles), factors: P.factors ? toArrB(P.factors) : undefined };
+  }, [role]);
+  // 救援してもらった：コンボが元にもどる
+  const ctl = useRef(null), restored = useRef({});
+  useEffect(() => {
+    resList.forEach(r => {
+      if (r.from !== me || !r.done || restored.current[r.id]) return;
+      restored.current[r.id] = 1;
+      if (ctl.current) ctl.current.restoreCombo(r.combo || 0);
+      FX.band(`🎓 ${r.done.by}が救援してくれた！`, { color: '#7B61FF', sub: r.combo ? `${r.combo}コンボが復活！` : 'まちがえた問題を解いてくれた', ms: 1700 }); fxSound('levelup');
+    });
+  }, [Object.keys(fx.res || {}).length, JSON.stringify(Object.values(fx.res || {}).map(r => r && !!r.done))]);
+  // サポーターがしびれを治してくれた
+  const cureSeen = useRef(0);
+  useEffect(() => {
+    const c = fx.cure; if (!c || !c.at || c.at === cureSeen.current) return;
+    cureSeen.current = c.at;
+    if (c.uid !== me && stunUntil > Date.now()) { setStunUntil0(0); FX.band(`📣 ${c.by}がしびれを治してくれた！`, { color: '#2a9d8f', ms: 1300 }); }
+  }, [fx.cure && fx.cure.at]);
+  // 応援（チーム全員ダメージ1.3倍）
+  const buffSeen = useRef(0);
+  useEffect(() => {
+    const b = fx.buff; if (!b || !b.until || b.until === buffSeen.current) return;
+    buffSeen.current = b.until;
+    if (fbNow() < b.until) { FX.band(`📣 ${b.uid === me ? 'あなた' : b.by}の応援！`, { color: '#2a9d8f', sub: '10秒間 チーム全員のダメージ1.3倍', ms: 1500 }); FX.flash('#7CFFB2', 0.3, 300); }
+  }, [fx.buff && fx.buff.until]);
+  // フレンドレイド：決着したらホストがラストアタックを記録
+  useEffect(() => {
+    if (!FR || !isHost || !over || hp > 0 || state.lastHit) return;
+    const lh = [...rows].filter(e => e.last).sort((a, b) => b.last.at - a.last.at)[0];
+    if (lh) fref(`rooms/${code}/state`).update({ lastHit: lh.u }).catch(() => {});
+  }, [over]);
   if (now < state.startAt) return (
     <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center" style={{ background: V7_NIGHT }}>
       <FontImport />
@@ -4861,19 +5016,32 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
         <div className="text-xs font-bold mt-1" style={{ color: '#AAB6E0' }}>{traitOf(state.boss).desc[0]}</div>
       </div>}
       {team != null && <div className="mt-2 text-lg font-black rounded-full px-4 py-1 text-white" style={{ background: TEAM_INFO[team].color, ...bFont }}>あなたは {TEAM_INFO[team].name}</div>}
+      {RL && <div className="mt-3 v7-wnd px-4 py-2 text-center" style={{ maxWidth: '24rem' }}><div className="text-lg font-black" style={{ color: '#fff', ...bFont }}>あなたは {RL.icon} {RL.name}</div><div className="text-[11px] font-bold" style={{ color: '#AAB6E0' }}>{RL.desc.slice(1).join(' ／ ') || RL.desc[0]}</div></div>}
       <div className="mt-4" style={{ fontSize: '5rem', color: '#fff', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,.35)' }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
     </div>
   );
   const myRank = rows.findIndex(r => r.u === me) + 1;
   const ctrWarn = sch.counter && sch.counter.phase === 'warn';
-  return <RaidPlay boss={boss} hp={hp} max={state.hpMax} endAt={state.endAt} ended={over} title={`🐉 レイド ・ ${rows.length}人${team != null ? ` ・ ${TEAM_INFO[team].name}` : ''}`}
+  const pendRes = role === 'tch' ? resList.filter(r => !r.done && r.from !== me).length : 0;
+  const strip = FR && RL ? (<div className="flex items-center gap-1.5 text-[10px] font-black mt-1 flex-wrap" style={{ color: COLORS.ink }}>
+    <span className="rounded-full px-2 text-white" style={{ background: RL.color }}>{RL.icon}{RL.name}</span>
+    {role === 'sup' && <span className="flex items-center gap-0.5">応援 {Array.from({ length: 6 }).map((_, i) => <i key={i} style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: i < S.current.g ? '#2a9d8f' : '#d8d2c6' }} />)}</span>}
+    {role === 'grd' && <span style={{ color: ctrWarn ? '#b3402c' : COLORS.inkSoft }}>{ctrWarn ? (fx.barrier && fx.barrier.k === sch.counter.k ? '🛡 バリアを張った！' : '⚠ いま正解すると全員にバリア！') : '反撃の予告中に正解でバリア'}</span>}
+    {role === 'tch' && <span style={{ color: pendRes ? '#7B61FF' : COLORS.inkSoft }}>{curRes.current ? `🎓 ${curRes.current.name}の救援問題（ダメージ2倍）` : pendRes ? `救援待ち ${pendRes}問` : '救援問題はまだありません'}</span>}
+    {role === 'tk' && <span style={{ color: '#9a6a12' }}>延長 +{Math.round(ext / 1000)}秒 / 60秒</span>}
+    {role === 'brk' && <span style={{ color: COLORS.inkSoft }}>部位ダメージ3倍{traitOf(state.boss).seal ? `（${partsOf(state).find(p => p.id === traitOf(state.boss).seal.part).name}で「${traitOf(state.boss).seal.text}」）` : ''}</span>}
+    {role === 'gmb' && <span style={{ color: '#b5487e' }}>Lv.7〜9だけ・ダメージ3倍</span>}
+    {buffOn && <span className="rounded-full px-2 text-white animate-pulse" style={{ background: '#2a9d8f' }}>📣応援中 ×1.3</span>}
+  </div>) : null;
+  return <RaidPlay boss={boss} hp={hp} max={state.hpMax} endAt={state.endAt} ended={over} title={FR ? `👥 フレンドレイド ・ ${rows.length || 1}人` : `🐉 レイド ・ ${rows.length}人${team != null ? ` ・ ${TEAM_INFO[team].name}` : ''}`}
     onQuit={onLeave}
     bossExtra={<PartBars parts={calc.parts} />}
     opts={{
-      pickLevel, dmgMul, stunUntil, takeOj,
-      hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
+      pickLevel: pickLevel2, dmgMul, stunUntil, takeOj, nextOverride, ctlRef: ctl,
+      partMul: RL && RL.part ? RL.part : 1, missStun: role === 'gmb' ? 4000 : 1200,
+      hot: lv => !!curRes.current || !!(weakFam && weakFam.lv.includes(lv)),
       bgmRate: [1, 1.08, 1.16, 1.26][calc.phase],
-      note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ2倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : null,
+      note: lv => curRes.current ? `🎓 ${curRes.current.name}の救援問題！ 正解でコンボ復活＆ダメージ2倍` : weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ2倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : null,
       overlay: (<>
         {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
         {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0 flex items-end justify-center" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(255,255,255,.85), rgba(255,255,255,.55) 40%, rgba(255,255,255,.75))', backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', animation: 'fxEnter 300ms both' }}><div className="mb-8 text-xl font-black" style={{ color: '#6b7a8a', ...bFont }}>☁ チョークの粉…！</div></div>}
@@ -4899,13 +5067,32 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
           <div className="text-[11px]">いまは「{weakFam.name}」の問題が出る。正解するとダメージ2倍！</div>
         </div>}
         {!weakFam && say && <BossSay say={say} />}
+        {strip}
       </div>),
     }}
     onHit={(d, info) => {
       lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms, j: info.j });
-      if (info.miss) return;
-      const s = S.current; s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n; s.dp = info.dp; s.lastOk = Date.now();
-      fref(`rooms/${code}/rd/${state.gid}/${me}`).set({ d: s.d, pf: s.pf, mc: s.mc, n: s.n, dp: s.dp, name: (who && who.name) || 'ゲスト', last: { d, j: info.j, c: info.combo, lv: info.lv, at: fbNow() } }).catch(() => {});
+      const s = S.current, R0 = curRes.current;
+      if (info.miss) {
+        // ティーチャーがいれば、まちがえた問題（同じ問題）を救援問題として送る
+        if (FR && role !== 'tch' && Object.values(state.roles || {}).includes('tch') && info.prob) fxRef('res').push({ from: me, name: myName, prob: info.prob, combo: info.prevCombo || 0, at: fbNow() }).catch(() => {});
+        return;
+      }
+      s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n; s.dp = info.dp; s.lastOk = Date.now();
+      if (FR) {
+        const pf = info.j === 'Perfect';
+        if (role === 'sup') {
+          s.g += pf ? 2 : 1;
+          if (s.g >= 6) { s.g = 0; s.buffs++; fxRef('buff').set({ until: fbNow() + 10000, by: myName, uid: me }).catch(() => {}); }
+          const stunned = Object.entries(fx.stun || {}).some(([u, t]) => u !== me && t > fbNow());
+          if (stunned) { s.cures++; fxRef('cure').set({ at: fbNow(), by: myName, uid: me }).catch(() => {}); FX.band('📣 仲間のしびれを治した！', { color: '#2a9d8f', ms: 1000 }); }
+        }
+        if (role === 'grd' && sch.counter && sch.counter.phase === 'warn' && !(fx.barrier && fx.barrier.k === sch.counter.k)) { s.bars++; fxRef('barrier').set({ k: sch.counter.k, by: myName, uid: me }).catch(() => {}); }
+        if (role === 'tk' && pf && ext < 60000) { s.tk += 2; fxRef('ext').transaction(v => Math.min(60000, (v || 0) + 2000)).catch(() => {}); FX.text(window.innerWidth / 2, window.innerHeight * 0.2, '⏳ +2秒', '#d4a017', 22); }
+        if (role === 'tch' && R0) { s.res++; fxRef(`res/${R0.id}/done`).transaction(v => v ? undefined : { by: myName, at: fbNow() }).catch(() => {}); }
+        bump(x => x + 1);
+      }
+      fref(`rooms/${code}/rd/${state.gid}/${me}`).set({ d: s.d, pf: s.pf, mc: s.mc, n: s.n, dp: s.dp, name: myName, ...(FR ? { role, buffs: s.buffs, cures: s.cures, bars: s.bars, res: s.res, tk: s.tk } : {}), last: { d, j: info.j, c: info.combo, lv: info.lv, at: fbNow() } }).catch(() => {});
     }}
     footer={<div className="py-2">
       <Card className="mb-2 text-center">
@@ -4916,7 +5103,18 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
         {team != null && <div className="text-xs font-black mt-1" style={{ color: TEAM_INFO[team].color }}>{TEAM_INFO[team].name}のダメージ {calc.teams[team] || 0}</div>}
         {exp && <div className="mt-2 text-left"><ExpGain before={exp.before} after={exp.after} label="レイドの経験値" /></div>}
       </Card>
-      <p className="text-center text-xs font-bold mb-2" style={{ color: COLORS.inkSoft }}>先生が次のレイドを始めるのを待っています…</p>
+      {FR && <Card className="mb-2">
+        <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>メンバーの活やく</div>
+        {rows.map((e, i) => { const R = ROLES[e.role || (state.roles || {})[e.u] || 'atk']; const extra = [e.buffs ? `応援${e.buffs}回` : '', e.cures ? `治療${e.cures}回` : '', e.bars ? `バリア${e.bars}回` : '', e.res ? `救援${e.res}問` : '', e.tk ? `延長+${e.tk}秒` : ''].filter(Boolean).join('・'); return (
+          <div key={e.u} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: e.u === me ? 'var(--v7-accent-soft)' : 'transparent' }}>
+            <span className="rounded-full px-1.5 text-[10px] font-black text-white shrink-0" style={{ background: R.color }}>{R.icon}{R.name}</span>
+            <span className="flex-1 min-w-0 font-bold" style={{ color: COLORS.ink, overflowWrap: 'anywhere', ...bFont }}>{e.name}{state.lastHit === e.u ? ' 🗡' : ''}<span className="block text-[10px]" style={{ color: COLORS.inkSoft }}>{extra}</span></span>
+            <span className="font-black" style={{ color: '#E4572E' }}>{e.d}</span>
+          </div>); })}
+        {(() => { const best = k => [...rows].sort((a, b) => (b[k] || 0) - (a[k] || 0))[0]; const mv = [['ダメージMVP', best('d'), 'd'], ['応援MVP', best('buffs'), 'buffs'], ['守りMVP', best('bars'), 'bars'], ['救援MVP', best('res'), 'res']].filter(([, e, k]) => e && e[k] > 0); return mv.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{mv.map(([t, e]) => <span key={t} className="v7-chip" style={{ background: '#d4a017' }}>🏅{t}：{e.name}</span>)}</div>; })()}
+      </Card>}
+      {FR ? (isHost ? <div className="mb-2"><BigBtn color={boss.color} onClick={onAgain}>もう一度（ロビーへ）</BigBtn></div> : <p className="text-center text-xs font-bold mb-2" style={{ color: COLORS.inkSoft }}>ホストが次のレイドを始めるのを待っています…</p>)
+        : <p className="text-center text-xs font-bold mb-2" style={{ color: COLORS.inkSoft }}>先生が次のレイドを始めるのを待っています…</p>}
       <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
     </div>} />;
 }
@@ -6770,6 +6968,7 @@ function BattleApp({ acct: who, onExit }) {
   }, [newPlay && stateLive.gid]);
   const isTour = !!(state && state.tour);
   const isRaid = !!(state && state.raid);
+  const isFriend = !!(state && state.friend);   // フレンドレイド（ホストもいっしょに戦う）
   // 先生用ダッシュボードに「いま何をしているか」を知らせる
   useEffect(() => {
     let act = 'bhome', detail = '', room = '';
@@ -6793,11 +6992,11 @@ function BattleApp({ acct: who, onExit }) {
 
   const announce = useCallback(() => {
     if (!code || localRoom || !FB.uid || spectator) return;
-    if ((isTour || isRaid) && isHost) return; // 大会・レイドのホスト（先生）は参加しない
+    if ((isTour || (isRaid && !isFriend)) && isHost) return; // 大会・クラスレイドのホスト（先生）は参加しない
     const r = fref(`rooms/${code}/players/${FB.uid}`);
     r.set({ name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: TSV() }).catch(() => {});
     r.onDisconnect().remove();
-  }, [code, spectator, myName, acct, localRoom, isTour, isRaid, isHost, myNick]);
+  }, [code, spectator, myName, acct, localRoom, isTour, isRaid, isFriend, isHost, myNick]);
   useEffect(() => { if (code && !spectator) announce(); }, [code, spectator, announce]);
   // 通信が戻ったら名簿に入り直す
   useEffect(() => {
@@ -6817,15 +7016,15 @@ function BattleApp({ acct: who, onExit }) {
 
   async function createRoom(kind) {
     setErr('');
-    const tour = kind === true || kind === 'tour', raid = kind === 'raid';
+    const tour = kind === true || kind === 'tour', raid = kind === 'raid', fraid = kind === 'fraid';
     for (let t = 0; t < 12; t++) {
       const c = String(randInt(1000, 9999));
       let res;
-      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid, acct: acct ? acct.key : '' }; }); }
+      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid, ...(fraid ? { fraid: true } : {}), acct: acct ? acct.key : '' }; }); }
       catch (e) { setErr('部屋を作れませんでした（' + (e.code || e.message) + '）'); return; }
       if (res.committed) {
-        await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
-        await fref(`rooms/${c}/state`).set(raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
+        await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer', 'fx'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
+        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
         return;
       }
@@ -6842,7 +7041,7 @@ function BattleApp({ acct: who, onExit }) {
     const host = m.host === FB.uid;
     if (!asSpectator && !host) {
       const others = Object.keys(pl).filter(k => k !== FB.uid);
-      const max = m.tour || m.raid ? TOUR_MAX : m.qm ? 2 : ROOM_MAX;
+      const max = m.fraid ? 4 : m.tour || m.raid ? TOUR_MAX : m.qm ? 2 : ROOM_MAX;
       if (others.length >= max) { setErr(`この部屋はもう${max}人そろっています。「観戦」なら入れます`); return false; }
       if (m.tour && st.phase === 'tour' && !(st.names || {})[FB.uid]) { setErr('大会はもう始まっています。「観戦」なら入れます'); return false; }
     }
@@ -7082,7 +7281,9 @@ function BattleApp({ acct: who, onExit }) {
     const tc = st.teamCount || 0, teams = {};
     if (tc) Object.entries(players).filter(([k, p]) => p && p.name && k !== FB.uid).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).forEach(([k], i) => { teams[k] = i % tc; });
     await fref(`rooms/${code}/tb`).remove().catch(() => {});
-    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, boss: st.boss || 'dragon', ...(st.tname ? { tname: st.tname } : {}), minutes: st.minutes || 3, power: st.power || 'normal', teamCount: tc, teams, gid: 'r' + Date.now(), hpMax: hp, startAt: startAt + 1500, endAt: startAt + 1500 + (st.minutes || 3) * 60000 });
+    await fref(`rooms/${code}/fx`).remove().catch(() => {});
+    const roles = {}; if (st.friend) Object.entries(players).forEach(([k, p]) => { if (p && p.name) roles[k] = ROLES[p.role] ? p.role : 'atk'; });
+    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, ...(st.friend ? { friend: true, roles } : {}), boss: st.boss || 'dragon', ...(st.tname ? { tname: st.tname } : {}), minutes: st.minutes || 3, power: st.power || 'normal', teamCount: tc, teams, gid: 'r' + Date.now(), hpMax: hp, startAt: startAt + 1500, endAt: startAt + 1500 + (st.minutes || 3) * 60000 });
   }
   /* ---- 大会（トーナメント） ---- */
   async function tourStart() {
@@ -7173,6 +7374,8 @@ function BattleApp({ acct: who, onExit }) {
   if (scr === 'lobby' && state && state.phase === 'vote') return shell(<QmVote state={state} players={players} me={myUid()}
     onVote={m => fref(`rooms/${code}/players/${myUid()}`).update({ vote: `${state.vid}:${m}` }).catch(() => {})} onLeave={() => leave()} />);
   if (scr === 'lobby') {
+    if (isFriend) return shell(<FriendRaidLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
+      onRule={setRule} onRole={r => fref(`rooms/${code}/players/${FB.uid}`).update({ role: r }).catch(() => {})} onStart={raidStart} onLeave={() => leave()} />);
     if (isRaid) return shell(<RaidLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
       onRule={p => setRule(p.boss === 'teacher' ? { ...p, tname: myName } : p)} onStart={raidStart} onLeave={() => leave()} />, isHost);
     if (isTour) return shell(<TourLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
@@ -7183,6 +7386,8 @@ function BattleApp({ acct: who, onExit }) {
 
   // クラス協力レイド
   if (state && state.phase === 'raid') {
+    if (state.friend && !spectator) return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} isHost={isHost} onLeave={() => leave()}
+      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, friend: true, boss: state.boss, minutes: state.minutes, power: state.power })} />;
     if (isHost || spectator) return shell(<RaidBoard code={code} state={state} isHost={isHost} onLeave={() => leave()}
       onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, boss: state.boss, ...(state.tname ? { tname: state.tname } : {}), minutes: state.minutes, power: state.power, teamCount: state.teamCount || 0 })} />, true);
     return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} onLeave={() => leave()} />;
@@ -7571,6 +7776,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
         <div className="v7-panel">
           {cap('部屋（2〜4人）')}
           <BigBtn disabled={!fb.ready} onClick={() => onCreate(false)}>部屋を作る（ホスト）</BigBtn>
+          <div className="mt-2"><BigBtn color="#7b2cbf" disabled={!fb.ready} onClick={() => onCreate('fraid')}>👥 フレンドレイドを開く（1〜4人で協力）</BigBtn></div>
           <div className="flex gap-2 mt-2">
             <input value={codeIn} onChange={e => setCodeIn(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="部屋コード4桁" inputMode="numeric" className="flex-1 min-w-0 rounded-xl px-3 py-2 font-black text-center tracking-widest" style={inputStyle} />
             <button disabled={!fb.ready} onClick={() => onJoin(codeIn, false)} className="v7-cur rounded-xl px-4 font-black text-white" style={{ background: 'var(--v7-accent)', boxShadow: 'inset 0 -3px 0 rgba(0,0,0,.22)', fontFamily: 'var(--v7-f-ui)' }}>参加</button>
