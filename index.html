@@ -185,6 +185,14 @@
     .v7-tile { min-height: 104px; }
     .v7-credit { grid-column: 1 / 3; }
   }
+  /* 対戦メニュー：スマホ1列、横長は左右2列 */
+  .v7-bhome { display: flex; flex-direction: column; gap: 10px; }
+  .v7-bhome-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  @media (min-width: 900px) and (orientation: landscape) {
+    .v7-bhome-wrap { max-width: 1120px !important; padding: 18px 48px 16px 56px !important; }
+    .v7-bhome { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px; align-items: start; }
+    .v7-bhome-head { grid-column: 1 / -1; }
+  }
   /* ウィンドウ（成績・ランキングなど） */
   .v7-modal { position: fixed; inset: 0; z-index: 90; background: rgba(29,38,51,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .v7-modal-win { width: 100%; max-width: 46rem; max-height: calc(100dvh - 32px); overflow: auto; background: var(--v7-card); border-radius: 18px; border: 1px solid var(--v7-line); box-shadow: 0 16px 40px rgba(0,0,0,.25); padding: 16px; color: var(--v7-ink); }
@@ -214,6 +222,7 @@
   .v7-judge { position: absolute; left: 50%; font-family: var(--v7-f-fx); font-size: clamp(26px, 8vw, 40px); -webkit-text-stroke: 2px #fff; white-space: nowrap; pointer-events: none; z-index: 30; animation: v7jpop .7s cubic-bezier(.2,.9,.3,1.3) forwards; letter-spacing: .03em; }
   @keyframes v7jpop { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 0; } 25% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; } 70% { transform: translate(-50%,-60%); opacity: 1; } 100% { transform: translate(-50%,-90%); opacity: 0; } }
   .v7-fxbox { display: none; }
+  @keyframes v7spglow { to { box-shadow: 0 0 14px #f15bb5; } }
   .v7-fxcombo { display: none; position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-family: var(--v7-f-fx); color: rgba(255,201,77,.22); line-height: 1; }
   .v7-fxcombo b { font-size: 120px; font-weight: 400; }
   .v7-fxcombo small { font-size: 22px; letter-spacing: .2em; }
@@ -2401,7 +2410,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.0</span>
+              <span className="v7-ver">ver.7.1</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -5707,7 +5716,7 @@ function useBattleSound(muted) {
 }
 
 /* ---------- 盤面（ドラッグでつなぐ） ---------- */
-function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
+function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7 }) {
   const gridRef = useRef(null), tileRefs = useRef({});
   const [sel, setSel] = useState(null);
   const [drag, setDrag] = useState(false);
@@ -5770,18 +5779,19 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
         </svg>
         {tiles.map(tile => {
           const isSel = sel === tile.id, fl = flash && flash[tile.id];
-          const sk = tileSkin();
-          let bg = sk.bg, bc = sk.bc, tc = sk.color;
-          if (fl === 'correct') { bg = '#6FCBEF'; bc = COLORS.sky; tc = COLORS.ink; }
-          if (fl === 'wrong') { bg = COLORS.coral; bc = '#b3402c'; tc = COLORS.ink; }
-          if (isSel && !fl) bc = COLORS.amber;
+          const sk = tileSkin(v7);
+          let bg = sk.bg, bc = sk.bc, tc = sk.color, sh = sk.glow;
+          if (v7 && !sh) sh = '0 4px 0 #0A1230';
+          if (fl === 'correct') { bg = v7 ? '#7FD8FF' : '#6FCBEF'; bc = v7 ? '#fff' : COLORS.sky; tc = COLORS.ink; }
+          if (fl === 'wrong') { bg = v7 ? '#FF8A75' : COLORS.coral; bc = v7 ? '#fff' : '#b3402c'; tc = COLORS.ink; }
+          if (isSel && !fl) { bc = v7 ? '#FFC94D' : COLORS.amber; if (v7) sh = '0 0 0 3px rgba(255,201,77,.6), 0 4px 0 #0A1230'; }
           const fontSize = shrink < 1
             ? (tile.factor.type === 'const' ? 'clamp(1.1rem, 5.6vmin, 2.4rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.65rem, 2.9vmin, 1.2rem)' : 'clamp(0.85rem, 4vmin, 1.7rem)')
             : (tile.factor.type === 'const' ? 'clamp(1.4rem, 7.4vmin, 3.1rem)' : tile.factor.type === 'quadratic' ? 'clamp(0.8rem, 3.8vmin, 1.55rem)' : 'clamp(1.05rem, 5.2vmin, 2.2rem)');
           return (
             <div key={tile.id} data-btile={tile.id} data-f={JSON.stringify(tile.factor)} ref={el => { tileRefs.current[tile.id] = el; }} onPointerDown={e => down(e, tile.id)}
               className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer"
-              style={{ background: bg, border: `2px solid ${bc}`, color: tc, boxShadow: sk.glow, transform: `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+              style={{ background: bg, border: `2px solid ${bc}`, color: tc, boxShadow: sh, transform: v7 ? (isSel ? 'translateY(-3px) scale(1.04)' : 'none') : `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
               <MathText text={formatFactorTile(tile.factor)} />
             </div>
           );
@@ -5793,8 +5803,14 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim }) {
 
 /* ---------- 小さな部品 ---------- */
 const bFont = { fontFamily: "'Zen Maru Gothic', sans-serif" };
-function HpBar({ hp, height = 26, label = true }) {
+function HpBar({ hp, height = 26, label = true, v7 }) {
   const v = Math.max(0, Math.min(100, hp || 0));
+  if (v7) return (
+    <div className="v7-hpb" style={{ height }}>
+      <i style={{ width: `${v}%`, background: v <= 10 ? 'linear-gradient(90deg,#E53935,#FF8A65)' : v <= 30 ? 'linear-gradient(90deg,#F2A516,#FFD54A)' : 'linear-gradient(90deg,#3FBF73,#8BE38F)' }} />
+      {label && <em style={{ fontSize: height > 20 ? 12 : 9 }}>HP {v.toFixed(1)}%</em>}
+    </div>
+  );
   return (
     <div className="relative rounded-full overflow-hidden" style={{ height, background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
       <div className="h-full rounded-full" style={{ width: `${v}%`, background: v <= 10 ? '#FF4D4D' : v <= 30 ? '#FFB020' : 'linear-gradient(90deg, #43C97B, #8BE38F)', transition: 'width 300ms ease' }} />
@@ -5802,16 +5818,37 @@ function HpBar({ hp, height = 26, label = true }) {
     </div>
   );
 }
+/* ver.7：この中の Card・BigBtn・Seg は新しい見た目（白いパネル・FF風カーソル）になる */
+const V7Theme = React.createContext(false);
+const V7_BTN = c => { const k = String(c || '').toUpperCase(); return k === '#E76F51' ? '#E4572E' : k === '#0E86C6' ? '#1D2633' : k === '#4C7A93' ? null : k === '#52B788' ? '#3FA55F' : k === '#E8A33D' ? '#E9A82A' : c; };
 function Card({ children, style, className = '' }) {
+  const v7 = React.useContext(V7Theme);
+  if (v7) return <div className={`v7-panel ${className}`} style={{ padding: 14, ...style }}>{children}</div>;
   return <div className={`rounded-2xl p-4 shadow-lg ${className}`} style={{ background: COLORS.paper, ...style }}>{children}</div>;
 }
 function BigBtn({ children, onClick, color = COLORS.sky, disabled, small }) {
+  const v7 = React.useContext(V7Theme);
+  if (v7) {
+    const c = V7_BTN(color);
+    return (
+      <button onClick={onClick} disabled={disabled} className={`v7-cur w-full ${small ? 'py-2 text-sm' : 'py-3 text-base'} font-black transition-transform active:translate-y-0.5`}
+        style={{ borderRadius: 12, fontFamily: 'var(--v7-f-ui)', ...(c ? { background: c, color: '#fff', border: `1.5px solid ${c}`, boxShadow: disabled ? 'none' : 'inset 0 -3px 0 rgba(0,0,0,.22)' } : { background: '#fff', color: 'var(--v7-ink)', border: '1.5px solid var(--v7-line)' }), opacity: disabled ? 0.45 : 1 }}>{children}</button>
+    );
+  }
   return (
     <button onClick={onClick} disabled={disabled} className={`w-full rounded-2xl ${small ? 'py-2 text-sm' : 'py-3 text-base'} font-black shadow-lg transition-transform active:scale-95`}
       style={{ background: disabled ? `${color}55` : color, color: '#fff', ...bFont }}>{children}</button>
   );
 }
 function Seg({ items, cur, onPick, disabled }) {
+  const v7 = React.useContext(V7Theme);
+  if (v7) return (
+    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+      {items.map(([v, label, color]) => { const on = cur === v, c = V7_BTN(color) || '#1D2633'; return (
+        <button key={v} disabled={disabled} onClick={() => onPick(v)} className="v7-cur rounded-xl py-1.5 px-1 text-[13px] font-black" aria-pressed={on}
+          style={{ background: on ? c : '#fff', color: on ? '#fff' : 'var(--v7-ink)', border: `1.5px solid ${on ? c : 'var(--v7-line)'}`, opacity: disabled && !on ? 0.5 : 1, fontFamily: 'var(--v7-f-ui)', lineHeight: 1.25 }}>{label}</button>); })}
+    </div>
+  );
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
       {items.map(([v, label, color]) => (
@@ -5823,7 +5860,7 @@ function Seg({ items, cur, onPick, disabled }) {
 }
 const PCOLORS = [COLORS.sky, COLORS.coral, COLORS.leaf, COLORS.amber];
 /* 相手の様子（画面の端に小さく） */
-function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, target, color, compact }) {
+function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, target, color, compact, wide }) {
   const l = live || {};
   const ref = useRef(null), prevHp = useRef(null), prevKo = useRef(!!ko), prevSc = useRef(scoreA || 0);
   // 相手が攻撃を受けたら揺れる、KOでくだける、Aで得点したら光る
@@ -5841,21 +5878,21 @@ function OppMini({ uid, name, nick, mode, live, clearCount, scoreA, online, ko, 
     prevSc.current = scoreA || 0;
   }, [scoreA]);
   return (
-    <div ref={ref} data-opp={uid} className="rounded-xl px-2 py-1 shadow" style={{ background: `${COLORS.paper}ee`, border: `2px solid ${target ? COLORS.coral : (color || COLORS.coral) + '55'}`, width: compact ? '7.6rem' : '9.5rem', opacity: ko ? 0.35 : 1, filter: ko ? 'grayscale(1)' : 'none', boxShadow: target ? `0 0 10px ${COLORS.coral}88` : undefined }}>
-      {nick && <Nick id={nick} size={8} block />}
+    <div ref={ref} data-opp={uid} className="v7-wnd px-2 py-1" style={{ width: wide ? '100%' : compact ? '7.8rem' : '10rem', minWidth: 0, opacity: ko ? 0.35 : 1, filter: ko ? 'grayscale(1)' : 'none', borderColor: target ? '#FF8A75' : undefined, boxShadow: target ? 'inset 0 0 0 2px #0B1430, 0 0 12px #FF8A75aa' : undefined }}>
+      {nick && <div style={{ filter: 'brightness(1.6)' }}><Nick id={nick} size={8} block /></div>}
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] font-black truncate" style={{ color: color || COLORS.ink, ...bFont }}>{target ? '🎯' : '👤'}{name}</span>
-        {ko ? <span className="text-[9px] font-black" style={{ color: COLORS.coral }}>KO</span> : !online && <span className="text-[9px] font-bold" style={{ color: COLORS.coral }}>切断</span>}
+        <span className="text-[11px] font-black truncate" style={{ color: '#fff', ...bFont }}><span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: 9, background: color || '#FF8A75', marginRight: 4, verticalAlign: 'middle' }} />{target ? '🎯' : ''}{name}</span>
+        {ko ? <span className="text-[9px] font-black" style={{ color: '#FF8A75' }}>KO</span> : !online && <span className="text-[9px] font-bold" style={{ color: '#FF8A75' }}>切断</span>}
       </div>
       {mode === 'B' ? (<>
-        <div className="mt-0.5"><HpBar hp={l.hp == null ? 100 : l.hp} height={compact ? 8 : 11} label={false} /></div>
-        <div className="flex justify-between text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>
-          <span>❤{(l.hp == null ? 100 : l.hp).toFixed(0)}</span><span>{l.c || 0}/{clearCount}</span><span>{l.combo ? `${l.combo}C` : ''}</span>
+        <div className="mt-0.5"><HpBar v7 hp={l.hp == null ? 100 : l.hp} height={compact ? 7 : 9} label={false} /></div>
+        <div className="flex justify-between text-[10px] font-bold" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-fx)', fontWeight: 400 }}>
+          <span>HP {(l.hp == null ? 100 : l.hp).toFixed(0)}</span><span>{l.c || 0}/{clearCount}</span><span>{l.combo ? `${l.combo}C` : ''}</span>
         </div>
-        {!compact && (l.pd > 0 || l.po > 0) && <div className="text-[9px] font-black" style={{ color: COLORS.coral }}>⚠ 攻撃が届いている</div>}
+        {!compact && (l.pd > 0 || l.po > 0) && <div className="text-[9px] font-black" style={{ color: '#FFB59C' }}>⚠ 攻撃が届いている</div>}
       </>) : (
-        <div className="flex justify-between text-[10px] font-bold mt-0.5" style={{ color: COLORS.inkSoft }}>
-          <span>{scoreA || 0}点</span><span>{l.combo ? `${l.combo}C` : ''}</span>{l.lock > fbNow() && <span style={{ color: COLORS.coral }}>お手つき</span>}
+        <div className="flex justify-between text-[10px] font-bold mt-0.5" style={{ color: '#AAB6E0' }}>
+          <span style={{ fontFamily: 'var(--v7-f-fx)', fontWeight: 400, color: '#fff' }}>{scoreA || 0}点</span><span>{l.combo ? `${l.combo}C` : ''}</span>{l.lock > fbNow() && <span style={{ color: '#FFB59C' }}>お手つき</span>}
         </div>
       )}
     </div>
@@ -6573,10 +6610,14 @@ function BattleApp({ acct: who, onExit }) {
     await fref(`rooms/${code}/state`).update({ rounds, round: st.round + 1 });
   }
 
+  // ver.7：対戦のメニュー・ロビーは明るいノート＋FF風カーソル（中の Card・BigBtn・Seg も新しい見た目）
+  const shellCur = useMenuCursor();
   const shell = (children, wide) => (
-    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    <div className="v7-menu" ref={shellCur} style={{ alignItems: 'flex-start' }}>
       <FontImport />
-      <div className="w-full" style={{ maxWidth: wide ? '1100px' : '30rem' }}>{children}</div>
+      <V7Theme.Provider value={true}>
+        <div className={`w-full v7-open${scr === 'home' ? ' v7-bhome-wrap' : ''}`} style={{ maxWidth: wide ? '1100px' : '30rem', padding: '14px 16px 16px 26px' }}>{children}</div>
+      </V7Theme.Provider>
     </div>
   );
 
@@ -6665,8 +6706,8 @@ function QmVote({ state, players, me, onVote, onLeave }) {
   const opt = (m, d) => {
     const key = `${m}-${d}`, info = BATTLE_MODES[m], on = mine === key, dc = DIFFICULTY_CONFIG[d];
     return (
-      <button key={key} onClick={() => !mine && onVote(key)} disabled={!!mine || alone} className="rounded-2xl p-2.5 text-left active:scale-95 transition-transform shadow"
-        style={{ background: on ? info.color : COLORS.paper, color: on ? '#fff' : COLORS.ink, opacity: mine && !on ? 0.45 : 1, outline: on ? '4px solid #FFD54A' : 'none' }}>
+      <button key={key} onClick={() => !mine && onVote(key)} disabled={!!mine || alone} className="v7-cur rounded-2xl p-2.5 text-left active:scale-95 transition-transform"
+        style={{ background: on ? info.color : '#fff', border: `1.5px solid ${on ? info.color : 'var(--v7-line)'}`, color: on ? '#fff' : COLORS.ink, opacity: mine && !on ? 0.45 : 1, outline: on ? '3px solid #FFC94D' : 'none' }}>
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-2xl">{m === 'A' ? '🏁' : '⚔️'}</span>
           <div className="min-w-0">
@@ -6680,13 +6721,13 @@ function QmVote({ state, players, me, onVote, onLeave }) {
   };
   return (
     <div className="text-center pt-4">
-      <div className="text-2xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>🗳 投票しよう！</div>
+      <div className="v7-name mb-1" style={{ fontSize: 24 }}>投票しよう！</div>
       <div className="text-[11px] font-bold mb-3 leading-snug" style={{ color: COLORS.inkSoft }}>方式：同じならその方式、分かれたらランダム<br />難易度：2人ともノーマルのときだけノーマル（どちらかがイージーならイージー）</div>
-      <div className="text-4xl font-black mb-3" style={{ color: left <= 3 ? COLORS.coral : COLORS.ink, ...bFont }}>{alone ? '−' : left}</div>
+      <div className="mb-3" style={{ color: left <= 3 ? 'var(--v7-accent)' : 'var(--v7-ink)', fontFamily: 'var(--v7-f-fx)', fontSize: 44, lineHeight: 1 }}>{alone ? '−' : left}</div>
       <div className="grid grid-cols-2 gap-2 mb-4">{opt('A', 'easy')}{opt('B', 'easy')}{opt('A', 'normal')}{opt('B', 'normal')}</div>
       <div className="flex justify-center gap-2 mb-4 flex-wrap">
         {ids.map(u => { const v = vOf(u); return (
-          <span key={u} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: v ? '#ffffff' : COLORS.paperDark, color: v ? COLORS.leafDeep : COLORS.inkSoft }}>
+          <span key={u} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: v ? '#E7F5EC' : '#fff', border: '1.5px solid var(--v7-line)', color: v ? COLORS.leafDeep : COLORS.inkSoft }}>
             {v ? '✓' : '…'} {u === me ? 'あなた' : players[u].name}{u === me && v ? `（${label(v)}）` : v ? '（投票ずみ）' : ''}
           </span>); })}
       </div>
@@ -6700,13 +6741,13 @@ function QmWait({ qm, onPractice, onCancel }) {
   const sec = Math.floor((Date.now() - qm.since) / 1000);
   return (
     <div className="text-center pt-10">
-      <div className="mx-auto mb-6 rounded-full flex items-center justify-center" style={{ width: '9rem', height: '9rem', background: COLORS.paper, boxShadow: '0 0 0 10px #ffffff55, 0 10px 30px rgba(0,0,0,.2)', animation: 'fxPulseGold 1.4s ease-in-out infinite' }}>
+      <div className="mx-auto mb-6 rounded-full flex items-center justify-center" style={{ width: '9rem', height: '9rem', background: '#fff', border: '1px solid var(--v7-line)', boxShadow: '0 0 0 10px #E4572E14, 0 0 0 20px #E4572E0a', animation: 'v7pulse 1.4s ease-in-out infinite' }}>
         <div className="text-5xl" style={{ animation: 'fxHue 3s linear infinite' }}>{qm.found ? '⚔️' : '🔎'}</div>
       </div>
-      <div className="text-xl font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>{qm.found ? `${qm.found} が来た！` : '対戦相手をさがしています…'}</div>
+      <div className="v7-name mb-1">{qm.found ? `${qm.found} が来た！` : '対戦相手をさがしています…'}</div>
       <div className="text-sm font-bold mb-6" style={{ color: COLORS.inkSoft }}>待ち時間 {Math.floor(sec / 60)}:{String(sec % 60).padStart(2, '0')}</div>
       {!qm.found && <div className="flex flex-col gap-2">
-        <BigBtn color={COLORS.leaf} onClick={onPractice}>🤖 待っているあいだCPUと練習する</BigBtn>
+        <BigBtn color="#1D2633" onClick={onPractice}>待っているあいだCPUと練習する</BigBtn>
         <p className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>相手が来たら、練習の途中でも対戦に切り替わります（CPUの設定は「CPUと練習」で選んだもの）</p>
         <BigBtn small color={COLORS.inkSoft} onClick={onCancel}>さがすのをやめる</BigBtn>
       </div>}
@@ -6964,108 +7005,116 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       setRank(rows);
     }).catch(() => setRank([]));
   }, [fb.ready]);
-  const inputStyle = { background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' };
-  const lbl = t => <div className="text-[11px] font-black mt-2 mb-1" style={{ color: COLORS.inkSoft }}>{t}</div>;
+  const inputStyle = { background: '#FBFAF7', color: '#1D2633', border: '1.5px solid #E4DED3', fontSize: '16px' };
+  const lbl = t => <div className="text-[11px] font-black mt-2 mb-1" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>{t}</div>;
+  const cap = (t, right) => <div className="v7-cap" style={{ marginBottom: 8 }}><span>{t}</span>{right}</div>;
+  const [win, setWin] = useState(null);   // 'rank' | 'bounty' | 'all' | 'vs'
+  const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st)).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
   return (<>
-    <div className="flex items-center justify-between mb-3">
-      <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
-    </div>
-    <div className="text-center mb-4">
-      <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>⚔️ オンライン対戦</div>
-      <div className="text-xs font-bold mt-1" style={{ color: COLORS.inkSoft }}>2〜4人 ・ 同じ問題で勝負！ CPU練習・クラス大会も</div>
-    </div>
-    {!fb.ready && <Card className="mb-4"><p className="text-sm text-center font-bold" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</p></Card>}
-    <div className="mb-4">
-      <button disabled={!fb.ready} onClick={onQuick} className="w-full rounded-2xl py-4 font-black shadow-xl transition-transform active:scale-95" style={{ background: fb.ready ? 'linear-gradient(90deg,#ff7b00,#ff2e63)' : '#ccc', color: '#fff', fontSize: '1.25rem', animation: fb.ready ? 'fxPulseGold 1.6s ease-in-out infinite' : 'none', ...bFont }}>⚡ すぐ遊ぶ（ランダム対戦）</button>
-      <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>待っている人がいればすぐ対戦。いなければ待つあいだCPUと練習でき、相手が来たら乱入！（1 vs 1・方式と難易度は投票。20秒ほどだれも来なければ別の相手を用意）</p>
-      {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: COLORS.coral }}>{err}</p>}
-    </div>
-
-    <Card className="mb-4">
-      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🏅 せいせき（勝率・レーティング・称号）</div>
-      {acct ? (<>
-        <div className="flex items-center gap-2">
-          <div className="min-w-0">{stats && stats.nick && <Nick id={stats.nick} block />}<div className="font-black text-lg" style={{ color: COLORS.ink, ...bFont }}>{acct.name}</div></div>
-          <BadgeIcons st={stats} max={6} />
+    <div className="v7-bhome">
+      <div className="v7-bhome-head">
+        <button onClick={onExit} className="v7-pill v7-cur" data-snd="back">← タイトルへ</button>
+        <div className="text-center">
+          <div className="v7-name" style={{ fontSize: 20 }}>オンライン対戦</div>
+          <div className="text-[11px] font-bold" style={{ color: 'var(--v7-sub)' }}>2〜4人で同じ問題を解いて勝負</div>
         </div>
-        <div className="text-sm font-bold" style={{ color: COLORS.leafDeep }}>
-          {stats && stats.games ? <><RankPill r={ratingOf(stats)} size={12} /> {`レート ${ratingOf(stats)} ・ 勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}`}</> : 'まだ対戦の記録がありません'}
+        <span className="hidden sm:block" style={{ width: 92 }} />
+      </div>
+      {!fb.ready && <div className="v7-panel text-sm text-center font-bold" style={{ color: 'var(--v7-sub)', gridColumn: '1 / -1' }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</div>}
+      <div className="v7-col">
+        <div>
+          <button disabled={!fb.ready} onClick={onQuick} className="v7-go v7-cur" style={{ fontSize: 19, padding: 15 }}>すぐ遊ぶ（ランダム対戦）</button>
+          <p className="text-[10px] font-bold mt-1 text-center" style={{ color: 'var(--v7-sub)' }}>1対1・方式と難易度は投票。待つあいだはCPU練習、相手が来たら乱入！</p>
+          {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: '#C2410C' }}>{err}</p>}
         </div>
-        <div className="text-[10px] font-bold mt-0.5" style={{ color: COLORS.inkSoft }}>🗓 {seasonLabel(seasonKey())}（のこり{seasonDaysLeft()}日）{(() => { const k = rankOf(ratingOf(stats)); return k.next ? ` ・ ${k.next.icon}${k.next.name}まであと${Math.max(1, Math.ceil(k.next.min - ratingOf(stats)))}` : ' ・ 最高ランク！'; })()}</div>
-        {stats && stats.games > 0 && <div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>
-          A 早い者勝ち：{recordText(stats.A)} ／ B レース：{recordText(stats.B)}{stats.streak ? ` ／ いま${stats.streak}連勝中` : ''}
-        </div>}
-        <button onClick={() => setOpenKey(acct.key)} className="mt-2 mr-2 text-[11px] font-bold rounded-full px-3 py-1" style={{ background: `${COLORS.amber}33`, color: '#9a6a12' }}>🎖 称号とくわしい成績</button>
-        {stats && stats.vs && Object.keys(stats.vs).length > 0 && (<>
-          <button onClick={() => setShowVs(v => !v)} className="mt-2 mr-2 text-[11px] font-bold rounded-full px-3 py-1" style={{ background: `${COLORS.sky}22`, color: COLORS.sky }}>{showVs ? '▲ 相手ごとの成績をとじる' : '▼ 相手ごとの成績を見る'}</button>
-          {showVs && <VsTable vs={stats.vs} nameOf={nameOf} />}
-        </>)}
-      </>) : (<>
-        <div className="font-black text-lg" style={{ color: COLORS.ink, ...bFont }}>{(who && who.name) || 'ゲスト'} <span className="text-[10px] font-bold rounded-full px-2" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>ゲスト</span></div>
-        <p className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>ゲストの対戦は勝敗・レーティング・称号が記録されません（経験値はこの端末にたまります）。タイトル画面の「登録・ログイン」から登録すると記録が残り、ゲストの経験値も引き継げます。</p>
-      </>)}
-    </Card>
 
-    <Card className="mb-4">
-      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🚪 部屋（2〜4人）</div>
-      <BigBtn disabled={!fb.ready} onClick={() => onCreate(false)}>部屋を作る（ホスト）</BigBtn>
-      <div className="flex gap-2 mt-3">
-        <input value={codeIn} onChange={e => setCodeIn(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="部屋コード4桁" inputMode="numeric" className="flex-1 min-w-0 rounded-xl px-3 py-2 font-black text-center tracking-widest" style={inputStyle} />
-        <button disabled={!fb.ready} onClick={() => onJoin(codeIn, false)} className="rounded-xl px-4 font-black shadow" style={{ background: COLORS.leaf, color: '#fff', ...bFont }}>参加</button>
-        <button disabled={!fb.ready} onClick={() => onJoin(codeIn, true)} className="rounded-xl px-3 text-xs font-black shadow" style={{ background: COLORS.paperDark, color: COLORS.ink, ...bFont }}>観戦</button>
+        <div className="v7-panel">
+          {cap('部屋（2〜4人）')}
+          <BigBtn disabled={!fb.ready} onClick={() => onCreate(false)}>部屋を作る（ホスト）</BigBtn>
+          <div className="flex gap-2 mt-2">
+            <input value={codeIn} onChange={e => setCodeIn(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="部屋コード4桁" inputMode="numeric" className="flex-1 min-w-0 rounded-xl px-3 py-2 font-black text-center tracking-widest" style={inputStyle} />
+            <button disabled={!fb.ready} onClick={() => onJoin(codeIn, false)} className="v7-cur rounded-xl px-4 font-black text-white" style={{ background: 'var(--v7-accent)', boxShadow: 'inset 0 -3px 0 rgba(0,0,0,.22)', fontFamily: 'var(--v7-f-ui)' }}>参加</button>
+            <button disabled={!fb.ready} onClick={() => onJoin(codeIn, true)} className="v7-cur rounded-xl px-3 text-xs font-black" style={{ background: '#fff', border: '1.5px solid var(--v7-line)', color: 'var(--v7-ink)', fontFamily: 'var(--v7-f-ui)' }}>観戦</button>
+          </div>
+          <p className="text-[10px] font-bold mt-1" style={{ color: 'var(--v7-sub)' }}>クラス大会もここにコードを入れて「参加」</p>
+          <div className="mt-2 pt-2" style={{ borderTop: '1px dashed var(--v7-line)' }}>
+            <TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash} />
+          </div>
+        </div>
       </div>
-      <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>クラス大会に出るときも、ここにコードを入れて「参加」</p>
-      {err && <p className="text-xs font-bold mt-2" style={{ color: COLORS.coral }}>{err}</p>}
-      <div className="mt-3 pt-3" style={{ borderTop: `1px dashed ${COLORS.sky}55` }}>
-        <TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash} />
+
+      <div className="v7-col">
+        <div className="v7-panel">
+          {cap('CPUと練習', <span className="text-[10px]">記録には残りません</span>)}
+          <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color]]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
+          <div className="mt-1.5"><Seg items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={pc.diff} onPick={v => setPcv({ diff: v })} /></div>
+          <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの強さ</span><div className="flex-1"><Seg items={Object.entries(CPU_LEVELS).map(([k, c]) => [k, c.label, k === 'weak' ? '#3FA55F' : k === 'normal' ? '#E9A82A' : '#DD4A3A'])} cur={pc.lv} onPick={v => setPcv({ lv: v })} /></div></div>
+          <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの人数</span><div className="flex-1"><Seg items={[[1, '1人'], [2, '2人'], [3, '3人']]} cur={pc.n} onPick={v => setPcv({ n: v })} /></div></div>
+          <div className="mt-2.5"><BigBtn color="#1D2633" onClick={() => onPractice(pc)}>CPUと練習スタート</BigBtn></div>
+        </div>
+
+        <div className="v7-panel">
+          {cap('せいせき', acct && stats && stats.games ? <RankPill r={ratingOf(stats)} size={11} /> : null)}
+          {acct ? (<>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="min-w-0 flex-1">{stats && stats.nick && <Nick id={stats.nick} block />}<div className="v7-name">{acct.name}</div></div>
+              <BadgeIcons st={stats} max={5} />
+            </div>
+            <div className="text-xs font-bold mt-0.5" style={{ color: 'var(--v7-ink)' }}>
+              {stats && stats.games ? `レート ${ratingOf(stats)} ・ 勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}${stats.streak ? ` ・ ${stats.streak}連勝中` : ''}` : 'まだ対戦の記録がありません'}
+            </div>
+            <div className="text-[10px] font-bold mt-0.5" style={{ color: 'var(--v7-sub)' }}>{seasonLabel(seasonKey())}（のこり{seasonDaysLeft()}日）{(() => { const k = rankOf(ratingOf(stats)); return k.next ? ` ・ ${k.next.icon}${k.next.name}まであと${Math.max(1, Math.ceil(k.next.min - ratingOf(stats)))}` : ' ・ 最高ランク！'; })()}</div>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              <button onClick={() => setOpenKey(acct.key)} className="v7-pill v7-cur"><V7Icon name="stats" />称号とくわしい成績</button>
+              {stats && stats.vs && Object.keys(stats.vs).length > 0 && <button onClick={() => setWin('vs')} className="v7-pill v7-cur"><V7Icon name="list" />相手ごと</button>}
+            </div>
+          </>) : (<>
+            <div className="v7-name">{(who && who.name) || 'ゲスト'} <span className="text-[10px] font-bold rounded-full px-2 align-middle" style={{ background: '#EFEAE0', color: 'var(--v7-sub)' }}>ゲスト</span></div>
+            <p className="text-[11px] font-bold mt-1" style={{ color: 'var(--v7-sub)' }}>ゲストの対戦は勝敗・レート・称号が記録されません（経験値はこの端末にたまります）。タイトル画面の「登録・ログイン」から登録すると記録が残ります。</p>
+          </>)}
+        </div>
+
+        <div className="v7-foot">
+          <button className="v7-pill v7-cur" onClick={() => setWin('rank')}><V7Icon name="cup" />レーティングランキング</button>
+          {bountyRows.length > 0 && <button className="v7-pill v7-cur" onClick={() => setWin('bounty')}><V7Icon name="star" />賞金首リスト<span className="v7-badge">{bountyRows.length}</span></button>}
+          <button className="v7-pill v7-cur" onClick={() => setWin('all')}><V7Icon name="list" />みんなの成績</button>
+        </div>
       </div>
-    </Card>
+    </div>
 
-    <Card className="mb-4">
-      <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>🤖 CPUと練習（記録には残りません）</div>
-      {lbl('対戦方式')}
-      <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color]]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
-      {lbl('難易度')}
-      <Seg items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={pc.diff} onPick={v => setPcv({ diff: v })} />
-      {lbl('CPUの強さ')}
-      <Seg items={Object.entries(CPU_LEVELS).map(([k, c]) => [k, c.label, k === 'weak' ? COLORS.leaf : k === 'normal' ? COLORS.sky : COLORS.coral])} cur={pc.lv} onPick={v => setPcv({ lv: v })} />
-      {lbl('CPUの人数')}
-      <Seg items={[[1, '1人（1 vs 1）'], [2, '2人'], [3, '3人（4人戦）']]} cur={pc.n} onPick={v => setPcv({ n: v })} />
-      <div className="mt-3"><BigBtn color={COLORS.leaf} onClick={() => onPractice(pc)}>CPUと練習スタート</BigBtn></div>
-    </Card>
-
-    <Card className="mb-4">
-      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>👑 レーティングランキング（3戦以上）・{seasonLabel(seasonKey())} のこり{seasonDaysLeft()}日</div>
+    {win === 'vs' && stats && <V7Modal title="相手ごとの成績" onClose={() => setWin(null)}><VsTable vs={stats.vs} nameOf={nameOf} /></V7Modal>}
+    {win === 'rank' && <V7Modal title="レーティングランキング" onClose={() => setWin(null)}>
+      <div className="text-xs font-black mb-2" style={{ color: 'var(--v7-sub)' }}>3戦以上・{seasonLabel(seasonKey())} のこり{seasonDaysLeft()}日（名前をタップすると成績）</div>
       {rank == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>{fb.ready ? '読み込み中…' : '接続待ち'}</p>
         : rank.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p>
         : rank.map((r, i) => (
-          <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1 cursor-pointer" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+          <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)' }}>
             <span className="w-6 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
             <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name} <BadgeIcons st={r.st} max={3} /></span>
-            <RankPill r={r.rt} size={9} /><span className="font-black" style={{ color: COLORS.sky }}>{r.rt}</span>
+            <RankPill r={r.rt} size={9} /><span className="font-black" style={{ color: 'var(--v7-ink)' }}>{r.rt}</span>
             <span className="text-[11px] font-bold" style={{ color: COLORS.leafDeep, minWidth: '2.6em', textAlign: 'right' }}>{Math.round(r.rate * 100)}%</span>
             <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '5em', textAlign: 'right' }}>{recordText(r.st)}</span>
           </div>
         ))}
-      <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>はじめは1500。強い相手に勝つほど大きく上がります（ハンデありの試合は半分）。毎月1日に新シーズン：レートは1500との差が半分にもどります</p>
+      <p className="text-[10px] font-bold mt-2" style={{ color: 'var(--v7-sub)' }}>はじめは1500。強い相手に勝つほど大きく上がります（ハンデありの試合は半分）。毎月1日に新シーズン：レートは1500との差が半分にもどります。対戦の結果はソロのランキングには送られません。</p>
       <div className="flex flex-wrap gap-1 mt-1">{RANKS.map(k => <RankPill key={k.name} r={k.min === -Infinity ? 0 : k.min} size={9} tail={k.min === -Infinity ? '' : ` ${k.min}〜`} />)}</div>
-    </Card>
-    {allAcc && allAcc.some(r => bountyOf(r.st)) && <Card className="mb-4" style={{ background: 'linear-gradient(180deg,#fff8e1,#ffefc2)' }}>
-      <div className="text-xs font-black mb-1" style={{ color: '#9a6a12' }}>💰 賞金首リスト（3連勝から懸賞金。倒すと経験値ボーナス）</div>
-      {allAcc.filter(r => bountyOf(r.st)).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8).map(r => (
-        <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
+    </V7Modal>}
+    {win === 'bounty' && <V7Modal title="賞金首リスト" onClose={() => setWin(null)}>
+      <div className="text-xs font-black mb-1" style={{ color: '#9a6a12' }}>3連勝から懸賞金。倒すと経験値ボーナス</div>
+      {bountyRows.map(r => (
+        <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
           <span className="text-lg">📜</span>
           <span className="flex-1 font-black truncate" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name}</span>
           <span className="text-[11px] font-bold" style={{ color: COLORS.coral }}>{r.st.streak}連勝中</span>
           <span className="font-black rounded-full px-2 text-white text-xs" style={{ background: 'linear-gradient(90deg,#d4a017,#b7791f)' }}>💰{bountyOf(r.st)}</span>
         </div>))}
-    </Card>}
-    <Card className="mb-4">
-      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>📊 みんなの成績（名前をタップすると、くわしい成績・称号・相手ごとの成績が見られます）</div>
+    </V7Modal>}
+    {win === 'all' && <V7Modal title="みんなの成績" onClose={() => setWin(null)}>
+      <div className="text-xs font-black mb-2" style={{ color: 'var(--v7-sub)' }}>名前をタップすると、くわしい成績・称号・相手ごとの成績が見られます</div>
       {allAcc == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>{fb.ready ? '読み込み中…' : '接続待ち'}</p> : (<>
         <div className="flex gap-2 mb-2">
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="名前でさがす" className="flex-1 min-w-0 rounded-xl px-3 py-1.5 text-sm font-bold" style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }} />
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-xl px-2 text-xs font-bold" style={{ background: COLORS.paperDark, color: COLORS.ink }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="名前でさがす" className="flex-1 min-w-0 rounded-xl px-3 py-1.5 text-sm font-bold" style={inputStyle} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="rounded-xl px-2 text-xs font-bold" style={{ background: '#fff', border: '1.5px solid var(--v7-line)', color: COLORS.ink }}>
             <option value="rating">レート順</option><option value="games">対戦数順</option><option value="rate">勝率順</option><option value="w">勝ち数順</option><option value="name">名前順</option>
           </select>
         </div>
@@ -7073,11 +7122,11 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
           const rows = allAcc.filter(r => !q.trim() || r.name.includes(q.trim())).map(r => ({ ...r, g: r.st.games || 0, rate: winRate(r.st), rt: ratingOf(r.st) }));
           rows.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name, 'ja') : sortBy === 'rating' ? (b.rt - a.rt || b.g - a.g) : sortBy === 'rate' ? (b.rate - a.rate || b.g - a.g) : sortBy === 'w' ? ((b.st.w || 0) - (a.st.w || 0) || b.g - a.g) : (b.g - a.g || b.rate - a.rate));
           if (!rows.length) return <p className="text-xs" style={{ color: COLORS.inkSoft }}>見つかりません</p>;
-          return (<div style={{ maxHeight: '22rem', overflowY: 'auto' }}>
+          return (<div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
             {rows.map(r => (
-              <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: acct && acct.key === r.k ? `${COLORS.sky}14` : 'transparent' }}>
+              <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)', background: acct && acct.key === r.k ? 'var(--v7-accent-soft)' : 'transparent' }}>
                 <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name} <BadgeIcons st={r.st} max={3} /></span>
-                <span className="text-[11px] font-black" style={{ color: COLORS.sky, minWidth: '2.4rem', textAlign: 'right' }}>{r.g ? r.rt : ''}</span>
+                <span className="text-[11px] font-black" style={{ color: 'var(--v7-ink)', minWidth: '2.4rem', textAlign: 'right' }}>{r.g ? r.rt : ''}</span>
                 <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '2.2rem', textAlign: 'right' }}>{r.g}戦</span>
                 <span className="text-[11px] font-bold" style={{ color: COLORS.ink, minWidth: '4.6rem', textAlign: 'right' }}>{recordText(r.st)}</span>
                 <span className="font-black" style={{ color: r.g ? (r.rate >= 0.5 ? COLORS.leafDeep : COLORS.coral) : COLORS.inkSoft, minWidth: '2.6rem', textAlign: 'right' }}>{r.g ? `${Math.round(r.rate * 100)}%` : '−'}</span>
@@ -7086,8 +7135,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
           </div>);
         })()}
       </>)}
-    </Card>
-    <p className="text-center text-[10px]" style={{ color: COLORS.inkSoft }}>対戦の結果はネットランキングには送られません</p>
+    </V7Modal>}
     {openKey && (() => {
       const r = (allAcc || []).find(x => x.k === openKey);
       const st = openKey === (acct && acct.key) ? (stats || (r && r.st) || {}) : r && r.st;
@@ -7207,7 +7255,7 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
   return (<>
     <Card className="mb-4 text-center">
       <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>部屋コード</div>
-      <div className="text-5xl font-black tracking-widest my-1" style={{ color: COLORS.sky, ...bFont }}>{code}</div>
+      <div className="tracking-widest my-1" style={{ color: 'var(--v7-accent)', fontFamily: 'var(--v7-f-fx)', fontSize: 52, lineHeight: 1.1 }}>{code}</div>
       <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{state.qm ? '⚡ すぐ遊ぶ：対戦相手が見つかりました！ まもなく開始…' : spectator ? '観戦中：対戦が始まるのを待っています' : isHost ? '相手は「参加」、見る人は「観戦」でこのコードを入れます（4人まで）' : 'ホストが始めるのを待っています…'}</div>
     </Card>
     <Card className="mb-4">
@@ -7227,8 +7275,8 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
               <div className="flex items-center gap-1 mt-1 pl-8">
                 <span className="text-[10px] font-bold mr-1" style={{ color: COLORS.inkSoft }}>ハンデ</span>
                 {[0, 1, 2, 3].map(v => (
-                  <button key={v} onClick={() => onRule({ [`handi/${e[0]}`]: v })} className="rounded-lg px-2 py-0.5 text-[11px] font-black"
-                    style={{ background: h === v ? COLORS.amber : COLORS.paperDark, color: h === v ? '#fff' : COLORS.ink }}>{HANDI_LABEL[v]}</button>
+                  <button key={v} onClick={() => onRule({ [`handi/${e[0]}`]: v })} className="v7-cur rounded-lg px-2 py-0.5 text-[11px] font-black"
+                    style={{ background: h === v ? '#E9A82A' : '#fff', border: `1.5px solid ${h === v ? '#E9A82A' : 'var(--v7-line)'}`, color: h === v ? '#fff' : COLORS.ink }}>{HANDI_LABEL[v]}</button>
                 ))}
               </div>
             )}
@@ -7301,6 +7349,8 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (v !== lastCd.current && v >= 1) { lastCd.current = v; sound.play('beep'); }
   }, [counting, cd]);
   useEffect(() => () => sound.bgm(false), []);
+  // ver.7：対戦に入るとき、時計回りに暗転
+  useEffect(() => { if (fbNow() < state.startAt) v7Wipe(); }, []);
   useEffect(() => {
     const block = e => { if (e.cancelable && !(e.target.closest && e.target.closest('.fx-scroll'))) e.preventDefault(); };
     document.addEventListener('touchmove', block, { passive: false });
@@ -7466,23 +7516,26 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
   }, [players, !!result]);
 
   const header = (extra) => (
-    <div className="flex items-start justify-between gap-2 mb-1" style={{ flexShrink: 0, position: 'relative' }}>
+    <div className="flex items-start justify-between gap-2 flex-wrap" style={{ flexShrink: 0, position: 'relative' }}>
       {cheerN > 0 && <div className="absolute text-[10px] font-black rounded-full px-2 py-0.5 shadow text-white" style={{ left: '50%', top: '-0.2rem', transform: 'translateX(-50%)', background: 'linear-gradient(90deg,#ff7b00,#ff2e63)', zIndex: 5, whiteSpace: 'nowrap' }}>📣 応援 {cheerN}{cheerPow.current < CHEER_MAX ? `（あと${CHEER_STEP - cheerN % CHEER_STEP}で${mode === 'B' ? '回復' : 'パワー'}）` : ''}</div>}
-      <div className="flex flex-col gap-1">
-        <button onClick={() => { if (window.confirm(practice ? '練習をやめますか？' : '対戦をやめて部屋を出ますか？（負けになります）')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg text-left" style={{ color: COLORS.inkSoft }}>✕ 退出</button>
-        <div className="text-[10px] font-black rounded-full px-2 py-0.5 text-white" style={{ background: BATTLE_MODES[mode].color }}>{state.roundLabel ? `${state.roundLabel} ・ ` : ''}{BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label}</div>
+      <div className={`flex gap-1 ${others.length > 2 ? 'flex-row flex-wrap items-center w-full' : 'flex-col items-start'}`}>
         <div className="flex items-center gap-1">
-          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-0.5 rounded-lg text-left" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
-          {hc[me] > 0 && <span className="text-[10px] font-black" style={{ color: COLORS.amber }}>ハンデ{HANDI_LABEL[hc[me]]}</span>}
+          <button onClick={() => { if (window.confirm(practice ? '練習をやめますか？' : '対戦をやめて部屋を出ますか？（負けになります）')) { uiSnd('back'); onLeave(); } }} className="v7-bar-btn">✕ 退出</button>
+          <button onClick={() => setMuted(m => !m)} className="v7-bar-btn" aria-label={muted ? '音を出す' : '音を消す'}>{muted ? '🔇' : '🔊'}</button>
         </div>
+        <span className="v7-chip" style={{ background: BATTLE_MODES[mode].color }}>{state.roundLabel ? `${state.roundLabel} ・ ` : ''}{BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label}</span>
+        {hc[me] > 0 && <span className="v7-chip" style={{ background: '#9a6a12' }}>ハンデ{HANDI_LABEL[hc[me]]}</span>}
       </div>
       {extra}
     </div>
   );
-  const wrap = children => (
-    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+  // ver.7：紺の夜空にFF風のウィンドウ。play=true のときは子どもが v7-play（スマホ縦／タブレット横の2列）を持つ
+  const wrap = (children, play) => (
+    <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
       <FontImport />
-      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>{children}</div>
+      <V7Theme.Provider value={true}>
+        {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>{children}</div>}
+      </V7Theme.Provider>
       {state.cpu && !result && <CpuBots code={code} state={state} bank={bank} N={N} viewRef={viewRef} claims={claims} onClear={u => writeResult(u, 'clear')} />}
     </div>
   );
@@ -7493,24 +7546,39 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     {header(null)}
     <VsCutIn ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} bty={state.bty || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
     <div className="flex flex-col items-center justify-center" style={{ flex: '1 1 auto' }}>
-      <div key={cd} className="font-black leading-none" style={{ color: '#fff', fontSize: 'clamp(4rem, 24vw, 10rem)', textShadow: `0 6px 0 ${COLORS.forestDeep}, 0 10px 24px rgba(0,0,0,0.35)`, animation: 'fxVsPop 450ms ease both', ...bFont }}>{cd > 3 ? 'READY' : Math.max(1, cd)}</div>
-      <div className="text-sm font-bold mt-8 text-center" style={{ color: '#ffffffcc' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>
+      <div key={cd} className="leading-none" style={{ color: cd > 3 ? 'var(--v7-gold)' : '#fff', fontSize: cd > 3 ? 'clamp(3rem, 16vw, 7rem)' : 'clamp(4rem, 24vw, 10rem)', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,0.35)', animation: 'fxVsPop 450ms ease both' }}>{cd > 3 ? 'READY' : Math.max(1, cd)}</div>
+      <div className="text-sm font-bold mt-8 text-center" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>
     </div>
   </>);
   const props = { code, state, me, ids, others, names, diff, N, bank, live, ko, now, sound, header, players, hc, mine, viewRef, muted, nicks: state.nicks || {} };
-  return wrap(mode === 'A' ? <GameA {...props} claims={claims} onEnd={() => writeResult(null, 'points')} /> : <GameB {...props} onClear={u => writeResult(u, 'clear')} />);
+  return wrap(mode === 'A' ? <GameA {...props} claims={claims} onEnd={() => writeResult(null, 'points')} /> : <GameB {...props} onClear={u => writeResult(u, 'clear')} />, true);
 }
 
 /* ---------- 判定の文字・お題 ---------- */
-function JudgePop({ judge }) {
+let JUDGE_SEQ = 0;
+function JudgePop({ judge, at }) {
   if (!judge) return null;
+  // ver.7：問題とタイルにかぶらない場所（at='ph' 問題の上 / at='tb' タブレットの左の欄）
+  if (at) { if (!judge.__k) judge.__k = ++JUDGE_SEQ; } // 同じ判定が続いても毎回アニメーションさせる
+  if (at) return <div key={judge.__k} className={`v7-judge v7-judge-${at}`} style={{ color: judge.color, textShadow: `0 0 18px ${judge.color}, 0 3px 0 rgba(0,0,0,.35)`, ...(judge.small ? { fontSize: at === 'tb' ? 30 : 'clamp(18px, 5.5vw, 26px)', WebkitTextStroke: '1.5px #fff' } : null) }}>{judge.label}</div>;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 50 }}>
       <div className="font-black text-center" style={{ color: judge.color, fontSize: judge.small ? 'clamp(1.6rem, 8vw, 3rem)' : 'clamp(2.2rem, 12vw, 5rem)', textShadow: '0 3px 0 rgba(0,0,0,0.35), 0 8px 20px rgba(0,0,0,0.4)', animation: 'fxfJudgePop 700ms cubic-bezier(0.2, 0.9, 0.3, 1) both', ...bFont }}>{judge.label}</div>
     </div>
   );
 }
-function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt }) {
+function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt, v7 }) {
+  if (v7) return (
+    <div data-poly={JSON.stringify(poly)} data-fxtarget="1" className="v7-target" style={spurt ? { background: '#FFF4E0', borderColor: '#FF8A3D' } : null}>
+      <div className="absolute top-0 left-0 w-full" style={{ height: '5px', background: 'rgba(0,0,0,0.12)' }}>
+        <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
+      </div>
+      <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: spurt ? '#C2410C' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{note || 'この式を因数分解しよう'} ・ <span style={{ color: LEVEL_INFO[level].color, fontWeight: 900 }}>Lv.{level} {LEVEL_INFO[level].name}</span></div>
+      <div className="font-black v7-poly" style={{ color: '#1D2633', ...bFont }}><MathText text={formatPoly(poly)} /></div>
+      <div className="absolute bottom-1.5 right-3 text-[11px] font-bold" style={{ color: '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{qLabel}</div>
+      {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: '#2D6A4F', fontFamily: 'var(--v7-f-fx)' }}>+{gain}</div>}
+    </div>
+  );
   return (
     <div data-poly={JSON.stringify(poly)} data-fxtarget="1" className="rounded-2xl p-3 mb-2 text-center relative overflow-hidden" style={{ background: spurt ? '#fff4e0' : COLORS.paper, border: `2px dashed ${spurt ? COLORS.coral : COLORS.sky + '45'}`, borderTop: `5px solid ${LEVEL_INFO[level].color}`, flexShrink: 0 }}>
       <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)' }}>
@@ -7523,6 +7591,7 @@ function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt 
     </div>
   );
 }
+const v7Stat = (label, value, color) => <div className="v7-wnd v7-st"><small>{label}</small><b style={color ? { color } : null}>{value}</b></div>;
 const statBox = (label, value, color) => (
   <div className="flex-1 rounded-xl px-2 py-1 text-center" style={{ background: COLORS.paper }}>
     <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{label}</div>
@@ -7533,8 +7602,8 @@ const statBox = (label, value, color) => (
 function OppList({ ids, others, names, nicks, mode, live, ko, players, N, scores, combos, target }) {
   const compact = others.length > 1;
   return (
-    <div className="grid gap-1" style={{ gridTemplateColumns: others.length > 1 ? 'repeat(2, auto)' : 'auto' }}>
-      {others.map(u => <OppMini key={u} uid={u} nick={(nicks || {})[u]} name={names[u]} mode={mode} live={mode === 'A' ? { ...(live[u] || {}), combo: combos ? combos[u] : 0 } : live[u]} clearCount={N}
+    <div className="grid gap-1" style={{ gridTemplateColumns: others.length > 2 ? 'repeat(3, minmax(0, 1fr))' : others.length > 1 ? 'repeat(2, auto)' : 'auto', width: others.length > 2 ? '100%' : undefined }}>
+      {others.map(u => <OppMini wide={others.length > 2} key={u} uid={u} nick={(nicks || {})[u]} name={names[u]} mode={mode} live={mode === 'A' ? { ...(live[u] || {}), combo: combos ? combos[u] : 0 } : live[u]} clearCount={N}
         scoreA={scores ? scores[u] : 0} online={!!players[u]} ko={!!ko[u]} target={target === u} color={PCOLORS[ids.indexOf(u)]} compact={compact} />)}
     </div>
   );
@@ -7625,44 +7694,57 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   const shieldLeft = Math.max(0, s.shieldUntil - Date.now());
   return (<>
     {qe >= QUESTION_TIMEOUT_MS - 5000 && qe < QUESTION_TIMEOUT_MS && !s.resolving && !s.over && <div className="pointer-events-none absolute inset-0" style={{ background: '#FF1E1E', animation: 'fxfTimeWarningFlash 500ms ease-in-out infinite', zIndex: 40 }} />}
-    <JudgePop judge={judge} />
     <ComboAura combo={s.combo} />
     <PinchVignette on={pinchNow} muted={muted} />
-    {s.ko && <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 45, background: 'rgba(18,58,82,.35)' }}>
-      <div className="font-black" style={{ fontSize: 'clamp(3rem,16vw,6rem)', color: '#fff', textShadow: '0 4px 0 rgba(0,0,0,.3)', ...bFont }}>KO…</div>
-      <div className="text-sm font-black rounded-full px-4 py-1" style={{ background: COLORS.paper, color: COLORS.ink }}>体力が0になりました。決着まで見守ろう</div>
+    {s.ko && <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 45, background: 'rgba(5,8,20,.55)' }}>
+      <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(3rem,16vw,6rem)', color: '#FF8A75', WebkitTextStroke: '2px #fff', textShadow: '0 4px 0 rgba(0,0,0,.3)' }}>KO…</div>
+      <div className="v7-wnd text-sm font-black px-4 py-1">体力が0になりました。決着まで見守ろう</div>
     </div>}
-    {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="B" live={live} ko={ko} players={players} N={N} target={tgt} />)}
-    <div className="mb-1 flex items-center justify-center text-center" style={{ height: '2.2rem', flexShrink: 0 }}>
-      {banner ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: banner.color, ...bFont }}>{banner.text}</div>
-        : leader ? <div className="text-[11px] font-black rounded-xl py-1 px-3" style={{ background: `${COLORS.amber}33`, color: '#9a6a12' }}>👑 あなたが1位！ みんなの攻撃が集まってくる</div> : null}
+    <div className="v7-play">
+      <div className="v7-zone">
+        {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="B" live={live} ko={ko} players={players} N={N} target={tgt} />)}
+        <div className="v7-msg">
+          {banner ? <div className="v7-wnd" style={{ color: '#fff', background: `linear-gradient(180deg, ${banner.color}, ${banner.color}cc)` }}>{banner.text}</div>
+            : leader ? <div className="v7-wnd" style={{ color: 'var(--v7-gold)' }}>👑 あなたが1位！ みんなの攻撃が集まってくる</div> : null}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {v7Stat('SCORE', s.score)}{v7Stat('SOLVED', `${s.c}/${N}`)}{v7Stat('COMBO', s.combo, s.combo > 0 ? 'var(--v7-gold)' : null)}
+        </div>
+        <div ref={hpRef} className="relative" style={{ flexShrink: 0 }}>
+          <HpBar v7 hp={s.hp} height={22} />
+          {shieldLeft > 0 ? <span className="absolute right-2 -top-2 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡 {(shieldLeft / 1000).toFixed(1)}秒</span>
+            : eng.pinch() && !s.over ? <span className="absolute right-2 -top-2 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span> : null}
+        </div>
+        <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
+          <span className="text-[11px] font-black" style={{ color: full ? 'var(--v7-gold)' : '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>必殺</span>
+          <div className="flex gap-0.5 flex-1">{Array.from({ length: SP_MAX }).map((_, i) => <div key={i} className="flex-1 rounded-sm" style={{ height: '8px', background: i < s.sp ? (full ? '#FFC300' : 'linear-gradient(90deg,#9b5de5,#f15bb5)') : '#24336E', boxShadow: full ? '0 0 6px #FFC300' : 'none' }} />)}</div>
+          {Object.entries(SP_INFO).map(([k, v]) => (
+            <button key={k} data-sp={k} disabled={!full || s.over} onClick={() => { eng.special(k); rerender(); }} className="rounded-full px-2 py-0.5 text-[10px] font-black transition-transform active:scale-95"
+              style={{ background: full && !s.over ? v.color : '#16224F', color: full && !s.over ? '#fff' : '#7E8BB8', border: `1.5px solid ${full && !s.over ? '#fff' : '#5a6aa8'}`, animation: full && !s.over ? 'v7spglow 1s ease-in-out infinite alternate' : 'none', ...bFont }}>{v.label}</button>
+          ))}
+        </div>
+        <div ref={warnRef} className="rounded-lg px-2 flex items-center gap-2" style={{ height: '1.7rem', flexShrink: 0, background: (pd || po) ? 'rgba(229,57,53,.22)' : 'transparent', border: (pd || po) ? '2px solid #FF8A75' : '2px solid transparent' }}>
+          {(pd || po) ? (<>
+            <span className="text-[11px] font-black" style={{ color: '#FFB59C' }}>⚠ 予告：{pd ? `体力-${pd}%` : ''}{pd && po ? '・' : ''}{po ? `おじゃま${po}枚` : ''}</span>
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#3a2440' }}><div className="h-full" style={{ width: `${Math.min(100, soonest / B_LAND_DELAY * 100)}%`, background: '#FF8A75' }} /></div>
+            <span className="text-[10px] font-bold" style={{ color: '#FFB59C' }}>正解して相殺！</span>
+          </>) : <span className="text-[10px] font-bold" style={{ color: '#AAB6E0' }}>{s.ojNext ? `次の問題におじゃまタイル${Math.min(OJAMA_MAX_PER_BOARD, s.ojNext)}枚` : ''}</span>}
+        </div>
+        {/* タブレット横：判定の文字とカットインはこの欄に出す */}
+        <div className="v7-fxbox" data-fxband="1">
+          {s.combo >= 2 && <div className="v7-fxcombo" key={s.combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{s.combo}</b><small>COMBO</small></div>}
+          <JudgePop judge={judge} at="tb" />
+        </div>
+      </div>
+      <div className="v7-main">
+        <div className="relative" style={{ flexShrink: 0 }}>
+          <JudgePop judge={judge} at="ph" />
+          {cur && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={`問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
+        </div>
+        {cur && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
+        <p className="v7-hint" style={{ flexShrink: 0 }}>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</p>
+      </div>
     </div>
-    <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
-      {statBox('SCORE', s.score)}{statBox('解いた', `${s.c}/${N}`)}{statBox('COMBO', s.combo, s.combo > 0 ? COLORS.coral : null)}
-    </div>
-    <div ref={hpRef} className="mb-1 relative" style={{ flexShrink: 0 }}>
-      <HpBar hp={s.hp} />
-      {shieldLeft > 0 ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡 {(shieldLeft / 1000).toFixed(1)}秒</span>
-        : eng.pinch() && !s.over ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span> : null}
-    </div>
-    <div className="mb-1 flex items-center gap-1" style={{ flexShrink: 0, height: '1.9rem' }}>
-      <span className="text-[10px] font-black" style={{ color: full ? '#c99a00' : COLORS.inkSoft }}>必殺</span>
-      <div className="flex gap-0.5 flex-1">{Array.from({ length: SP_MAX }).map((_, i) => <div key={i} className="flex-1 rounded-sm" style={{ height: '10px', background: i < s.sp ? (full ? '#FFC300' : '#9b5de5') : `${COLORS.ink}18`, boxShadow: full ? '0 0 6px #FFC300' : 'none' }} />)}</div>
-      {Object.entries(SP_INFO).map(([k, v]) => (
-        <button key={k} data-sp={k} disabled={!full || s.over} onClick={() => { eng.special(k); rerender(); }} className="rounded-lg px-1.5 py-0.5 text-[10px] font-black shadow transition-transform active:scale-95"
-          style={{ background: full && !s.over ? v.color : COLORS.paperDark, color: full && !s.over ? '#fff' : COLORS.inkSoft, ...bFont }}>{v.label}</button>
-      ))}
-    </div>
-    <div ref={warnRef} className="mb-1 rounded-xl px-2 flex items-center gap-2" style={{ height: '1.7rem', flexShrink: 0, background: (pd || po) ? '#ffe1d9' : 'transparent', border: (pd || po) ? '2px solid #e76f51' : '2px solid transparent' }}>
-      {(pd || po) ? (<>
-        <span className="text-[11px] font-black" style={{ color: '#b3402c' }}>⚠ 予告：{pd ? `体力-${pd}%` : ''}{pd && po ? '・' : ''}{po ? `おじゃま${po}枚` : ''}</span>
-        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#f6c3b6' }}><div className="h-full" style={{ width: `${Math.min(100, soonest / B_LAND_DELAY * 100)}%`, background: '#e76f51' }} /></div>
-        <span className="text-[10px] font-bold" style={{ color: '#b3402c' }}>正解して相殺！</span>
-      </>) : <span className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{s.ojNext ? `次の問題におじゃまタイル${Math.min(OJAMA_MAX_PER_BOARD, s.ojNext)}枚` : ''}</span>}
-    </div>
-    {cur && <TargetCard poly={cur.poly} level={cur.level} qLabel={`問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
-    {cur && <BattleBoard tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
-    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</p>
   </>);
 }
 
@@ -7753,30 +7835,42 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   const myPos = 1 + others.filter(u => (sc.sc[u] || 0) > (sc.sc[me] || 0)).length;
   const lead = Math.max(0, ...others.map(u => sc.sc[u] || 0));
   return (<>
-    <JudgePop judge={judge} />
     <ComboAura combo={myCombo} />
-    {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="A" live={live} ko={ko} players={players} N={N} scores={sc.sc} combos={sc.cb} />)}
-    <div className="mb-1 flex items-center justify-center text-center" style={{ height: '2.2rem', flexShrink: 0 }}>
-      {locked ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: COLORS.coral, ...bFont }}>お手つき中… あと{Math.max(0, (lock.current - now) / 1000).toFixed(1)}秒</div>
-        : waiting && last ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white" style={{ background: last.w === me ? COLORS.leafDeep : last.w ? COLORS.coral : COLORS.inkSoft, ...bFont }}>
-          {last.w === me ? `あなたが正解！ +${last.pts}点` : last.w ? `${names[last.w]}が正解 +${last.pts}点` : 'だれも解けなかった'}{last.spurt ? '（2倍）' : ''} ・ 次の問題へ</div>
-        : spurt && !ended ? <div className="text-xs font-black rounded-xl py-1 px-3 w-full shadow text-white animate-pulse" style={{ background: '#ff7b00', ...bFont }}>🔥 ラストスパート！ 得点2倍（のこり{N - q}問）</div> : null}
+    <div className="v7-play">
+      <div className="v7-zone">
+        {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="A" live={live} ko={ko} players={players} N={N} scores={sc.sc} combos={sc.cb} />)}
+        <div className="v7-msg">
+          {locked ? <div className="v7-wnd" style={{ color: '#fff', background: 'linear-gradient(180deg,#C2410C,#9A3412)' }}>お手つき中… あと{Math.max(0, (lock.current - now) / 1000).toFixed(1)}秒</div>
+            : waiting && last ? <div className="v7-wnd" style={{ color: last.w === me ? 'var(--v7-gold)' : last.w ? '#FFB59C' : '#AAB6E0' }}>
+              {last.w === me ? `あなたが正解！ +${last.pts}点` : last.w ? `${names[last.w]}が正解 +${last.pts}点` : 'だれも解けなかった'}{last.spurt ? '（2倍）' : ''} ・ 次の問題へ</div>
+            : spurt && !ended ? <div className="v7-wnd animate-pulse" style={{ color: '#FFB347' }}>🔥 ラストスパート！ 得点2倍（のこり{N - q}問）</div> : null}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {v7Stat('あなた', `${sc.sc[me] || 0}`, '#7FD8FF')}
+          {others.length > 1 ? v7Stat('順位', `${myPos}位`, myPos === 1 ? 'var(--v7-gold)' : null) : v7Stat('相手', `${sc.sc[others[0]] || 0}`, '#FFB59C')}
+          {others.length > 1 ? v7Stat('1位との差', myPos === 1 ? `+${(sc.sc[me] || 0) - lead}` : `${(sc.sc[me] || 0) - lead}`) : v7Stat('COMBO', myCombo, myCombo > 0 ? 'var(--v7-gold)' : null)}
+        </div>
+        <div className="flex gap-1" style={{ flexShrink: 0 }}>
+          {Array.from({ length: N }).map((_, i) => {
+            const c = claims[i];
+            const bg = !c ? (i === q ? 'var(--v7-gold)' : i >= N - A_LASTSPURT ? '#7a4a1e' : '#24336E') : c.uid === me ? '#7FD8FF' : c.uid !== '_none' ? PCOLORS[ids.indexOf(c.uid)] || '#FF8A75' : '#4a5580';
+            return <div key={i} className="flex-1 rounded-sm" style={{ height: '8px', background: bg, outline: c && c.uid === me ? '1.5px solid #fff' : 'none' }} />;
+          })}
+        </div>
+        <div className="v7-fxbox" data-fxband="1">
+          {myCombo >= 2 && <div className="v7-fxcombo" key={myCombo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{myCombo}</b><small>COMBO</small></div>}
+          <JudgePop judge={judge} at="tb" />
+        </div>
+      </div>
+      <div className="v7-main">
+        <div className="relative" style={{ flexShrink: 0 }}>
+          <JudgePop judge={judge} at="ph" />
+          {prob && <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
+        </div>
+        {prob && <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
+        <p className="v7-hint" style={{ flexShrink: 0 }}>先に正解した人だけ得点 ・ まちがえると{lockMs / 1000}秒お手つき ・ 最後の{A_LASTSPURT}問は2倍</p>
+      </div>
     </div>
-    <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
-      {statBox('あなた', `${sc.sc[me] || 0}点`, COLORS.sky)}
-      {others.length > 1 ? statBox('順位', `${myPos}位`, myPos === 1 ? COLORS.amber : COLORS.ink) : statBox('相手', `${sc.sc[others[0]] || 0}点`, COLORS.coral)}
-      {statBox(others.length > 1 ? '1位との差' : 'COMBO', others.length > 1 ? (myPos === 1 ? `+${(sc.sc[me] || 0) - lead}` : `${(sc.sc[me] || 0) - lead}`) : myCombo, others.length > 1 ? null : myCombo > 0 ? COLORS.coral : null)}
-    </div>
-    <div className="mb-2 flex gap-1" style={{ flexShrink: 0 }}>
-      {Array.from({ length: N }).map((_, i) => {
-        const c = claims[i];
-        const bg = !c ? (i === q ? COLORS.amber : i >= N - A_LASTSPURT ? '#ffb36655' : `${COLORS.ink}18`) : c.uid === me ? COLORS.sky : c.uid !== '_none' ? PCOLORS[ids.indexOf(c.uid)] || COLORS.coral : '#b8c4cc';
-        return <div key={i} className="flex-1 rounded-sm" style={{ height: '8px', background: bg, outline: c && c.uid === me ? '2px solid #fff' : 'none' }} />;
-      })}
-    </div>
-    {prob && <TargetCard poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
-    {prob && <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
-    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>先に正解した人だけ得点 ・ まちがえると{lockMs / 1000}秒お手つき ・ 最後の{A_LASTSPURT}問は2倍</p>
   </>);
 }
 
@@ -7811,20 +7905,20 @@ function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty }) {
     else if (bty[me]) setTimeout(() => FX.band(`💰 あなたは賞金首！`, { color: '#b7791f', sub: `懸賞金${bty[me]}。負けると相手に取られる！`, ms: 1800 }), 500);
   }, []);
   const card = (u, i, side) => (
-    <div key={u} className="rounded-2xl px-3 py-2 shadow-lg" style={{ background: COLORS.paper, borderLeft: `6px solid ${PCOLORS[i]}`, animation: `${side === 'L' ? 'fxSlideL' : 'fxSlideR'} 420ms ${i * 90}ms cubic-bezier(.2,.9,.3,1.2) both`, minWidth: 0 }}>
-      {nicks[u] && <Nick id={nicks[u]} size={10} block />}
-      <div className="font-black text-lg truncate" style={{ color: u === me ? COLORS.sky : COLORS.ink, ...bFont }}>{names[u]}{u === me ? <span className="text-[10px]">（あなた）</span> : ''}</div>
-      <div className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>{rt[u] != null && <RankPill r={rt[u]} size={10} />}{rt[u] != null ? ` レート ${Math.round(rt[u])}` : ''}{hc[u] ? ` ハンデ${HANDI_LABEL[hc[u]]}` : ''}</div>
+    <div key={u} className="v7-wnd px-3 py-2" style={{ borderLeft: `6px solid ${PCOLORS[i]}`, animation: `${side === 'L' ? 'fxSlideL' : 'fxSlideR'} 420ms ${i * 90}ms cubic-bezier(.2,.9,.3,1.2) both`, minWidth: 0, textAlign: side === 'R' && ids.length === 2 ? 'right' : 'left' }}>
+      {nicks[u] && <div style={{ filter: 'brightness(1.6)' }}><Nick id={nicks[u]} size={10} block /></div>}
+      <div className="font-black text-lg truncate" style={{ color: u === me ? 'var(--v7-gold)' : '#fff', ...bFont }}>{names[u]}{u === me ? <span className="text-[10px]">（あなた）</span> : ''}</div>
+      <div className="text-[11px] font-bold" style={{ color: '#AAB6E0' }}>{rt[u] != null && <RankPill r={rt[u]} size={10} />}{rt[u] != null ? ` レート ${Math.round(rt[u])}` : ''}{hc[u] ? ` ハンデ${HANDI_LABEL[hc[u]]}` : ''}</div>
       {bty[u] > 0 && <div className="text-[11px] font-black mt-0.5 rounded-full px-2 inline-block text-white" style={{ background: 'linear-gradient(90deg,#d4a017,#b7791f)' }}>💰 懸賞金 {bty[u]}</div>}
     </div>
   );
   return (
     <div className="mt-2 mb-2" style={{ flexShrink: 0 }}>
-      <div className="text-center mb-3"><span className="text-sm font-black rounded-full px-5 py-1.5 shadow-lg text-white" style={{ background: color, ...bFont }}>{label}</span></div>
+      <div className="text-center mb-3"><span className="v7-chip" style={{ background: color, fontSize: 13, padding: '5px 16px' }}>{label}</span></div>
       {ids.length === 2 ? (
         <div className="grid items-center gap-2" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
           {card(ids[0], 0, 'L')}
-          <div className="font-black text-4xl" style={{ color: COLORS.coral, textShadow: '0 3px 0 #fff', animation: 'fxVsPop 500ms 350ms both', ...bFont }}>VS</div>
+          <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 48, color: 'var(--v7-gold)', WebkitTextStroke: '2px #fff', animation: 'fxVsPop 500ms 350ms both' }}>VS</div>
           {card(ids[1], 1, 'R')}
         </div>
       ) : <div className="grid grid-cols-2 gap-2">{ids.map((u, i) => card(u, i, i % 2 ? 'R' : 'L'))}</div>}
@@ -7891,22 +7985,22 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
   return (
     <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
       <div className="text-center mb-3">
-        <div className="font-black" style={{ fontSize: 'clamp(2.6rem, 14vw, 5rem)', color: outcome === 'w' ? COLORS.amber : outcome === 'l' ? COLORS.inkSoft : COLORS.sky, textShadow: '0 4px 0 rgba(0,0,0,.15)', ...bFont }}>
+        <div className="v7-open" style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(2.8rem, 14vw, 5rem)', lineHeight: 1.1, color: outcome === 'w' ? 'var(--v7-gold)' : outcome === 'l' ? '#FF8A75' : '#7FD8FF', WebkitTextStroke: '2px #0B1430', textShadow: '0 4px 0 rgba(0,0,0,.35)' }}>
           {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi ? `${myRank}位` : 'LOSE…'}
         </div>
-        {outcome === 'l' && multi && <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>LOSE…</div>}
-        <div className="text-sm font-bold" style={{ color: COLORS.ink }}>{reason}</div>
-        {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#5b3fd6' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
-        {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: COLORS.coral }}>🔄 逆転勝ち！</div>}
-        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#b7791f' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
-        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: COLORS.inkSoft }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
-        {tourNote && <div className="mt-1 text-sm font-black" style={{ color: COLORS.coral }}>{tourNote}</div>}
-        {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: COLORS.amber }}>🏆 大会優勝！</div>}
+        {outcome === 'l' && multi && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
+        <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{reason}</div>
+        {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
+        {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>🔄 逆転勝ち！</div>}
+        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
+        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
+        {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
+        {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
       </div>
       {rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}
       <Card className="mb-3">{order.map(row)}</Card>
-      {rec && rec.exp && <div className="mb-3"><ExpGain before={rec.exp.before} after={rec.exp.after} label={practice ? 'CPU練習の経験値' : acct ? 'この試合の経験値' : 'この試合の経験値（ゲスト：この端末に保存）'} /></div>}
-      {practice ? <p className="text-center text-[11px] font-bold mb-3" style={{ color: COLORS.inkSoft }}>CPU練習の勝敗は記録されません（経験値は入ります）</p>
+      {rec && rec.exp && <div className="mb-3 v7-panel"><ExpGain before={rec.exp.before} after={rec.exp.after} label={practice ? 'CPU練習の経験値' : acct ? 'この試合の経験値' : 'この試合の経験値（ゲスト：この端末に保存）'} /></div>}
+      {practice ? <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>CPU練習の勝敗は記録されません（経験値は入ります）</p>
         : acct ? <Card className="mb-3">
           <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>🏅 {acct.name} のせいせき</div>
           {rec && rec.dr != null && <div className="font-black text-lg" style={{ color: COLORS.sky, ...bFont }}>
@@ -7923,7 +8017,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
           </div>}
           {rec && rec.perfects > 0 && <div className="text-xs font-bold" style={{ color: '#c99a00' }}>この試合の Perfect：{rec.perfects}回</div>}
         </Card>
-        : <p className="text-center text-[11px] font-bold mb-3" style={{ color: COLORS.inkSoft }}>名前と合言葉を登録すると、勝敗・レーティング・称号が記録されます</p>}
+        : <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>名前と合言葉を登録すると、勝敗・レーティング・称号が記録されます</p>}
       <Card className="mb-3">
         <button onClick={() => setShowRev(v => !v)} className="w-full flex items-center justify-between text-sm font-black" style={{ color: COLORS.ink }}>
           <span>📝 ふり返り（{review.length}問 ・ {mode === 'B' ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）</span><span>{showRev ? '▲' : '▼'}</span>
@@ -7947,7 +8041,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
         <BigBtn color={COLORS.amber} onClick={onBack}>🏆 大会の表にもどる</BigBtn>
       </div>) : practice ? (<div className="flex flex-col gap-2">
         <BigBtn color={COLORS.coral} onClick={onRematch}>もう一戦（同じルール）</BigBtn>
-        <BigBtn small onClick={onLobby}>CPUの設定にもどる</BigBtn>
+        <BigBtn small color={COLORS.inkSoft} onClick={onLobby}>CPUの設定にもどる</BigBtn>
       </div>) : (<div className="flex flex-col gap-2">
         {(() => {
           const humans = state.bot ? ids : ids.filter(u => !(state.cpu || {})[u]);
@@ -7956,12 +8050,12 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
             <BigBtn color={COLORS.coral} disabled={!humansOnline || rd(me)} onClick={() => fref(`rooms/${code}/players/${me}`).update({ ready: state.gid }).catch(() => {})}>
               {!humansOnline ? 'いない人がいます' : rd(me) ? '準備OK！ みんなを待っています…' : 'もう一戦（準備OK）'}</BigBtn>
             <div className="flex flex-wrap justify-center gap-1">
-              {humans.map(u => <span key={u} className="text-[11px] font-black rounded-full px-2 py-0.5" style={{ background: rd(u) ? `${COLORS.leaf}33` : COLORS.paperDark, color: rd(u) ? COLORS.leafDeep : COLORS.inkSoft }}>{rd(u) ? '✓' : '…'} {u === me ? 'あなた' : names[u]}</span>)}
+              {humans.map(u => <span key={u} className="text-[11px] font-black rounded-full px-2 py-0.5" style={{ background: rd(u) ? '#2D6A4F' : 'rgba(11,20,48,.55)', color: rd(u) ? '#fff' : '#AAB6E0' }}>{rd(u) ? '✓' : '…'} {u === me ? 'あなた' : names[u]}</span>)}
             </div>
-            <p className="text-center text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>全員が「準備OK」を押すと、すぐに次の試合が始まります</p>
+            <p className="text-center text-[10px] font-bold" style={{ color: '#AAB6E0' }}>全員が「準備OK」を押すと、すぐに次の試合が始まります</p>
           </>);
         })()}
-        {isHost && !state.qm && <BigBtn small onClick={onLobby}>ルールを変える（ロビーへ）</BigBtn>}
+        {isHost && !state.qm && <BigBtn small color={COLORS.inkSoft} onClick={onLobby}>ルールを変える（ロビーへ）</BigBtn>}
         <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
       </div>)}
     </div>
