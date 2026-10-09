@@ -902,7 +902,7 @@ function buildBoard(level, seenSet, tileCount = 9) {
     if (matchCount === 1) break;
     if (attempt > 40) break;
   }
-  return { tiles, poly };
+  return { tiles, poly, factors };
 }
 
 /* ============================================================
@@ -1023,7 +1023,7 @@ async function decodeDataUriToAudioBuffer(dataUri) {
 /* ============================================================
    メインコンポーネント
    ============================================================ */
-function FactorHunt({ onBattle, acct, onLogout }) {
+function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   const [screen, setScreen] = useState('menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
   const [questionLevel, setQuestionLevel] = useState(1); // 今出ている問題のレベル
@@ -1049,6 +1049,10 @@ function FactorHunt({ onBattle, acct, onLogout }) {
   const [muted, setMuted] = useState(false);
   const [playerName, setPlayerName] = useState(() => (acct && acct.name) || '');
   const [soloExp, setSoloExp] = useState(null); // このプレイでもらった経験値 {before, after}
+  const learnRef = useRef([]);   // 苦手分析・図鑑用の記録（このプレイ分）
+  const splitsRef = useRef([]);  // ゴースト用：何秒の時点で何問解いたか
+  const ghostKey = `fxf_solo_ghost_v1_${(acct && acct.key) || 'guest'}`;
+  const [ghost, setGhost] = useState(null); // 自分の過去ベスト {score, splits}
   const [ranking, setRanking] = useState(() => loadRankingFromStorage()); // 起動時に前回までのランキングを復元
   const [netRanking, setNetRanking] = useState({ hard: [], normal: [], easy: [] }); // ネットランキング(難易度別)
   const [totalRanking, setTotalRanking] = useState({ hard: [], normal: [], easy: [] }); // みんなの総得点ランキング(難易度別)
@@ -1526,6 +1530,9 @@ function FactorHunt({ onBattle, acct, onLogout }) {
     const gotExp = finalCaught > 0 ? 5 + finalCaught * 2 + (finalCaught >= DIFFICULTY_CONFIG[difficulty].clearCount ? 20 : 0) : 0;
     setSoloExp(null);
     if (gotExp) addExp(acct, gotExp).then(r => setSoloExp(r));
+    flushLearn(acct, learnRef.current); learnRef.current = [];
+    // 自分の過去ベストを更新したら、次からのゴーストにする
+    try { const all = loadLS(ghostKey, {}) || {}; const b = all[difficulty]; if (finalScore > 0 && (!b || finalScore > b.score)) { all[difficulty] = { score: finalScore, caught: finalCaught, splits: splitsRef.current.slice() }; saveLS(ghostKey, all); } } catch (e) {}
     const name = (playerName.trim() || 'プレイヤー').slice(0, 10);
     const newEntry = { name, score: finalScore, caught: finalCaught, difficulty };
     let madeRanking = false;
@@ -1596,6 +1603,7 @@ function FactorHunt({ onBattle, acct, onLogout }) {
         const penalty = 0.01 + extra;
         playBuzz();
         setCombo(0);
+        if (!isReverseStage) { const pr = pairOf(board, poly); learnRef.current.push({ lv: questionLevel, pid: pr ? patternOf(questionLevel, pr.map(t => t.factor)) : null, ok: false, ms: questionElapsedMs }); }
         setLife(l => Math.max(0, Math.round((l - penalty) * 100) / 100));
         setLastLifeChange({ amount: -penalty });
         setJudgePopup({ label: JUDGE_BAD.label, color: JUDGE_BAD.color });
@@ -1631,6 +1639,8 @@ function FactorHunt({ onBattle, acct, onLogout }) {
 
     try { await Tone.start(); } catch (e) { /* audio unlock best-effort */ }
     seenProblemsRef.current = new Set();
+    learnRef.current = []; splitsRef.current = [];
+    setGhost((loadLS(ghostKey, {}) || {})[chosenDifficulty] || null);
     difficultyRef.current = chosenDifficulty;
     setPendingNetEntry(null); // 前回の送信待ちスコアは破棄
     setNetSubmitState('none');
@@ -1756,6 +1766,8 @@ function FactorHunt({ onBattle, acct, onLogout }) {
       const elapsedMs = Date.now() - questionStartTimeRef.current;
       const judge = getJudgment(elapsedMs);
       fxMerge([tileRefs.current[id1], tileRefs.current[id2]], judge.color); // タイルがお題に吸いこまれて弾ける
+      learnRef.current.push({ lv: questionLevel, pid: patternOf(questionLevel, [t1.factor, t2.factor]), ok: true, ms: elapsedMs });
+      splitsRef.current.push(Math.round(elapsedSeconds * 1000));
       if (judge.label === 'Perfect') FX.flash('#fff', 0.3, 160);
       // 体力は100%が上限。超過分は1%=1点としてスコアに変換する
       const rawLife = life + judge.recover;
@@ -1813,6 +1825,7 @@ function FactorHunt({ onBattle, acct, onLogout }) {
       playBuzz();
       setFlashMap({ [id1]: 'wrong', [id2]: 'wrong' });
       FX.shake(gridRef.current); FX.flash('#ff2020', 0.18, 200);
+      { const pr = pairOf(board, poly); learnRef.current.push({ lv: questionLevel, pid: pr ? patternOf(questionLevel, pr.map(t => t.factor)) : null, ok: false, ms: Date.now() - questionStartTimeRef.current }); }
       setCombo(0);
       const penalty = DIFFICULTY_MISS_PENALTY[difficulty] || 20;
       const newLife = Math.max(0, Math.round((life - penalty) * 100) / 100);
@@ -1989,11 +2002,13 @@ function FactorHunt({ onBattle, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.4.4
+              ver.4.5
             </span>
           </div>
 
           {acct && <AccountBar acct={acct} onLogout={onLogout} />}
+          <DailyCard acct={acct} onOpen={() => onMode && onMode('daily')} />
+          <button onClick={() => onMode && onMode('learn')} className="w-full rounded-2xl py-2.5 mb-3 text-sm font-black shadow-lg transition-transform active:scale-95" style={{ background: 'linear-gradient(90deg,#7B61FF,#6BD4E8)', color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}>📈 学びの部屋（苦手分析・苦手ドリル・型の図鑑）</button>
 
           <button
             onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}
@@ -2516,7 +2531,10 @@ function FactorHunt({ onBattle, acct, onLogout }) {
         {/* ヘッダー (縮まない) */}
         <div className="flex items-center justify-between mb-2 px-1" style={{ flexShrink: 0 }}>
           <button onClick={() => finishGame(score, caught, 'menu')} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ やめる</button>
-          <div className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: COLORS.paper, background: `${LEVEL_INFO[questionLevel].color}99` }}>Lv.{questionLevel} {LEVEL_INFO[questionLevel].name}</div>
+          <div className="flex items-center gap-1">
+            <div className="text-xs font-bold px-2 py-1 rounded-full" style={{ color: COLORS.paper, background: `${LEVEL_INFO[questionLevel].color}99` }}>Lv.{questionLevel} {LEVEL_INFO[questionLevel].name}</div>
+            {ghost && (() => { const gc = (ghost.splits || []).filter(x => x <= elapsedSeconds * 1000).length; const d = caught - gc; return <div className="text-[10px] font-black px-2 py-1 rounded-full" title="自分の過去ベストのゴースト" style={{ background: d >= 0 ? `${COLORS.leaf}33` : `${COLORS.coral}22`, color: d >= 0 ? COLORS.leafDeep : COLORS.coral }}>👻ベスト{gc}問 {d >= 0 ? `+${d}` : d}</div>; })()}
+          </div>
           <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
         </div>
 
@@ -3024,6 +3042,498 @@ function AccountBar({ acct, onLogout }) {
       </div>
       <div className="mt-1"><ExpBar exp={exp} /></div>
       {open && <PlayerProfile name={acct.name} st={st || {}} nameOf={nameOf} me acctKey={acct.key} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+/* =====================================================================
+   学び（v5）：型の図鑑・苦手分析・苦手ドリル・デイリーチャレンジ・ゴースト
+   ===================================================================== */
+/* ---------- 型（パターン）：図鑑と苦手分析の単位 ---------- */
+const PATTERNS = [
+  { id: 'p1a', lv: 1, name: '数でくくる（＋）', ex: '6x+15 = 3(2x+5)' },
+  { id: 'p1b', lv: 1, name: '数でくくる（−）', ex: '6x−15 = 3(2x−5)' },
+  { id: 'p2a', lv: 2, name: 'x でくくる', ex: '2x²+3x = x(2x+3)' },
+  { id: 'p2b', lv: 2, name: '□x でくくる', ex: '6x²+4x = 2x(3x+2)' },
+  { id: 'p3a', lv: 3, name: '和も積もプラス', ex: 'x²+5x+6 = (x+2)(x+3)' },
+  { id: 'p3b', lv: 3, name: '和がマイナス・積がプラス', ex: 'x²−5x+6 = (x−2)(x−3)' },
+  { id: 'p3c', lv: 3, name: '積がマイナス（和は＋）', ex: 'x²+x−6 = (x+3)(x−2)' },
+  { id: 'p3d', lv: 3, name: '積がマイナス（和は−）', ex: 'x²−x−6 = (x−3)(x+2)' },
+  { id: 'p3e', lv: 3, name: '完全平方（＋）', ex: 'x²+6x+9 = (x+3)²' },
+  { id: 'p3f', lv: 3, name: '完全平方（−）', ex: 'x²−6x+9 = (x−3)²' },
+  { id: 'p4a', lv: 4, name: '2乗の差 x²−b²', ex: 'x²−9 = (x+3)(x−3)' },
+  { id: 'p4b', lv: 4, name: '2乗の差 a²x²−b²', ex: '4x²−9 = (2x+3)(2x−3)' },
+  { id: 'p5a', lv: 5, name: 'たすきがけ（定数項＋）', ex: '2x²+7x+3 = (x+3)(2x+1)' },
+  { id: 'p5b', lv: 5, name: 'たすきがけ（定数項−）', ex: '2x²+5x−3 = (x+3)(2x−1)' },
+  { id: 'p6a', lv: 6, name: 'たすきがけ・大きい数（定数項＋）', ex: '2x²+19x+9 = (x+9)(2x+1)' },
+  { id: 'p6b', lv: 6, name: 'たすきがけ・大きい数（定数項−）', ex: '3x²+17x−6 = (x+6)(3x−1)' },
+  { id: 'p7a', lv: 7, name: '3乗の和 x³+b³', ex: 'x³+8 = (x+2)(x²−2x+4)' },
+  { id: 'p7b', lv: 7, name: '3乗の差 x³−b³', ex: 'x³−8 = (x−2)(x²+2x+4)' },
+  { id: 'p7c', lv: 7, name: '3乗の和 a³x³+b³', ex: '8x³+27 = (2x+3)(4x²−6x+9)' },
+  { id: 'p7d', lv: 7, name: '3乗の差 a³x³−b³', ex: '8x³−27 = (2x−3)(4x²+6x+9)' },
+  { id: 'p8a', lv: 8, name: '発展たすきがけ（定数項＋）', ex: '6x²+7x+2 = (2x+1)(3x+2)' },
+  { id: 'p8b', lv: 8, name: '発展たすきがけ（定数項−）', ex: '6x²+x−2 = (2x−1)(3x+2)' },
+  { id: 'p9a', lv: 9, name: '最難関たすきがけ（定数項＋）', ex: '10x²+29x+10 = (2x+5)(5x+2)' },
+  { id: 'p9b', lv: 9, name: '最難関たすきがけ（定数項−）', ex: '18x²+21x−5 = (6x−1)(3x+5)' },
+];
+const PATTERN_BY_ID = Object.fromEntries(PATTERNS.map(p => [p.id, p]));
+function patternOf(lv, fs) {
+  if (!fs || !fs.length) return null;
+  const L = fs.filter(f => f.type === 'linear');
+  try {
+    if (lv === 1) return (L[0].b > 0) ? 'p1a' : 'p1b';
+    if (lv === 2) { const m = L.find(f => f.b === 0) || L[0]; return m.a === 1 ? 'p2a' : 'p2b'; }
+    if (lv === 3) { const [a, b] = L.map(f => f.b); if (a === b) return a > 0 ? 'p3e' : 'p3f'; if (a > 0 && b > 0) return 'p3a'; if (a < 0 && b < 0) return 'p3b'; return a + b > 0 ? 'p3c' : 'p3d'; }
+    if (lv === 4) return L[0].a === 1 ? 'p4a' : 'p4b';
+    if (lv === 7) { const l = L[0]; return 'p7' + (l.b > 0 ? (l.a === 1 ? 'a' : 'c') : (l.a === 1 ? 'b' : 'd')); }
+    if ([5, 6, 8, 9].includes(lv)) return `p${lv}` + (L[0].b * L[1].b > 0 ? 'a' : 'b');
+  } catch (e) {}
+  return null;
+}
+/* 盤面から正解の2枚を探す */
+function pairOf(tiles, poly) {
+  for (let i = 0; i < tiles.length; i++) for (let j = i + 1; j < tiles.length; j++) {
+    if (polyEqual(multiply(tiles[i].factor, tiles[j].factor), poly)) return [tiles[i], tiles[j]];
+  }
+  return null;
+}
+const pairText = fs => { const rk = f => f.type === 'const' ? 0 : (f.type === 'linear' && !f.b) ? 1 : 2; return [...fs].sort((x, y) => rk(x) - rk(y)).map((f, n) => { const t = formatFactorTile(f); return n === 0 && rk(f) < 2 ? t.replace(/^\((.*)\)$/, '$1') : t; }).join(''); };
+
+/* ---------- 学習の記録（レベル別・型別の正解数と時間） ---------- */
+const PROF_LS = 'fxf_guest_prof_v1';
+function applyLearn(p, rec) {
+  p = p || {}; p.lv = p.lv || {}; p.pt = p.pt || {};
+  rec.forEach(r => {
+    if (!r || !r.lv) return;
+    const L = p.lv['L' + r.lv] = p.lv['L' + r.lv] || { n: 0, ok: 0, ms: 0 };
+    L.n++; if (r.ok) { L.ok++; L.ms += Math.round(r.ms || 0); }
+    if (r.pid) { const P = p.pt[r.pid] = p.pt[r.pid] || { n: 0, ok: 0 }; P.n++; if (r.ok) P.ok++; }
+  });
+  return p;
+}
+async function flushLearn(acct, rec) {
+  rec = (rec || []).filter(Boolean);
+  if (!rec.length) return;
+  if (isReal(acct) && FB.db) { try { await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p => applyLearn(p, rec)); } catch (e) {} return; }
+  saveLS(PROF_LS, applyLearn(loadLS(PROF_LS, {}), rec));
+}
+/* ゲストの学習記録を、登録したアカウントへ引き継ぐ（migrateGuest から呼ばれる） */
+async function migrateGuestExtra(acct) {
+  const g = loadLS(PROF_LS, null);
+  if (!g || !FB.db) return;
+  try {
+    await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p => {
+      p = p || {}; p.lv = p.lv || {}; p.pt = p.pt || {};
+      Object.entries(g.lv || {}).forEach(([k, v]) => { const L = p.lv[k] = p.lv[k] || { n: 0, ok: 0, ms: 0 }; L.n += v.n || 0; L.ok += v.ok || 0; L.ms += v.ms || 0; });
+      Object.entries(g.pt || {}).forEach(([k, v]) => { const P = p.pt[k] = p.pt[k] || { n: 0, ok: 0 }; P.n += v.n || 0; P.ok += v.ok || 0; });
+      return p;
+    });
+    saveLS(PROF_LS, null);
+  } catch (e) {}
+}
+function useProf(acct, tick) {
+  const [prof, setProf] = useState(null);
+  const fb = useFbReady();
+  useEffect(() => {
+    if (isReal(acct)) { if (!fb.ready) return; FB.db.ref(`games/factor/accounts/${acct.key}/prof`).get().then(s => setProf(s.val() || {})).catch(() => setProf({})); }
+    else setProf(loadLS(PROF_LS, {}) || {});
+  }, [fb.ready, acct && acct.key, tick]);
+  return prof;
+}
+/* 苦手の度合い：正答率が低いほど・時間がかかるほど苦手 */
+function weakScore(st) { if (!st || !st.n) return null; const acc = st.ok / st.n; const avg = st.ok ? st.ms / st.ok / 1000 : 20; return Math.round((1 - acc) * 70 + Math.min(20, avg) * 1.5); }
+
+/* ---------- 日付（日本時間） ---------- */
+const jstDate = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+const DAILY_LEVELS = [1, 2, 3, 3, 4, 5, 6, 7, 8, 9];
+const DAILY_PENALTY = 5000;
+function dailyProblems(date) {
+  const bank = makeBank(`daily:${date}`, 6), used = {};
+  return DAILY_LEVELS.map(lv => { const k = used[lv] || 0; used[lv] = k + 1; const b = bank.get(lv, k); return { level: lv, tiles: b.tiles, poly: b.poly, factors: b.factors, pid: patternOf(lv, b.factors) }; });
+}
+/* 苦手ドリルの問題：ねらった型が出るまで作り直す */
+function drillProblems(targets, n = 10) {
+  const out = [], seen = new Set();
+  for (let i = 0; i < n; i++) {
+    const t = targets[i % targets.length];
+    const lv = t.lv;
+    let b = null;
+    for (let k = 0; k < 80; k++) { const x = buildBoard(lv, seen, 6); if (!t.pid || patternOf(lv, x.factors) === t.pid) { b = x; break; } b = x; }
+    out.push({ level: lv, tiles: b.tiles.map((tt, j) => ({ ...tt, id: `d${i}_${j}` })), poly: b.poly, factors: b.factors, pid: patternOf(lv, b.factors) });
+  }
+  return out;
+}
+const fmtSec = ms => (Math.max(0, ms) / 1000).toFixed(2);
+const GHOST_COLORS = ['#FF9F1C', '#7B61FF', '#2a9d8f', '#e63946'];
+
+/* ---------- ゴーストのレーン（自分とゴーストの進み具合） ---------- */
+function GhostLane({ rows, total }) {
+  return (
+    <div className="rounded-xl px-2 py-1 mb-1" style={{ background: `${COLORS.paper}dd`, flexShrink: 0 }}>
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center gap-1.5" style={{ height: '1rem' }}>
+          <span className="text-[9px] font-black truncate" style={{ width: '4.2rem', color: r.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.me ? '🏃' : '👻'}{r.name}</span>
+          <div className="relative flex-1 rounded-full" style={{ height: 6, background: `${COLORS.ink}14` }}>
+            <div className="absolute top-0 left-0 h-full rounded-full" style={{ width: `${r.pos / total * 100}%`, background: `${r.color}66`, transition: 'width 250ms ease' }} />
+            <div className="absolute rounded-full" style={{ top: -3, width: 12, height: 12, left: `calc(${r.pos / total * 100}% - 6px)`, background: r.color, border: '2px solid #fff', boxShadow: r.me ? `0 0 6px ${r.color}` : 'none', transition: 'left 250ms ease', opacity: r.me ? 1 : 0.8 }} />
+          </div>
+          <span className="text-[9px] font-black" style={{ width: '2.6rem', textAlign: 'right', color: r.color }}>{r.done ? `${fmtSec(r.done)}s` : `${r.pos}/${total}`}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- 10問ランナー（デイリー・苦手ドリル共通） ---------- */
+function PracticeRunner({ kind, title, problems, ghosts, myName, onDone, onQuit }) {
+  const [muted, setMuted] = useState(false);
+  const sound = useBattleSound(muted);
+  const [phase, setPhase] = useState('count');
+  const [cd, setCd] = useState(3);
+  const [idx, setIdx] = useState(0);
+  const [flash, setFlash] = useState({});
+  const [judge, setJudge] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [tiles, setTiles] = useState(problems[0].tiles);
+  const S = useRef({ t0: 0, pen: 0, miss: 0, splits: [], qs: 0, hist: [], combo: 0, triedQ: {} });
+  useTick(100, phase === 'play');
+  useEffect(() => {
+    if (phase !== 'count') return;
+    if (cd > 0) { sound.play('beep'); const t = setTimeout(() => setCd(c => c - 1), 650); return () => clearTimeout(t); }
+    sound.play('go'); sound.bgm(true);
+    S.current.t0 = Date.now(); S.current.qs = Date.now(); setPhase('play');
+  }, [phase, cd]);
+  useEffect(() => () => sound.bgm(false), []);
+  useEffect(() => {
+    const block = e => { if (e.cancelable && !(e.target.closest && e.target.closest('.fx-scroll'))) e.preventDefault(); };
+    document.addEventListener('touchmove', block, { passive: false });
+    return () => document.removeEventListener('touchmove', block);
+  }, []);
+  const s = S.current;
+  const elapsed = phase === 'count' ? 0 : (phase === 'done' ? s.final : Date.now() - s.t0 + s.pen);
+  const prob = problems[Math.min(idx, problems.length - 1)];
+  const finish = () => {
+    s.final = Date.now() - s.t0 + s.pen;
+    setPhase('done'); sound.bgm(false); sound.play('clear');
+    onDone({ t: s.final, miss: s.miss, splits: s.splits, hist: s.hist });
+  };
+  const next = () => {
+    const n = idx + 1;
+    setFlash({}); setBusy(false);
+    if (n >= problems.length) { finish(); return; }
+    setIdx(n); setTiles(problems[n].tiles); s.qs = Date.now();
+  };
+  const onMatch = useCallback((id1, id2) => {
+    if (busy || phase !== 'play') return;
+    const t1 = tiles.find(t => t.id === id1), t2 = tiles.find(t => t.id === id2);
+    if (!t1 || !t2) return;
+    const ms = Date.now() - s.qs;
+    const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
+    if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
+      const j = getJudgment(ms);
+      setBusy(true); setFlash({ [id1]: 'correct', [id2]: 'correct' });
+      fxMerge(els, j.color); if (j.label === 'Perfect') FX.flash('#fff', 0.3, 160);
+      sound.play('ok', 1 + Math.min(s.combo, 15) * 0.035); if (j.label === 'Perfect' || j.label === 'Excellent') sound.play('speed');
+      s.combo++;
+      if (!s.triedQ[idx]) s.hist.push({ lv: prob.level, pid: prob.pid, ok: true, ms, q: idx, j: j.label });
+      else s.hist.push({ lv: prob.level, pid: prob.pid, ok: true, ms, q: idx, j: 'ミスのあと', late: true });
+      s.splits.push(Date.now() - s.t0 + s.pen);
+      setJudge({ label: j.label, color: j.color }); setTimeout(() => setJudge(null), 650);
+      setTimeout(next, 380);
+    } else {
+      sound.play('buzz'); s.combo = 0; s.miss++;
+      setFlash({ [id1]: 'wrong', [id2]: 'wrong' });
+      FX.shake(els[0] && els[0].parentElement);
+      if (!s.triedQ[idx]) { s.triedQ[idx] = 1; s.hist.push({ lv: prob.level, pid: prob.pid, ok: false, ms, q: idx }); }
+      if (kind === 'daily') {
+        s.pen += DAILY_PENALTY;
+        const c = rectC(qs('[data-fxtarget]')); if (c) FX.text(c.x, c.y, '+5秒', '#ff4d4d', 26);
+        setTimeout(() => setFlash({}), 450);
+      } else {
+        // ドリル：正解の2枚を見せてから次へ
+        setBusy(true);
+        const pr = pairOf(tiles, prob.poly);
+        setTimeout(() => { if (pr) setFlash({ [pr[0].id]: 'correct', [pr[1].id]: 'correct' }); setJudge({ label: `正解は ${pairText(prob.factors)}`, color: COLORS.leafDeep, small: true }); }, 350);
+        setTimeout(() => { setJudge(null); next(); }, 2300);
+      }
+    }
+  }, [busy, phase, tiles, idx, prob]);
+  const rows = [{ name: myName || 'あなた', color: COLORS.sky, pos: s.splits.length, me: true, done: phase === 'done' ? s.final : null }]
+    .concat((ghosts || []).map((g, i) => { const pos = (g.splits || []).filter(x => x <= elapsed).length; return { name: g.name, color: GHOST_COLORS[i % 4], pos, done: pos >= problems.length ? g.t : null }; }));
+  return (
+    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+      <FontImport />
+      <JudgePop judge={judge} />
+      <ComboAura combo={s.combo} />
+      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
+        <div className="flex items-center justify-between mb-1" style={{ flexShrink: 0 }}>
+          <button onClick={() => { if (window.confirm('やめますか？')) onQuit(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ やめる</button>
+          <div className="text-xs font-black rounded-full px-3 py-0.5 text-white" style={{ background: kind === 'daily' ? '#E76F51' : '#7B61FF', ...bFont }}>{title}</div>
+          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
+        </div>
+        {(ghosts && ghosts.length > 0) && <GhostLane rows={rows} total={problems.length} />}
+        <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
+          {statBox('TIME', `${fmtSec(elapsed)}`, COLORS.sky)}{statBox('問題', `${Math.min(idx + 1, problems.length)}/${problems.length}`)}{statBox('ミス', s.miss, s.miss ? COLORS.coral : null)}
+        </div>
+        {phase === 'count' ? (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div key={cd} className="font-black" style={{ color: '#fff', fontSize: 'clamp(4rem, 24vw, 10rem)', textShadow: `0 6px 0 ${COLORS.forestDeep}`, animation: 'fxVsPop 450ms both', ...bFont }}>{cd > 0 ? cd : 'GO!'}</div>
+            <p className="text-sm font-bold text-center" style={{ color: '#ffffffcc' }}>{kind === 'daily' ? '10問をできるだけ速く！ まちがえると +5秒' : 'まちがえたら正解を見てから次へ。あせらずに！'}</p>
+          </div>
+        ) : (<>
+          <TargetCard poly={prob.poly} level={prob.level} qLabel={`問${Math.min(idx + 1, problems.length)}/${problems.length}`} gaugeKey={idx} gaugeMs={600000} note={kind === 'drill' && prob.pid ? `型：${PATTERN_BY_ID[prob.pid].name}` : null} />
+          <BattleBoard tiles={tiles} onMatch={onMatch} disabled={busy || phase !== 'play'} flash={flash} />
+        </>)}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- ふり返り（共通） ---------- */
+function RunReview({ problems, hist }) {
+  return (
+    <div>
+      {problems.map((p, i) => {
+        const hs = hist.filter(h => h.q === i);
+        const first = hs[0];
+        const good = first && first.ok;
+        return (
+          <div key={i} className="py-1.5" style={{ borderTop: `1px solid ${COLORS.paperDark}`, lineHeight: 1.9 }}>
+            <div className="flex items-center justify-between text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>
+              <span>問{i + 1} ・ Lv.{p.level}{p.pid ? ` ・ ${PATTERN_BY_ID[p.pid].name}` : ''}</span>
+              <span style={{ color: good ? COLORS.leafDeep : COLORS.coral }}>{good ? `○ ${first.j} ${(first.ms / 1000).toFixed(1)}秒` : first ? '× ミスあり' : 'ー'}</span>
+            </div>
+            <div className="font-black text-base" style={{ color: COLORS.ink, ...bFont }}><MathText text={formatPoly(p.poly)} /> <span style={{ color: COLORS.inkSoft }}>=</span> <span style={{ color: COLORS.leafDeep }}><MathText text={pairText(p.factors)} /></span></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =====================================================================
+   デイリーチャレンジ（全員同じ10問・1日1回だけランキングに載る）
+   ===================================================================== */
+const dailyDoneKey = (date, acct) => `fxf_daily_${date}_${isReal(acct) ? acct.key : 'guest'}`;
+function useDailyBoard(date) {
+  const fb = useFbReady();
+  const v = useFbValue(fb.ready ? `daily/${date}` : null);
+  return useMemo(() => Object.entries(v || {}).filter(([k, e]) => e && e.t != null).map(([k, e]) => ({ k, ...e })).sort((a, b) => a.t - b.t || (a.at || 0) - (b.at || 0)), [v]);
+}
+function DailyRanking({ rows, meKey, limit = 20 }) {
+  if (!rows.length) return <p className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだだれも挑戦していません。一番乗りしよう！</p>;
+  return (
+    <div className="flex flex-col">
+      {rows.slice(0, limit).map((r, i) => (
+        <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
+          <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
+          <span className="flex-1 min-w-0 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} /> : null}{r.name}</span>
+          <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{fmtSec(r.t)}秒</span>
+          <span className="text-[10px] font-bold w-12 text-right" style={{ color: r.miss ? COLORS.coral : COLORS.inkSoft }}>ミス{r.miss || 0}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+function DailyApp({ acct, onExit }) {
+  const date = jstDate();
+  const rows = useDailyBoard(date);
+  const problems = useMemo(() => dailyProblems(date), [date]);
+  const meKey = isReal(acct) ? acct.key : null;
+  const myFirst = meKey ? rows.find(r => r.k === meKey) : null;
+  const localDone = loadLS(dailyDoneKey(date, acct), null);
+  const played = !!(myFirst || localDone);
+  const [scr, setScr] = useState('intro');
+  const [res, setRes] = useState(null);
+  const [exp, setExp] = useState(null);
+  const [nick, setNick] = useState('');
+  useEffect(() => { if (meKey && FB.db) FB.db.ref(`games/factor/accounts/${meKey}/stats/nick`).get().then(s => setNick(s.val() || '')).catch(() => {}); }, [meKey]);
+  const ghosts = useMemo(() => {
+    const g = rows.filter(r => r.k !== meKey && r.splits).slice(0, 3).map(r => ({ name: r.name, splits: toArrB(r.splits), t: r.t }));
+    const mine = myFirst || localDone;
+    if (mine && mine.splits) g.unshift({ name: '1回目の自分', splits: toArrB(mine.splits), t: mine.t });
+    return g.slice(0, 3);
+  }, [rows.length, scr]);
+  const onDone = async r => {
+    const first = !played;
+    setRes({ ...r, first });
+    setScr('done');
+    flushLearn(acct, r.hist.filter(h => !h.late));
+    if (first) {
+      saveLS(dailyDoneKey(date, acct), { t: r.t, miss: r.miss, splits: r.splits });
+      if (meKey && FB.db) FB.db.ref(`games/factor/daily/${date}/${meKey}`).set({ name: acct.name, nick: nick || '', t: Math.round(r.t), miss: r.miss, splits: r.splits.map(Math.round), at: TSV() }).catch(() => {});
+    }
+    const e = await addExp(acct, first ? 20 : 5);
+    setExp(e);
+    if (first) FX.confetti(60);
+  };
+  if (scr === 'play') return <PracticeRunner kind="daily" title={`📅 デイリー ${date.slice(5).replace('-', '/')}${played ? '（練習）' : ''}`} problems={problems} ghosts={ghosts} myName={acct && acct.name} onDone={onDone} onQuit={() => setScr('intro')} />;
+  const myRank = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <FontImport />
+      <div className="w-full" style={{ maxWidth: '30rem' }}>
+        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <div className="text-center mb-3">
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>📅 デイリーチャレンジ</div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{date.replace(/-/g, '/')} ・ 全員同じ10問のタイムアタック</div>
+        </div>
+        {scr === 'done' && res && (
+          <Card className="mb-3 text-center">
+            <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>{res.first ? '今日の記録（ランキングに登録）' : '練習の記録（ランキングには載りません）'}</div>
+            <div className="font-black" style={{ fontSize: 'clamp(2.4rem,12vw,4rem)', color: COLORS.sky, ...bFont }}><CountUp from={0} to={res.t / 1000} ms={900} fmt={v => v.toFixed(2)} />秒</div>
+            <div className="text-sm font-bold" style={{ color: res.miss ? COLORS.coral : COLORS.leafDeep }}>ミス {res.miss}回{res.miss ? `（+${res.miss * DAILY_PENALTY / 1000}秒）` : '・ノーミス！'}</div>
+            {res.first && meKey && myRank > 0 && <div className="mt-1 text-lg font-black" style={{ color: COLORS.amber }}>今日の {myRank} 位！</div>}
+            {res.first && !meKey && <div className="mt-1 text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>ゲストはランキングに載りません（ログインすると載ります）</div>}
+            {!res.first && (myFirst || localDone) && <div className="mt-1 text-xs font-bold" style={{ color: COLORS.inkSoft }}>1回目の記録 {fmtSec((myFirst || localDone).t)}秒 との差 {res.t <= (myFirst || localDone).t ? '−' : '+'}{fmtSec(Math.abs(res.t - (myFirst || localDone).t))}秒</div>}
+            {exp && <div className="mt-2 text-left"><ExpGain before={exp.before} after={exp.after} label="デイリーの経験値" /></div>}
+          </Card>
+        )}
+        {scr === 'intro' && (
+          <Card className="mb-3">
+            <ul className="text-[12px] font-bold list-disc pl-5 mb-3" style={{ color: COLORS.inkSoft }}>
+              <li>今日の10問は全員同じ（Lv.1〜9が順番に出ます）</li>
+              <li>まちがえると +5秒。その問題を解けるまで次に進めません</li>
+              <li><b>ランキングに載るのは1日1回目だけ</b>。2回目からは練習（ゴーストと競えます）</li>
+              <li>上位の人と自分の1回目が「👻ゴースト」としていっしょに走ります</li>
+            </ul>
+            {played && <p className="text-xs font-black text-center mb-2" style={{ color: COLORS.leafDeep }}>今日はもう挑戦しました（{fmtSec((myFirst || localDone).t)}秒{myRank ? `・${myRank}位` : ''}）</p>}
+            <BigBtn color={played ? COLORS.sky : '#E76F51'} onClick={() => setScr('play')}>{played ? 'もう一度（練習）' : '挑戦する（1回目＝本番）'}</BigBtn>
+          </Card>
+        )}
+        {scr === 'done' && <div className="mb-3 flex flex-col gap-2"><BigBtn color={COLORS.sky} onClick={() => setScr('play')}>もう一度（練習）</BigBtn></div>}
+        <Card className="mb-3">
+          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🏆 今日のランキング（{rows.length}人）</div>
+          <DailyRanking rows={rows} meKey={meKey} />
+        </Card>
+        {scr === 'done' && res && <Card className="mb-3"><div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>📝 ふり返り</div><RunReview problems={problems} hist={res.hist} /></Card>}
+      </div>
+    </div>
+  );
+}
+/* タイトル画面の小さなデイリー札 */
+function DailyCard({ acct, onOpen }) {
+  const date = jstDate();
+  const rows = useDailyBoard(date);
+  const meKey = isReal(acct) ? acct.key : null;
+  const mine = (meKey && rows.find(r => r.k === meKey)) || loadLS(dailyDoneKey(date, acct), null);
+  const rk = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
+  return (
+    <button onClick={onOpen} className="w-full rounded-2xl px-3 py-2.5 mb-3 shadow-lg text-left transition-transform active:scale-95" style={{ background: 'linear-gradient(90deg,#fff1e6,#ffe0cc)', border: '2px solid #E76F5155' }}>
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">📅</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-sm" style={{ color: '#b3402c', fontFamily: "'Zen Maru Gothic', sans-serif" }}>デイリーチャレンジ（今日の10問）</div>
+          <div className="text-[11px] font-bold truncate" style={{ color: COLORS.inkSoft }}>
+            {rows[0] ? `1位 ${rows[0].name} ${fmtSec(rows[0].t)}秒 ・ ${rows.length}人挑戦` : 'まだだれも挑戦していません'}
+          </div>
+        </div>
+        <span className="text-[11px] font-black rounded-full px-2 py-1 shrink-0" style={{ background: mine ? `${COLORS.leaf}33` : '#E76F51', color: mine ? COLORS.leafDeep : '#fff' }}>{mine ? `${fmtSec(mine.t)}秒${rk ? ` ${rk}位` : ''}` : '未挑戦'}</span>
+      </div>
+    </button>
+  );
+}
+
+/* =====================================================================
+   学びの部屋：苦手分析・苦手ドリル・型の図鑑
+   ===================================================================== */
+function LearnApp({ acct, onExit }) {
+  const [tab, setTab] = useState('weak');
+  const [tick, setTick] = useState(0);
+  const prof = useProf(acct, tick);
+  const [drill, setDrill] = useState(null);   // {problems, title}
+  const [drillRes, setDrillRes] = useState(null);
+  if (drill && !drillRes) return <PracticeRunner kind="drill" title={drill.title} problems={drill.problems} ghosts={[]} myName={acct && acct.name}
+    onDone={async r => { await flushLearn(acct, r.hist.filter(h => !h.late)); const e = await addExp(acct, 10 + r.hist.filter(h => h.ok && !h.late).length); setDrillRes({ ...r, exp: e }); setTick(t => t + 1); }} onQuit={() => setDrill(null)} />;
+  const lvRows = LEVEL_IDS.map(lv => { const st = prof && prof.lv && prof.lv['L' + lv]; return { lv, st, w: weakScore(st) }; });
+  const ptRows = PATTERNS.map(p => ({ ...p, st: prof && prof.pt && prof.pt[p.id] }));
+  const enough = ptRows.filter(r => r.st && r.st.n >= 2);
+  const weakPts = [...enough].sort((a, b) => (a.st.ok / a.st.n) - (b.st.ok / b.st.n) || b.st.n - a.st.n).filter(r => r.st.ok / r.st.n < 0.95).slice(0, 3);
+  const weakLvs = lvRows.filter(r => r.w != null && r.st.n >= 3 && (r.st.ok / r.st.n < 0.9 || (r.st.ok && r.st.ms / r.st.ok > 8000))).sort((a, b) => b.w - a.w).slice(0, 3);
+  const startDrill = (targets, title) => { setDrillRes(null); setDrill({ problems: drillProblems(targets, 10), title, targets }); };
+  const got = ptRows.filter(r => r.st && r.st.ok > 0).length;
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <FontImport />
+      <div className="w-full" style={{ maxWidth: '34rem' }}>
+        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <div className="text-center mb-3">
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>📈 学びの部屋</div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ソロ・対戦・デイリー・ドリルで解いた問題が、ここにたまっていきます{isReal(acct) ? '' : '（ゲスト：この端末に保存）'}</div>
+        </div>
+        <div className="mb-3"><Seg items={[['weak', '📊 苦手分析'], ['drill', '🎯 苦手ドリル'], ['zukan', `📚 型の図鑑 ${got}/${PATTERNS.length}`]]} cur={tab} onPick={v => { setTab(v); setDrillRes(null); setDrill(null); }} /></div>
+        {drillRes && (
+          <Card className="mb-3 text-center">
+            <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>ドリルおつかれさま！</div>
+            <div className="text-3xl font-black" style={{ color: '#7B61FF', ...bFont }}>{drillRes.hist.filter(h => h.ok && !h.late).length} / {drill ? drill.problems.length : 10} 問 正解</div>
+            {drillRes.exp && <div className="mt-2 text-left"><ExpGain before={drillRes.exp.before} after={drillRes.exp.after} label="ドリルの経験値" /></div>}
+            <div className="mt-2 flex gap-2"><BigBtn small color="#7B61FF" onClick={() => startDrill(drill.targets, drill.title)}>同じドリルをもう一度</BigBtn></div>
+            <div className="text-left mt-2"><RunReview problems={drill.problems} hist={drillRes.hist} /></div>
+          </Card>
+        )}
+        {!prof ? <Card><p className="text-sm text-center" style={{ color: COLORS.inkSoft }}>読み込み中…</p></Card> : tab === 'weak' ? (<>
+          <Card className="mb-3">
+            <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>レベル別の正答率と平均時間</div>
+            {lvRows.map(({ lv, st }) => {
+              const acc = st && st.n ? st.ok / st.n : null, avg = st && st.ok ? st.ms / st.ok / 1000 : null;
+              const weak = weakLvs.some(w => w.lv === lv);
+              return (
+                <div key={lv} className="flex items-center gap-2 py-1 text-xs" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+                  <span className="w-12 shrink-0 font-black rounded-full text-center py-0.5" style={{ background: LEVEL_INFO[lv].color, color: '#fff' }}>Lv.{lv}</span>
+                  <span className="w-24 shrink-0 font-bold truncate" style={{ color: COLORS.ink }}>{LEVEL_INFO[lv].name}</span>
+                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 10, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${acc == null ? 0 : acc * 100}%`, background: acc == null ? 'transparent' : acc >= 0.85 ? '#43C97B' : acc >= 0.6 ? '#FFB020' : '#FF4D4D' }} /></div>
+                  <span className="w-10 text-right font-black" style={{ color: COLORS.ink }}>{acc == null ? '−' : `${Math.round(acc * 100)}%`}</span>
+                  <span className="w-11 text-right font-bold" style={{ color: COLORS.inkSoft }}>{avg == null ? '' : `${avg.toFixed(1)}秒`}</span>
+                  {weak && <span className="text-[9px] font-black rounded-full px-1.5 text-white" style={{ background: '#e63946' }}>苦手</span>}
+                </div>
+              );
+            })}
+          </Card>
+          <Card className="mb-3">
+            <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>苦手な型 ワースト3（2回以上出た型から）</div>
+            {weakPts.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだデータが少ないか、苦手な型がありません。ソロやデイリーで遊ぶと分析できます</p>
+              : weakPts.map((r, i) => (
+                <div key={r.id} className="py-1.5" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+                  <div className="flex items-center justify-between text-sm"><span className="font-black" style={{ color: COLORS.ink, ...bFont }}>{i + 1}. {r.name} <span className="text-[10px]" style={{ color: COLORS.inkSoft }}>Lv.{r.lv}</span></span><span className="font-black" style={{ color: COLORS.coral }}>{Math.round(r.st.ok / r.st.n * 100)}%（{r.st.ok}/{r.st.n}）</span></div>
+                  <div className="text-xs" style={{ color: COLORS.inkSoft }}><MathText text={r.ex} /></div>
+                </div>
+              ))}
+            {weakPts.length > 0 && <div className="mt-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '🎯 苦手ドリル')}>苦手な型だけの10問ドリル</BigBtn></div>}
+          </Card>
+        </>) : tab === 'drill' ? (
+          <Card className="mb-3">
+            <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>練習したいものを選んで10問ドリル（まちがえると正解を見せてくれます）</div>
+            {weakPts.length > 0 && <div className="mb-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '🎯 苦手ドリル')}>🎯 おまかせ（苦手な型 {weakPts.map(r => r.name).join('・')}）</BigBtn></div>}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {LEVEL_IDS.map(lv => <button key={lv} onClick={() => startDrill([{ lv }], `🎯 Lv.${lv} ドリル`)} className="rounded-xl py-2 text-xs font-black shadow active:scale-95 transition-transform" style={{ background: LEVEL_INFO[lv].color, color: '#fff' }}>Lv.{lv}<br /><span className="text-[10px] font-bold">{LEVEL_INFO[lv].name}</span></button>)}
+            </div>
+            <div className="text-[11px] font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>型を選ぶ</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {PATTERNS.map(p => <button key={p.id} onClick={() => startDrill([{ lv: p.lv, pid: p.id }], `🎯 ${p.name}`)} className="rounded-lg px-2 py-1.5 text-left text-[11px] font-bold shadow-sm active:scale-95 transition-transform" style={{ background: COLORS.paperDark, color: COLORS.ink }}>Lv.{p.lv} {p.name}</button>)}
+            </div>
+          </Card>
+        ) : (
+          <Card className="mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>型の図鑑（正解すると登録されます）</div>
+              <div className="text-xs font-black" style={{ color: COLORS.sky }}>{got}/{PATTERNS.length}（{Math.round(got / PATTERNS.length * 100)}%）</div>
+            </div>
+            <div className="rounded-full overflow-hidden mb-3" style={{ height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${got / PATTERNS.length * 100}%`, background: 'linear-gradient(90deg,#6BD4E8,#7B61FF)' }} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              {ptRows.map((p, i) => {
+                const ok = p.st && p.st.ok > 0;
+                return (
+                  <div key={p.id} className="rounded-xl px-2 py-2" style={{ background: ok ? '#fff' : COLORS.paperDark, border: `2px solid ${ok ? LEVEL_INFO[p.lv].color : 'transparent'}`, opacity: ok ? 1 : 0.6, animation: `fxEnter 360ms ${i * 25}ms both` }}>
+                    <div className="flex items-center justify-between"><span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: LEVEL_INFO[p.lv].color }}>No.{String(i + 1).padStart(2, '0')}</span>{ok && <span className="text-[10px] font-black" style={{ color: COLORS.leafDeep }}>×{p.st.ok}</span>}</div>
+                    <div className="text-xs font-black mt-1" style={{ color: COLORS.ink, ...bFont }}>{ok ? p.name : '？？？'}</div>
+                    <div className="text-[11px]" style={{ color: COLORS.inkSoft, minHeight: '1.4em' }}>{ok ? <MathText text={p.ex} /> : `Lv.${p.lv} のどこかに…`}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
@@ -4699,6 +5209,15 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (win) setTimeout(() => FX.confetti(70), 300);
     if (acct && !practice) recordMatch(acct, info).then(r => setRec(x => ({ ...x, badges: r.badges || [], dr: r.dr != null ? r.dr : x.dr, exp: r.exp || null })));
     else addExp(who, exp).then(r => { if (r) setRec(x => ({ ...x, exp: r })); });
+    // 苦手分析・図鑑用の記録（CPU練習もふくむ）
+    const lrec = [];
+    if (mode === 'B' && es) es.hist.forEach(h => { const b = bank.get(h.lv, h.k); lrec.push({ lv: h.lv, pid: patternOf(h.lv, b.factors), ok: h.ok, ms: h.ms }); });
+    if (mode === 'A') claimsRef.current.forEach((c, q) => {
+      const p = problemForA(bank, q), pid = patternOf(p.level, p.factors);
+      if (mine.current.aMiss[q]) lrec.push({ lv: p.level, pid, ok: false, ms: 0 });
+      else if (c && c.uid === me) lrec.push({ lv: p.level, pid, ok: true, ms: Math.max(0, (c.at || 0) - qStartA(claimsRef.current, q, state.startAt)) });
+    });
+    flushLearn(who, lrec);
   }, [!!result]);
   // もう一戦：全員（CPUをのぞく）が「準備OK」を押したら、ホストが自動で始める
   const startedNext = useRef(false);
@@ -5432,12 +5951,15 @@ function AppRoot() {
   const [acct, setAcctS] = useState(() => loadLS(ACCT_LS, null));
   const setAcct = a => { setAcctS(a); saveLS(ACCT_LS, a); };
   useEffect(() => { fbStart(); }, []);
+  const go = m => { setMode(m); window.scrollTo(0, 0); };
+  const toSolo = () => go('solo');
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
   return (<>
     <FxLayer />
-    {mode === 'battle'
-      ? <BattleApp acct={acct} onExit={() => { setMode('solo'); window.scrollTo(0, 0); }} />
-      : <FactorHunt acct={acct} onLogout={() => setAcct(null)} onBattle={() => { setMode('battle'); window.scrollTo(0, 0); }} />}
+    {mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} />
+      : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} />
+      : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} />
+      : <FactorHunt acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={go} />}
   </>);
 }
 
