@@ -2062,7 +2062,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.6.4
+              ver.6.5
             </span>
           </div>
 
@@ -3204,6 +3204,49 @@ function Wardrobe({ acct, st, exp, onClose }) {
   );
 }
 
+/* ---------- 自分のゴーストの活躍（だれかのすぐ遊ぶにゴーストとして出て、戦った結果） ----------
+   ghostlog/<自分>/<id> = { by, o（ゴーストから見た w/l/d）, mode, diff, at }。確認すると勝ち1回 +5 EXP、成績の ghostW/L/D に足す */
+const GHOST_WIN_EXP = 5;
+function GhostNews({ acct, st }) {
+  const fb = useFbReady();
+  const log = useFbValue(fb.ready && isReal(acct) ? `ghostlog/${acct.key}` : null);
+  const [busy, setBusy] = useState(false);
+  const shown = useRef(false);
+  const seen = (st && st.ghostSeen) || 0;
+  const rows = Object.entries(log || {}).map(([id, e]) => ({ id, ...e })).filter(e => e && e.at && e.at > seen).sort((a, b) => b.at - a.at);
+  const w = rows.filter(e => e.o === 'w').length, l = rows.filter(e => e.o === 'l').length, d = rows.length - w - l;
+  useEffect(() => {
+    if (!rows.length || shown.current) return; shown.current = true;
+    const e = rows[0];
+    setTimeout(() => { FX.band(`👻 あなたのゴーストが${e.by}と戦って${e.o === 'w' ? '勝った！' : e.o === 'l' ? '負けた…' : '引き分けた'}`, { color: '#5b3fd6', sub: rows.length > 1 ? `ほかにも ${rows.length - 1}試合` : 'すぐ遊ぶで、あなたの分身が戦っていました', ms: 2200 }); fxSound(e.o === 'w' ? 'fever' : 'badge'); }, 800);
+  }, [rows.length]);
+  if (!rows.length) return null;
+  const ok = async () => {
+    if (busy) return; setBusy(true);
+    const now = Math.max(...rows.map(e => e.at));
+    try {
+      await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; if ((s.ghostSeen || 0) >= now) return s; s.ghostSeen = now; s.ghostW = (s.ghostW || 0) + w; s.ghostL = (s.ghostL || 0) + l; s.ghostD = (s.ghostD || 0) + d; return s; });
+      if (w) { await addExp(acct, w * GHOST_WIN_EXP); FX.text(window.innerWidth / 2, window.innerHeight / 2, `+${w * GHOST_WIN_EXP} EXP`, '#5b3fd6', 28); fxSound('levelup'); }
+      // 2週間より前の記録はかたづける
+      const old = Object.entries(log || {}).filter(([id, e]) => !e || !e.at || e.at < Date.now() - 14 * 86400000);
+      old.forEach(([id]) => FB.db.ref(`games/factor/ghostlog/${acct.key}/${id}`).remove().catch(() => {}));
+    } catch (e) {}
+    setBusy(false);
+  };
+  return (
+    <div className="rounded-2xl px-3 py-2 mb-3 shadow-lg" style={{ background: 'linear-gradient(90deg,#efe9ff,#e3dbff)', border: '2px solid #7B61FF55' }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-black text-sm" style={{ color: '#5b3fd6', ...bFont }}>👻 あなたのゴーストが戦いました！ <span className="text-xs">{w}勝{l}敗{d ? `${d}分` : ''}</span></div>
+        <button onClick={ok} disabled={busy} className="text-[11px] font-black rounded-full px-3 py-1 text-white shrink-0 shadow" style={{ background: '#7B61FF' }}>{w ? `確認（+${w * GHOST_WIN_EXP} EXP）` : '確認'}</button>
+      </div>
+      <div className="mt-1 flex flex-col gap-0.5">
+        {rows.slice(0, 5).map(e => <div key={e.id} className="text-[11px] font-bold" style={{ color: COLORS.ink }}>{e.o === 'w' ? '🏆' : e.o === 'l' ? '💦' : '🤝'} {e.by} と戦って <b style={{ color: e.o === 'w' ? '#2D6A4F' : e.o === 'l' ? COLORS.coral : COLORS.inkSoft }}>{e.o === 'w' ? '勝った！' : e.o === 'l' ? '負けた' : '引き分け'}</b> <span style={{ color: COLORS.inkSoft }}>（{e.mode && BATTLE_MODES[e.mode] ? BATTLE_MODES[e.mode].short : ''}{e.diff && DIFFICULTY_CONFIG[e.diff] ? '・' + DIFFICULTY_CONFIG[e.diff].label : ''}）</span></div>)}
+        {rows.length > 5 && <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>ほか {rows.length - 5}試合</div>}
+      </div>
+      <div className="text-[9px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>すぐ遊ぶで相手が見つからない人の前に、あなたの戦い方をコピーした分身が出ることがあります。ゴーストが勝つと +{GHOST_WIN_EXP} EXP</div>
+    </div>
+  );
+}
 function AccountBar({ acct, onLogout }) {
   const fb = useFbReady();
   const st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
@@ -3219,10 +3262,10 @@ function AccountBar({ acct, onLogout }) {
     setOpen(true);
     fref('accounts').get().then(s => { const nm = {}; Object.entries(s.val() || {}).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm); }).catch(() => {});
   };
-  return (
+  return (<>
     <div className="rounded-2xl px-3 py-2 mb-3 shadow-lg" style={{ background: COLORS.paper }}>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex-1" style={{ minWidth: "9rem" }}>
           {isReal(acct) && st && st.nick && <Nick id={st.nick} size={10} block />}
           <div className="font-black truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{acct.name}{!isReal(acct) && <span className="text-[10px] ml-1 font-bold rounded-full px-2" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>ゲスト</span>} {isReal(acct) && st && st.games > 0 && <RankPill r={ratingOf(st)} size={10} />} {isReal(acct) && bountyOf(st) > 0 && <span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: '#b7791f' }}>💰{bountyOf(st)}</span>} {isReal(acct) && <BadgeIcons st={st} max={4} />}</div>
         </div>
@@ -3234,7 +3277,8 @@ function AccountBar({ acct, onLogout }) {
       {open && <PlayerProfile name={acct.name} st={st || {}} nameOf={nameOf} me acctKey={acct.key} onClose={() => setOpen(false)} />}
       {wd && <Wardrobe acct={acct} st={isReal(acct) ? st : g} exp={exp} onClose={() => setWd(false)} />}
     </div>
-  );
+    {isReal(acct) && st && <GhostNews acct={acct} st={st} />}
+  </>);
 }
 
 /* =====================================================================
@@ -5754,15 +5798,16 @@ function ghostProf(prof, st) {
 }
 const ghostConf = g => ({ t: lv => (g.t || {})['L' + lv] || CPU_LEVELS.normal.t(lv), miss: lv => { const m = (g.miss || {})['L' + lv]; return m == null ? CPU_LEVELS.normal.miss : m; }, sp: g.sp == null ? 1 : g.sp });
 /* 同じランク帯で、記録が十分ある（20問以上）ほかのプレイヤーを1人選ぶ */
-async function pickGhost(acct, myRt) {
+async function pickGhost(acct, myRt, up) {
   try {
     const all = (await FB.db.ref('games/factor/accounts').get()).val() || {};
-    const band = rankOf(myRt != null ? myRt : RATING_INIT).i;
+    const band = rankOf(myRt != null ? myRt : RATING_INIT).i + (up ? 1 : 0);
+    if (band >= RANKS.length) return null;
     const c = Object.entries(all).filter(([k, a]) => a && a.name && (!acct || k !== acct.key) && a.prof && a.prof.lv && rankOf(ratingOf(a.stats)).i === band)
       .filter(([k, a]) => Object.values(a.prof.lv).reduce((n, L) => n + ((L && L.n) || 0), 0) >= 20);
     if (!c.length) return null;
     const [k, a] = c[Math.floor(Math.random() * c.length)];
-    return { name: `${a.name}(ゴースト)`, base: a.name, nick: (a.stats && a.stats.nick) || '', rt: ratingOf(a.stats), gp: ghostProf(a.prof, a.stats) };
+    return { key: k, up: !!up, name: `${a.name}(ゴースト)`, base: a.name, nick: (a.stats && a.stats.nick) || '', rt: ratingOf(a.stats), gp: ghostProf(a.prof, a.stats) };
   } catch (e) { return null; }
 }
 function CpuBots({ code, state, bank, N, viewRef, claims, onClear }) {
@@ -6045,11 +6090,14 @@ function BattleApp({ acct: who, onExit }) {
     let myRt = null;
     if (acct && FB.db) { try { myRt = ratingOf((await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).get()).val()); } catch (e) {} }
     // ときどき（20%）ゴースト：同じランク帯のプレイヤーの戦い方をコピーしたCPU。いなければふつうの代役
-    const ghost = Math.random() < (window.__fxfGhostRate != null ? window.__fxfGhostRate : QM_GHOST_RATE) ? await pickGhost(acct, myRt) : null;
+    const roll = window.__fxfGhostRoll != null ? window.__fxfGhostRoll : Math.random();
+    let ghost = null;
+    if (roll < QM_GHOST_UP) ghost = (await pickGhost(acct, myRt, true)) || (await pickGhost(acct, myRt, false));   // 1つ上がいなければ同じランク帯
+    else if (roll < QM_GHOST_UP + QM_GHOST_SAME) ghost = await pickGhost(acct, myRt, false);
     const bot = ghost || makeBotProfile();
     setQm(x => x ? { ...x, found: bot.name } : x);
     sound.play('special'); FX.flash('#fff', 0.6, 300);
-    if (ghost) { FX.band('👻 ゴーストが立ちはだかる！', { color: '#5b3fd6', sub: `${ghost.base} の戦い方をコピーした分身があらわれた`, ms: 1900 }); fxSound('roar'); }
+    if (ghost) { FX.band(ghost.up ? '👻 格上のゴーストが立ちはだかる！' : '👻 ゴーストが立ちはだかる！', { color: ghost.up ? '#a020f0' : '#5b3fd6', sub: `${ghost.base}${ghost.up ? `（${rankOf(ghost.rt).icon}${rankOf(ghost.rt).name}）` : ''} の戦い方をコピーした分身があらわれた`, ms: 1900 }); fxSound('roar'); }
     else FX.band('⚔ 挑戦者あらわる！', { color: '#E76F51', sub: `${bot.name} が対戦を申しこんできた`, ms: 1700 });
     setTimeout(async () => {
       sound.bgm(false);
@@ -6059,7 +6107,7 @@ function BattleApp({ acct: who, onExit }) {
         me: { name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: Date.now() },
         [bid]: { name: bot.name, acct: '', nick: bot.nick, cpu: ghost ? 'ghost' : 'normal', joinedAt: Date.now() + 1 },
       });
-      await fref('rooms/bot/state').set({ phase: 'lobby', qm: true, bot: true, botRt: bot.rt, ...(myRt != null ? { myRt } : {}), ...(ghost ? { gp: { [bid]: ghost.gp }, ghost: ghost.base } : {}) });
+      await fref('rooms/bot/state').set({ phase: 'lobby', qm: true, bot: true, botRt: bot.rt, ...(myRt != null ? { myRt } : {}), ...(ghost ? { gp: { [bid]: ghost.gp }, ghost: ghost.base, ghostKey: ghost.key } : {}) });
       setSpectator(false); setIsHost(true); setSeenGid({});
       setCode('bot'); setScr('lobby');
       setQm(null);
@@ -6155,7 +6203,7 @@ function BattleApp({ acct: who, onExit }) {
     await fref(`rooms/${c}/state`).set({
       // すぐ遊ぶの部屋：方式は投票の結果（なければランダム）、難易度はランダム
       phase: 'play', mode: opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B')), diff: opt.diff || (st.qm ? 'easy' : (st.diff || 'easy')), qm: !!st.qm,
-      ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), bty, ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}), ...(st.gp ? { gp: st.gp, ghost: st.ghost || '' } : {}),
+      ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), bty, ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}), ...(st.gp ? { gp: st.gp, ghost: st.ghost || '', ghostKey: st.ghostKey || '' } : {}),
       gid: String(Date.now()), seed: Math.random().toString(36).slice(2, 10),
       startAt: fbNow() + BATTLE_START_DELAY, players: ids, names, accts, handi, rt, cpu, nicks,
     });
@@ -6306,7 +6354,7 @@ const tourRoundLabel = (r, rounds, state) => {
 /* ---------- すぐ遊ぶ：待ち画面と、練習中に出す小さな札 ---------- */
 /* すぐ遊ぶ：30秒前後待ってもだれも来ないときの代役（CPU・ふつう）。ふつうのプレイヤーに見える名前をつける */
 const QM_BOT_MS = () => 18000 + Math.random() * 6000;
-const QM_GHOST_RATE = 0.2;   // 代役のうち、ゴースト（同じランク帯のプレイヤーのコピー）が出る割合
+const QM_GHOST_SAME = 0.3, QM_GHOST_UP = 0.1;   // 代役のうち、同じランク帯のゴースト30%・1つ上のランク帯のゴースト10%（残りはふつうの代役）
 const QM_VOTE_MS = 10000;
 const BOT_NAMES = ['ゆうと', 'さくら', 'はると', 'みお', 'そうた', 'ひなた', 'りく', 'あおい', 'こはる', 'れん', 'ゆい', 'たくみ', 'めい', 'かいと', 'ねね', 'しょう', 'あかり', 'だいち', 'みつき', 'こうき',
   'ゆな', 'そら', 'はるか', 'けんた', 'りこ', 'ひろと', 'まなみ', 'つばさ', 'すず', 'ゆうき', 'いちか', 'りょう', 'ことね', 'あきと', 'ほのか', 'なぎ', 'ももか', 'しゅん', 'えま', 'たいが',
@@ -6815,6 +6863,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose }) {
             {box('最速の正解', st.bestMs != null ? `${(st.bestMs / 1000).toFixed(2)}秒` : '−')}{box('最大コンボ', st.maxCombo || 0)}{box('必殺技使用率', st.bGames ? `${Math.round(100 * (st.spGames || 0) / st.bGames)}%` : '−', null, `B方式${st.bGames || 0}戦中${st.spGames || 0}戦・通算${st.spUsed || 0}回`)}
           </div>
           {modeLine('A', 'A 早い者勝ち')}{modeLine('B', 'B レース＋攻撃')}
+          {(st.ghostW || st.ghostL || st.ghostD) ? <div className="flex justify-between text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}><span className="font-bold" style={{ color: '#5b3fd6' }}>👻 ゴーストの戦績</span><span className="font-bold" style={{ color: COLORS.inkSoft }}>{st.ghostW || 0}勝{st.ghostL || 0}敗{st.ghostD ? `${st.ghostD}分` : ''}</span></div> : null}
           <div className="text-[11px] font-black mt-2 mb-0.5" style={{ color: COLORS.inkSoft }}>🗓 シーズンの記録</div>
           <div className="flex flex-wrap gap-1">
             <span className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: `${COLORS.sky}18`, color: COLORS.ink }}>{seasonLabel(seasonKey())}（今）最高 <RankPill r={(st.season || SEASON0) === seasonKey() ? (st.seasonMax || ratingOf(st)) : ratingOf(st)} size={9} /></span>
@@ -7092,6 +7141,8 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [], exp: null, bountyGot, bountyLost });
     if (bountyGot) setTimeout(() => { FX.band(`💰 懸賞金ゲット！ +${bountyGot} EXP`, { color: '#d4a017', sub: '連勝ストップ！', ms: 2200 }); fxSound('fever'); }, 900);
     if (win) setTimeout(() => FX.confetti(70), 300);
+    // ゴースト戦：本人に知らせる（ゴースト側から見た勝ち負け）
+    if (state.ghostKey && FB.db) { try { FB.db.ref(`games/factor/ghostlog/${state.ghostKey}`).push({ by: ((who && who.name) || 'ゲスト').slice(0, 10), o: outcome === 'w' ? 'l' : outcome === 'l' ? 'w' : 'd', mode, diff, at: TSV() }).catch(() => {}); } catch (e) {} }
     if (acct && !practice) recordMatch(acct, info).then(r => {
       const b0 = rt[me] != null ? rt[me] : RATING_INIT, b1 = b0 + (r.dr != null ? r.dr : dr);
       const k0 = rankOf(b0), k1 = rankOf(b1);
