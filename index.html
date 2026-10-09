@@ -2003,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.6
+              ver.5.7
             </span>
           </div>
 
@@ -4401,7 +4401,7 @@ function FontImport() {
    ・A：早い者勝ち … 同じ問題を同時に解き、先に正解した人だけ得点。間違えるとお手つき。最後の3問は得点2倍
    ・B：解き切りレース＋攻撃 … 同じ問題の列を自分のペースで。先に規定数を解くか、最後まで生き残れば勝ち
         コンボで体力ダメージ、Perfect／Excellent でおじゃまタイル（攻撃は「1位の人」へ）。届いた攻撃は予告中に相殺できる
-        必殺技ゲージ（大攻撃・回復・シールド）、体力30%以下で攻撃1.5倍（ピンチボーナス）
+        必殺技ゲージ（大攻撃・回復・シールド）、体力30%以下で攻撃1.3倍（ピンチボーナス）
    ・ハンデ（★0〜3）、CPU練習（端末の中だけで動く）、クラス大会（トーナメント）、ふり返り、レーティング、称号
    ・問題は「試合ごとの種（seed）」から作るので、全員が同じ問題・同じタイルの並びになる
    ===================================================================== */
@@ -4424,10 +4424,10 @@ const B_FORCE_LAND = 7000;         // B：解答中でもこれを過ぎた体�
 const OJAMA_UNIT = 5;              // 相殺の計算で、おじゃまタイル1枚 ＝ 体力ダメージ5
 const OJAMA_MAX_PER_BOARD = 3;
 const SP_MAX = 6;                  // 必殺技ゲージ（正解+1、Perfect・Excellentはさらに+1）
-const SP_BIG = { dmg: 25, oj: 1 }; // 必殺技：大攻撃
+const SP_BIG = { dmg: 15, oj: 1 }; // 必殺技：大攻撃
 const SP_HEAL = 30;                // 必殺技：回復
 const SP_SHIELD_MS = 5000;         // 必殺技：シールド
-const PINCH_HP = 30, PINCH_MUL = 1.5; // ピンチボーナス
+const PINCH_HP = 30, PINCH_MUL = 1.3; // ピンチボーナス
 const MULTI_ATK = { 3: 0.7, 4: 0.55 }; // 生き残りが3人・4人のときの攻撃の強さ（1位への集中攻撃を和らげる）
 const ROOM_MAX = 4;                // ふつうの部屋は4人まで
 const TOUR_MAX = 64;               // 大会は64人まで
@@ -4437,7 +4437,7 @@ const BATTLE_MODES = {
   A: { label: 'A：早い者勝ち', short: '早い者勝ち', color: '#0E86C6',
     desc: ['同じ問題をみんなで同時に解く。先に正解した人だけ得点（レベルの点×コンボ倍率）', '間違えるとお手つき（2秒操作できない）', '最後の3問は得点2倍のラストスパート', '規定数を出し終えて、得点の多い人が勝ち'] },
   B: { label: 'B：解き切りレース＋攻撃', short: 'レース＋攻撃', color: '#E76F51',
-    desc: ['同じ問題の列を自分のペースで解く（体力ゲージあり）', '先に規定数を解き切るか、最後まで生き残った人が勝ち', 'コンボで体力ダメージ、Perfect・Excellentでおじゃまタイル（攻撃は1位の人へ）', '届いた攻撃は3秒の予告中に、自分の攻撃で相殺できる', '必殺技ゲージ（大攻撃・回復・シールド）、体力30%以下で攻撃1.5倍'] },
+    desc: ['同じ問題の列を自分のペースで解く（体力ゲージあり）', '先に規定数を解き切るか、最後まで生き残った人が勝ち', 'コンボで体力ダメージ、Perfectでおじゃまタイル（攻撃は1位の人へ）', '届いた攻撃は3秒の予告中に、自分の攻撃で相殺できる', '必殺技ゲージ（大攻撃・回復・シールド）、体力30%以下で攻撃1.3倍'] },
 };
 const HANDI_LABEL = ['なし', '★', '★★', '★★★'];
 const handiDmgMul = h => 1 - 0.15 * (h || 0);        // B：受けるダメージ・ミスの減少
@@ -4687,10 +4687,10 @@ function addOjama(tiles, poly, level, n) {
 /* B：正解したときに送る攻撃 */
 function attackFor(judgeLabel, combo) {
   let dmg = 0, oj = 0;
-  if (combo >= 2) dmg += Math.min(15, 3 * (combo - 1));
-  if (combo > 0 && combo % 5 === 0) dmg += 10;
-  if (judgeLabel === 'Perfect') oj += 2;
-  else if (judgeLabel === 'Excellent') oj += 1;
+  // ver.5.7 で弱めた（3コンボ目から2・4・6・8、最大8。5コンボごとに+5。おじゃまは Perfect で1枚）
+  if (combo >= 3) dmg += Math.min(8, 2 * (combo - 2));
+  if (combo > 0 && combo % 5 === 0) dmg += 5;
+  if (judgeLabel === 'Perfect') oj += 1;
   return { dmg, oj };
 }
 /* A：記録（claims）から得点を計算する（全員が同じ計算をするので食い違わない） */
@@ -6289,7 +6289,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     else if (t === 'hit') showBanner(`💢 攻撃を受けた！ ${p.dmg ? `体力 -${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `次の問題におじゃま+${p.oj}` : ''}`, COLORS.coral);
     else if (t === 'blocked') showBanner('🛡 シールドで攻撃をふせいだ！', '#457b9d');
     else if (t === 'send') {
-      const atk = p.to ? `${others.length > 1 ? nm(p.to) + 'に' : ''}攻撃！ ${p.dmg ? `体力-${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `おじゃま${p.oj}枚` : ''}${p.pinch ? '（ピンチ×1.5）' : ''}` : '';
+      const atk = p.to ? `${others.length > 1 ? nm(p.to) + 'に' : ''}攻撃！ ${p.dmg ? `体力-${p.dmg}%` : ''}${p.dmg && p.oj ? '・' : ''}${p.oj ? `おじゃま${p.oj}枚` : ''}${p.pinch ? '（ピンチ×1.3）' : ''}` : '';
       if (p.cancelled > 0) showBanner(`🛡 相殺！ ${p.cancelled}ぶん打ち消した${atk ? ' ／ ⚔ ' + atk : ''}`, COLORS.sky);
       else if (atk) showBanner(`⚔ ${atk}`, COLORS.leafDeep);
     }
@@ -6358,7 +6358,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     <div ref={hpRef} className="mb-1 relative" style={{ flexShrink: 0 }}>
       <HpBar hp={s.hp} />
       {shieldLeft > 0 ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white" style={{ background: '#457b9d' }}>🛡 {(shieldLeft / 1000).toFixed(1)}秒</span>
-        : eng.pinch() && !s.over ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.5</span> : null}
+        : eng.pinch() && !s.over ? <span className="absolute right-2 top-0.5 text-[10px] font-black rounded-full px-2 text-white animate-pulse" style={{ background: '#e63946' }}>PINCH 攻撃×1.3</span> : null}
     </div>
     <div className="mb-1 flex items-center gap-1" style={{ flexShrink: 0, height: '1.9rem' }}>
       <span className="text-[10px] font-black" style={{ color: full ? '#c99a00' : COLORS.inkSoft }}>必殺</span>
@@ -6377,7 +6377,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     </div>
     {cur && <TargetCard poly={cur.poly} level={cur.level} qLabel={`問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
     {cur && <BattleBoard tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
-    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>コンボで攻撃・Perfect/Excellentでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</p>
+    <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</p>
   </>);
 }
 
