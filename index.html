@@ -2002,7 +2002,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.0
+              ver.5.1
             </span>
           </div>
 
@@ -4875,7 +4875,7 @@ function BattleApp({ acct: who, onExit }) {
     for (let t = 0; t < 12; t++) {
       const c = String(randInt(1000, 9999));
       let res;
-      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid }; }); }
+      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid, acct: acct ? acct.key : '' }; }); }
       catch (e) { setErr('部屋を作れませんでした（' + (e.code || e.message) + '）'); return; }
       if (res.committed) {
         await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
@@ -5174,6 +5174,47 @@ function QmChip({ qm, onCancel }) {
   );
 }
 
+/* ---------- 先生だけ：クラス大会・クラス協力レイドを開く ----------
+   先生用の合言葉（コンソールで teacherPass に設定・だれも読めない）をアカウントで一度入力すると、
+   teachers/<アカウント> ができて、大会・レイドの部屋を作れるようになる（ルールでも確認している） */
+async function unlockTeacher(acct, pass) {
+  if (!isReal(acct) || !FB.db) return { ok: false, msg: 'ログインが必要です' };
+  try { await FB.db.ref(`games/factor/teacherKeys/${acct.key}`).set(pass); }
+  catch (e) { return { ok: false, msg: '合言葉がちがいます' }; }
+  try { await FB.db.ref(`games/factor/teachers/${acct.key}`).set({ name: acct.name, at: TSV() }); }
+  catch (e) { return { ok: false, msg: '登録できませんでした' }; }
+  return { ok: true };
+}
+function TeacherArea({ fb, acct, onCreate }) {
+  const [isT, setIsT] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [pass, setPass] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!fb.ready || !acct) { setIsT(false); return; }
+    FB.db.ref(`games/factor/teachers/${acct.key}`).get().then(s => setIsT(!!s.val())).catch(() => setIsT(false));
+  }, [fb.ready, acct && acct.key]);
+  if (isT) return (<>
+    <div className="text-[10px] font-black mb-1" style={{ color: '#2a9d8f' }}>👩‍🏫 先生用</div>
+    <BigBtn small color={COLORS.amber} disabled={!fb.ready} onClick={() => onCreate(true)}>🏆 クラス大会を開く（{TOUR_MAX}人まで）</BigBtn>
+    <div className="mt-2"><BigBtn small color="#2a9d8f" disabled={!fb.ready} onClick={() => onCreate('raid')}>🐉 クラス協力レイドを開く（授業用）</BigBtn></div>
+  </>);
+  if (!open) return <button onClick={() => setOpen(true)} className="w-full text-[11px] font-bold py-1" style={{ color: COLORS.inkSoft }}>👩‍🏫 先生の方へ：クラス大会・クラス協力レイドを開くには</button>;
+  return (
+    <div className="rounded-xl p-2" style={{ background: COLORS.paperDark }}>
+      {!acct ? <p className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>先生用の機能は、タイトル画面でアカウントにログインしてから使えます。</p> : (<>
+        <p className="text-[11px] font-bold mb-1" style={{ color: COLORS.inkSoft }}>先生用の合言葉を入力すると、このアカウント（{acct.name}）でクラス大会・クラス協力レイドを開けるようになります（一度だけ）。</p>
+        <div className="flex gap-2">
+          <input value={pass} onChange={e => setPass(e.target.value)} type="password" placeholder="先生用の合言葉" className="flex-1 min-w-0 rounded-xl px-3 py-2 font-bold" style={{ background: COLORS.paper, color: COLORS.ink, border: `2px solid ${COLORS.sky}55`, fontSize: '16px' }} />
+          <button disabled={busy || !pass} onClick={async () => { setBusy(true); setMsg(''); const r = await unlockTeacher(acct, pass); setBusy(false); if (r.ok) { setIsT(true); FX.band('👩‍🏫 先生モード解除！', { color: '#2a9d8f', ms: 1500 }); } else setMsg(r.msg); }} className="rounded-xl px-4 font-black shadow" style={{ background: '#2a9d8f', color: '#fff', ...bFont }}>解除</button>
+        </div>
+      </>)}
+      {msg && <p className="text-xs font-bold mt-1" style={{ color: COLORS.coral }}>{msg}</p>}
+    </div>
+  );
+}
+
 /* ---------- 対戦のトップ画面 ---------- */
 function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit }) {
   const [codeIn, setCodeIn] = useState('');
@@ -5251,8 +5292,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       <p className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>クラス大会に出るときも、ここにコードを入れて「参加」</p>
       {err && <p className="text-xs font-bold mt-2" style={{ color: COLORS.coral }}>{err}</p>}
       <div className="mt-3 pt-3" style={{ borderTop: `1px dashed ${COLORS.sky}55` }}>
-        <BigBtn small color={COLORS.amber} disabled={!fb.ready} onClick={() => onCreate(true)}>🏆 クラス大会を開く（{TOUR_MAX}人まで）</BigBtn>
-        <div className="mt-2"><BigBtn small color="#2a9d8f" disabled={!fb.ready} onClick={() => onCreate('raid')}>🐉 クラス協力レイドを開く（授業用・先生がホスト）</BigBtn></div>
+        <TeacherArea fb={fb} acct={acct} onCreate={onCreate} />
       </div>
     </Card>
 
