@@ -23,9 +23,9 @@
   .fxm-op { margin: 0 0.22em; }
   .fxm-sup { font-size: 0.62em; vertical-align: 0.6em; line-height: 0; margin-left: 0.03em; }
   .fxm-arrow { margin: 0 0.35em; }
-  html, body { margin: 0; padding: 0; background: #E3F6FD; }
+  html, body { margin: 0; padding: 0; background: #F5F2EC; }
   #root { min-height: 100vh; }
-  #boot-status { font-family: sans-serif; color: #4C7A93; text-align: center; padding-top: 40vh; }
+  #boot-status { font-family: sans-serif; color: #6F7785; text-align: center; padding-top: 40vh; }
 
   /* ------------------------------------------------------------------
      メニュー画面のレイアウト。
@@ -284,19 +284,20 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
    色トークン (Field Notebook / 標本ハンター テーマ)
    ============================================================ */
 const COLORS = {
-  forest: '#E3F6FD',
-  forestDeep: '#A9DDF0',
+  // ver.7：明るいノート（生成り）の色に統一
+  forest: '#F5F2EC',
+  forestDeep: '#EDE7DC',
   paper: '#FFFFFF',
-  paperDark: '#E6F4FA',
+  paperDark: '#EFEAE0',
   amber: '#E8A33D',
   leaf: '#52B788',
   leafDeep: '#2D6A4F',
   coral: '#E76F51',
   bark: '#8C5E3C',
-  ink: '#123A52',
-  inkSoft: '#4C7A93',
+  ink: '#1D2633',
+  inkSoft: '#6F7785',
   sky: '#0E86C6',
-  tile: '#EAF7FD',
+  tile: '#F4F7FF',
 };
 
 /* 画像・音声データは Babel の変換対象外の別scriptに分離してある (起動高速化) */
@@ -2410,7 +2411,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.1</span>
+              <span className="v7-ver">ver.7.2</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3224,9 +3225,9 @@ function ExpBar({ exp, height = 8, animFrom }) {
   const L = levelOf(exp);
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-black shrink-0" style={{ color: COLORS.sky, fontFamily: "'Zen Maru Gothic', sans-serif" }}>Lv.{L.lv}</span>
+      <span className="text-xs font-black shrink-0" style={{ color: 'var(--v7-ink)', fontFamily: "'Zen Maru Gothic', sans-serif" }}>Lv.{L.lv}</span>
       <div className="flex-1 rounded-full overflow-hidden" style={{ height, background: COLORS.paperDark }}>
-        <div className="h-full rounded-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'linear-gradient(90deg,#6BD4E8,#7B61FF)', transition: 'width 600ms ease' }} />
+        <div className="h-full rounded-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'var(--v7-accent)', transition: 'width 600ms ease' }} />
       </div>
       <span className="text-[10px] font-bold shrink-0" style={{ color: COLORS.inkSoft }}>{L.cur}/{L.need}</span>
     </div>
@@ -3254,10 +3255,10 @@ function ExpGain({ before, after, label = '経験値' }) {
   const L = levelOf(v);
   return (
     <div className="rounded-xl px-3 py-2" style={{ background: COLORS.paperDark }}>
-      <div className="flex justify-between text-[11px] font-black mb-1" style={{ color: COLORS.inkSoft }}><span>{label}</span><span style={{ color: '#7B61FF' }}>+{Math.round(after - before)} EXP</span></div>
+      <div className="flex justify-between text-[11px] font-black mb-1" style={{ color: COLORS.inkSoft }}><span>{label}</span><span style={{ color: 'var(--v7-accent-dk)' }}>+{Math.round(after - before)} EXP</span></div>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-black" style={{ color: COLORS.sky, fontFamily: "'Zen Maru Gothic', sans-serif" }}>Lv.{L.lv}</span>
-        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 10, background: '#fff' }}><div className="h-full rounded-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'linear-gradient(90deg,#6BD4E8,#7B61FF)' }} /></div>
+        <span className="text-sm font-black" style={{ color: 'var(--v7-ink)', fontFamily: "'Zen Maru Gothic', sans-serif" }}>Lv.{L.lv}</span>
+        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 10, background: '#fff' }}><div className="h-full rounded-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'var(--v7-accent)' }} /></div>
       </div>
     </div>
   );
@@ -3326,7 +3327,7 @@ const SKIN_TILES = [
   { id: 'mission', name: '皆勤スタンプ', bg: 'linear-gradient(135deg,#e7fff4,#bff0dc)', bc: '#2a9d8f', color: '#0e4d44', need: { mis: 3 } },
 ];
 const SKIN_BGS = [
-  { id: 'sky', name: '標準', bg: 'linear-gradient(180deg,#E3F6FD,#A9DDF0)', need: null },
+  { id: 'sky', name: '標準（夜空）', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)', need: null },
   { id: 'sunset', name: '夕焼け', bg: 'linear-gradient(180deg,#FFF0E0,#FFC09A)', need: { lv: 4 } },
   { id: 'forest', name: '森', bg: 'linear-gradient(180deg,#EAFBEA,#A9E2B4)', need: { lv: 7 } },
   { id: 'sakura', name: '桜', bg: 'radial-gradient(circle at 20% 15%,#ffffff 0 6%,transparent 7%),radial-gradient(circle at 80% 40%,#ffe3ee 0 5%,transparent 6%),linear-gradient(180deg,#FFF2F7,#FFC7DC)', need: { lv: 10 } },
@@ -3394,13 +3395,13 @@ function Wardrobe({ acct, st, exp, onClose }) {
     return <div className="rounded-full mx-auto" style={{ width: '3rem', height: '3rem', background: c, boxShadow: '0 0 12px rgba(0,0,0,.15)' }} />;
   };
   return (
-    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 85 }}>
-      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl" style={{ background: COLORS.paper, maxWidth: '30rem', maxHeight: '88vh', overflowY: 'auto' }}>
+    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 85 }}>
+      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '30rem', maxHeight: '88vh', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="text-lg font-black" style={{ color: COLORS.ink, ...bFont }}>🎨 きせかえ</div>
-          <button onClick={onClose} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button>
+          <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
-        <div className="mb-2"><Seg items={[['tile', '🀄 タイル'], ['bg', '🖼 背景'], ['fx', '✨ エフェクト']]} cur={tab} onPick={setTab} /></div>
+        <div className="mb-2"><Seg items={[['tile', 'タイル'], ['bg', '背景'], ['fx', 'エフェクト']]} cur={tab} onPick={setTab} /></div>
         <div className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>解放 {openN}/{list.length} ・ レベル・ランク帯・称号で増えていきます{isReal(acct) ? '' : '（ゲストはこの端末だけ）'}</div>
         <div className="grid grid-cols-3 gap-2">
           {list.map(x => { const ok = skinOpen(x.need, info), on = cur === x.id; return (
@@ -3445,10 +3446,10 @@ function GhostNews({ acct, st }) {
     setBusy(false);
   };
   return (
-    <div className="rounded-2xl px-3 py-2 mb-3 shadow-lg" style={{ background: 'linear-gradient(90deg,#efe9ff,#e3dbff)', border: '2px solid #7B61FF55' }}>
+    <div className="v7-panel v7-open" style={{ borderLeft: '5px solid #7B61FF' }}>
       <div className="flex items-center justify-between gap-2">
         <div className="font-black text-sm" style={{ color: '#5b3fd6', ...bFont }}>👻 あなたのゴーストが戦いました！ <span className="text-xs">{w}勝{l}敗{d ? `${d}分` : ''}</span></div>
-        <button onClick={ok} disabled={busy} className="text-[11px] font-black rounded-full px-3 py-1 text-white shrink-0 shadow" style={{ background: '#7B61FF' }}>{w ? `確認（+${w * GHOST_WIN_EXP} EXP）` : '確認'}</button>
+        <button onClick={ok} disabled={busy} className="v7-cur text-[11px] font-black rounded-full px-3 py-1 text-white shrink-0" style={{ background: '#7B61FF', boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.2)' }}>{w ? `確認（+${w * GHOST_WIN_EXP} EXP）` : '確認'}</button>
       </div>
       <div className="mt-1 flex flex-col gap-0.5">
         {rows.slice(0, 5).map(e => <div key={e.id} className="text-[11px] font-bold" style={{ color: COLORS.ink }}>{e.o === 'w' ? '🏆' : e.o === 'l' ? '💦' : '🤝'} {e.by} と戦って <b style={{ color: e.o === 'w' ? '#2D6A4F' : e.o === 'l' ? COLORS.coral : COLORS.inkSoft }}>{e.o === 'w' ? '勝った！' : e.o === 'l' ? '負けた' : '引き分け'}</b> <span style={{ color: COLORS.inkSoft }}>（{e.mode && BATTLE_MODES[e.mode] ? BATTLE_MODES[e.mode].short : ''}{e.diff && DIFFICULTY_CONFIG[e.diff] ? '・' + DIFFICULTY_CONFIG[e.diff].label : ''}）</span></div>)}
@@ -3620,11 +3621,11 @@ const GHOST_COLORS = ['#FF9F1C', '#7B61FF', '#2a9d8f', '#e63946'];
 /* ---------- ゴーストのレーン（自分とゴーストの進み具合） ---------- */
 function GhostLane({ rows, total }) {
   return (
-    <div className="rounded-xl px-2 py-1 mb-1" style={{ background: `${COLORS.paper}dd`, flexShrink: 0 }}>
+    <div className="v7-wnd px-2 py-1" style={{ flexShrink: 0 }}>
       {rows.map((r, i) => (
         <div key={i} className="flex items-center gap-1.5" style={{ height: '1rem' }}>
-          <span className="text-[9px] font-black truncate" style={{ width: '4.2rem', color: r.color, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{r.me ? '🏃' : '👻'}{r.name}</span>
-          <div className="relative flex-1 rounded-full" style={{ height: 6, background: `${COLORS.ink}14` }}>
+          <span className="text-[9px] font-black truncate" style={{ width: '4.2rem', color: '#fff', fontFamily: "'Zen Maru Gothic', sans-serif" }}><span style={{ color: r.color }}>●</span>{r.name}</span>
+          <div className="relative flex-1 rounded-full" style={{ height: 6, background: '#24336E' }}>
             <div className="absolute top-0 left-0 h-full rounded-full" style={{ width: `${r.pos / total * 100}%`, background: `${r.color}66`, transition: 'width 250ms ease' }} />
             <div className="absolute rounded-full" style={{ top: -3, width: 12, height: 12, left: `calc(${r.pos / total * 100}% - 6px)`, background: r.color, border: '2px solid #fff', boxShadow: r.me ? `0 0 6px ${r.color}` : 'none', transition: 'left 250ms ease', opacity: r.me ? 1 : 0.8 }} />
           </div>
@@ -3712,29 +3713,40 @@ function PracticeRunner({ kind, title, problems, ghosts, myName, onDone, onQuit 
   const rows = [{ name: myName || 'あなた', color: COLORS.sky, pos: s.splits.length, me: true, done: phase === 'done' ? s.final : null }]
     .concat((ghosts || []).map((g, i) => { const pos = (g.splits || []).filter(x => x <= elapsed).length; return { name: g.name, color: GHOST_COLORS[i % 4], pos, done: pos >= problems.length ? g.t : null }; }));
   return (
-    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+    <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
       <FontImport />
-      <JudgePop judge={judge} />
       <ComboAura combo={s.combo} />
-      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
-        <div className="flex items-center justify-between mb-1" style={{ flexShrink: 0 }}>
-          <button onClick={() => { if (window.confirm('やめますか？')) onQuit(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ やめる</button>
-          <div className="text-xs font-black rounded-full px-3 py-0.5 text-white" style={{ background: kind === 'daily' ? '#E76F51' : '#7B61FF', ...bFont }}>{title}</div>
-          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
-        </div>
-        {(ghosts && ghosts.length > 0) && <GhostLane rows={rows} total={problems.length} />}
-        <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
-          {statBox('TIME', `${fmtSec(elapsed)}`, COLORS.sky)}{statBox('問題', `${Math.min(idx + 1, problems.length)}/${problems.length}`)}{statBox('ミス', s.miss, s.miss ? COLORS.coral : null)}
-        </div>
-        {phase === 'count' ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div key={cd} className="font-black" style={{ color: '#fff', fontSize: 'clamp(4rem, 24vw, 10rem)', textShadow: `0 6px 0 ${COLORS.forestDeep}`, animation: 'fxVsPop 450ms both', ...bFont }}>{cd > 0 ? cd : 'GO!'}</div>
-            <p className="text-sm font-bold text-center" style={{ color: '#ffffffcc' }}>{kind === 'daily' ? '10問をできるだけ速く！ まちがえると +5秒' : 'まちがえたら正解を見てから次へ。あせらずに！'}</p>
+      <div className="v7-play">
+        <div className="v7-zone">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button onClick={() => { if (window.confirm('やめますか？')) { uiSnd('back'); onQuit(); } }} className="v7-bar-btn">✕ やめる</button>
+            <span className="v7-chip" style={{ background: kind === 'daily' ? '#E4572E' : '#7B61FF' }}>{title}</span>
+            <button onClick={() => setMuted(m => !m)} className="v7-bar-btn ml-auto" aria-label={muted ? '音を出す' : '音を消す'}>{muted ? '🔇' : '🔊'}</button>
           </div>
-        ) : (<>
-          <TargetCard poly={prob.poly} level={prob.level} qLabel={`問${Math.min(idx + 1, problems.length)}/${problems.length}`} gaugeKey={idx} gaugeMs={600000} note={kind === 'drill' && prob.pid ? `型：${PATTERN_BY_ID[prob.pid].name}` : null} />
-          <BattleBoard tiles={tiles} onMatch={onMatch} disabled={busy || phase !== 'play'} flash={flash} />
-        </>)}
+          {(ghosts && ghosts.length > 0) && <GhostLane rows={rows} total={problems.length} />}
+          <div className="grid grid-cols-3 gap-2">
+            {v7Stat('TIME', `${fmtSec(elapsed)}`, '#7FD8FF')}{v7Stat('問題', `${Math.min(idx + 1, problems.length)}/${problems.length}`)}{v7Stat('ミス', s.miss, s.miss ? '#FF8A75' : null)}
+          </div>
+          <div className="v7-fxbox" data-fxband="1">
+            {s.combo >= 2 && <div className="v7-fxcombo" key={s.combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{s.combo}</b><small>COMBO</small></div>}
+            <JudgePop judge={judge} at="tb" />
+          </div>
+        </div>
+        <div className="v7-main">
+          {phase === 'count' ? (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div key={cd} style={{ color: cd > 0 ? '#fff' : 'var(--v7-gold)', fontSize: 'clamp(4rem, 24vw, 10rem)', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,.35)', animation: 'fxVsPop 450ms both', lineHeight: 1.1 }}>{cd > 0 ? cd : 'GO!'}</div>
+              <p className="text-sm font-bold text-center mt-4" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{kind === 'daily' ? '10問をできるだけ速く！ まちがえると +5秒' : 'まちがえたら正解を見てから次へ。あせらずに！'}</p>
+            </div>
+          ) : (<>
+            <div className="relative" style={{ flexShrink: 0 }}>
+              <JudgePop judge={judge} at="ph" />
+              <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${Math.min(idx + 1, problems.length)}/${problems.length}`} gaugeKey={idx} gaugeMs={600000} note={kind === 'drill' && prob.pid ? `型：${PATTERN_BY_ID[prob.pid].name}` : null} />
+            </div>
+            <BattleBoard v7 tiles={tiles} onMatch={onMatch} disabled={busy || phase !== 'play'} flash={flash} />
+            <p className="v7-hint" style={{ flexShrink: 0 }}>{kind === 'daily' ? 'まちがえると +5秒' : 'まちがえたら正解の2枚が光ります'}</p>
+          </>)}
+        </div>
       </div>
     </div>
   );
@@ -3778,7 +3790,7 @@ function DailyRanking({ rows, meKey, limit = 20 }) {
       {rows.slice(0, limit).map((r, i) => (
         <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
           <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-          <span className="flex-1 min-w-0 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} /> : null}{r.name}</span>
+          <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
           <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{fmtSec(r.t)}秒</span>
           <span className="text-[10px] font-bold w-12 text-right" style={{ color: r.miss ? COLORS.coral : COLORS.inkSoft }}>ミス{r.miss || 0}</span>
         </div>
@@ -3989,9 +4001,9 @@ function DailyApp({ acct, onExit, onMode }) {
     <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '30rem' }}>
-        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
         <div className="text-center mb-3">
-          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>📅 デイリーミッション</div>
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>デイリーミッション</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{date.replace(/-/g, '/')} ・ 毎日4つのミッションで経験値ゲット</div>
         </div>
         <Card className="mb-3"><MissionList acct={acct} rows={mis.rows} onGo={goMission} onChallenge={() => setScr('play')} /></Card>
@@ -4085,12 +4097,12 @@ function LearnApp({ acct, onExit, init }) {
     <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '34rem' }}>
-        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
         <div className="text-center mb-3">
-          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>📈 学びの部屋</div>
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>学びの部屋</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ソロ・対戦・デイリー・ドリルで解いた問題が、ここにたまっていきます{isReal(acct) ? '' : '（ゲスト：この端末に保存）'}</div>
         </div>
-        <div className="mb-3"><Seg items={[['weak', '📊 苦手分析'], ['drill', '🎯 苦手ドリル'], ['zukan', `📚 型の図鑑 ${got}/${PATTERNS.length}`]]} cur={tab} onPick={v => { setTab(v); setDrillRes(null); setDrill(null); }} /></div>
+        <div className="mb-3"><Seg items={[['weak', '苦手分析'], ['drill', '苦手ドリル'], ['zukan', `型の図鑑 ${got}/${PATTERNS.length}`]]} cur={tab} onPick={v => { setTab(v); setDrillRes(null); setDrill(null); }} /></div>
         {drillRes && (
           <Card className="mb-3 text-center">
             <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>ドリルおつかれさま！</div>
@@ -4127,12 +4139,12 @@ function LearnApp({ acct, onExit, init }) {
                   <div className="text-xs" style={{ color: COLORS.inkSoft }}><MathText text={r.ex} /></div>
                 </div>
               ))}
-            {weakPts.length > 0 && <div className="mt-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '🎯 苦手ドリル')}>苦手な型だけの10問ドリル</BigBtn></div>}
+            {weakPts.length > 0 && <div className="mt-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '苦手ドリル')}>苦手な型だけの10問ドリル</BigBtn></div>}
           </Card>
         </>) : tab === 'drill' ? (
           <Card className="mb-3">
             <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>練習したいものを選んで10問ドリル（まちがえると正解を見せてくれます）</div>
-            {weakPts.length > 0 && <div className="mb-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '🎯 苦手ドリル')}>🎯 おまかせ（苦手な型 {weakPts.map(r => r.name).join('・')}）</BigBtn></div>}
+            {weakPts.length > 0 && <div className="mb-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '苦手ドリル')}>🎯 おまかせ（苦手な型 {weakPts.map(r => r.name).join('・')}）</BigBtn></div>}
             <div className="grid grid-cols-3 gap-2 mb-2">
               {LEVEL_IDS.map(lv => <button key={lv} onClick={() => startDrill([{ lv }], `🎯 Lv.${lv} ドリル`)} className="rounded-xl py-2 text-xs font-black shadow active:scale-95 transition-transform" style={{ background: LEVEL_INFO[lv].color, color: '#fff' }}>Lv.{lv}<br /><span className="text-[10px] font-bold">{LEVEL_INFO[lv].name}</span></button>)}
             </div>
@@ -4147,7 +4159,7 @@ function LearnApp({ acct, onExit, init }) {
               <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>型の図鑑（正解すると登録されます）</div>
               <div className="text-xs font-black" style={{ color: COLORS.sky }}>{got}/{PATTERNS.length}（{Math.round(got / PATTERNS.length * 100)}%）</div>
             </div>
-            <div className="rounded-full overflow-hidden mb-3" style={{ height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${got / PATTERNS.length * 100}%`, background: 'linear-gradient(90deg,#6BD4E8,#7B61FF)' }} /></div>
+            <div className="rounded-full overflow-hidden mb-3" style={{ height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${got / PATTERNS.length * 100}%`, background: 'var(--v7-accent)' }} /></div>
             <div className="grid grid-cols-2 gap-2">
               {ptRows.map((p, i) => {
                 const ok = p.st && p.st.ok > 0;
@@ -4454,28 +4466,38 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   const left = endAt ? endAt - fbNow() : null;
   const isStun = stunned();
   return (
-    <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+    <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
       <FontImport />
-      <JudgePop judge={judge} />
       <ComboAura combo={s.combo} />
       {o.overlay}
-      <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
-        <div className="flex items-center justify-between mb-1" style={{ flexShrink: 0 }}>
-          <button onClick={() => { if (window.confirm('レイドをぬけますか？')) onQuit(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ ぬける</button>
-          <div className="text-xs font-black rounded-full px-3 py-0.5 text-white" style={{ background: boss.color, ...bFont }}>{title}</div>
-          <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
+      <div className="v7-play">
+        <div className="v7-zone">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button onClick={() => { if (window.confirm('レイドをぬけますか？')) { uiSnd('back'); onQuit(); } }} className="v7-bar-btn">✕ ぬける</button>
+            <span className="v7-chip" style={{ background: boss.color }}>{title}</span>
+            <button onClick={() => setMuted(m => !m)} className="v7-bar-btn ml-auto" aria-label={muted ? '音を出す' : '音を消す'}>{muted ? '🔇' : '🔊'}</button>
+          </div>
+          <BossPanel boss={boss} hp={hp} max={max} timeLeft={left} hitKey={hitKey} extra={bossExtra} />
+          <div className="grid grid-cols-3 gap-2">
+            {v7Stat('ダメージ', s.dmg.toLocaleString(), '#FFB347')}{v7Stat('レベル', `Lv.${prob.level}`)}{v7Stat('COMBO', s.combo, s.combo ? 'var(--v7-gold)' : null)}
+          </div>
+          {o.topExtra && <div className="rounded-xl px-2 py-1" style={{ background: 'rgba(255,255,255,.94)', flexShrink: 0 }}>{o.topExtra}</div>}
+          {sessionInfo}
+          <div className="v7-fxbox" data-fxband="1">
+            {s.combo >= 2 && <div className="v7-fxcombo" key={s.combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{s.combo}</b><small>COMBO</small></div>}
+            <JudgePop judge={judge} at="tb" />
+          </div>
         </div>
-        <div className="mb-1"><BossPanel boss={boss} hp={hp} max={max} timeLeft={left} hitKey={hitKey} extra={bossExtra} /></div>
-        <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
-          {statBox('あなたのダメージ', s.dmg.toLocaleString(), '#ff7b00')}{statBox('レベル', `Lv.${prob.level}`, LEVEL_INFO[prob.level].color)}{statBox('COMBO', s.combo, s.combo ? COLORS.coral : null)}
+        <div className="v7-main">
+          {ended ? <div className="fx-scroll flex-1 overflow-y-auto rounded-2xl px-2" style={{ touchAction: 'pan-y', background: 'rgba(245,242,236,.97)', color: 'var(--v7-ink)' }}>{footer}</div> : (<>
+            <div className="relative" style={{ flexShrink: 0 }}>
+              <JudgePop judge={judge} at="ph" />
+              <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} spurt={o.hot ? o.hot(prob.level) : false} />
+            </div>
+            <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} />
+            <p className="v7-hint" style={{ flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
+          </>)}
         </div>
-        {o.topExtra}
-        {sessionInfo}
-        {ended ? <div className="fx-scroll flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>{footer}</div> : (<>
-          <TargetCard poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} spurt={o.hot ? o.hot(prob.level) : false} />
-          <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} />
-          <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
-        </>)}
       </div>
     </div>
   );
@@ -4661,7 +4683,7 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
   const teamMax = Math.max(1, ...Object.values(calc.teams));
   return (<div className="fx-raid-root">
     <div className="flex items-center justify-between mb-3 gap-2">
-      <button onClick={() => { if (!isHost || window.confirm('レイドを閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? 'レイドを閉じる' : '観戦をやめる'}</button>
+      <button onClick={() => { if (!isHost || window.confirm('レイドを閉じますか？')) onLeave(); }} className="v7-pill v7-cur" data-snd="back">← {isHost ? 'レイドを閉じる' : '観戦をやめる'}</button>
       <div className="flex items-center gap-2">
         <button onClick={() => setMuted(m => !m)} className="text-sm font-bold rounded-full px-2 py-0.5" style={{ background: COLORS.paper, color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
         <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: boss.color }}>🐉 クラス協力レイド ・ 部屋{code} ・ {rows.length}人参加</div>
@@ -4812,12 +4834,12 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
   const chainMul = 1 + 0.05 * Math.min(10, calc.chain);
   const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul, [weakFam && weakFam.id, chainMul]);
   if (now < state.startAt) return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})` }}>
+    <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center" style={{ background: V7_NIGHT }}>
       <FontImport />
       <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}>{boss.icon}</div>
-      <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name} があらわれた！</div>
+      <div className="v7-wnd px-5 py-2 text-2xl font-black" style={{ color: '#fff', ...bFont }}>{boss.name} があらわれた！</div>
       {team != null && <div className="mt-2 text-lg font-black rounded-full px-4 py-1 text-white" style={{ background: TEAM_INFO[team].color, ...bFont }}>あなたは {TEAM_INFO[team].name}</div>}
-      <div className="font-black mt-4" style={{ fontSize: '5rem', color: '#fff', textShadow: `0 6px 0 ${COLORS.forestDeep}`, ...bFont }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
+      <div className="mt-4" style={{ fontSize: '5rem', color: '#fff', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,.35)' }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
     </div>
   );
   const myRank = rows.findIndex(r => r.u === me) + 1;
@@ -4918,9 +4940,9 @@ function WeeklyRaidApp({ acct, onExit }) {
     <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '30rem' }}>
-        <button onClick={onExit} className="text-xs font-bold px-2 py-1 rounded-lg mb-2" style={{ color: COLORS.inkSoft }}>← タイトルにもどる</button>
+        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
         <div className="text-center mb-3">
-          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>🗓 今週のボス</div>
+          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>今週のボス</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{wk.replace(/-/g, '/')} の週 ・ みんなのダメージを合わせて倒そう（月曜に新しいボス）</div>
         </div>
         <div className="mb-3"><BossPanel boss={boss} hp={hp} max={WEEKLY_HP} big={false} extra={<div className="text-[11px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>{rows.length}人が挑戦中 ・ 合計ダメージ {total.toLocaleString()}</div>} /></div>
@@ -4941,7 +4963,7 @@ function WeeklyRaidApp({ acct, onExit }) {
           {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも出撃していません</p> : rows.slice(0, 30).map((r, i) => (
             <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
               <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-              <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} /> : null}{r.name}</span>
+              <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
               <span className="font-black" style={{ color: '#ff7b00' }}>{r.d}</span>
             </div>
           ))}
@@ -5121,7 +5143,7 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
   return (
     <div className="fixed inset-0 flex flex-col" style={{ zIndex: 85, background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, padding: '0.6rem', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <div className="flex items-center justify-between gap-2 mb-2" style={{ flexShrink: 0 }}>
-        <button onClick={onClose} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paper, color: COLORS.inkSoft }}>← もどる</button>
+        <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">← もどる</button>
         <div className="text-sm font-black rounded-full px-4 py-1 text-white truncate" style={{ background: BATTLE_MODES[mode].color, ...bFont }}>📺 {title} ・ {BATTLE_MODES[mode].short}{mode === 'A' && probA ? ` ・ 問${q + 1}/${N}${q >= N - A_LASTSPURT ? ' 🔥2倍' : ''}` : ''}</div>
         <div style={{ width: '4rem' }} />
       </div>
@@ -5183,9 +5205,9 @@ function ConnCheck({ v7 }) {
   return (<>
     {v7 ? <button onClick={() => { setOpen(true); run(); }} className="v7-pill v7-cur"><V7Icon name="wifi" />接続チェック</button>
       : <button onClick={() => { setOpen(true); run(); }} className="text-[10px] font-bold rounded-full px-3 py-1" style={{ background: '#ffffff33', color: '#ffffffcc' }}>📶 接続チェック</button>}
-    {open && <div onClick={() => setOpen(false)} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 90 }}>
-      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl text-left" style={{ background: COLORS.paper, maxWidth: '26rem' }}>
-        <div className="flex items-center justify-between mb-2"><div className="font-black" style={{ color: COLORS.ink }}>📶 接続チェック</div><button onClick={() => setOpen(false)} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button></div>
+    {open && <div onClick={() => setOpen(false)} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 90 }}>
+      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open text-left" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '26rem' }}>
+        <div className="flex items-center justify-between mb-2"><div className="font-black" style={{ color: COLORS.ink }}>📶 接続チェック</div><button onClick={() => setOpen(false)} className="v7-pill v7-cur" data-snd="back">とじる</button></div>
         {!r ? <p className="text-sm" style={{ color: COLORS.inkSoft }}>調べています…（10秒ほど）</p> : (<>
           {r.map(([a, st, b]) => <div key={a} className="flex gap-2 text-xs py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}><span className="font-black w-5">{st === 'ok' ? '✅' : st === 'ng' ? '❌' : 'ℹ️'}</span><span className="font-black w-28 shrink-0" style={{ color: COLORS.ink }}>{a}</span><span className="break-all" style={{ color: COLORS.inkSoft }}>{b}</span></div>)}
           <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>うまくいかないときは、この画面を先生に見せてください。</p>
@@ -5819,8 +5841,8 @@ function HpBar({ hp, height = 26, label = true, v7 }) {
   );
 }
 /* ver.7：この中の Card・BigBtn・Seg は新しい見た目（白いパネル・FF風カーソル）になる */
-const V7Theme = React.createContext(false);
-const V7_BTN = c => { const k = String(c || '').toUpperCase(); return k === '#E76F51' ? '#E4572E' : k === '#0E86C6' ? '#1D2633' : k === '#4C7A93' ? null : k === '#52B788' ? '#3FA55F' : k === '#E8A33D' ? '#E9A82A' : c; };
+const V7Theme = React.createContext(true);   // ver.7：アプリ全体が新しい見た目
+const V7_BTN = c => c === COLORS.coral ? '#E4572E' : c === COLORS.sky ? '#1D2633' : c === COLORS.inkSoft ? null : c === COLORS.leaf ? '#3FA55F' : c === COLORS.amber ? '#E9A82A' : c;
 function Card({ children, style, className = '' }) {
   const v7 = React.useContext(V7Theme);
   if (v7) return <div className={`v7-panel ${className}`} style={{ padding: 14, ...style }}>{children}</div>;
@@ -6862,15 +6884,15 @@ function TeacherDash({ onBack, onWatch }) {
   }, [accs, grp, rows.length]);
   const accColor = a => a == null ? COLORS.inkSoft : a >= 0.85 ? '#2D6A4F' : a >= 0.6 ? '#c47a00' : '#d62828';
   return (
-    <div className="min-h-screen w-full py-4 px-3" style={{ background: 'linear-gradient(180deg,#E7FFF4,#BFF0DC)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    <div className="min-h-screen w-full py-4 px-3" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="mx-auto" style={{ maxWidth: '1100px' }}>
         <div className="flex items-center justify-between mb-2">
-          <button onClick={onBack} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← もどる</button>
-          <div className="text-xl font-black" style={{ color: '#0e4d44', ...bFont }}>👩‍🏫 先生用ダッシュボード</div>
+          <button onClick={onBack} className="v7-pill v7-cur" data-snd="back">← もどる</button>
+          <div className="v7-name" style={{ fontSize: 20 }}>先生用ダッシュボード</div>
           <div style={{ width: '3rem' }} />
         </div>
-        <div className="mb-3"><Seg items={[['live', `🟢 いまプレイ中（${rows.length}人）`], ['class', '📊 クラスの理解度']]} cur={tab} onPick={setTab} /></div>
+        <div className="mb-3"><Seg items={[['live', `いまプレイ中（${rows.length}人）`], ['class', 'クラスの理解度']]} cur={tab} onPick={setTab} /></div>
         {tab === 'live' ? (<>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k, n]) => { const I = ACT_INFO[k] || ACT_INFO.menu; return <span key={k} className="text-xs font-black rounded-full px-2.5 py-1 text-white" style={{ background: I.color }}>{I.icon} {I.label} {n}人</span>; })}
@@ -7090,7 +7112,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
         : rank.map((r, i) => (
           <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)' }}>
             <span className="w-6 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-            <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name} <BadgeIcons st={r.st} max={3} /></span>
+            <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-bold underline decoration-dotted" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span> <BadgeIcons st={r.st} max={3} /></span>
             <RankPill r={r.rt} size={9} /><span className="font-black" style={{ color: 'var(--v7-ink)' }}>{r.rt}</span>
             <span className="text-[11px] font-bold" style={{ color: COLORS.leafDeep, minWidth: '2.6em', textAlign: 'right' }}>{Math.round(r.rate * 100)}%</span>
             <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '5em', textAlign: 'right' }}>{recordText(r.st)}</span>
@@ -7104,7 +7126,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       {bountyRows.map(r => (
         <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
           <span className="text-lg">📜</span>
-          <span className="flex-1 font-black truncate" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name}</span>
+          <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-black block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
           <span className="text-[11px] font-bold" style={{ color: COLORS.coral }}>{r.st.streak}連勝中</span>
           <span className="font-black rounded-full px-2 text-white text-xs" style={{ background: 'linear-gradient(90deg,#d4a017,#b7791f)' }}>💰{bountyOf(r.st)}</span>
         </div>))}
@@ -7125,7 +7147,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
           return (<div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
             {rows.map(r => (
               <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)', background: acct && acct.key === r.k ? 'var(--v7-accent-soft)' : 'transparent' }}>
-                <span className="flex-1 font-bold truncate underline decoration-dotted" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} />{r.name} <BadgeIcons st={r.st} max={3} /></span>
+                <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-bold underline decoration-dotted" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span> <BadgeIcons st={r.st} max={3} /></span>
                 <span className="text-[11px] font-black" style={{ color: 'var(--v7-ink)', minWidth: '2.4rem', textAlign: 'right' }}>{r.g ? r.rt : ''}</span>
                 <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '2.2rem', textAlign: 'right' }}>{r.g}戦</span>
                 <span className="text-[11px] font-bold" style={{ color: COLORS.ink, minWidth: '4.6rem', textAlign: 'right' }}>{recordText(r.st)}</span>
@@ -7172,15 +7194,15 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose }) {
   };
   const got = new Set(badgesOf(st).map(b => b.id));
   return (
-    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(18,58,82,.55)', zIndex: 80 }}>
-      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 shadow-xl" style={{ background: COLORS.paper, maxWidth: '28rem', maxHeight: '85vh', overflowY: 'auto' }}>
+    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 80 }}>
+      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '28rem', maxHeight: '85vh', overflowY: 'auto' }}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
             <div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>📊 オンライン対戦の成績{me ? '（あなた）' : ''}</div>
             {nick && <Nick id={nick} size={12} block />}
             <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>{name}</div>
           </div>
-          <button onClick={onClose} className="text-sm font-black rounded-full px-3 py-1" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>とじる</button>
+          <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
@@ -8113,7 +8135,7 @@ function SpectatorView({ code, state, players, onLeave }) {
   if (split) return <SplitView ids={ids} names={names} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={state.startAt} title={`観戦 ・ 部屋${code}`} onClose={() => setSplit(false)} cheer={{ code, gid: state.gid }} />;
   return (<>
     <div className="flex items-center justify-between mb-3">
-      <button onClick={onLeave} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← 観戦をやめる</button>
+      <button onClick={onLeave} className="v7-pill v7-cur" data-snd="back">← 観戦をやめる</button>
       <button onClick={() => setSplit(true)} className="text-xs font-black rounded-full px-3 py-1 shadow" style={{ background: COLORS.sky, color: '#fff' }}>📺 対戦画面で見る</button>
       <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: BATTLE_MODES[mode].color }}>👀 観戦中 ・ {BATTLE_MODES[mode].short} ・ {DIFFICULTY_CONFIG[diff].label} ・ 部屋{code}</div>
     </div>
@@ -8188,7 +8210,7 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>難易度</div>
       <Seg disabled={!isHost} items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={diff} onPick={v => onRule({ diff: v })} />
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>大会の形式</div>
-      <Seg disabled={!isHost} items={[['single', '🏆 トーナメント', COLORS.amber], ['swiss', '🔀 スイスドロー＋決勝T', '#7B61FF']]} cur={state.fmt || 'single'} onPick={v => onRule({ fmt: v })} />
+      <Seg disabled={!isHost} items={[['single', 'トーナメント', COLORS.amber], ['swiss', 'スイスドロー＋決勝T', '#7B61FF']]} cur={state.fmt || 'single'} onPick={v => onRule({ fmt: v })} />
       {(state.fmt || 'single') === 'swiss' ? (<>
         <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>予選（スイスドロー）の回戦数</div>
         <div className="text-sm font-black rounded-xl px-3 py-1.5" style={{ background: '#7B61FF18', color: '#5b3fd6' }}>自動：全勝の人が1人になるまで（{list.length}人なら だいたい {swissEst(list.length)}回戦）</div>
@@ -8392,7 +8414,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
   const liveMatches = cur.filter((m, k) => m.b && !outs[k].done);
   return (<>
     <div className="flex items-center justify-between mb-3 gap-2">
-      <button onClick={() => { if (!isHost || window.confirm('大会を閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? '大会を閉じる' : '部屋を出る'}</button>
+      <button onClick={() => { if (!isHost || window.confirm('大会を閉じますか？')) onLeave(); }} className="v7-pill v7-cur" data-snd="back">← {isHost ? '大会を閉じる' : '部屋を出る'}</button>
       <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: BATTLE_MODES[state.mode || 'B'].color }}>🏆 クラス大会 ・ {BATTLE_MODES[state.mode || 'B'].short} ・ {DIFFICULTY_CONFIG[state.diff || 'easy'].label} ・ 部屋{code}</div>
     </div>
     {champion ? (
@@ -8433,7 +8455,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
             {tb.map((x, i) => (<React.Fragment key={x.u}>
               <div className="grid items-center text-sm px-1 py-1" style={{ gridTemplateColumns: '2rem 1fr 2.6rem 4.6rem 3.4rem', borderBottom: `1px solid ${COLORS.paperDark}`, background: x.u === me ? `${COLORS.sky}18` : i < cut ? '#fff8e1' : 'transparent' }}>
                 <span className="text-center font-black" style={{ color: i < cut ? '#b7791f' : COLORS.inkSoft }}>{x.rank}</span>
-                <span className="font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{(state.nicks || {})[x.u] ? <Nick id={state.nicks[x.u]} size={8} /> : null}{names[x.u]}</span>
+                <span className="min-w-0" style={{ color: COLORS.ink, ...bFont }}>{(state.nicks || {})[x.u] ? <Nick id={state.nicks[x.u]} size={8} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', lineHeight: 1.25 }}>{names[x.u]}</span></span>
                 <span className="text-right font-black" style={{ color: COLORS.leafDeep }}>{x.pts}</span>
                 <span className="text-right text-xs font-bold" style={{ color: COLORS.ink }}>{x.w}-{x.l}-{x.d}</span>
                 <span className="text-right text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>{Math.round(x.omw * 1000) / 10}%</span>
@@ -8483,6 +8505,9 @@ function AppRoot() {
   const go = (m, arg) => { setModeArg(arg || null); setMode(m === 'solo' ? 'solo' : m); window.scrollTo(0, 0); };
   const toSolo = () => go('solo');
   usePresenceRoot(acct, mode);
+  // ver.7：どの画面でも .v7-cur の部品に指をのせると ▶ と「ピッ」
+  const gcur = useMenuCursor();
+  useEffect(() => { gcur(document.body); }, []);
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
   return (<>
     <FxLayer />
