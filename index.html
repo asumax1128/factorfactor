@@ -403,12 +403,34 @@ function useMenuCursor() {
     off.current = () => { root.removeEventListener('pointerover', move); root.removeEventListener('focusin', move); root.removeEventListener('pointerdown', move); root.removeEventListener('click', click); };
   }, []);
 }
-/* 対戦・プレイに入るときの暗転（時計回りに黒くなって、画面が切りかわる） */
-function v7Wipe(cb) {
+/* 対戦・プレイに入るときの暗転（時計回りに黒くなる → 真っ黒のあいだに画面を切りかえ → 明ける）
+   CSS の @property に頼らず、1コマずつ角度を描く（古い iPad でも途中で止まらない） */
+let WIPE_BUSY = null;
+function v7Wipe(cb, o = {}) {
+  const close = o.close || 480, hold = o.hold || 160, open = o.open || 260;
+  if (WIPE_BUSY) { try { WIPE_BUSY.remove(); } catch (e) {} }
   uiSnd('swirl');
-  const w = document.createElement('div'); w.className = 'v7-wipe'; document.body.appendChild(w);
-  setTimeout(() => { try { cb && cb(); } catch (e) { console.error(e); } }, 500);
-  setTimeout(() => w.remove(), 760);
+  const w = document.createElement('div');
+  w.style.cssText = 'position:fixed;inset:0;z-index:200;pointer-events:none;';
+  document.body.appendChild(w); WIPE_BUSY = w;
+  const t0 = performance.now();
+  let fired = false;
+  const step = t => {
+    if (WIPE_BUSY !== w) return;
+    const k = Math.min(1, (t - t0) / close), a = Math.round(360 * k);
+    w.style.background = k >= 1 ? '#000' : `conic-gradient(from 0deg, #000 0deg ${a}deg, transparent ${a}deg 360deg)`;
+    if (k < 1) { requestAnimationFrame(step); return; }
+    if (!fired) {
+      fired = true;
+      try { cb && cb(); } catch (e) { console.error(e); }
+      setTimeout(() => {
+        if (WIPE_BUSY !== w) return;
+        w.style.transition = `opacity ${open}ms ease`; w.style.opacity = '0';
+        setTimeout(() => { w.remove(); if (WIPE_BUSY === w) WIPE_BUSY = null; }, open + 40);
+      }, hold);
+    }
+  };
+  requestAnimationFrame(step);
 }
 /* ウィンドウ（メニューから開く画面）。開くときにウィンドウのように広がる */
 function V7Modal({ title, onClose, children, wide }) {
@@ -2411,7 +2433,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.7.2</span>
+              <span className="v7-ver">ver.7.3</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4195,6 +4217,27 @@ const BOSSES = [
   { id: 'robot', name: '展開ロボ Ω', icon: '🤖', color: '#457b9d' },
 ];
 const TEACHER_BOSS = { id: 'teacher', name: '先生', icon: '👩‍🏫', color: '#d62828' };
+/* ボスの個性（クラス協力レイド）。書いていないものはふつう（部位3つ・弱点タイム・反撃は35秒後から40秒ごと・3秒しびれ）
+   hpK：体力の倍率 / parts：部位の名前（[] なら部位なし）/ weak：false で弱点なし、{start,every,len} / weakFam：弱点の型を固定
+   counter：null で反撃なし、{start,every,warn,stun,stunByPhase,fog,oj,name} / lvMul：レベルごとのダメージ倍率
+   chainK：連携チェイン1人あたりの上がり幅（ふつう0.05）/ revive：体力が半分を切ったとき一度だけ回復する割合 */
+const BOSS_TRAITS = {
+  slime: { tag: '入門', hpK: 0.8, parts: [], weak: false, counter: null, lvMul: { 1: 1.5, 2: 1.5 },
+    desc: ['部位も弱点もない、ただのぷるぷる', '反撃してこない（はじめてのレイドにおすすめ）', '共通因数（Lv1・2）の問題でダメージ1.5倍', '体力は少なめ（0.8倍）'] },
+  dragon: { tag: '攻撃型', parts: ['角', '翼', 'しっぽ'], counter: { start: 25000, every: 30000, warn: 3000, stun: 4500, oj: 1, name: '🔥 炎のブレス' },
+    desc: ['攻撃力が高い：反撃が30秒ごと、予告は3秒だけ', '「炎のブレス」を受けると4.5秒しびれて、おじゃまタイル+1', '角・翼・しっぽの3部位'] },
+  kraken: { tag: '妨害型', parts: ['吸盤', '足', '頭'], weakFam: 'tasuki', weak: { len: 20000 }, counter: { stun: 0, fog: 4000, name: '🦑 墨はき' },
+    desc: ['反撃は「墨はき」：しびれないが、4秒間 画面が見えにくくなる', '弱点はいつも「たすきがけ」（弱点タイムは20秒）'] },
+  golem: { tag: '防御型', hpK: 1.3, parts: ['腕', '胴', '頭'], lvMul: { 1: 0.5, 2: 0.5, 3: 0.5, 7: 1.5 }, counter: { start: 45000, every: 60000, warn: 5000, stun: 6000, name: '🪨 岩おとし' },
+    desc: ['かたい：体力1.3倍。かんたんな問題（Lv1〜3）はダメージ半分', '3乗の和・差（Lv7）が大の苦手：いつでもダメージ1.5倍', '反撃はおそい（60秒ごと）けど、当たると6秒しびれる'] },
+  maou: { tag: '変身型', hpK: 0.85, parts: ['角', 'マント', '杖'], weakFam: 'sa', revive: 0.25, counter: { stunByPhase: [2500, 3000, 4000, 5000], name: '🌑 闇の波動' },
+    desc: ['体力が半分を切ると第2形態に変身して、体力が回復する', '体力が減るほど反撃のしびれが長くなる', '弱点はいつも「2乗の差」'] },
+  robot: { tag: '機械型', parts: ['アンテナ', 'アーム', 'コア'], weak: { every: 30000, len: 20000 }, chainK: 0.08, counter: { every: 35000, stun: 0, oj: 3, name: '📡 ジャミング' },
+    desc: ['反撃は「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが多い（30秒ごとに20秒）', '連携チェインのダメージアップが大きい（最大1.8倍）'] },
+};
+const traitOf = id => BOSS_TRAITS[id] || {};
+const RAID_CTR_DEF = { name: '💢 ボスの反撃' };
+const ctrOf = id => ({ start: 35000, every: 40000, warn: 4000, stun: 3000, fog: 0, oj: 0, ...RAID_CTR_DEF, ...(traitOf(id).counter || {}) });
 const bossOf = (id, st) => id === 'teacher' ? { ...TEACHER_BOSS, name: st && st.tname ? `${st.tname}先生` : '先生' } : BOSSES.find(b => b.id === id) || BOSSES[0];
 const RAID_JMUL = { Perfect: 1.5, Excellent: 1.3, Great: 1.1 };
 const raidDamage = (lv, judge, combo) => Math.round((LEVEL_POINTS[lv] || 10) * (RAID_JMUL[judge] || 1) * (1 + 0.05 * Math.min(10, combo)));
@@ -4217,7 +4260,7 @@ function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
         <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between flex-wrap gap-x-2">
-            <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}</span>
+            <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}{traitOf(boss.id).tag && <span className="v7-chip align-middle ml-2" style={{ background: boss.color, fontSize: big ? 13 : 9, padding: big ? '3px 10px' : '1px 6px' }}>{traitOf(boss.id).tag}</span>}</span>
             {timeLeft != null && !dead && <span className={`font-black ${big ? 'text-3xl' : 'text-sm'}`} style={{ color: timeLeft < 30000 ? COLORS.coral : COLORS.ink, ...bFont }}>⏱ {Math.floor(Math.max(0, timeLeft) / 60000)}:{String(Math.floor(Math.max(0, timeLeft) / 1000) % 60).padStart(2, '0')}</span>}
           </div>
           <div className="relative rounded-full overflow-hidden mt-1" style={{ height: big ? 34 : 16, background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
@@ -4254,7 +4297,12 @@ const RAID_PARTS = [
 const partOfLv = lv => lv <= 3 ? 'a' : lv <= 6 ? 'b' : 'c';
 /* 先生がボスのとき：部位の名前と、セリフ */
 const TEACHER_PARTS = { a: 'チョーク', b: '出席簿', c: '教科書' };
-const partsOf = state => state && state.boss === 'teacher' ? RAID_PARTS.map(p => ({ ...p, name: TEACHER_PARTS[p.id] })) : RAID_PARTS;
+const partsOf = state => {
+  if (state && state.boss === 'teacher') return RAID_PARTS.map(p => ({ ...p, name: TEACHER_PARTS[p.id] }));
+  const T = traitOf(state && state.boss);
+  if (T.parts && !T.parts.length) return [];   // 部位なし（スライム）
+  return T.parts ? RAID_PARTS.map((p, i) => ({ ...p, name: T.parts[i] || p.name })) : RAID_PARTS;
+};
 const TEACHER_LINES = {
   appear: b => `${b.name}が教壇に立った！「さあ、かかってきなさい！」`,
   rage1: '「なかなかやりますね…」',
@@ -4339,21 +4387,26 @@ const BOSS_LINES = {
   burst: 'な、なんだこの力は…クラス全員の力か！？',
   defeat: 'み、見事だ…。おまえたちの因数分解、みとめよう…',
   timeout: 'ふはは！ 時間切れだ！ また挑んでくるがいい！',
+  revive: 'まだだ…！ これがわたしの真の姿だ！！',
 };
 const RAID_WEAK_START = 20000, RAID_WEAK_EVERY = 45000, RAID_WEAK_LEN = 15000;
 const RAID_CTR_START = 35000, RAID_CTR_EVERY = 40000, RAID_CTR_WARN = 4000, RAID_CTR_GUARD = 5000, RAID_STUN = 3000;
 function raidSchedule(state, now) {
   const t = now - state.startAt, dur = state.endAt - state.startAt;
+  const T = traitOf(state.boss);
   let weak = null, counter = null;
-  for (let k = 0; ; k++) {
-    const s = RAID_WEAK_START + k * RAID_WEAK_EVERY;
+  const W = { start: RAID_WEAK_START, every: RAID_WEAK_EVERY, len: RAID_WEAK_LEN, ...(T.weak || {}) };
+  const fixFam = T.weakFam ? RAID_FAMS.find(f => f.id === T.weakFam) : null;
+  for (let k = 0; T.weak !== false; k++) {
+    const s = W.start + k * W.every;
     if (s >= dur) break;
-    if (t >= s && t < s + RAID_WEAK_LEN) { weak = { k, fam: RAID_FAMS[hashSeed(state.gid + ':w' + k) % RAID_FAMS.length], until: state.startAt + s + RAID_WEAK_LEN }; break; }
+    if (t >= s && t < s + W.len) { weak = { k, len: W.len, fam: fixFam || RAID_FAMS[hashSeed(state.gid + ':w' + k) % RAID_FAMS.length], until: state.startAt + s + W.len }; break; }
   }
-  for (let k = 0; state.boss !== 'teacher'; k++) {
-    const c = RAID_CTR_START + k * RAID_CTR_EVERY;
+  const C = ctrOf(state.boss);
+  for (let k = 0; state.boss !== 'teacher' && T.counter !== null; k++) {
+    const c = C.start + k * C.every;
     if (c >= dur - 3000) break;
-    if (t >= c - RAID_CTR_WARN && t < c) { counter = { k, phase: 'warn', at: state.startAt + c }; break; }
+    if (t >= c - C.warn && t < c) { counter = { k, phase: 'warn', at: state.startAt + c }; break; }
     if (t >= c && t < c + 1500) { counter = { k, phase: 'strike', at: state.startAt + c }; break; }
   }
   return { weak, counter };
@@ -4370,13 +4423,16 @@ function raidCalc(state, raw, now, tb) {
   const broken = parts.filter(p => p.broken).length;
   const bursts = Math.floor(totalN / G);
   const heal = state.boss === 'teacher' && tb ? (tb.heal || 0) : 0;   // 先生の回復
-  const hp = Math.min(hpMax, hpMax - total - bursts * burstDmg - broken * partBonus + heal);
+  const dealt = total + bursts * burstDmg + broken * partBonus;
+  const T = traitOf(state.boss);
+  const revived = !!(T.revive && dealt >= hpMax * 0.5);   // 魔王：体力が半分を切ると一度だけ回復（第2形態）
+  const hp = Math.min(hpMax, hpMax - dealt + heal + (revived ? Math.round(hpMax * T.revive) : 0));
   const r = hp / hpMax;
   const phase = r <= 0.25 ? 3 : r <= 0.5 ? 2 : r <= 0.75 ? 1 : 0;
   const chain = now ? rows.filter(e => e.last && now - e.last.at < 3000).length : 0;
   const teams = {};
   if (state.teamCount) rows.forEach(e => { const t = (state.teams || {})[e.u]; if (t != null) teams[t] = (teams[t] || 0) + (e.d || 0); });
-  return { rows: rows.sort((a, b) => b.d - a.d), total, totalN, hp, hpMax, parts, broken, bursts, burstDmg, partBonus, G, gauge: totalN % G, phase, chain, teams };
+  return { rows: rows.sort((a, b) => b.d - a.d), total, totalN, hp, hpMax, parts, broken, bursts, burstDmg, partBonus, G, gauge: totalN % G, phase, chain, teams, revived };
 }
 /* ボスのセリフのふきだし */
 function BossSay({ say, big }) {
@@ -4508,9 +4564,10 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
   const list = Object.entries(players).filter(([k, p]) => p && p.name && k !== me).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
   const boss = bossOf(state.boss, state); const tmode = state.boss === 'teacher';
   const minutes = state.minutes || 3, power = state.power || 'normal', teamCount = state.teamCount || 0;
-  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k);
+  const BT = traitOf(state.boss || 'dragon');
+  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k * (BT.hpK || 1));
   return (<>
-    <Card className="mb-4 text-center" style={{ background: 'linear-gradient(180deg,#e8fff6,#fff)' }}>
+    <Card className="mb-4 text-center">
       <div className="text-sm font-black" style={{ color: boss.color }}>🐉 クラス協力レイド</div>
       <div className="font-black tracking-widest my-1" style={{ color: COLORS.sky, fontSize: isHost ? 'clamp(3rem,10vw,6rem)' : '3rem', ...bFont }}>{code}</div>
       <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? 'みんなは部屋コードを入れて「参加」。先生（ホスト）の画面をプロジェクターに映してください' : 'エントリーしました！ 先生がスタートするのを待っています…'}</div>
@@ -4524,16 +4581,22 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
         <li>先生が正解するたびに<b>生徒全員に攻撃</b>（しびれ・おじゃまタイル・チョークの粉）＆先生の体力が少し回復</li>
         <li>直前に正解していれば「静かに！」はガードできる。先生の5コンボごとに<b>抜き打ちテスト</b></li>
         <li>弱点タイム・クラス総攻撃・部位（チョーク・出席簿・教科書）破壊はふつうのレイドと同じ</li>
-      </ul> : <ul className="text-[11px] font-bold text-left list-disc pl-5 mt-2" style={{ color: COLORS.inkSoft }}>
-        <li>ボスは体力が減ると怒り、ときどき<b>弱点</b>をさらす（弱点の型は2倍ダメージ）</li>
-        <li><b>反撃</b>の予告が出たら急いで正解！ 直前に正解していた人は守られる</li>
-        <li>みんなの正解で<b>クラス総攻撃ゲージ</b>がたまる。続けて正解すると<b>チェイン</b>でダメージアップ</li>
-        <li><b>角（Lv1〜3）・翼（Lv4〜6）・しっぽ（Lv7〜9）</b>をねらってこわすとボーナス</li>
-      </ul>}
+      </ul> : (<>
+        {BT.tag && <div className="mt-2 text-left rounded-xl px-3 py-2" style={{ background: `${boss.color}12`, borderLeft: `5px solid ${boss.color}` }}>
+          <div className="text-xs font-black mb-0.5" style={{ color: boss.color }}>このボスの個性：{BT.tag}</div>
+          <ul className="text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.ink }}>{BT.desc.map(d => <li key={d}>{d}</li>)}</ul>
+        </div>}
+        <ul className="text-[11px] font-bold text-left list-disc pl-5 mt-2" style={{ color: COLORS.inkSoft }}>
+          <li>ボスは体力が減ると怒る。{BT.weak === false ? '' : <>ときどき<b>弱点</b>をさらす（弱点の型は2倍ダメージ）</>}</li>
+          {BT.counter !== null && <li><b>反撃</b>の予告が出たら急いで正解！ 直前に正解していた人は守られる</li>}
+          <li>みんなの正解で<b>クラス総攻撃ゲージ</b>がたまる。続けて正解すると<b>チェイン</b>でダメージアップ</li>
+          {partsOf(state).length > 0 && <li><b>{partsOf(state).map((p, i) => `${p.name}（Lv${p.lv[0]}〜${p.lv[2]}）`).join('・')}</b>をねらってこわすとボーナス</li>}
+        </ul>
+      </>)}
     </Card>
     {isHost && <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ボス</div>
-      <div className="grid grid-cols-3 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="rounded-xl py-2 text-xs font-black shadow" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : COLORS.paperDark, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}</button>)}</div>
+      <div className="grid grid-cols-3 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-2 px-1 text-xs font-black" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : '#fff', border: `1.5px solid ${state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : 'var(--v7-line)'}`, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}<div className="text-[10px] font-bold opacity-80">{b.id === 'teacher' ? '先生と対決' : traitOf(b.id).tag}</div></button>)}</div>
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>制限時間</div>
       <Seg items={[[2, '2分'], [3, '3分'], [5, '5分'], [7, '7分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>ボスの強さ（体力は人数×時間で自動で決まります）</div>
@@ -4568,6 +4631,7 @@ function useRaidEvents(state, raw, calc, now, cb) {
     if (!S.init) { S.init = true; S.phase = calc.phase; S.bursts = calc.bursts; calc.parts.forEach(p => { S.broken[p.id] = p.broken; }); Object.entries(raw || {}).forEach(([u, e]) => { S.last[u] = e && e.last && e.last.at; }); }
     if (!S.started) { S.started = true; cb('start'); }
     if (calc.hp <= 0 || now >= state.endAt) return;
+    if (calc.revived && !S.revived) { S.revived = true; cb('revive'); }
     if (calc.phase > S.phase) { S.phase = calc.phase; cb('rage', calc.phase); }
     if (calc.bursts > S.bursts) { S.bursts = calc.bursts; cb('burst'); }
     calc.parts.forEach(p => { if (p.broken && !S.broken[p.id]) { S.broken[p.id] = true; cb('part', p); } });
@@ -4653,12 +4717,13 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
     if (ev === 'rage') { FX.band(`😡 怒りフェーズ ${x}`, { color: '#e63946', sub: `体力${[100, 75, 50, 25][x]}%を切った！`, ms: 1800 }); FX.shake(root, true); FX.flash('#ff0000', 0.3, 300); fxSound('roar', muted); speak(LN['rage' + x]); }
     if (ev === 'burst') { FX.band('⚡ クラス総攻撃！！', { color: '#7B61FF', sub: `みんなの正解がたまった！ ${calc.burstDmg}ダメージ`, ms: 2000 }); FX.flash('#fff', 0.7, 400); FX.confetti(40); sound.play('special'); speak(LN.burst); const bc = rectC(qs('[data-boss]')); if (bc) { FX.burst(bc.x, bc.y, { color: '#7B61FF', n: 40, r: 160, size: 14 }); FX.text(bc.x, bc.y, `-${calc.burstDmg}`, '#7B61FF', 56); } }
     if (ev === 'part') { FX.band(`💥 ${x.name}を破壊！`, { color: x.color, sub: `ボーナス ${calc.partBonus}ダメージ`, ms: 1800 }); fxSound('shatter', muted); FX.shards(rectC(qs('[data-boss]')), x.color); speak(LN.part(x)); }
-    if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: `${RAID_WEAK_LEN / 1000}秒間 ダメージ2倍！`, ms: 1800 }); sound.play('special'); speak(LN.weak(x)); }
+    if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: `${((sch0 => (sch0.weak && sch0.weak.len) || RAID_WEAK_LEN)(raidSchedule(state, fbNow()))) / 1000}秒間 ダメージ2倍！`, ms: 1800 }); sound.play('special'); speak(LN.weak(x)); }
+    if (ev === 'revive') { FX.band(`${boss.icon} 第2形態！！`, { color: '#5b2a86', sub: `体力が${Math.round((traitOf(state.boss).revive || 0) * 100)}%回復！ まだ終わらない！`, ms: 2400 }); FX.flash('#5b2a86', 0.6, 500); FX.shake(root, true); fxSound('roar', muted); speak(LN.revive || '…！'); }
     if (ev === 'warn') { speak(LN.warn); fxSound('roar', muted); }
     if (ev === 'strike') {
       FX.flash('#ff2020', 0.5, 400); FX.shake(root, true); sound.play('hit'); speak(LN.strike);
       const guarded = rows.filter(e => e.last && x.at - e.last.at <= RAID_CTR_GUARD && x.at - e.last.at >= -500).length;
-      FX.band('💢 ボスの反撃！', { color: '#b3402c', sub: `${guarded}人が正解して身を守った！`, ms: 1800 });
+      FX.band(ctrOf(state.boss).name + '！', { color: '#b3402c', sub: `${guarded}人が正解して身を守った！`, ms: 1800 });
     }
     if (ev === 'crit') { setCrit({ ...x, id: Math.random() }); setTimeout(() => setCrit(null), 2200); addFeed(`⭐ ${x.name} 会心の一撃！ Lv.${x.lv} Perfect ${x.d}ダメージ`, '#c99a00'); }
   });
@@ -4814,10 +4879,21 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
     if (ev === 'part') { FX.band(`💥 ${x.name}を破壊！`, { color: x.color, ms: 1400 }); }
     if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: 'ダメージ2倍！', ms: 1400 }); setSay({ text: LN.weak(x), id: Math.random() }); }
     if (ev === 'warn') { setSay({ text: LN.warn, id: Math.random() }); }
+    if (ev === 'revive') { FX.band(`${boss.icon} 第2形態！`, { color: '#5b2a86', sub: `体力が${Math.round((traitOf(state.boss).revive || 0) * 100)}%回復した！`, ms: 1800 }); FX.flash('#5b2a86', 0.4, 400); FX.shake(qs('.game-lock'), true); setSay({ text: LN.revive || '…！', id: Math.random() }); }
     if (ev === 'strike') {
+      // 反撃の中身はボスの個性しだい（しびれ・墨で見えにくい・おじゃまタイル）
+      const C = ctrOf(state.boss);
+      const stun = C.stunByPhase ? C.stunByPhase[calc.phase] || C.stunByPhase[0] : C.stun;
       const guarded = x.at - S.current.lastOk <= RAID_CTR_GUARD;
-      if (guarded) { FX.band('🛡 ガード成功！', { color: '#457b9d', sub: '正解していたので反撃をふせいだ', ms: 1400 }); }
-      else { setStunUntil(Date.now() + RAID_STUN); FX.flash('#ff2020', 0.45, 400); FX.shake(qs('.game-lock'), true); FX.band('💢 ボスの反撃！', { color: '#b3402c', sub: `${RAID_STUN / 1000}秒しびれた…`, ms: 1400 }); }
+      if (guarded) { FX.band('🛡 ガード成功！', { color: '#457b9d', sub: `正解していたので「${C.name.replace(/^\S+\s/, '')}」をふせいだ`, ms: 1400 }); }
+      else {
+        if (stun) setStunUntil(Date.now() + stun);
+        if (C.fog) setFogUntil(Date.now() + C.fog);
+        if (C.oj) ojRef.current = Math.min(4, ojRef.current + C.oj);
+        FX.flash(C.fog ? '#1a1033' : '#ff2020', 0.45, 400); FX.shake(qs('.game-lock'), true);
+        const what = [stun ? `${stun / 1000}秒しびれた` : '', C.fog ? `${C.fog / 1000}秒 見えにくい` : '', C.oj ? `おじゃまタイル+${C.oj}` : ''].filter(Boolean).join('・');
+        FX.band(C.name, { color: '#b3402c', sub: what + '…', ms: 1500 });
+      }
     }
   });
   // 出す問題のレベル：ねらう部位の範囲で、2問続けて正解で上がる／ミスで下がる。弱点タイムはその型の問題
@@ -4831,13 +4907,19 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
     if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
     return n;
   }, [range[0], range[1], weakFam && weakFam.id]);
-  const chainMul = 1 + 0.05 * Math.min(10, calc.chain);
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul, [weakFam && weakFam.id, chainMul]);
+  const BT = traitOf(state.boss);
+  const chainMul = 1 + (BT.chainK || 0.05) * Math.min(10, calc.chain);
+  // ボスの個性：レベルごとの得意・苦手（ゴーレムはかんたんな問題が効きにくい、など）
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul * ((BT.lvMul || {})[lv] || 1), [weakFam && weakFam.id, chainMul, state.boss]);
   if (now < state.startAt) return (
     <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center" style={{ background: V7_NIGHT }}>
       <FontImport />
       <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}>{boss.icon}</div>
       <div className="v7-wnd px-5 py-2 text-2xl font-black" style={{ color: '#fff', ...bFont }}>{boss.name} があらわれた！</div>
+      {traitOf(state.boss).tag && <div className="mt-2 text-center px-4" style={{ maxWidth: '28rem' }}>
+        <span className="v7-chip" style={{ background: boss.color }}>{traitOf(state.boss).tag}</span>
+        <div className="text-xs font-bold mt-1" style={{ color: '#AAB6E0' }}>{traitOf(state.boss).desc[0]}</div>
+      </div>}
       {team != null && <div className="mt-2 text-lg font-black rounded-full px-4 py-1 text-white" style={{ background: TEAM_INFO[team].color, ...bFont }}>あなたは {TEAM_INFO[team].name}</div>}
       <div className="mt-4" style={{ fontSize: '5rem', color: '#fff', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,.35)' }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
     </div>
@@ -4858,7 +4940,7 @@ function RaidClassPlay({ code, state, acct, who, onLeave }) {
         {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>⚡ しびれた！</div></div>}
       </>),
       topExtra: (<div style={{ flexShrink: 0 }} className="mb-1">
-        <div className="flex items-center gap-1 mb-1">
+        <div className="flex items-center gap-1 mb-1" style={{ display: partsOf(state).length ? undefined : 'none' }}>
           <span className="text-[10px] font-black shrink-0" style={{ color: COLORS.inkSoft }}>ねらう</span>
           {[['auto', 'おまかせ', COLORS.sky], ...partsOf(state).map(p => [p.id, `${p.name}${calc.parts.find(q => q.id === p.id).broken ? '✖' : ''}`, p.color])].map(([id, lb, col]) => {
             const br = id !== 'auto' && calc.parts.find(q => q.id === id).broken;
@@ -5254,7 +5336,7 @@ const FB_CONFIG = {
   appId: "1:254715782397:web:bda2fd2283b292db050a94"
 };
 const BATTLE_ROOM_TTL = 6 * 60 * 60 * 1000;
-const BATTLE_START_DELAY = 3000;   // 開始の合図からカウントダウン終了まで（3・2・1）
+const BATTLE_START_DELAY = 3800;   // 開始の合図からカウントダウン終了まで（暗転0.8秒＋3・2・1）
 const A_LOCK_MS = 2000;            // A：お手つきで操作できない時間（ハンデで短くなる）
 const A_NEXT_DELAY = 1100;         // A：だれかが正解してから次の問題が出るまで
 const A_LASTSPURT = 3;             // A：最後の3問は得点2倍
@@ -6249,7 +6331,19 @@ function BattleApp({ acct: who, onExit }) {
   const localRoom = practice || code === 'bot';   // 端末の中だけで動く部屋（CPU練習・すぐ遊ぶの代役）
 
   const players = useFbValue(code ? `rooms/${code}/players` : null) || {};
-  const state = useFbValue(code ? `rooms/${code}/state` : null);
+  const stateLive = useFbValue(code ? `rooms/${code}/state` : null);
+  // ver.7：新しい試合が始まるときは、いまの画面（ロビー・結果）の上で暗転してから対戦画面に切りかえる。
+  // 暗転が閉じきるまでは、ひとつ前の状態を表示に使う（カウントダウンと暗転がかさならない）
+  const [shownGid, setShownGid] = useState(null);
+  const prevState = useRef(null);
+  const newPlay = !!(stateLive && stateLive.phase === 'play' && stateLive.gid && shownGid !== stateLive.gid && prevState.current && prevState.current.gid !== stateLive.gid && fbNow() < stateLive.startAt - 400);
+  const state = newPlay ? prevState.current : stateLive;
+  if (!newPlay) prevState.current = stateLive;
+  useEffect(() => {
+    if (!newPlay) return;
+    const g = stateLive.gid;
+    v7Wipe(() => setShownGid(g));
+  }, [newPlay && stateLive.gid]);
   const isTour = !!(state && state.tour);
   const isRaid = !!(state && state.raid);
   // 先生用ダッシュボードに「いま何をしているか」を知らせる
@@ -6644,12 +6738,12 @@ function BattleApp({ acct: who, onExit }) {
   );
 
   // すぐ遊ぶ：相手を待つ画面
-  if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 }))} onCancel={() => { cancelQm(); setScr('home'); }} />);
+  if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })))} onCancel={() => { cancelQm(); setScr('home'); }} />);
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
   if (scr === 'home') return shell(
     <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => quickMatch()}
-      onCreate={createRoom} onJoin={joinRoom} onPractice={startPractice} onExit={onExit} onDash={() => setScr('dash')} />);
+      onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
   if (scr === 'dash') return <TeacherDash onBack={() => setScr('home')} onWatch={c => joinRoom(c, true)} />;
 
   if (scr === 'lobby' && state && state.phase === 'vote') return shell(<QmVote state={state} players={players} me={myUid()}
@@ -7371,8 +7465,8 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (v !== lastCd.current && v >= 1) { lastCd.current = v; sound.play('beep'); }
   }, [counting, cd]);
   useEffect(() => () => sound.bgm(false), []);
-  // ver.7：対戦に入るとき、時計回りに暗転
-  useEffect(() => { if (fbNow() < state.startAt) v7Wipe(); }, []);
+  // 大会の試合：READY のあいだに暗転して明ける（カウントダウンの数字とはかさならない）
+  useEffect(() => { if (state.tour && fbNow() < state.startAt - 2600) v7Wipe(null); }, []);
   useEffect(() => {
     const block = e => { if (e.cancelable && !(e.target.closest && e.target.closest('.fx-scroll'))) e.preventDefault(); };
     document.addEventListener('touchmove', block, { passive: false });
