@@ -2003,7 +2003,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               className="absolute font-mono font-bold"
               style={{ right: '0.25rem', bottom: '0.25rem', fontSize: '10px', color: COLORS.inkSoft, background: `${COLORS.paper}cc`, padding: '1px 6px', borderRadius: '4px' }}
             >
-              ver.5.4
+              ver.5.5
             </span>
           </div>
 
@@ -2828,6 +2828,13 @@ function fxSound(kind, muted) {
     if (kind === 'levelup' && s.pl) { ['G4', 'C5', 'E5', 'G5', 'C6'].forEach((x, i) => s.pl.triggerAttackRelease(x, 0.14, n + i * 0.08)); }
     if (kind === 'badge' && s.pl) { ['E5', 'G#5', 'B5', 'E6'].forEach((x, i) => s.pl.triggerAttackRelease(x, 0.18, n + i * 0.09)); }
     if (kind === 'tick' && s.pl) { s.pl.triggerAttackRelease('A5', 0.03, n); }
+    if (kind === 'roar') {
+      // ボスの雄たけび：低いうなり＋ざらざらした音
+      if (!s.roar) { s.roar = new Tone.MonoSynth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.05, decay: 0.5, sustain: 0.3, release: 0.5 }, filterEnvelope: { attack: 0.05, decay: 0.6, sustain: 0.2, baseFrequency: 90, octaves: 3 } }).toDestination(); s.roar.volume.value = -8; }
+      if (!s.noise) { s.noise = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.8, sustain: 0 } }).toDestination(); s.noise.volume.value = -10; }
+      s.roar.triggerAttackRelease('A1', 0.9, n); s.roar.frequency.rampTo('D1', 0.8, n + 0.1);
+      s.noise.triggerAttackRelease(0.9, n);
+    }
   } catch (e) {}
 }
 /* 体力が少ないときの赤いふち＋心臓の音 */
@@ -3597,13 +3604,107 @@ function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
   );
 }
 
-/* ---------- レイドで問題を解く画面（授業用・常設 共通） ---------- */
-function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, sessionInfo }) {
+/* ---------- レイドのしかけ（全員の画面で同じタイミングで起きる） ----------
+   ・怒りフェーズ：体力75%・50%・25%でボスが吠える（BGMも速くなる）
+   ・弱点タイム：20秒後から45秒ごとに15秒間、ある型が弱点（ダメージ2倍、その型の問題が出る）
+   ・ボスの反撃：35秒後から40秒ごと。4秒前に予告。直前5秒以内に正解していた人は守られ、それ以外は3秒しびれる
+   ・クラス総攻撃ゲージ：クラス全員の正解でたまり、満タンで大ダメージ（体力の6%）
+   ・連携チェイン：3秒以内に続けて正解がつながるほどダメージアップ（最大1.5倍）
+   ・部位破壊：角（Lv1〜3）・翼（Lv4〜6）・しっぽ（Lv7〜9）。こわすとボーナス（体力の8%）
+   ・班対抗：班ごとのダメージを表示 */
+const RAID_FAMS = [
+  { id: 'kyotsu', name: '共通因数', lv: [1, 2] },
+  { id: 'kihon', name: '基本の因数分解', lv: [3] },
+  { id: 'sa', name: '2乗の差', lv: [4] },
+  { id: 'tasuki', name: 'たすきがけ', lv: [5, 6, 8, 9] },
+  { id: 'sanjo', name: '3乗の和・差', lv: [7] },
+];
+const RAID_PARTS = [
+  { id: 'a', name: '角', lv: [1, 2, 3], color: '#43C97B' },
+  { id: 'b', name: '翼', lv: [4, 5, 6], color: '#6BAEE8' },
+  { id: 'c', name: 'しっぽ', lv: [7, 8, 9], color: '#B5487E' },
+];
+const partOfLv = lv => lv <= 3 ? 'a' : lv <= 6 ? 'b' : 'c';
+const TEAM_INFO = [{ name: '赤組', color: '#e63946' }, { name: '青組', color: '#1d6fd8' }, { name: '黄組', color: '#e0a800' }, { name: '緑組', color: '#2a9d8f' }];
+const BOSS_LINES = {
+  appear: b => `わたしは${b.name}…。おまえたちに因数分解ができるかな？`,
+  rage1: 'ぐぬぬ…なかなかやるな！',
+  rage2: 'もう手かげんはせんぞ！！',
+  rage3: 'ば、ばかな…！ 本気を見せてやる！！！',
+  warn: '力をためている…（正解して身を守れ！）',
+  strike: 'くらえッ！！',
+  weak: f => `しまった…「${f.name}」が弱点だとバレたか！`,
+  part: p => `ぐあぁ！ わたしの${p.name}が…！`,
+  burst: 'な、なんだこの力は…クラス全員の力か！？',
+  defeat: 'み、見事だ…。おまえたちの因数分解、みとめよう…',
+  timeout: 'ふはは！ 時間切れだ！ また挑んでくるがいい！',
+};
+const RAID_WEAK_START = 20000, RAID_WEAK_EVERY = 45000, RAID_WEAK_LEN = 15000;
+const RAID_CTR_START = 35000, RAID_CTR_EVERY = 40000, RAID_CTR_WARN = 4000, RAID_CTR_GUARD = 5000, RAID_STUN = 3000;
+function raidSchedule(state, now) {
+  const t = now - state.startAt, dur = state.endAt - state.startAt;
+  let weak = null, counter = null;
+  for (let k = 0; ; k++) {
+    const s = RAID_WEAK_START + k * RAID_WEAK_EVERY;
+    if (s >= dur) break;
+    if (t >= s && t < s + RAID_WEAK_LEN) { weak = { k, fam: RAID_FAMS[hashSeed(state.gid + ':w' + k) % RAID_FAMS.length], until: state.startAt + s + RAID_WEAK_LEN }; break; }
+  }
+  for (let k = 0; ; k++) {
+    const c = RAID_CTR_START + k * RAID_CTR_EVERY;
+    if (c >= dur - 3000) break;
+    if (t >= c - RAID_CTR_WARN && t < c) { counter = { k, phase: 'warn', at: state.startAt + c }; break; }
+    if (t >= c && t < c + 1500) { counter = { k, phase: 'strike', at: state.startAt + c }; break; }
+  }
+  return { weak, counter };
+}
+/* 全員の記録から、ボスの体力・部位・ゲージ・班などを計算（全員が同じ計算をする） */
+function raidCalc(state, raw, now) {
+  const rows = Object.entries(raw || {}).map(([u, e]) => ({ u, ...e })).filter(e => e && e.d != null);
+  const total = rows.reduce((a, e) => a + (e.d || 0), 0);
+  const totalN = rows.reduce((a, e) => a + (e.n || 0), 0);
+  const hpMax = state.hpMax || 1;
+  const partHP = Math.round(hpMax * 0.15), partBonus = Math.round(hpMax * 0.08), burstDmg = Math.round(hpMax * 0.06);
+  const G = Math.max(10, rows.length * 3);
+  const parts = RAID_PARTS.map(p => { const d = rows.reduce((a, e) => a + ((e.dp && e.dp[p.id]) || 0), 0); return { ...p, d, hp: partHP, broken: d >= partHP }; });
+  const broken = parts.filter(p => p.broken).length;
+  const bursts = Math.floor(totalN / G);
+  const hp = hpMax - total - bursts * burstDmg - broken * partBonus;
+  const r = hp / hpMax;
+  const phase = r <= 0.25 ? 3 : r <= 0.5 ? 2 : r <= 0.75 ? 1 : 0;
+  const chain = now ? rows.filter(e => e.last && now - e.last.at < 3000).length : 0;
+  const teams = {};
+  if (state.teamCount) rows.forEach(e => { const t = (state.teams || {})[e.u]; if (t != null) teams[t] = (teams[t] || 0) + (e.d || 0); });
+  return { rows: rows.sort((a, b) => b.d - a.d), total, totalN, hp, hpMax, parts, broken, bursts, burstDmg, partBonus, G, gauge: totalN % G, phase, chain, teams };
+}
+/* ボスのセリフのふきだし */
+function BossSay({ say, big }) {
+  if (!say) return null;
+  return <div key={say.id} className="rounded-2xl px-3 py-1.5 shadow-lg font-black text-center" style={{ background: '#fff', color: '#5b2a86', border: '3px solid #5b2a86', fontSize: big ? 'clamp(1rem, 2.4vw, 1.6rem)' : '0.75rem', animation: 'fxEnter 300ms both', ...bFont }}>💬 {say.text}</div>;
+}
+/* 部位のゲージ */
+function PartBars({ parts, big }) {
+  return (
+    <div className="grid grid-cols-3 gap-1 mt-1">
+      {parts.map(p => (
+        <div key={p.id} className="rounded-lg px-1.5 py-0.5" style={{ background: p.broken ? '#ddd' : '#fff', border: `2px solid ${p.color}` }}>
+          <div className="flex items-baseline justify-between gap-1 font-black leading-tight" style={{ fontSize: big ? 'clamp(0.7rem, 1.6vw, 1rem)' : '0.6rem', color: p.color, whiteSpace: 'nowrap', overflow: 'hidden' }}><span>{p.broken ? '💥' : ''}{p.name}</span><span style={{ color: COLORS.inkSoft, fontSize: '0.8em' }}>Lv{p.lv[0]}-{p.lv[2]}</span></div>
+          <div className="rounded-full overflow-hidden" style={{ height: big ? 8 : 5, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${p.broken ? 0 : Math.max(0, 1 - p.d / p.hp) * 100}%`, background: p.color }} /></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- レイドで問題を解く画面（授業用・常設 共通） ----------
+   opts（授業用だけ）：pickLevel(前のLv, 'init'|'ok'|'miss') → 次のLv、dmgMul(lv) → 倍率、stunUntil、overlay、topExtra */
+function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, sessionInfo, opts, bossExtra }) {
+  const o = opts || {};
   const [muted, setMuted] = useState(false);
   const sound = useBattleSound(muted);
   const seen = useRef(new Set());
-  const S = useRef({ lv: 1, streak: 0, combo: 0, dmg: 0, n: 0, pf: 0, best: 0, stunUntil: 0, qs: Date.now() });
-  const [prob, setProb] = useState(() => { const b = buildBoard(1, seen.current, 6); return { level: 1, ...b }; });
+  const S = useRef({ lv: 1, streak: 0, combo: 0, dmg: 0, n: 0, pf: 0, best: 0, stunUntil: 0, qs: Date.now(), dp: { a: 0, b: 0, c: 0 } });
+  const firstLv = o.pickLevel ? o.pickLevel(1, 'init') : 1;
+  const [prob, setProb] = useState(() => { const b = buildBoard(firstLv, seen.current, 6); return { level: firstLv, ...b }; });
   const [flash, setFlash] = useState({});
   const [judge, setJudge] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -3611,6 +3712,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   useTick(200, true);
   useEffect(() => { sound.bgm(true); return () => sound.bgm(false); }, []);
   useEffect(() => { if (ended) sound.bgm(false); }, [ended]);
+  useEffect(() => { if (o.bgmRate) sound.bgmRate(o.bgmRate); }, [o.bgmRate]);
   useEffect(() => {
     const block = e => { if (e.cancelable && !(e.target.closest && e.target.closest('.fx-scroll'))) e.preventDefault(); };
     document.addEventListener('touchmove', block, { passive: false });
@@ -3618,28 +3720,36 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   }, []);
   const s = S.current;
   const nextProb = lv => { const b = buildBoard(lv, seen.current, 6); setProb({ level: lv, ...b }); setFlash({}); setBusy(false); s.qs = Date.now(); };
+  // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
+  const forceKey = o.forceKey || '';
+  const lastForce = useRef(forceKey);
+  useEffect(() => { if (lastForce.current !== forceKey) { lastForce.current = forceKey; if (!busy && o.pickLevel) nextProb(o.pickLevel(prob.level, 'init')); } }, [forceKey]);
+  const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
   const onMatch = useCallback((id1, id2) => {
-    if (busy || ended || Date.now() < s.stunUntil) return;
+    if (busy || ended || stunned()) return;
     const t1 = prob.tiles.find(t => t.id === id1), t2 = prob.tiles.find(t => t.id === id2);
     if (!t1 || !t2) return;
     const ms = Date.now() - s.qs;
     const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
     if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
       const j = getJudgment(ms);
-      const d = raidDamage(prob.level, j.label, s.combo);
+      const mul = o.dmgMul ? o.dmgMul(prob.level) : 1;
+      const d = Math.round(raidDamage(prob.level, j.label, s.combo) * mul);
       s.combo++; s.best = Math.max(s.best, s.combo); s.dmg += d; s.n++; if (j.label === 'Perfect') s.pf++;
+      s.dp[partOfLv(prob.level)] += d;
       s.streak++;
       setBusy(true); setFlash({ [id1]: 'correct', [id2]: 'correct' });
       fxMerge(els, j.color);
       sound.play('ok', 1 + Math.min(s.combo, 15) * 0.035);
-      setJudge({ label: j.label, color: j.color }); setTimeout(() => setJudge(null), 600);
+      setJudge({ label: mul > 1.01 ? `${j.label} ×${mul.toFixed(1)}` : j.label, color: j.color }); setTimeout(() => setJudge(null), 600);
       setTimeout(() => {
         const tg = rectC(qs('[data-fxtarget]')), bc = rectC(qs('[data-boss]'));
-        FX.fly(tg, bc, { color: '#ff7b00', label: d, big: d >= 40, dur: 420, onEnd: () => { if (bc) { FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 16, r: 70 }); FX.text(bc.x, bc.y - 10, `-${d}`, '#ff2e2e', d >= 40 ? 34 : 26); } setHitKey(k => k + 1); sound.play('hit'); } });
+        FX.fly(tg, bc, { color: mul >= 2 ? '#ff2e63' : '#ff7b00', label: d, big: d >= 40, dur: 420, onEnd: () => { if (bc) { FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 16, r: 70 }); FX.text(bc.x, bc.y - 10, `-${d}`, '#ff2e2e', d >= 40 ? 34 : 26); } setHitKey(k => k + 1); sound.play('hit'); } });
       }, 300);
-      onHit && onHit(d, { j: j.label, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms, combo: s.combo, pf: s.pf, best: s.best, total: s.dmg, n: s.n });
+      onHit && onHit(d, { j: j.label, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms, combo: s.combo, pf: s.pf, best: s.best, total: s.dmg, n: s.n, dp: { ...s.dp } });
       let lv = prob.level;
-      if (s.streak >= 2 && lv < 9) { lv++; s.streak = 0; }
+      if (o.pickLevel) { lv = o.pickLevel(lv, s.streak >= 2 ? 'up' : 'ok'); if (s.streak >= 2) s.streak = 0; }
+      else if (s.streak >= 2 && lv < 9) { lv++; s.streak = 0; }
       setTimeout(() => nextProb(lv), 420);
     } else {
       sound.play('buzz'); s.combo = 0; s.streak = 0;
@@ -3647,31 +3757,34 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
       FX.shake(els[0] && els[0].parentElement);
       s.stunUntil = Date.now() + 1200;
       onHit && onHit(0, { miss: true, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms });
-      const lv = Math.max(1, prob.level - 1);
+      const lv = o.pickLevel ? o.pickLevel(prob.level, 'miss') : Math.max(1, prob.level - 1);
       setBusy(true);
       setTimeout(() => nextProb(lv), 900);
     }
-  }, [busy, ended, prob]);
+  }, [busy, ended, prob, o.dmgMul, o.pickLevel]);
   const left = endAt ? endAt - fbNow() : null;
+  const isStun = stunned();
   return (
     <div className="game-lock w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
       <FontImport />
       <JudgePop judge={judge} />
       <ComboAura combo={s.combo} />
+      {o.overlay}
       <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>
         <div className="flex items-center justify-between mb-1" style={{ flexShrink: 0 }}>
           <button onClick={() => { if (window.confirm('レイドをぬけますか？')) onQuit(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>✕ ぬける</button>
           <div className="text-xs font-black rounded-full px-3 py-0.5 text-white" style={{ background: boss.color, ...bFont }}>{title}</div>
           <button onClick={() => setMuted(m => !m)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>{muted ? '🔇' : '🔊'}</button>
         </div>
-        <div className="mb-1"><BossPanel boss={boss} hp={hp} max={max} timeLeft={left} hitKey={hitKey} /></div>
+        <div className="mb-1"><BossPanel boss={boss} hp={hp} max={max} timeLeft={left} hitKey={hitKey} extra={bossExtra} /></div>
         <div className="flex items-center gap-2 mb-1" style={{ flexShrink: 0 }}>
           {statBox('あなたのダメージ', s.dmg.toLocaleString(), '#ff7b00')}{statBox('レベル', `Lv.${prob.level}`, LEVEL_INFO[prob.level].color)}{statBox('COMBO', s.combo, s.combo ? COLORS.coral : null)}
         </div>
+        {o.topExtra}
         {sessionInfo}
         {ended ? <div className="fx-scroll flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>{footer}</div> : (<>
-          <TargetCard poly={prob.poly} level={prob.level} qLabel={Date.now() < s.stunUntil ? 'ひるみ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} />
-          <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || Date.now() < s.stunUntil} dim={Date.now() < s.stunUntil} flash={flash} />
+          <TargetCard poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} />
+          <BattleBoard tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} />
           <p className="text-center text-[10px] mt-1" style={{ color: COLORS.inkSoft, flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
         </>)}
       </div>
@@ -3683,7 +3796,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
 function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStart, onLeave }) {
   const list = Object.entries(players).filter(([k, p]) => p && p.name && k !== me).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
   const boss = bossOf(state.boss);
-  const minutes = state.minutes || 3, power = state.power || 'normal';
+  const minutes = state.minutes || 3, power = state.power || 'normal', teamCount = state.teamCount || 0;
   const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k);
   return (<>
     <Card className="mb-4 text-center" style={{ background: 'linear-gradient(180deg,#e8fff6,#fff)' }}>
@@ -3694,7 +3807,13 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
     <Card className="mb-4 text-center">
       <div style={{ fontSize: '5rem', animation: 'fxPulseGold 1.6s ease-in-out infinite' }}>{boss.icon}</div>
       <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name}</div>
-      <div className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}</div>
+      <div className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}{teamCount ? ` ・ ${teamCount}チーム対抗` : ''}</div>
+      <ul className="text-[11px] font-bold text-left list-disc pl-5 mt-2" style={{ color: COLORS.inkSoft }}>
+        <li>ボスは体力が減ると怒り、ときどき<b>弱点</b>をさらす（弱点の型は2倍ダメージ）</li>
+        <li><b>反撃</b>の予告が出たら急いで正解！ 直前に正解していた人は守られる</li>
+        <li>みんなの正解で<b>クラス総攻撃ゲージ</b>がたまる。続けて正解すると<b>チェイン</b>でダメージアップ</li>
+        <li><b>角（Lv1〜3）・翼（Lv4〜6）・しっぽ（Lv7〜9）</b>をねらってこわすとボーナス</li>
+      </ul>
     </Card>
     {isHost && <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ボス</div>
@@ -3703,12 +3822,14 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
       <Seg items={[[2, '2分'], [3, '3分'], [5, '5分'], [7, '7分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>ボスの強さ（体力は人数×時間で自動で決まります）</div>
       <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
+      <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>班対抗（参加した順に自動で分けます）</div>
+      <Seg items={[[0, 'なし'], [2, '2チーム'], [3, '3チーム'], [4, '4チーム']]} cur={teamCount} onPick={v => onRule({ teamCount: v })} />
     </Card>}
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>参加者（{list.length}人）</div>
       {list.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだだれも来ていません</p> : (
         <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${isHost ? '8.5rem' : '6.5rem'}, 1fr))` }}>
-          {list.map(([k, p], i) => <div key={k} className="rounded-lg px-2 py-1 text-sm font-bold truncate" style={{ background: k === me ? `${COLORS.sky}33` : COLORS.paperDark, color: COLORS.ink, animation: `fxEnter 420ms ${Math.min(i, 20) * 30}ms both`, ...bFont }}>{p.nick ? <Nick id={p.nick} size={8} block /> : null}{p.name}</div>)}
+          {list.map(([k, p], i) => <div key={k} className="rounded-lg px-2 py-1 text-sm font-bold truncate" style={{ background: k === me ? `${COLORS.sky}33` : COLORS.paperDark, color: COLORS.ink, borderLeft: teamCount ? `5px solid ${TEAM_INFO[i % teamCount].color}` : 'none', animation: `fxEnter 420ms ${Math.min(i, 20) * 30}ms both`, ...bFont }}>{p.nick ? <Nick id={p.nick} size={8} block /> : null}{p.name}</div>)}
         </div>
       )}
     </Card>
@@ -3719,69 +3840,114 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
 
 /* 授業用レイドの記録を読む（だれが何ダメージ与えたか） */
 function useRaidTally(code, gid) {
-  const v = useFbValue(code && gid ? `rooms/${code}/rd/${gid}` : null) || {};
-  return useMemo(() => {
-    const rows = Object.entries(v).map(([u, e]) => ({ u, ...e })).filter(e => e && e.d != null);
-    const total = rows.reduce((a, e) => a + (e.d || 0), 0);
-    return { rows: rows.sort((a, b) => b.d - a.d), total, raw: v };
-  }, [v]);
+  return useFbValue(code && gid ? `rooms/${code}/rd/${gid}` : null) || {};
 }
-/* 実況：だれかの最後の一撃が変わったら流す */
-function useRaidFeed(raw) {
-  const [feed, setFeed] = useState([]);
-  const prev = useRef({});
+/* レイドの出来事を見張って、演出の合図を出す（プロジェクターと参加者の両方で使う） */
+function useRaidEvents(state, raw, calc, now, cb) {
+  const seen = useRef(null);
+  if (!seen.current) seen.current = { phase: 0, bursts: 0, broken: {}, weak: -1, ctr: {}, last: {}, started: false, init: false };
   useEffect(() => {
+    const S = seen.current;
+    if (now < state.startAt) return;
+    if (!S.init) { S.init = true; S.phase = calc.phase; S.bursts = calc.bursts; calc.parts.forEach(p => { S.broken[p.id] = p.broken; }); Object.entries(raw || {}).forEach(([u, e]) => { S.last[u] = e && e.last && e.last.at; }); }
+    if (!S.started) { S.started = true; cb('start'); }
+    if (calc.hp <= 0 || now >= state.endAt) return;
+    if (calc.phase > S.phase) { S.phase = calc.phase; cb('rage', calc.phase); }
+    if (calc.bursts > S.bursts) { S.bursts = calc.bursts; cb('burst'); }
+    calc.parts.forEach(p => { if (p.broken && !S.broken[p.id]) { S.broken[p.id] = true; cb('part', p); } });
+    const sch = raidSchedule(state, now);
+    if (sch.weak && sch.weak.k !== S.weak) { S.weak = sch.weak.k; cb('weak', sch.weak.fam); }
+    if (sch.counter) { const key = sch.counter.k + sch.counter.phase; if (!S.ctr[key]) { S.ctr[key] = 1; cb(sch.counter.phase === 'warn' ? 'warn' : 'strike', sch.counter); } }
     Object.entries(raw || {}).forEach(([u, e]) => {
-      const l = e && e.last; if (!l || prev.current[u] === l.at) return;
-      prev.current[u] = l.at;
-      if (l.j === 'Perfect' || l.d >= 40 || (l.c && l.c % 5 === 0)) setFeed(f => [...f.slice(-5), { id: `${u}${l.at}`, txt: `${l.j === 'Perfect' ? '⭐' : '💥'} ${e.name}${l.c >= 5 ? ` ${l.c}コンボ` : ''} ${l.j === 'Perfect' ? 'Perfect！' : ''} ${l.d}ダメージ`, color: l.j === 'Perfect' ? '#c99a00' : '#e76f51' }]);
+      const l = e && e.last;
+      if (!l || S.last[u] === l.at) return;
+      S.last[u] = l.at;
+      if (l.lv >= 7 && l.j === 'Perfect') cb('crit', { u, name: e.name, d: l.d, lv: l.lv });
     });
-  }, [raw]);
-  return feed;
+  });
 }
 
 /* ---------- 授業用レイド：プロジェクター（先生）・観戦の画面 ---------- */
 function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
-  const { rows, total, raw } = useRaidTally(code, state.gid);
-  const feed = useRaidFeed(raw);
+  const raw = useRaidTally(code, state.gid);
   useTick(250, true);
-  const boss = bossOf(state.boss);
-  const hp = state.hpMax - total;
   const now = fbNow();
+  const calc = useMemo(() => raidCalc(state, raw, now), [raw, Math.floor(now / 500)]);
+  const { rows, hp } = calc;
+  const boss = bossOf(state.boss);
   const counting = now < state.startAt;
   const left = state.endAt - now;
   const won = hp <= 0, over = won || left <= 0;
-  // プロジェクター（先生の画面）の音：カウントダウン・BGM・攻撃の音・勝ち負け
+  const sch = raidSchedule(state, now);
   const [muted, setMuted] = useState(false);
   const sound = useBattleSound(muted);
+  const [say, setSay] = useState(null);
+  const [crit, setCrit] = useState(null);
+  const [feed, setFeed] = useState([]);
+  const addFeed = (txt, color) => setFeed(f => [...f.slice(-5), { id: Math.random(), txt, color }]);
+  const speak = text => setSay({ text, id: Math.random() });
   const cdRef = useRef(null), hitT = useRef(0);
   const cd = Math.ceil((state.startAt - now) / 1000);
+  // 入場：ボスがあらわれる
+  const appeared = useRef(false);
+  useEffect(() => {
+    if (appeared.current || !counting) return;
+    appeared.current = true;
+    setTimeout(() => { FX.band(`${boss.icon} ${boss.name} があらわれた！`, { color: boss.color, ms: 2200 }); fxSound('roar', muted); FX.shake(qs('.fx-raid-root'), true); speak(BOSS_LINES.appear(boss)); }, 200);
+  }, [counting]);
   useEffect(() => {
     if (over) return;
     if (counting) { if (cd !== cdRef.current && cd >= 1 && cd <= 3) { cdRef.current = cd; sound.play('beep'); } return; }
     if (cdRef.current !== 0) { cdRef.current = 0; sound.play('go'); sound.bgm(true); }
   }, [counting, cd, over]);
-  const hurry = !over && !counting && (left < 30000 || hp < state.hpMax * 0.3);
-  useEffect(() => { sound.bgmRate(hurry ? 1.2 : 1); }, [hurry]);
-  useEffect(() => { if (over) { sound.bgm(false); sound.play(won ? 'clear' : 'lose'); } }, [over]);
+  useEffect(() => { sound.bgmRate(over || counting ? 1 : [1, 1.08, 1.16, 1.26][calc.phase] * (left < 30000 ? 1.08 : 1)); }, [calc.phase, left < 30000, over, counting]);
   useEffect(() => () => sound.bgm(false), []);
-  const [hitKey, setHitKey] = useState(0);
-  const lastTotal = useRef(0);
+  // 攻撃の音と数字
   useEffect(() => {
-    const d = total - lastTotal.current; lastTotal.current = total;
-    if (d > 0 && Date.now() - hitT.current > 140) { hitT.current = Date.now(); sound.play(d >= 40 ? 'special' : 'hit'); }
-    if (d > 0) { setHitKey(k => k + 1); const bc = rectC(qs('[data-boss]')); if (bc) { FX.text(bc.x + (Math.random() - 0.5) * 120, bc.y - 20, `-${d}`, '#ff2e2e', 30); FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 10, r: 60 }); } }
-  }, [total]);
+    if (counting) return;
+    const t = calc.total;
+    if (t > (hitT.cur || 0)) {
+      const d = t - (hitT.cur || 0);
+      if (Date.now() - hitT.current > 140) { hitT.current = Date.now(); sound.play(d >= 40 ? 'special' : 'hit'); }
+      const bc = rectC(qs('[data-boss]')); if (bc) { FX.text(bc.x + (Math.random() - 0.5) * 140, bc.y - 20, `-${d}`, '#ff2e2e', 30); FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 10, r: 60 }); FX.shake(qs('[data-boss]')); }
+    }
+    hitT.cur = t;
+  }, [calc.total]);
+  // 出来事の演出
+  useRaidEvents(state, raw, calc, now, (ev, x) => {
+    const root = qs('.fx-raid-root');
+    if (ev === 'rage') { FX.band(`😡 怒りフェーズ ${x}`, { color: '#e63946', sub: `体力${[100, 75, 50, 25][x]}%を切った！`, ms: 1800 }); FX.shake(root, true); FX.flash('#ff0000', 0.3, 300); fxSound('roar', muted); speak(BOSS_LINES['rage' + x]); }
+    if (ev === 'burst') { FX.band('⚡ クラス総攻撃！！', { color: '#7B61FF', sub: `みんなの正解がたまった！ ${calc.burstDmg}ダメージ`, ms: 2000 }); FX.flash('#fff', 0.7, 400); FX.confetti(40); sound.play('special'); speak(BOSS_LINES.burst); const bc = rectC(qs('[data-boss]')); if (bc) { FX.burst(bc.x, bc.y, { color: '#7B61FF', n: 40, r: 160, size: 14 }); FX.text(bc.x, bc.y, `-${calc.burstDmg}`, '#7B61FF', 56); } }
+    if (ev === 'part') { FX.band(`💥 ${x.name}を破壊！`, { color: x.color, sub: `ボーナス ${calc.partBonus}ダメージ`, ms: 1800 }); fxSound('shatter', muted); FX.shards(rectC(qs('[data-boss]')), x.color); speak(BOSS_LINES.part(x)); }
+    if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: `${RAID_WEAK_LEN / 1000}秒間 ダメージ2倍！`, ms: 1800 }); sound.play('special'); speak(BOSS_LINES.weak(x)); }
+    if (ev === 'warn') { speak(BOSS_LINES.warn); fxSound('roar', muted); }
+    if (ev === 'strike') {
+      FX.flash('#ff2020', 0.5, 400); FX.shake(root, true); sound.play('hit'); speak(BOSS_LINES.strike);
+      const guarded = rows.filter(e => e.last && x.at - e.last.at <= RAID_CTR_GUARD && x.at - e.last.at >= -500).length;
+      FX.band('💢 ボスの反撃！', { color: '#b3402c', sub: `${guarded}人が正解して身を守った！`, ms: 1800 });
+    }
+    if (ev === 'crit') { setCrit({ ...x, id: Math.random() }); setTimeout(() => setCrit(null), 2200); addFeed(`⭐ ${x.name} 会心の一撃！ Lv.${x.lv} Perfect ${x.d}ダメージ`, '#c99a00'); }
+  });
+  // 決着：撃破ならラストアタック
   const shown = useRef(false);
   useEffect(() => {
     if (!over || shown.current) return; shown.current = true;
-    if (won) { FX.band('🎉 ボス撃破！', { color: '#d4a017', sub: `${rows.length}人の力を合わせて勝利！`, ms: 2600 }); FX.confetti(100); fxSound('levelup'); }
-    else FX.band('⏱ タイムアップ…', { color: '#457b9d', sub: `のこり体力 ${Math.ceil(hp)}`, ms: 2400 });
+    sound.bgm(false); sound.play(won ? 'clear' : 'lose');
+    if (won) {
+      const lh = [...rows].filter(e => e.last).sort((a, b) => b.last.at - a.last.at)[0];
+      if (lh && isHost && !state.lastHit) fref(`rooms/${code}/state`).update({ lastHit: lh.u }).catch(() => {});
+      FX.band('🎉 ボス撃破！', { color: '#d4a017', sub: `${rows.length}人の力を合わせて勝利！`, ms: 2400 }); FX.confetti(120); fxSound('levelup', muted); fxSound('roar', muted);
+      if (lh) setTimeout(() => FX.band(`🗡 LAST ATTACK ${lh.name}！`, { color: '#e63946', ms: 2400 }), 2500);
+      speak(BOSS_LINES.defeat);
+    } else { FX.band('⏱ タイムアップ…', { color: '#457b9d', sub: `のこり体力 ${Math.ceil(hp)}`, ms: 2400 }); speak(BOSS_LINES.timeout); }
   }, [over]);
   const mvp = rows[0];
   const pfKing = [...rows].sort((a, b) => (b.pf || 0) - (a.pf || 0))[0];
   const comboKing = [...rows].sort((a, b) => (b.mc || 0) - (a.mc || 0))[0];
-  return (<>
+  const lastHitRow = state.lastHit ? rows.find(r => r.u === state.lastHit) : null;
+  const tc = state.teamCount || 0;
+  const teamMax = Math.max(1, ...Object.values(calc.teams));
+  return (<div className="fx-raid-root">
     <div className="flex items-center justify-between mb-3 gap-2">
       <button onClick={() => { if (!isHost || window.confirm('レイドを閉じますか？')) onLeave(); }} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: COLORS.inkSoft }}>← {isHost ? 'レイドを閉じる' : '観戦をやめる'}</button>
       <div className="flex items-center gap-2">
@@ -3789,16 +3955,52 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
         <div className="text-xs font-black rounded-full px-3 py-1 text-white" style={{ background: boss.color }}>🐉 クラス協力レイド ・ 部屋{code} ・ {rows.length}人参加</div>
       </div>
     </div>
-    {counting ? <Card className="mb-3 text-center"><div className="text-5xl font-black" style={{ color: boss.color, ...bFont }}>まもなく開始 {Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div></Card>
-      : <div className="mb-3"><BossPanel boss={boss} hp={hp} max={state.hpMax} timeLeft={over ? 0 : left} big hitKey={hitKey} extra={<div className="text-sm font-black mt-1" style={{ color: COLORS.inkSoft }}>みんなの合計ダメージ {total.toLocaleString()}</div>} /></div>}
+    {counting ? <Card className="mb-3 text-center">
+      <div style={{ fontSize: 'clamp(6rem, 18vw, 12rem)', animation: 'fxVsPop 900ms both' }}>{boss.icon}</div>
+      <div className="text-4xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name}</div>
+      <div className="text-6xl font-black mt-2" style={{ color: COLORS.ink, ...bFont }}>{Math.max(1, cd)}</div>
+    </Card> : (<>
+      <div className="mb-2"><BossPanel boss={boss} hp={hp} max={state.hpMax} timeLeft={over ? 0 : left} big hitKey={0}
+        extra={<><PartBars parts={calc.parts} big />
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs font-black shrink-0" style={{ color: '#7B61FF' }}>⚡総攻撃</span>
+            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 12, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${calc.gauge / calc.G * 100}%`, background: 'linear-gradient(90deg,#7B61FF,#ff2e63)', transition: 'width 300ms' }} /></div>
+            <span className="text-xs font-black shrink-0" style={{ color: '#7B61FF' }}>{calc.gauge}/{calc.G}</span>
+          </div></>} /></div>
+      {!over && <div className="grid gap-2 mb-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))' }}>
+        <BossSay say={say} big />
+        {calc.chain >= 2 && <div className="rounded-2xl px-3 py-1.5 text-center font-black text-white shadow" style={{ background: 'linear-gradient(90deg,#ff7b00,#ff2e63)', fontSize: 'clamp(1.2rem,3vw,2rem)', animation: 'fxPulseGold 700ms infinite', ...bFont }}>🔗 {calc.chain} チェイン！ ×{(1 + 0.05 * Math.min(10, calc.chain)).toFixed(2)}</div>}
+        {sch.weak && <div className="rounded-2xl px-3 py-1.5 text-center font-black text-white shadow" style={{ background: '#ff7b00', fontSize: 'clamp(1.1rem,2.6vw,1.8rem)', ...bFont }}>🎯 弱点：{sch.weak.fam.name}（あと{Math.ceil((sch.weak.until - now) / 1000)}秒）</div>}
+        {sch.counter && sch.counter.phase === 'warn' && <div className="rounded-2xl px-3 py-1.5 text-center font-black text-white shadow animate-pulse" style={{ background: '#b3402c', fontSize: 'clamp(1.1rem,2.6vw,1.8rem)', ...bFont }}>⚠ ボスの反撃まで {Math.ceil((sch.counter.at - now) / 1000)}… いま正解して身を守れ！</div>}
+      </div>}
+      {crit && <div className="fixed inset-x-0 flex justify-center pointer-events-none" style={{ top: '30%', zIndex: 96 }}>
+        <div key={crit.id} className="rounded-3xl px-8 py-4 text-center shadow-2xl" style={{ background: 'linear-gradient(90deg,#fff3c4,#ffd54a)', border: '4px solid #e8a33d', animation: 'fxVsPop 500ms both' }}>
+          <div className="font-black" style={{ color: '#9a6a12', fontSize: 'clamp(1rem,2.4vw,1.6rem)' }}>⭐ 会心の一撃！ Lv.{crit.lv} Perfect</div>
+          <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(2.4rem,7vw,5rem)', ...bFont }}>{crit.name}</div>
+          <div className="font-black" style={{ color: '#e63946', fontSize: 'clamp(1.2rem,3vw,2.2rem)' }}>{crit.d} ダメージ！</div>
+        </div>
+      </div>}
+    </>)}
     {over && <Card className="mb-3 text-center">
       <div className="text-3xl font-black mb-2" style={{ color: won ? '#d4a017' : COLORS.sky, ...bFont }}>{won ? '🎉 撃破成功！' : '⏱ 時間切れ… 次こそ！'}</div>
-      <div className="grid grid-cols-3 gap-2">
+      <BossSay say={say} big />
+      {lastHitRow && <div className="text-2xl font-black my-2" style={{ color: '#e63946', ...bFont }}>🗡 ラストアタック：{lastHitRow.name}</div>}
+      <div className="grid grid-cols-3 gap-2 mt-2">
         {[['🏅 MVP（ダメージ）', mvp && `${mvp.name}`, mvp && `${mvp.d}`], ['⭐ Perfect王', pfKing && pfKing.name, pfKing && `${pfKing.pf || 0}回`], ['🔥 コンボ王', comboKing && comboKing.name, comboKing && `${comboKing.mc || 0}コンボ`]].map(([t, n, v]) => (
           <div key={t} className="rounded-xl py-2 px-1" style={{ background: COLORS.paperDark }}><div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>{t}</div><div className="font-black text-lg truncate" style={{ color: COLORS.ink, ...bFont }}>{n || '−'}</div><div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{v || ''}</div></div>
         ))}
       </div>
+      <div className="text-xs font-bold mt-2" style={{ color: COLORS.inkSoft }}>クラス総攻撃 {calc.bursts}回 ・ 部位破壊 {calc.broken}/3</div>
       {isHost && <div className="mt-3"><BigBtn color={boss.color} onClick={onAgain}>もう一度（ロビーへ）</BigBtn></div>}
+    </Card>}
+    {tc > 0 && <Card className="mb-3">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>班対抗</div>
+      {Array.from({ length: tc }).map((_, i) => { const v = calc.teams[i] || 0; const top = v === teamMax && v > 0; return (
+        <div key={i} className="flex items-center gap-2 py-1">
+          <span className="w-14 font-black" style={{ color: TEAM_INFO[i].color, ...bFont }}>{top ? '👑' : ''}{TEAM_INFO[i].name}</span>
+          <div className="flex-1 rounded-full overflow-hidden" style={{ height: isHost ? 22 : 14, background: COLORS.paperDark }}><div className="h-full rounded-full" style={{ width: `${v / teamMax * 100}%`, background: TEAM_INFO[i].color, transition: 'width 400ms' }} /></div>
+          <span className="w-16 text-right font-black" style={{ color: TEAM_INFO[i].color }}>{v}</span>
+        </div>); })}
     </Card>}
     {!over && <CommentaryFeed feed={feed} big={isHost} />}
     <Card className="mb-3">
@@ -3807,56 +4009,129 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
         {rows.slice(0, isHost ? 40 : 20).map((r, i) => (
           <div key={r.u} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
             <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-            <span className="flex-1 font-bold truncate" style={{ color: COLORS.ink, ...bFont }}>{r.name}</span>
+            <span className="flex-1 font-bold truncate" style={{ color: tc && (state.teams || {})[r.u] != null ? TEAM_INFO[state.teams[r.u]].color : COLORS.ink, ...bFont }}>{r.name}{state.lastHit === r.u ? ' 🗡' : ''}</span>
             <div className="rounded-full overflow-hidden" style={{ width: '5rem', height: 8, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${mvp ? r.d / mvp.d * 100 : 0}%`, background: boss.color }} /></div>
             <span className="font-black w-14 text-right" style={{ color: '#ff7b00' }}>{r.d}</span>
           </div>
         ))}
       </div>
     </Card>
-  </>);
+  </div>);
 }
 
 /* ---------- 授業用レイド：参加者の画面 ---------- */
 function RaidClassPlay({ code, state, acct, who, onLeave }) {
-  const { rows, total } = useRaidTally(code, state.gid);
+  const raw = useRaidTally(code, state.gid);
+  useTick(250, true);
+  const now = fbNow();
+  const calc = useMemo(() => raidCalc(state, raw, now), [raw, Math.floor(now / 500)]);
+  const { rows, hp } = calc;
   const boss = bossOf(state.boss);
   const me = myUid();
-  const hp = state.hpMax - total;
-  useTick(500, true);
-  const now = fbNow();
   const over = hp <= 0 || now >= state.endAt;
+  const sch = raidSchedule(state, now);
   const lrec = useRef([]);
-  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0 });
+  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0, dp: { a: 0, b: 0, c: 0 }, lastOk: 0 });
   const [exp, setExp] = useState(null);
+  const [target, setTarget] = useState('auto');     // ねらう部位：auto / a / b / c
+  const [stunUntil, setStunUntil] = useState(0);
+  const [say, setSay] = useState(null);
+  const team = state.teamCount ? (state.teams || {})[me] : null;
   const done = useRef(false);
   useEffect(() => {
     if (!over || done.current) return; done.current = true;
-    if (hp <= 0) { FX.band('🎉 ボス撃破！', { color: '#d4a017', ms: 2200 }); FX.confetti(80); }
+    if (hp <= 0) { FX.band('🎉 ボス撃破！', { color: '#d4a017', ms: 2200 }); FX.confetti(80); setSay({ text: BOSS_LINES.defeat, id: 1 }); }
+    else setSay({ text: BOSS_LINES.timeout, id: 1 });
     flushLearn(who, lrec.current);
     addExp(who, (hp <= 0 ? 30 : 15) + Math.min(30, Math.floor(S.current.d / 20))).then(setExp);
   }, [over]);
+  // ラストアタックの称号
+  const lhDone = useRef(false);
+  useEffect(() => {
+    if (lhDone.current || state.lastHit !== me) return;
+    lhDone.current = true;
+    FX.band('🗡 LAST ATTACK！', { color: '#e63946', sub: 'あなたがとどめを刺した！', ms: 2400 });
+    if (isReal(who) && FB.db) FB.db.ref(`games/factor/accounts/${who.key}/stats`).transaction(st => { st = st || {}; st.lastHits = (st.lastHits || 0) + 1; return st; }).catch(() => {});
+  }, [state.lastHit]);
+  // 出来事（参加者の画面にも小さく）
+  useRaidEvents(state, raw, calc, now, (ev, x) => {
+    if (ev === 'rage') { FX.shake(qs('.game-lock'), true); FX.flash('#ff0000', 0.25, 250); setSay({ text: BOSS_LINES['rage' + x], id: Math.random() }); }
+    if (ev === 'burst') { FX.band('⚡ クラス総攻撃！！', { color: '#7B61FF', ms: 1500 }); FX.flash('#fff', 0.5, 300); }
+    if (ev === 'part') { FX.band(`💥 ${x.name}を破壊！`, { color: x.color, ms: 1400 }); }
+    if (ev === 'weak') { FX.band(`🎯 弱点：${x.name}`, { color: '#ff7b00', sub: 'ダメージ2倍！', ms: 1400 }); setSay({ text: BOSS_LINES.weak(x), id: Math.random() }); }
+    if (ev === 'warn') { setSay({ text: BOSS_LINES.warn, id: Math.random() }); }
+    if (ev === 'strike') {
+      const guarded = x.at - S.current.lastOk <= RAID_CTR_GUARD;
+      if (guarded) { FX.band('🛡 ガード成功！', { color: '#457b9d', sub: '正解していたので反撃をふせいだ', ms: 1400 }); }
+      else { setStunUntil(Date.now() + RAID_STUN); FX.flash('#ff2020', 0.45, 400); FX.shake(qs('.game-lock'), true); FX.band('💢 ボスの反撃！', { color: '#b3402c', sub: `${RAID_STUN / 1000}秒しびれた…`, ms: 1400 }); }
+    }
+  });
+  // 出す問題のレベル：ねらう部位の範囲で、2問続けて正解で上がる／ミスで下がる。弱点タイムはその型の問題
+  const range = target === 'auto' ? [1, 9] : (() => { const p = RAID_PARTS.find(q => q.id === target); return [p.lv[0], p.lv[2]]; })();
+  const weakFam = sch.weak ? sch.weak.fam : null;
+  const pickLevel = useCallback((lv, how) => {
+    let n = lv;
+    if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
+    n = Math.max(range[0], Math.min(range[1], n));
+    if (how === 'init') n = Math.max(range[0], Math.min(range[1], lv));
+    if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
+    return n;
+  }, [range[0], range[1], weakFam && weakFam.id]);
+  const chainMul = 1 + 0.05 * Math.min(10, calc.chain);
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul, [weakFam && weakFam.id, chainMul]);
   if (now < state.startAt) return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})` }}>
       <FontImport />
       <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}>{boss.icon}</div>
       <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name} があらわれた！</div>
+      {team != null && <div className="mt-2 text-lg font-black rounded-full px-4 py-1 text-white" style={{ background: TEAM_INFO[team].color, ...bFont }}>あなたは {TEAM_INFO[team].name}</div>}
       <div className="font-black mt-4" style={{ fontSize: '5rem', color: '#fff', textShadow: `0 6px 0 ${COLORS.forestDeep}`, ...bFont }}>{Math.max(1, Math.ceil((state.startAt - now) / 1000))}</div>
     </div>
   );
   const myRank = rows.findIndex(r => r.u === me) + 1;
-  return <RaidPlay boss={boss} hp={hp} max={state.hpMax} endAt={state.endAt} ended={over} title={`🐉 クラス協力レイド ・ ${rows.length}人`}
+  const ctrWarn = sch.counter && sch.counter.phase === 'warn';
+  return <RaidPlay boss={boss} hp={hp} max={state.hpMax} endAt={state.endAt} ended={over} title={`🐉 レイド ・ ${rows.length}人${team != null ? ` ・ ${TEAM_INFO[team].name}` : ''}`}
     onQuit={onLeave}
+    bossExtra={<PartBars parts={calc.parts} />}
+    opts={{
+      pickLevel, dmgMul, stunUntil, forceKey: `${target}:${weakFam ? weakFam.id + sch.weak.k : ''}`,
+      bgmRate: [1, 1.08, 1.16, 1.26][calc.phase],
+      note: lv => weakFam && weakFam.lv.includes(lv) ? `🎯 弱点「${weakFam.name}」ダメージ2倍！` : null,
+      overlay: (<>
+        {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
+        {Date.now() < stunUntil && <div className="pointer-events-none absolute inset-0 flex items-center justify-center" style={{ zIndex: 46, background: 'rgba(80,0,0,.25)' }}><div className="text-3xl font-black text-white" style={{ textShadow: '0 3px 0 rgba(0,0,0,.4)', ...bFont }}>⚡ しびれた！</div></div>}
+      </>),
+      topExtra: (<div style={{ flexShrink: 0 }} className="mb-1">
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-[10px] font-black shrink-0" style={{ color: COLORS.inkSoft }}>ねらう</span>
+          {[['auto', 'おまかせ', COLORS.sky], ...RAID_PARTS.map(p => [p.id, `${p.name}${calc.parts.find(q => q.id === p.id).broken ? '✖' : ''}`, p.color])].map(([id, lb, col]) => {
+            const br = id !== 'auto' && calc.parts.find(q => q.id === id).broken;
+            return <button key={id} disabled={br} onClick={() => setTarget(id)} className="flex-1 rounded-lg py-0.5 text-[10px] font-black" style={{ background: target === id ? col : COLORS.paperDark, color: target === id ? '#fff' : br ? '#aaa' : COLORS.ink }}>{lb}</button>;
+          })}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] font-black" style={{ minHeight: '1.2rem' }}>
+          {calc.chain >= 2 && <span className="rounded-full px-2 text-white" style={{ background: '#ff2e63' }}>🔗{calc.chain}チェイン ×{chainMul.toFixed(2)}</span>}
+          {weakFam && <span className="rounded-full px-2 text-white" style={{ background: '#ff7b00' }}>🎯弱点 {weakFam.name} {Math.ceil((sch.weak.until - now) / 1000)}秒</span>}
+          {ctrWarn && <span className="rounded-full px-2 text-white animate-pulse" style={{ background: '#b3402c' }}>⚠反撃まで{Math.ceil((sch.counter.at - now) / 1000)}秒！正解して守れ</span>}
+          <span className="flex-1" />
+          <span style={{ color: '#7B61FF' }}>⚡総攻撃 {calc.gauge}/{calc.G}</span>
+        </div>
+        {say && <BossSay say={say} />}
+      </div>),
+    }}
     onHit={(d, info) => {
       lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms });
       if (info.miss) return;
-      const s = S.current; s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n;
-      fref(`rooms/${code}/rd/${state.gid}/${me}`).set({ d: s.d, pf: s.pf, mc: s.mc, n: s.n, name: (who && who.name) || 'ゲスト', last: { d, j: info.j, c: info.combo, at: Date.now() } }).catch(() => {});
+      const s = S.current; s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n; s.dp = info.dp; s.lastOk = Date.now();
+      fref(`rooms/${code}/rd/${state.gid}/${me}`).set({ d: s.d, pf: s.pf, mc: s.mc, n: s.n, dp: s.dp, name: (who && who.name) || 'ゲスト', last: { d, j: info.j, c: info.combo, lv: info.lv, at: fbNow() } }).catch(() => {});
     }}
     footer={<div className="py-2">
       <Card className="mb-2 text-center">
         <div className="text-2xl font-black" style={{ color: hp <= 0 ? '#d4a017' : COLORS.sky, ...bFont }}>{hp <= 0 ? '🎉 撃破成功！' : '⏱ 時間切れ…'}</div>
+        {say && <div className="my-1"><BossSay say={say} /></div>}
+        {state.lastHit === me && <div className="text-lg font-black" style={{ color: '#e63946' }}>🗡 あなたがラストアタック！</div>}
         <div className="text-sm font-bold" style={{ color: COLORS.ink }}>あなたのダメージ {S.current.d}（{myRank || '-'}位 / {rows.length}人）・ Perfect {S.current.pf}回 ・ 最大{S.current.mc}コンボ</div>
+        {team != null && <div className="text-xs font-black mt-1" style={{ color: TEAM_INFO[team].color }}>{TEAM_INFO[team].name}のダメージ {calc.teams[team] || 0}</div>}
         {exp && <div className="mt-2 text-left"><ExpGain before={exp.before} after={exp.after} label="レイドの経験値" /></div>}
       </Card>
       <p className="text-center text-xs font-bold mb-2" style={{ color: COLORS.inkSoft }}>先生が次のレイドを始めるのを待っています…</p>
@@ -4223,6 +4498,7 @@ const BADGES = [
   { id: 'revenge', g: 'revenge', r: 2, icon: '⚔️', label: 'リベンジ成功', desc: '前の試合で負けた相手に勝つ', test: st => (st.revenges || 0) >= 1 },
   { id: 'calm', g: 'calm', r: 3, icon: '🧘', label: '冷静沈着', desc: 'Aでお手つき0のまま、6問以上取って勝つ', test: st => (st.calmWins || 0) >= 1 },
   { id: 'flawless', g: 'flawless', r: 3, icon: '💎', label: '無傷の勝利', desc: 'Bで攻撃を一度も受けずに勝つ', test: st => (st.flawlessWins || 0) >= 1 },
+  { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
@@ -5235,7 +5511,10 @@ function BattleApp({ acct: who, onExit }) {
     const st = state || {};
     const startAt = fbNow() + 3500;
     await fref(`rooms/${code}/rd`).remove().catch(() => {});
-    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, boss: st.boss || 'dragon', minutes: st.minutes || 3, power: st.power || 'normal', gid: 'r' + Date.now(), hpMax: hp, startAt, endAt: startAt + (st.minutes || 3) * 60000 });
+    // 班対抗：参加した順に分ける
+    const tc = st.teamCount || 0, teams = {};
+    if (tc) Object.entries(players).filter(([k, p]) => p && p.name && k !== FB.uid).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).forEach(([k], i) => { teams[k] = i % tc; });
+    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, boss: st.boss || 'dragon', minutes: st.minutes || 3, power: st.power || 'normal', teamCount: tc, teams, gid: 'r' + Date.now(), hpMax: hp, startAt: startAt + 1500, endAt: startAt + 1500 + (st.minutes || 3) * 60000 });
   }
   /* ---- 大会（トーナメント） ---- */
   async function tourStart() {
@@ -5329,7 +5608,7 @@ function BattleApp({ acct: who, onExit }) {
   // クラス協力レイド
   if (state && state.phase === 'raid') {
     if (isHost || spectator) return shell(<RaidBoard code={code} state={state} isHost={isHost} onLeave={() => leave()}
-      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, boss: state.boss, minutes: state.minutes, power: state.power })} />, true);
+      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, boss: state.boss, minutes: state.minutes, power: state.power, teamCount: state.teamCount || 0 })} />, true);
     return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} onLeave={() => leave()} />;
   }
   // 大会
