@@ -15,6 +15,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
+<script src="suri-data.js?v=1"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -91,6 +93,9 @@
   @keyframes fxFlip { 0% { transform: perspective(600px) rotateY(180deg) scale(0.7); } 60% { transform: perspective(600px) rotateY(0) scale(1.12); } 100% { transform: perspective(600px) rotateY(0) scale(1); } }
   @keyframes fxSlideL { 0% { transform: translateX(-120%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
   @keyframes fxSlideR { 0% { transform: translateX(120%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+  .suri-bgmath { position: absolute; inset: 0; pointer-events: none; opacity: .07; background-image: radial-gradient(circle at 20% 30%, #F3D27A 0 1px, transparent 2px), radial-gradient(circle at 80% 70%, #F3D27A 0 1px, transparent 2px), repeating-linear-gradient(45deg, transparent 0 38px, #F3D27A 38px 39px), repeating-linear-gradient(-45deg, transparent 0 38px, #F3D27A 38px 39px); background-size: 120px 120px, 160px 160px, auto, auto; }
+  @keyframes suriFlip { 0% { transform: perspective(900px) rotateY(-28deg) translateX(18px); opacity: 0; transform-origin: left center; } 100% { transform: none; opacity: 1; } }
+  @keyframes suriGem { 0% { transform: scale(.2) rotate(-30deg); opacity: 0; } 70% { transform: scale(1.15) rotate(6deg); opacity: 1; } 100% { transform: scale(1); } }
   @keyframes fxVsPop { 0% { transform: scale(3) rotate(-20deg); opacity: 0; } 60% { transform: scale(0.9) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
   @keyframes fxFeed { 0% { opacity: 0; transform: translateY(8px); } 8%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
   @keyframes fxEdgeGlow { 0%, 100% { box-shadow: inset 0 0 28px 6px rgba(255, 213, 74, 0.75); } 50% { box-shadow: inset 0 0 52px 14px rgba(255, 123, 0, 0.85); } }
@@ -1060,7 +1065,7 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
-  { ch: 'team', v: 'tower', title: 'M5タワー', body: 'ひとりで1階ずつ登る。5の倍数の階は特別な力をもつボス、ほかは雑魚。1階45秒、HPは次の階に持ちこし。5階ごとにセーブ、50階の真・因数の王を倒すと「塔を制覇」。その先は無限回廊！' },
+  { ch: 'team', v: 'tower', title: '数理の塔', body: '数学の法則が失われた世界で、70階の塔を登る物語。会話のあとに因数分解バトル。5階ごとのボスを倒すと「法則の断片」が手に入り、「数理の書」で法則・魔物・物語を読み返せる。5階ごとにセーブ、70階で第一部完！' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
@@ -2406,7 +2411,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.4.43</span>
+              <span className="v7-ver">ver.5.0</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3341,7 +3346,7 @@ function skinOpen(need, info) {
   if (need.tower) return (info.tower || 0) >= need.tower;
   return false;
 }
-const skinNeedText = need => !need ? '' : need.tower ? `M5タワーの${need.tower}階を突破すると解放` : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.tower ? `数理の塔の${need.tower}階を突破すると解放` : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
 function skinInfo(st, exp) {
   st = st || {};
   return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0, tower: (st.tower && st.tower.best) || 0 };
@@ -4165,7 +4170,7 @@ const BOSSES = [
   { id: 'maou', name: '平方の魔王', icon: '👿', color: '#b5487e' },
   { id: 'slime', name: '共通因数スライム', icon: '🫠', color: '#43C97B' },
   { id: 'robot', name: '展開ロボ Ω', icon: '🤖', color: '#457b9d' },
-  // ver.8.4：M5タワーの5の倍数の階のボス（ほかのモードにも出る）
+  // ver.8.4：数理の塔の5の倍数の階のボス（ほかのモードにも出る）
   { id: 'abs', name: '絶対値ビースト', icon: '🐾', color: '#C2410C' },
   { id: 'balance', name: '方程式バランサー', icon: '⚖️', color: '#457b9d' },
   { id: 'mod', name: '余りマスター', icon: '🧙‍♂️', color: '#7b2cbf' },
@@ -4243,7 +4248,7 @@ function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
   return (
     <div className="rounded-2xl px-3 py-2 shadow-lg relative overflow-hidden" style={{ background: dead ? 'linear-gradient(180deg,#fff3c4,#fff)' : r < 0.3 ? 'linear-gradient(180deg,#ffe1d9,#fff)' : COLORS.paper, flexShrink: 0, border: `3px solid ${boss.color}55` }}>
       <div className="flex items-center gap-3">
-        <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.icon}</div>
+        <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.img ? <MonsterPic id={null} src={boss.img} icon={boss.icon} size={big ? 'clamp(5rem, 14vw, 10rem)' : '2.8rem'} /> : boss.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between flex-wrap gap-x-2">
             <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}{(boss.tag || traitOf(boss.id).tag) && <span className="v7-chip align-middle ml-2" style={{ background: boss.color, fontSize: big ? 13 : 9, padding: big ? '3px 10px' : '1px 6px' }}>{boss.tag || traitOf(boss.id).tag}</span>}</span>
@@ -4477,7 +4482,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
   // 弱点タイムや「ねらう部位」が変わっても、いま解いている問題はそのまま。次の問題から反映する
   const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
-  // 撃破の演出（M5タワー）：BGMを止めてファンファーレ、ボスがくだけて紙吹雪。盤面は止める
+  // 撃破の演出（数理の塔）：BGMを止めてファンファーレ、ボスがくだけて紙吹雪。盤面は止める
   const dft = o.defeat;
   useEffect(() => {
     if (!dft) return;
@@ -5726,12 +5731,13 @@ function WeeklyRaidApp({ acct, onExit }) {
     </div>
   );
 }
-/* ---------- M5タワー（ひとりで1階ずつ登る） ----------
+/* ---------- 数理の塔（ひとりで1階ずつ登る） ----------
    ・1階＝ボス1体を45秒で倒す。時間切れはボスの猛攻（HP−25）で15秒延長
    ・自分のHPは階をまたいで持ち越し。ミス −5、反撃を受ける −12（大ボス×1.5）。階を突破すると少し回復
    ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。5階ごとにセーブ（次から 5n+1 階から始められる）
-   ・50階に真のボス「真・因数の王」→ 称号「塔を制覇」・きせかえ。51階からは無限回廊（最高到達階ランキング） */
-const TOWER_GOAL = 50, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';
+   ・50階に「真・因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
+const TOWER_GOAL = 70, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';   // 数理の塔：70階で第一部完（無限回廊はなし）
+const TOWER_KING_F = 50;   // 真・因数の王（第10章のボス。倒すと称号「塔を制覇」）
 const TOWER_KING = { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' };
 const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
 const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30, mob: 3 };
@@ -5744,6 +5750,11 @@ const TOWER_MOBS = {
   21: ['角度バジリスク', '🐍'], 22: ['円周率スライム', '🌀'], 23: ['接線タートル', '🐢'], 24: ['正弦バード', '🐦'], 26: ['対数バット', '🦇'], 27: ['指数キツネ', '🦊'], 28: ['漸化式ラット', '🐀'], 29: ['変域ハーピー', '🪽'],
   31: ['極大スライム', '🔵'], 32: ['極小スライム', '🔴'], 33: ['二項係数ビー', '🐝'], 34: ['ベクトルゴーレム', '🗿'], 36: ['行列ゴーレム', '🧊'], 37: ['微分カマキリ', '🦗'], 38: ['積分スライム', '🫧'], 39: ['極限ドラゴン', '🐲'],
   41: ['無理数ゴースト', '👻'], 42: ['余弦クラゲ', '🪼'], 43: ['複素数フクロウ', '🦉'], 44: ['接近ゴーレム', '🪨'], 46: ['数列フェニックス', '🔥'], 47: ['円錐ハンター', '🎯'], 48: ['確率ピエロ', '🃏'], 49: ['虚数ゴースト', '👻'],
+  // 51〜69階は仮（正式な名前が決まったら差しかえ）
+  51: ['集合フェアリー', '🧚'], 52: ['写像カメレオン', '🦎'], 53: ['命題パロット', '🦜'], 54: ['背理デーモン', '😈'],
+  56: ['等差スネイル', '🐌'], 57: ['等比バルーン', '🎈'], 58: ['漸化式ラビット', '🐇'], 59: ['ひまわりスピリット', '🌻'],
+  61: ['黄金長方形ゴーレム', '🟨'], 62: ['オウムガイシェル', '🐚'], 63: ['五芒星ウィスプ', '⭐'], 64: ['白銀比ミラージュ', '🌙'],
+  66: ['正多面体ダイス', '🎲'], 67: ['角すいゴーレム', '🔺'], 68: ['球面ワールドル', '🌐'], 69: ['三平方の番人', '📐'],
 };
 /* 5の倍数の階のボス（gim：しかけの種類） */
 const TOWER_BOSSES = {
@@ -5755,40 +5766,53 @@ const TOWER_BOSSES = {
   30: { gim: 'chimera', name: '多項式キマイラ', icon: '🦁', color: '#B7791F', tag: '合体型', desc: ['「二次式の頭」と「三次式の頭」が12秒ごとに入れかわる', '二次の頭のときはたすきがけ・2乗の差（Lv4〜6・8・9）が1.5倍、三次の頭のときは3乗の和・差（Lv7）が2倍', '弱点以外の正解もふつうに効く'] },
   35: { gim: 'prime', name: '素数シャーク', icon: '🦈', color: '#0E86C6', tag: '孤高型', desc: ['奇数コンボ目の正解はダメージ2倍、偶数コンボ目は半分', 'コンボが切れたら1コンボ目（2倍）から'] },
   40: { gim: 'sim', name: '連立パペット', icon: '🎭', color: '#b5487e', tag: '連携型', desc: ['式Ａと式Ｂが同時に出る。どちらから解いてもOK', 'ＡとＢを交互に解くと連携ゲージがたまり、4つで大ダメージ'] },
+  // 55・60・65・70階は仮（能力はこれまでのボスのしかけを使う。正式な案が来たら差しかえ）
+  55: { gim: 'mirror', id: 'gate', name: '無限の門番', icon: '♾️', color: '#2F6FD6', tag: '拡張型', provisional: true, desc: ['（仮）鏡写しの位置のタイルが引き寄せられる', '新しい数の世界への門を守っている'] },
+  60: { gim: 'sim', id: 'fib', name: 'フィボナッチ・グリフォン', icon: '🦅', color: '#d4a017', tag: '数列型', provisional: true, desc: ['（仮）式Ａと式Ｂが同時に出る。交互に解くと連携ゲージ', '前の2つを足して、次の力を生み出す'] },
+  65: { gim: 'balance', id: 'golden', name: '黄金比グリフォン', icon: '🦅', color: '#b8860b', tag: '黄金比型', provisional: true, desc: ['（仮）同じレベルを2問続けて正解すると全ダメージ', 'フィボナッチ・グリフォンが進化した姿'] },
+  70: { gim: 'king', id: 'guardian', name: '空間の守護者', icon: '🔷', color: '#1D4E89', tag: '最終決戦型', provisional: true, final: true, desc: ['（仮）体力が減るごとに絶対値→素数→周期の力を使う', '部位（Lv1〜3・4〜6・7〜9）をこわすと力を封じる', '弱点タイム2回・反撃4回・半分を切ると真の姿で回復'] },
   45: { gim: 'mirror', name: '対称式ファントム', icon: '🪞', color: '#6b5bd6', tag: '鏡映型', desc: ['ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）', '選んでいるタイルは金色で光る'] },
 };
 const KING_PARTS = [{ id: 'a', name: '王冠', lv: [1, 3], seal: '絶対値の力（ミス2倍）を封じた' }, { id: 'b', name: '杖', lv: [4, 6], seal: '素数の力の「半分」を封じた' }, { id: 'c', name: 'マント', lv: [7, 9], seal: '周期の力（タイルのずれ）を封じた' }];
 const mobHp = f => { const lv = Math.max(1, Math.min(towerLvMax(f), 7, 1 + Math.floor((f - 1) / 6))); return Math.round((LEVEL_POINTS[lv] || 10) * 1.15 * 2.5); };
+/* 階ごとのモンスターID（図鑑・画像・会話で使う） */
+const pad2 = n => String(n).padStart(2, '0');
+function towerMonId(f) {
+  if (f === TOWER_KING_F) return 'king';
+  if (TOWER_BOSSES[f]) return TOWER_BOSSES[f].id || TOWER_BOSSES[f].gim;
+  if (f === 1) return 'slime'; if (f === 7) return 'robot'; if (f === 33) return 'mob14';
+  return 'mob' + pad2(f);
+}
+const towerChapter = f => Math.min(14, Math.max(1, Math.ceil(f / 5)));
 function towerFloor(f) {
-  const king = f === TOWER_GOAL, endless = f > TOWER_GOAL, big = !king && f % 5 === 0;
+  f = Math.max(1, Math.min(TOWER_GOAL, f));
+  const king = f === TOWER_KING_F, big = f % 5 === 0;
   const lvMax = towerLvMax(f), startLv = Math.max(1, Math.min(lvMax, 7, 1 + Math.floor((Math.min(f, 49) - 1) / 6)));
   const base = 140 + 14 * (f - 1);
   const lvK = f <= 10 ? 0.7 : f <= 20 ? 0.85 : 1;   // 出せるレベルが少ない階は体力も少なめ
-  if (!endless && !king && !big) {
+  const mid = towerMonId(f), img = suriImg(mid), ch = towerChapter(f);
+  if (!big) {
     // 雑魚：特殊能力なし（反撃・弱点・変身なし）
     const [name, icon] = TOWER_MOBS[f] || ['ザコ', '👾'];
-    return { f, mob: true, king: false, endless: false, big: false, boss: { id: 'mob', name, icon, color: '#6F7785', tag: '雑魚' }, T: { tag: '雑魚', weak: false, counter: null, desc: ['特別な力はない'] }, hpMax: mobHp(f), sec: TOWER_SEC / 1000, C: null, ctr: [], weak: [], hpK: 1, revive: 0, lvMax, startLv };
+    return { f, ch, mid, mob: true, king: false, big: false, boss: { id: 'mob', name, icon, img, color: '#4B5568', tag: '雑魚' }, T: { tag: '雑魚', weak: false, counter: null, desc: ['特別な力はない'] }, hpMax: mobHp(f), sec: TOWER_SEC / 1000, C: null, ctr: [], weak: [], hpK: 1, revive: 0, lvMax, startLv };
   }
-  if (!endless && !king) {
+  if (!king) {
     const B = TOWER_BOSSES[f];
-    const dragon = B.gim === 'dragon';
+    const dragon = B.gim === 'dragon', fin = !!B.final;
     const T = dragon ? { ...traitOf('dragon'), tag: B.tag, desc: B.desc } : { tag: B.tag, desc: B.desc, weak: false, counter: null };
-    const C = dragon ? ctrOf('dragon') : null;
-    return { f, gim: B.gim, king: false, endless: false, big: true, boss: { id: B.gim, name: B.name, icon: B.icon, color: B.color, tag: B.tag }, T, hpMax: Math.round(base * lvK * 1.5), sec: TOWER_SEC / 1000, C, ctr: C ? [10, 22, 34] : [], weak: dragon ? [[8, 20]] : [], hpK: 1.5, revive: 0, lvMax, startLv };
+    const C = dragon ? ctrOf('dragon') : fin ? { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '🔷 空間の裁き' } : null;
+    return { f, ch, mid, gim: B.gim, final: fin, king: false, big: true, boss: { id: mid, name: B.name, icon: B.icon, img, color: B.color, tag: B.tag }, T, hpMax: fin ? 1800 : Math.round(base * lvK * 1.5), sec: fin ? 60 : TOWER_SEC / 1000, C,
+      ctr: !C ? [] : fin ? [10, 22, 34, 46] : [10, 22, 34], weak: dragon ? [[8, 20]] : fin ? [[4, 16], [26, 38]] : [], hpK: fin ? 1.7 : 1.5, revive: fin ? 0.3 : 0, lvMax, startLv };
   }
-  // 50階：真・因数の王（これまでのボスの力を段階的に使う）／51階から：無限回廊（いままでどおり）
-  const boss = king ? TOWER_KING : BOSSES.find(b => b.id === TOWER_ORDER[hashSeed('tw:' + f) % 6]);
-  const T = king ? { weak: {}, counter: {}, tag: '最終決戦型', desc: ['体力が減るごとに「絶対値の力（ミス2倍・正解で+3秒）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」を使う', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じてボーナスダメージ', '弱点タイムが2回、反撃「王の裁き」が4回。半分を切ると真の姿で30%回復'] } : traitOf(boss.id);
-  const hpMax = king ? 1600 : Math.round(base * (T.hpK || 1) * (big ? 1.5 : 1) * (1 + (f - TOWER_GOAL) * 0.01));
-  const sec = king ? 60 : TOWER_SEC / 1000;
-  const C = king ? { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' } : T.counter === null ? null : ctrOf(boss.id);
-  const ctr = !C ? [] : king ? [10, 22, 34, 46] : big ? [10, 22, 34] : [14, 30];
-  const weak = T.weak === false ? [] : king ? [[4, 16], [26, 38]] : boss.id === 'robot' ? [[5, 17], [24, 36]] : boss.id === 'kraken' ? [[6, 24]] : [[8, 20]];
-  const name = king ? boss.name : `${big ? '大ボス・' : ''}${boss.name}`;
-  return { f, gim: king ? 'king' : null, king, endless, big, boss: { ...boss, name, tag: king ? '最終決戦型' : undefined }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), lvMax, startLv };
+  // 50階：真・因数の王（これまでのボスの力を段階的に使う。倒すと称号「塔を制覇」）
+  const boss = TOWER_KING;
+  const T = { weak: {}, counter: {}, tag: '最終決戦型', desc: ['体力が減るごとに「絶対値の力（ミス2倍・正解で+3秒）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」を使う', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じてボーナスダメージ', '弱点タイムが2回、反撃「王の裁き」が4回。半分を切ると真の姿で30%回復'] };
+  const C = { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' };
+  return { f, ch, mid, gim: 'king', king: true, big: true, boss: { ...boss, img, tag: '最終決戦型' }, T, hpMax: 1600, sec: 60, C, ctr: [10, 22, 34, 46], weak: [[4, 16], [26, 38]], hpK: 1.7, revive: 0.3, lvMax, startLv };
 }
 const towerOf = st => (st && st.tower) || {};
-const towerCp = tw => Math.floor((tw.best || 0) / 5) * 5;   // セーブ地点：5階ごと（次から 5n+1 階から続きができる。無限回廊も）
+const towerBest = tw => Math.min(TOWER_GOAL, (tw && tw.best) || 0);   // 突破した最高の階（むかしの無限回廊の記録は70階あつかい）
+const towerCp = tw => Math.min(TOWER_GOAL - 5, Math.floor(towerBest(tw) / 5) * 5);   // セーブ地点：5階ごと（次から 5n+1 階から。最大66階）
 function loadTowerGuest() { const g = loadGuest(); return g.tower || {}; }
 /* ボスのしかけ（塔・今週のボス・クラス協力レイド・フレンドレイドで共通）
    o = { active, t0（出撃・階の開始時刻）, hpRatio（ボスの体力の割合）, broken（{a,b,c} こわれた部位）, onAbs（絶対値：正解で時間をのばす。のびたら true） } */
@@ -5888,6 +5912,264 @@ function towerSimProb(lv, seen) {
   }
   return { level: lv, ...buildBoard(lv, seen, 6) };
 }
+/* =====================================================================
+   数理の塔：データ（suri-data.js）・画像・会話・数理の書
+   ===================================================================== */
+const SURI = () => window.SURI_DATA || {};
+// 画像：suri-data.js の images に登録したものだけ使う（未登録は絵文字）
+const suriImg = id => (id && (SURI().images || {})[id]) || null;
+// 画像があれば画像、なければ絵文字。sil=true でシルエット（未遭遇）
+function MonsterPic({ id, src, icon, size = 64, sil, style }) {
+  const url = src || suriImg(id);
+  const [bad, setBad] = useState(false);
+  useEffect(() => { setBad(false); }, [url]);
+  const fz = typeof size === 'number' ? `${size}px` : size;
+  const silF = sil ? 'brightness(0) opacity(.35)' : 'none';
+  if (url && !bad) return <img src={url} alt="" draggable={false} onError={() => setBad(true)} style={{ width: fz, height: fz, objectFit: 'contain', filter: silF, display: 'inline-block', verticalAlign: 'middle', ...style }} />;
+  return <span style={{ fontSize: `calc(${fz} * 0.82)`, lineHeight: 1, display: 'inline-flex', width: fz, height: fz, alignItems: 'center', justifyContent: 'center', filter: silF, ...style }}>{icon || '❔'}</span>;
+}
+/* 塔の全モンスター（図鑑の並び：はじめて出てくる階の順） */
+function towerMonsters() {
+  const out = [], idx = {};
+  for (let f = 1; f <= TOWER_GOAL; f++) {
+    const F = towerFloor(f), id = F.mid;
+    if (idx[id] != null) { out[idx[id]].floors.push(f); continue; }
+    idx[id] = out.length;
+    out.push({ id, name: F.boss.name, icon: F.boss.icon, color: F.boss.color, boss: F.big, floors: [f], tag: F.big ? F.T.tag : '雑魚' });
+  }
+  return out;
+}
+const suriChapters = () => (SURI().chapters && SURI().chapters.length ? SURI().chapters : Array.from({ length: 14 }, (_, i) => ({ no: i + 1, from: i * 5 + 1, to: i * 5 + 5, title: `第${i + 1}章`, synopsis: '' })));
+const suriFrag = no => (SURI().fragments || []).find(x => x.no === no) || { no, floor: no * 5, name: `第${no}の断片`, law: '（解説は準備中）', formulas: [], links: '', story: '' };
+/* 会話イベント：suri-data.js にあればそれ、なければ仮の会話を作る（id は「階-種類」） */
+function suriEvent(floor, type) {
+  const id = `${floor}-${type}`;
+  const got = (SURI().events || []).find(e => e && e.id === id);
+  if (got) return { ...got, floor, type };
+  const F = towerFloor(floor), nm = F.boss.name, mid = F.mid;
+  const C = suriChapters().find(c => c.no === F.ch) || {};
+  if (type === 'chapter') return { id, floor, type, auto: true, title: `第${C.no}章 ${C.title}`, lines: [
+    { speaker: '数理の書', portrait: 'book', text: `第${C.no}章「${C.title}」` },
+    { speaker: '数理の書', portrait: 'book', text: C.synopsis || '（仮）新しい章が始まる。' }] };
+  if (type === 'pre') {
+    const nb = floor % 5 === 4 ? towerFloor(floor + 1).boss.name : null;
+    const lines = F.big ? [
+      { speaker: nm, portrait: mid, text: `（仮）よくぞここまで来た。わたしは${nm}。` },
+      { speaker: 'あなた', portrait: 'hero', text: '（仮）数理の書の断片を返してもらう！' },
+      { speaker: nm, portrait: mid, text: `（仮）ならば、${F.T.tag}の力を見せてやろう！` }]
+      : [{ speaker: nm, portrait: mid, text: '（仮）ここから先へは行かせないぞ！' }, { speaker: 'あなた', portrait: 'hero', text: '（仮）通してもらうよ。' }];
+    if (nb) lines.push({ speaker: nm, portrait: mid, text: `（仮）この上では${nb}が待っている…気をつけるんだな。` });
+    return { id, floor, type, auto: true, title: `${floor}階 ${nm}`, lines };
+  }
+  if (type === 'post') {
+    if (!F.big) return null;   // 雑魚の戦闘後の会話は、データにあるときだけ
+    const fr = suriFrag(F.ch);
+    return { id, floor, type, auto: true, title: `${floor}階 ${nm}を倒した`, lines: [
+      { speaker: nm, portrait: mid, text: '（仮）見事だ…。法則の断片は、おまえのものだ。' },
+      { speaker: '数理の書', portrait: 'book', text: `（仮）「${fr.name}」がもどってきた。` },
+      ...(floor < TOWER_GOAL ? [{ speaker: 'あなた', portrait: 'hero', text: '（仮）次の章へ進もう。' }] : [])] };
+  }
+  if (type === 'ending') return { id, floor, type, auto: true, title: '第一部 エンディング', lines: [
+    { speaker: '数理の書', portrait: 'book', text: '（仮）14の断片がそろった。世界に数学の秩序がもどっていく。' },
+    { speaker: 'あなた', portrait: 'hero', text: '（仮）…まだ、白紙のページが残っている？' },
+    { speaker: '数理の書', portrait: 'book', text: '数学の世界に、終わりはない。' }] };
+  return null;
+}
+// その階で見る会話（戦闘前：章の導入→戦闘前、戦闘後：戦闘後）
+const suriPreEvents = f => [f === (suriChapters().find(c => c.no === towerChapter(f)) || {}).from ? suriEvent(f, 'chapter') : null, suriEvent(f, 'pre')].filter(Boolean);
+const suriPostEvents = f => [suriEvent(f, 'post')].filter(Boolean);
+/* 図鑑・物語の記録の解放（むかしの記録 best から、突破した階のぶんは復元する） */
+function suriProgress(tw) {
+  tw = tw || {};
+  const best = towerBest(tw);
+  const seen = tw.seen || {}, kill = tw.kill || {}, frag = tw.frag || {}, read = tw.read || {};
+  const mons = towerMonsters();
+  const isSeen = m => !!seen[m.id] || m.floors.some(f => f <= best);
+  const isKilled = m => !!kill[m.id] || m.floors.some(f => f <= best);
+  const hasFrag = no => !!frag[no] || no * 5 <= best;
+  const canRead = ev => !!(ev && (read[ev.id] || ev.floor <= best || (ev.type === 'ending' && tw.end1)));
+  return { best, seen, kill, frag, read, mons, isSeen, isKilled, hasFrag, canRead, ended: !!tw.end1 || best >= TOWER_GOAL };
+}
+
+/* ---------- 会話の画面（タップで次へ・スキップ・再閲覧） ---------- */
+function StoryView({ events, heroName, onDone, onRead, replay }) {
+  const list = (events || []).filter(Boolean);
+  const [ei, setEi] = useState(0), [li, setLi] = useState(0);
+  const ev = list[ei];
+  const ln = ev ? (ev.lines || [])[li] : null;
+  useEffect(() => { if (!ev) onDone && onDone(); }, [!!ev]);
+  if (!ev || !ln) return null;
+  const next = () => {
+    uiSnd('cur');
+    if (li + 1 < (ev.lines || []).length) { setLi(li + 1); return; }
+    if (!replay && onRead) onRead(ev.id);
+    if (ei + 1 < list.length) { setEi(ei + 1); setLi(0); return; }
+    onDone && onDone();
+  };
+  const skip = e => { e.stopPropagation(); uiSnd('back'); if (!replay && onRead) list.slice(ei).forEach(x => onRead(x.id)); onDone && onDone(); };
+  const sp = (ln.speaker || '').replace('{name}', heroName || 'あなた');
+  const pid = ln.portrait;
+  const F = ev.floor ? towerFloor(ev.floor) : null;
+  const pic = pid === 'hero' ? { icon: '🧑‍🎓', id: 'hero' } : pid === 'book' ? { icon: '📖', id: 'book' } : { id: pid, icon: (towerMonsters().find(m => m.id === pid) || {}).icon || (F && F.boss.icon) };
+  return (
+    <div className="fixed inset-0 flex flex-col" onClick={next} style={{ zIndex: 60, background: 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)', fontFamily: "'Zen Kaku Gothic New', sans-serif", paddingTop: 'max(10px, env(safe-area-inset-top))', paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}>
+      <div className="suri-bgmath" />
+      <div className="flex items-center justify-between px-3 relative" style={{ zIndex: 1 }}>
+        <span className="text-[11px] font-black rounded-full px-2.5 py-0.5" style={{ background: '#d4a01733', color: '#F3D27A', border: '1px solid #d4a01788' }}>{replay ? '📖 物語の記録 ・ ' : ''}{ev.title || ''}{ev.auto ? '（仮の会話）' : ''}</span>
+        <button onClick={skip} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: '#ffffff1a', color: '#fff', border: '1px solid #ffffff44' }}>{replay ? 'とじる ✕' : 'スキップ ⏭'}</button>
+      </div>
+      <div className="flex-1 flex items-center justify-center relative" style={{ minHeight: 0, zIndex: 1 }}>
+        <div key={`${ei}-${pid}`} style={{ animation: 'fxEnter 260ms ease both', filter: 'drop-shadow(0 8px 18px rgba(0,0,0,.45))' }}>
+          <MonsterPic id={pic.id} icon={pic.icon} size="min(42vh, 64vw, 260px)" />
+        </div>
+      </div>
+      <div className="px-3 relative" style={{ zIndex: 1 }}>
+        <div className="mx-auto" style={{ maxWidth: 680 }}>
+          <div className="inline-block rounded-t-xl px-3 py-1 text-sm font-black" style={{ background: '#d4a017', color: '#1D1405', ...bFont }}>{sp}</div>
+          <div className="rounded-b-2xl rounded-tr-2xl px-4 py-3" style={{ background: 'rgba(11,20,48,.92)', border: '2px solid #d4a017aa', boxShadow: 'inset 0 0 0 2px #0B1430', minHeight: '5.5em' }}>
+            <div key={`${ei}-${li}`} className="font-bold" style={{ color: '#fff', fontSize: 'clamp(15px, 4.2vw, 19px)', lineHeight: 1.7, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', animation: 'fxEnter 220ms ease both' }}>{(ln.text || '').replace('{name}', heroName || 'あなた')}</div>
+            <div className="text-right text-[11px] font-black mt-1" style={{ color: '#F3D27A' }}>{li + 1 < (ev.lines || []).length || ei + 1 < list.length ? 'タップで次へ ▼' : replay ? 'タップでとじる' : 'タップで戦闘へ ▶'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 法則の断片を手に入れた（初回だけ） ---------- */
+function FragGet({ no, onDone }) {
+  const fr = suriFrag(no), C = suriChapters();
+  const nextC = C.find(c => c.no === no + 1);
+  useEffect(() => { fxSound('levelup'); FX.confetti(60); }, []);
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center px-5 text-center" onClick={() => { uiSnd('ok'); onDone(); }} style={{ zIndex: 60, background: 'radial-gradient(ellipse at 50% 40%, #24356F, #0B1430 70%)' }}>
+      <div className="suri-bgmath" />
+      <div style={{ fontSize: 'clamp(4rem, 18vmin, 7rem)', animation: 'suriGem 900ms ease both', filter: 'drop-shadow(0 0 24px #F3D27A)' }}>💎</div>
+      <div className="text-xs font-black mt-2" style={{ color: '#F3D27A', letterSpacing: '.2em' }}>法則の断片を手に入れた</div>
+      <div className="font-black mt-1" style={{ color: '#fff', fontSize: 'clamp(20px, 6vw, 28px)', ...bFont, animation: 'fxEnter 400ms 300ms both' }}>{fr.name}</div>
+      <div className="text-sm font-bold mt-2" style={{ color: '#C8D2F5', maxWidth: 520, lineHeight: 1.7, animation: 'fxEnter 400ms 500ms both' }}>{fr.law}</div>
+      <div className="mt-3 rounded-full px-4 py-1 text-xs font-black" style={{ background: '#d4a01733', color: '#F3D27A', border: '1px solid #d4a017', animation: 'fxEnter 400ms 700ms both' }}>数理の書 {no} / 14{nextC ? ` ・ 第${nextC.no}章「${nextC.title}」解放` : ''}</div>
+      <div className="text-[11px] font-bold mt-4" style={{ color: '#8E9BC8' }}>タップで続ける（数理の書でいつでも読める）</div>
+    </div>
+  );
+}
+
+/* ---------- 70階：第一部のエンディング ---------- */
+function EndingView({ heroName, onDone }) {
+  const [st, setSt] = useState(0);
+  const steps = [
+    { big: '14の断片がそろった', sub: '数理の書が、まばゆい光をはなつ。' },
+    { big: '数理の書、完成…？', sub: '世界に、数学の秩序がもどっていく。' },
+    { big: 'しかし――', sub: '最後のページは、まだ白紙のままだった。' },
+    { big: '数学の世界に、終わりはない。', sub: '' },
+    { big: '第一部 完', sub: `${heroName || 'あなた'}は、数理の塔の70階を登りきった。数理の書に、エンディングの記録が加わった。` },
+  ];
+  useEffect(() => { if (st === 0) { fxSound('levelup'); FX.confetti(120); } if (st === 4) { fxSound('badge'); FX.confetti(160); } }, [st]);
+  const S = steps[st];
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center px-5 text-center" onClick={() => { uiSnd('ok'); if (st + 1 < steps.length) setSt(st + 1); else onDone(); }} style={{ zIndex: 60, background: st >= 3 ? 'radial-gradient(ellipse at 50% 40%, #FFF8E1, #F3D27A 60%, #9a6a12)' : 'radial-gradient(ellipse at 50% 40%, #24356F, #0B1430 70%)', transition: 'background 800ms' }}>
+      {st < 3 && <div className="suri-bgmath" />}
+      <div className="flex flex-wrap justify-center gap-1.5 mb-4" style={{ maxWidth: 360 }}>{Array.from({ length: 14 }).map((_, i) => <span key={i} style={{ fontSize: 26, animation: `suriGem 600ms ${st === 0 ? i * 80 : 0}ms both`, filter: st === 2 ? 'grayscale(.4)' : 'drop-shadow(0 0 8px #F3D27A)' }}>💎</span>)}</div>
+      {st === 2 && <div className="mb-4 rounded-lg" style={{ width: 120, height: 150, background: '#fffdf6', boxShadow: '0 0 30px #fff', animation: 'suriFlip 700ms ease both' }} />}
+      <div key={st} className="font-black" style={{ color: st >= 3 ? '#3a2600' : '#fff', fontSize: st === 3 ? 'clamp(22px, 6.4vw, 34px)' : 'clamp(24px, 7vw, 40px)', ...bFont, animation: 'fxEnter 500ms ease both', lineHeight: 1.3 }}>{S.big}</div>
+      {S.sub && <div key={'s' + st} className="text-sm font-bold mt-3" style={{ color: st >= 3 ? '#5a3d00' : '#C8D2F5', maxWidth: 520, lineHeight: 1.7, animation: 'fxEnter 500ms 300ms both' }}>{S.sub}</div>}
+      <div className="text-[11px] font-bold mt-6" style={{ color: st >= 3 ? '#7a5200' : '#8E9BC8' }}>タップで次へ</div>
+    </div>
+  );
+}
+
+/* ---------- 数理の書（法則の断片・魔物図鑑・物語の記録） ---------- */
+function SuriBook({ tw, heroName, onClose }) {
+  const P = suriProgress(tw);
+  const [tab, setTab] = useState('frag');
+  const [page, setPage] = useState(null);   // { kind:'frag'|'mon', id }
+  const [replay, setReplay] = useState(null);
+  const C = suriChapters();
+  const go = p => { uiSnd('ok'); setPage(p); };
+  const gold = '#F3D27A';
+  const card = { background: 'rgba(255,255,255,.05)', border: '1px solid #d4a01766', borderRadius: 14 };
+  let body = null;
+  if (page && page.kind === 'frag') {
+    const fr = suriFrag(page.id), F = towerFloor(fr.floor || page.id * 5);
+    body = (<div key={'f' + page.id} style={{ animation: 'suriFlip 420ms ease both' }}>
+      <div className="flex items-center gap-3 mb-2">
+        <MonsterPic id={F.mid} icon={F.boss.icon} size={84} />
+        <div className="min-w-0"><div className="text-[11px] font-black" style={{ color: gold }}>断片 {page.id} / 14 ・ {fr.floor}階 ・ {F.boss.name}</div><div className="font-black" style={{ color: '#fff', fontSize: 22, ...bFont }}>{fr.name}</div></div>
+      </div>
+      <div className="p-3 mb-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>法則</div><div className="text-sm font-bold" style={{ color: '#E6ECFF', lineHeight: 1.75 }}>{fr.law}</div></div>
+      {fr.formulas && fr.formulas.length > 0 && <div className="p-3 mb-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>数式と例</div>{fr.formulas.map((x, i) => <div key={i} className="text-sm font-bold py-0.5" style={{ color: '#fff', overflowWrap: 'anywhere', ...bFont }}>・{x}</div>)}</div>}
+      {fr.links && <div className="p-3 mb-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>つながり</div><div className="text-sm font-bold" style={{ color: '#E6ECFF', lineHeight: 1.75 }}>{fr.links}</div></div>}
+      {fr.story && <div className="p-3 mb-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>物語</div><div className="text-sm font-bold" style={{ color: '#E6ECFF', lineHeight: 1.75 }}>{fr.story}</div></div>}
+    </div>);
+  } else if (page && page.kind === 'mon') {
+    const m = P.mons.find(x => x.id === page.id), D = (SURI().monsters || {})[m.id] || {}, killed = P.isKilled(m);
+    const rel = id => P.mons.find(x => x.id === id);
+    body = (<div key={'m' + page.id} style={{ animation: 'suriFlip 420ms ease both' }}>
+      <div className="flex justify-center my-2"><div className="rounded-2xl p-3" style={{ background: 'radial-gradient(circle, #2B3A7A, transparent 70%)' }}><MonsterPic id={m.id} icon={m.icon} size="min(46vw, 220px)" /></div></div>
+      <div className="text-center"><div className="font-black" style={{ color: '#fff', fontSize: 22, ...bFont }}>{m.name}</div><div className="text-[11px] font-black" style={{ color: gold }}>{m.boss ? `ボス（${m.tag}）` : '雑魚'} ・ 登場：{m.floors.join('・')}階</div></div>
+      {killed ? (<>
+        <div className="p-3 mt-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>数学のモチーフ</div><div className="text-sm font-bold" style={{ color: '#fff' }}>{D.motif || '—'}</div></div>
+        <div className="p-3 mt-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>生態・性格</div><div className="text-sm font-bold" style={{ color: '#E6ECFF', lineHeight: 1.75 }}>{D.nature || '—'}</div></div>
+        {(D.evolvesFrom || D.evolvesTo) && <div className="p-3 mt-2" style={card}><div className="text-xs font-black mb-1" style={{ color: gold }}>進化</div>
+          {D.evolvesFrom && rel(D.evolvesFrom) && <button onClick={() => go({ kind: 'mon', id: D.evolvesFrom })} className="text-sm font-black" style={{ color: '#fff' }}>⬅ 進化前：{P.isSeen(rel(D.evolvesFrom)) ? rel(D.evolvesFrom).name : '？？？'}</button>}
+          {D.evolvesTo && rel(D.evolvesTo) && <button onClick={() => go({ kind: 'mon', id: D.evolvesTo })} className="text-sm font-black block" style={{ color: '#fff' }}>➡ 進化後：{P.isSeen(rel(D.evolvesTo)) ? rel(D.evolvesTo).name : '？？？'}</button>}
+        </div>}
+        <div className="text-[11px] font-bold mt-2 text-center" style={{ color: '#8E9BC8' }}>{P.seen[m.id] ? `はじめて出会った日：${new Date(P.seen[m.id]).toLocaleDateString('ja-JP')}` : '以前の記録から登録'}{P.kill[m.id] ? ` ・ 撃破 ${P.kill[m.id]}回` : ''}</div>
+      </>) : <div className="p-3 mt-2 text-center text-sm font-bold" style={{ ...card, color: '#8E9BC8' }}>倒すと、くわしい説明が読めるようになる</div>}
+    </div>);
+  } else if (tab === 'frag') {
+    const n = Array.from({ length: 14 }, (_, i) => i + 1).filter(P.hasFrag).length;
+    body = (<div key="tf" style={{ animation: 'suriFlip 360ms ease both' }}>
+      <div className="text-center text-xs font-black mb-2" style={{ color: gold }}>集めた断片 {n} / 14</div>
+      <div className="grid grid-cols-2 gap-2">{Array.from({ length: 14 }, (_, i) => i + 1).map(no => { const ok = P.hasFrag(no), fr = suriFrag(no); return (
+        <button key={no} disabled={!ok} onClick={() => go({ kind: 'frag', id: no })} className="p-2.5 text-left" style={{ ...card, opacity: ok ? 1 : 0.55 }}>
+          <div className="flex items-center gap-2"><span style={{ fontSize: 24, filter: ok ? 'drop-shadow(0 0 6px #F3D27A)' : 'grayscale(1) brightness(.5)' }}>💎</span>
+            <div className="min-w-0"><div className="text-[10px] font-black" style={{ color: gold }}>第{no}章 ・ {no * 5}階</div><div className="text-[13px] font-black" style={{ color: '#fff', ...bFont }}>{ok ? fr.name : '？？？'}</div></div></div>
+        </button>); })}</div>
+    </div>);
+  } else if (tab === 'mon') {
+    const nS = P.mons.filter(P.isSeen).length;
+    body = (<div key="tm" style={{ animation: 'suriFlip 360ms ease both' }}>
+      <div className="text-center text-xs font-black mb-2" style={{ color: gold }}>出会った魔物 {nS} / {P.mons.length}</div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">{P.mons.map(m => { const s = P.isSeen(m), k = P.isKilled(m); return (
+        <button key={m.id} disabled={!s} onClick={() => go({ kind: 'mon', id: m.id })} className="p-1.5 text-center" style={{ ...card, borderColor: m.boss ? '#d4a017' : '#d4a01744' }}>
+          <MonsterPic id={m.id} icon={m.icon} size={52} sil={!s} />
+          <div className="text-[10px] font-black mt-0.5" style={{ color: s ? '#fff' : '#8E9BC8', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{s ? m.name : '？？？'}</div>
+          <div className="text-[9px] font-bold" style={{ color: gold }}>{m.floors[0]}階{m.boss ? ' ★' : ''}{k ? ' ✓' : ''}</div>
+        </button>); })}</div>
+      <div className="text-[10px] font-bold mt-2 text-center" style={{ color: '#8E9BC8' }}>★ボス ・ ✓撃破ずみ（撃破すると説明が読める）</div>
+    </div>);
+  } else {
+    body = (<div key="ts" style={{ animation: 'suriFlip 360ms ease both' }}>
+      {C.map(c => { const open = c.from <= P.best + 1; const evs = []; for (let f = c.from; f <= c.to; f++) { evs.push(...suriPreEvents(f), ...suriPostEvents(f)); } if (c.to === TOWER_GOAL) evs.push(suriEvent(TOWER_GOAL, 'ending'));
+        return (<div key={c.no} className="p-2.5 mb-2" style={{ ...card, opacity: open ? 1 : 0.5 }}>
+          <div className="text-[13px] font-black" style={{ color: open ? '#fff' : '#8E9BC8', ...bFont }}>第{c.no}章 {open ? c.title : '？？？'} <span className="text-[10px]" style={{ color: gold }}>{c.from}〜{c.to}階</span></div>
+          {open && c.synopsis && <div className="text-[11px] font-bold mt-0.5" style={{ color: '#C8D2F5' }}>{c.synopsis}</div>}
+          {open && <div className="flex flex-wrap gap-1 mt-1.5">{evs.filter(Boolean).map(ev => { const ok = P.canRead(ev); return (
+            <button key={ev.id} disabled={!ok} onClick={() => { uiSnd('ok'); setReplay([ev]); }} className="rounded-md px-1.5 py-0.5 text-[10px] font-black" style={{ background: ok ? '#d4a01733' : '#ffffff0d', color: ok ? gold : '#6f7aa8', border: `1px solid ${ok ? '#d4a01788' : '#ffffff22'}` }}>
+              {ok ? '' : '🔒'}{ev.type === 'chapter' ? '章のはじまり' : ev.type === 'pre' ? `${ev.floor}階 戦闘前` : ev.type === 'post' ? `${ev.floor}階 撃破` : 'エンディング'}</button>); })}</div>}
+        </div>); })}
+      <div className="text-[10px] font-bold text-center" style={{ color: '#8E9BC8' }}>読み返しても、戦闘や報酬は起きません</div>
+    </div>);
+  }
+  return (
+    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 55, background: 'linear-gradient(180deg, #121D45, #0B1430)', fontFamily: "'Zen Kaku Gothic New', sans-serif", paddingTop: 'max(8px, env(safe-area-inset-top))', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+      <div className="suri-bgmath" />
+      <div className="w-full mx-auto px-3 flex flex-col relative" style={{ maxWidth: 680, height: '100%', zIndex: 1 }}>
+        <div className="flex items-center gap-2 py-1.5 relative" style={{ borderBottom: '2px solid #d4a01766', zIndex: 3 }}>
+          {page ? <button onClick={() => { uiSnd('back'); setPage(null); }} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: '#ffffff14', color: '#fff', border: '1px solid #ffffff33' }}>← もどる</button> : <span style={{ fontSize: 22 }}>📖</span>}
+          <div className="flex-1 font-black" style={{ color: gold, fontSize: 18, letterSpacing: '.1em', ...bFont }}>数理の書</div>
+          <button onClick={() => { uiSnd('back'); onClose(); }} className="rounded-full px-3 py-1 text-xs font-black" style={{ background: '#ffffff14', color: '#fff', border: '1px solid #ffffff33' }}>とじる ✕</button>
+        </div>
+        {!page && <div className="grid grid-cols-3 gap-1.5 my-2 relative" style={{ zIndex: 3 }}>{[['frag', '法則の断片'], ['mon', '魔物図鑑'], ['story', '物語の記録']].map(([k, l]) => (
+          <button key={k} onClick={() => { uiSnd('cur'); setTab(k); }} className="rounded-xl py-1.5 text-xs font-black" style={{ background: tab === k ? 'linear-gradient(180deg,#F3D27A,#d4a017)' : '#ffffff0d', color: tab === k ? '#1D1405' : '#F3D27A', border: '1px solid #d4a01788' }}>{l}</button>))}</div>}
+        <div className="fx-scroll flex-1 overflow-y-auto pb-3 relative" style={{ touchAction: 'pan-y', minHeight: 0, zIndex: 1 }}>{body}</div>
+      </div>
+      {replay && <StoryView events={replay} heroName={heroName} replay onDone={() => setReplay(null)} />}
+    </div>
+  );
+}
+
 function TowerApp({ acct, onExit }) {
   const fb = useFbReady();
   const meKey = isReal(acct) ? acct.key : null;
@@ -5907,6 +6189,18 @@ function TowerApp({ acct, onExit }) {
   const [stunUntil, setStunUntil] = useState(0);
   const [fogUntil, setFogUntil] = useState(0);
   const [defeat, setDefeat] = useState(null);   // 撃破の演出
+  const [book, setBook] = useState(false);       // 数理の書
+  const [seq, setSeq] = useState(null);          // 会話・断片・エンディングの順番 { items:[{kind,ev|no}], i, after }
+  const heroName = (acct && acct.name) || 'あなた';
+  // 数理の塔の記録（ログイン：stats.tower、ゲスト：この端末）
+  const txQ = useRef(Promise.resolve());
+  const towerTx = fn => {
+    // 書きこみは1つずつ順番に（同時に書くと、あとの書きこみが先の書きこみを上書きしないように）
+    if (meKey) { txQ.current = txQ.current.then(() => statsTx(acct, s => { s.tower = s.tower || {}; fn(s.tower); })).catch(() => {}); return txQ.current; }
+    const g = loadGuest(); g.tower = g.tower || {}; fn(g.tower); saveGuest(g); setGTw({ ...g.tower }); return Promise.resolve(null);
+  };
+  const markRead = id => { if (!id || (tw.read || {})[id]) return; towerTx(W => { W.read = W.read || {}; W.read[id] = 1; }); };
+  const P = suriProgress(tw);
   const [, force] = useState(0);
   const lrec = useRef([]);
   const nick = useRef('');
@@ -5916,8 +6210,15 @@ function TowerApp({ acct, onExit }) {
   const F = run ? towerFloor(run.f) : null;
   const hpBoss = F ? Math.max(0, F.hpMax - fl.current.dmg) : 0;
 
-  const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
+  const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; start = Math.max(1, Math.min(TOWER_GOAL, start)); lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
+  // 「挑む」：まだ読んでいない会話（章の導入・戦闘前）があれば先に見せる。会話のあいだは戦闘の時間は進まない
+  const startFloor = force => {
+    const evs = suriPreEvents(run.f).filter(e => force || !(tw.read || {})[e.id]);
+    if (evs.length) { setSeq({ items: evs.map(ev => ({ kind: 'event', ev })), i: 0, after: 'enter' }); setScr('story'); }
+    else enter();
+  };
   const enter = () => {
+    towerTx(W => { W.seen = W.seen || {}; if (!W.seen[F.mid]) W.seen[F.mid] = Date.now(); });
     fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false, absExt: 0, kb: {} };
     gm.reset();
     setStunUntil(0); setFogUntil(0); setDefeat(null); setEndAt(Date.now() + F.sec * 1000 + 600);
@@ -5925,11 +6226,17 @@ function TowerApp({ acct, onExit }) {
   };
   // 記録（チェックポイント・最高到達階）を保存。ログインしていればランキングにも
   const saveProgress = async (f, king) => {
+    const info = towerFloor(f);
+    const upd = W => {
+      W.kill = W.kill || {}; W.kill[info.mid] = (W.kill[info.mid] || 0) + 1;
+      if (info.big) { W.frag = W.frag || {}; if (!W.frag[info.ch]) W.frag[info.ch] = Date.now(); }
+      if (f === TOWER_GOAL) { if (!W.end1) W.end1 = Date.now(); W.endN = (W.endN || 0) + 1; }
+    };
     if (meKey) {
-      await statsTx(acct, s => { s.tower = s.tower || {}; const W = s.tower; W.best = Math.max(W.best || 0, f); if (king) W.clears = (W.clears || 0) + 1; });
-      if (FB.db && f > (tw.best || 0)) FB.db.ref(`games/factor/tower/best/${meKey}`).transaction(e => { e = e || {}; if ((e.f || 0) >= f) return e.f ? e : { ...e, f, name: acct.name }; return { f, name: acct.name, nick: nick.current || '', at: Date.now() }; }).catch(() => {});
+      await towerTx(W => { W.best = Math.max(W.best || 0, f); if (king) W.clears = (W.clears || 0) + 1; upd(W); });
+      if (FB.db && f > towerBest(tw)) FB.db.ref(`games/factor/tower/best/${meKey}`).transaction(e => { e = e || {}; if ((e.f || 0) >= f) return e.f ? e : { ...e, f, name: acct.name }; return { f, name: acct.name, nick: nick.current || '', at: Date.now() }; }).catch(() => {});
     } else {
-      const g = loadGuest(); g.tower = g.tower || {}; g.tower.best = Math.max(g.tower.best || 0, f); if (king) g.tower.clears = (g.tower.clears || 0) + 1; saveGuest(g); setGTw({ ...g.tower });
+      const g = loadGuest(); g.tower = g.tower || {}; g.tower.best = Math.max(g.tower.best || 0, f); if (king) g.tower.clears = (g.tower.clears || 0) + 1; upd(g.tower); saveGuest(g); setGTw({ ...g.tower });
     }
   };
   const finish = async (why, r) => {
@@ -5937,9 +6244,9 @@ function TowerApp({ acct, onExit }) {
     fl.current.dead = true;
     flushLearn(acct, lrec.current, { raid: 1 }); lrec.current = [];
     const exp = await addExp(acct, Math.max(3, r.exp));
-    if (meKey) statsTx(acct, s => { s.tower = s.tower || {}; s.tower.runs = (s.tower.runs || 0) + 1; });
+    if (meKey) towerTx(W => { W.runs = (W.runs || 0) + 1; });
     else { const g = loadGuest(); g.tower = g.tower || {}; g.tower.runs = (g.tower.runs || 0) + 1; saveGuest(g); setGTw({ ...g.tower }); }
-    setRes({ why, reached: r.f, cleared: r.cleared, start: r.start, exp, log: r.log });
+    setRes({ why, reached: Math.min(r.f, TOWER_GOAL + 1), cleared: r.cleared, start: r.start, exp, log: r.log });
     setScr('over');
   };
   // 階を突破
@@ -5949,12 +6256,25 @@ function TowerApp({ acct, onExit }) {
     const nomiss = S.miss === 0;
     const heal = info.mob ? TOWER_HP.mob + (nomiss ? 2 : 0) : TOWER_HP.clear + (nomiss ? TOWER_HP.nomiss : 0) + (info.big ? TOWER_HP.big : 0) + (f % 10 === 0 ? TOWER_HP.cp : 0);
     const t = Math.round((Date.now() - S.t0) / 1000);
-    const gain = info.king ? 100 : info.big ? 8 : info.mob ? 3 : 4;
+    const gain = info.king || info.final ? 100 : info.big ? 8 : info.mob ? 3 : 4;
     const next = { ...run, f: f + 1, hp: Math.min(100, run.hp + heal), cleared: run.cleared + 1, exp: run.exp + gain, log: [...run.log, { f, t, nomiss }], last: { f, t, heal, nomiss, big: info.big, cp: f % 5 === 0, king: info.king } };
+    // 戦闘後：会話（未読のみ）→ 法則の断片（はじめてのボス撃破）→ 70階はエンディング
+    const firstFrag = info.big && !(tw.frag || {})[info.ch] && f > towerBest(tw);
+    const firstEnd = f === TOWER_GOAL && !tw.end1;
+    const items = [...suriPostEvents(f).filter(e => !(tw.read || {})[e.id]).map(ev => ({ kind: 'event', ev })), ...(firstFrag ? [{ kind: 'frag', no: info.ch }] : []), ...(f === TOWER_GOAL ? (firstEnd ? [{ kind: 'event', ev: suriEvent(TOWER_GOAL, 'ending') }, { kind: 'ending' }] : [{ kind: 'ending' }]) : [])];
     setRun(next);
     saveProgress(f, info.king);
     if (info.king) { FX.confetti(140); fxSound('levelup'); }
-    setScr('floor');
+    if (items.length) { setSeq({ items, i: 0, after: f === TOWER_GOAL ? 'end' : 'floor' }); setScr('story'); }
+    else setScr(f === TOWER_GOAL ? 'floor' : 'floor');
+  };
+  const seqNext = () => {
+    const q = seq; if (!q) return;
+    if (q.i + 1 < q.items.length) { setSeq({ ...q, i: q.i + 1 }); return; }
+    setSeq(null);
+    if (q.after === 'enter') enter();
+    else if (q.after === 'end') finish('end');
+    else setScr('floor');
   };
   const damageMe = (n, why) => {
     const r = runRef.current;
@@ -6031,10 +6351,17 @@ function TowerApp({ acct, onExit }) {
   const gimLine = gm.line(G === 'abs' ? `ミス −${TOWER_HP.miss * 2}（2倍）・時間+3秒（あと${Math.max(0, 30 - FS.absExt / 1000)}秒ぶん）` : 'ミス2倍・正解で+3秒');
   const kingParts = G === 'king' ? KING_PARTS.map(pt => ({ ...pt, broken: !!kb[pt.id] })) : null;
 
-  if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`🗼 ${run.f}階${F.endless ? '・無限回廊' : ''}`}
+  // 会話・断片・エンディング（このあいだは戦闘の時間は動かない）
+  if (scr === 'story' && seq) {
+    const it = seq.items[seq.i];
+    if (it.kind === 'event') return <StoryView key={'ev' + seq.i + it.ev.id} events={[it.ev]} heroName={heroName} onRead={markRead} onDone={seqNext} />;
+    if (it.kind === 'frag') return <FragGet key={'fr' + seq.i} no={it.no} onDone={seqNext} />;
+    if (it.kind === 'ending') return <EndingView key={'en' + seq.i} heroName={heroName} onDone={seqNext} />;
+  }
+  if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={fl.current.revived && suriImg(F.mid + '2') ? { ...F.boss, img: suriImg(F.mid + '2') } : F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`📖 第${F.ch}章 ・ ${run.f}階`}
     onQuit={() => finish('quit')}
     opts={{
-      pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '塔の挑戦をやめますか？（ここまでの記録は残ります）',
+      pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '数理の塔の挑戦をやめますか？（ここまでの記録は残ります）',
       ctlRef: ctl, buildProb, mirror: G === 'mirror', defeat, hint: G === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : undefined,
       hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
       note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ${weakFam.mul || 2}倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
@@ -6088,7 +6415,7 @@ function TowerApp({ acct, onExit }) {
   const bar = (best, h = 12) => (
     <div className="relative rounded-full" style={{ height: h, background: '#E8E2D6' }}>
       <div className="h-full rounded-full" style={{ width: `${Math.min(100, (best || 0) / TOWER_GOAL * 100)}%`, background: 'linear-gradient(90deg,#E4572E,#d4a017)' }} />
-      {[10, 20, 30, 40].map(c => <span key={c} className="absolute top-0 h-full" style={{ left: `${c / TOWER_GOAL * 100}%`, width: 2, background: (best || 0) >= c ? '#fff' : '#cfc6b6' }} />)}
+      {[10, 20, 30, 40, 50, 60].map(c => <span key={c} className="absolute top-0 h-full" style={{ left: `${c / TOWER_GOAL * 100}%`, width: 2, background: (best || 0) >= c ? '#fff' : '#cfc6b6' }} />)}
     </div>);
   const Fn = run ? towerFloor(run.f) : null;
   return (
@@ -6098,31 +6425,32 @@ function TowerApp({ acct, onExit }) {
         {scr === 'home' && (<>
           <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
           <div className="text-center mb-3">
-            <div className="v7-name" style={{ fontSize: 24 }}>🗼 M5タワー</div>
-            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>1階ごとに敵1体（{TOWER_SEC / 1000}秒）。HPを持ちこして、どこまで登れるか</div>
+            <div className="v7-name" style={{ fontSize: 24 }}>📖 数理の塔</div>
+            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>数学の法則が失われた世界で、70階の塔を登り、数理の真実を取りもどす物語</div>
           </div>
           <div className="v7-panel mb-3">
             <div className="flex items-end justify-between mb-1">
-              <div><div className="text-[10px] font-black" style={{ color: COLORS.inkSoft }}>最高到達</div><div className="font-black" style={{ fontSize: 26, color: '#E4572E', ...bFont }}>{tw.best || 0}<small className="text-sm">階</small>{(tw.best || 0) >= TOWER_GOAL && <span className="v7-chip align-middle ml-1" style={{ background: '#b8860b' }}>👑制覇</span>}</div></div>
-              <div className="text-right text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>セーブ {cp ? `${cp}階まで` : 'なし'}<br />{tw.clears ? `制覇 ${tw.clears}回 ・ ` : ''}挑戦 {tw.runs || 0}回{myRank ? ` ・ ${myRank}位` : ''}</div>
+              <div><div className="text-[10px] font-black" style={{ color: COLORS.inkSoft }}>最高到達</div><div className="font-black" style={{ fontSize: 26, color: '#E4572E', ...bFont }}>{tw.best || 0}<small className="text-sm">階</small>{(tw.best || 0) >= TOWER_GOAL ? <span className="v7-chip align-middle ml-1" style={{ background: '#1D4E89' }}>📖第一部クリア</span> : (tw.best || 0) >= TOWER_KING_F ? <span className="v7-chip align-middle ml-1" style={{ background: '#b8860b' }}>👑王を撃破</span> : null}</div></div>
+              <div className="text-right text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>いま 第{towerChapter(Math.min(TOWER_GOAL, towerBest(tw) + 1))}章 ・ 断片 {Array.from({ length: 14 }, (_, i) => i + 1).filter(P.hasFrag).length}/14<br />挑戦 {tw.runs || 0}回{myRank ? ` ・ ${myRank}位` : ''}</div>
             </div>
             {bar(tw.best, 12)}
-            <div className="flex justify-between text-[9px] font-black mt-0.5" style={{ color: COLORS.inkSoft }}><span>1</span><span>10</span><span>20</span><span>30</span><span>40</span><span>👑50</span></div>
+            <div className="flex justify-between text-[9px] font-black mt-0.5" style={{ color: COLORS.inkSoft }}><span>1</span><span>10</span><span>20</span><span>30</span><span>40</span><span>👑50</span><span>60</span><span>📖70</span></div>
           </div>
           <Card className="mb-3">
             <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>どこから登る？</div>
-            {cp > 0 && <div className="mb-2"><BigBtn color="#E4572E" onClick={() => begin(cp + 1)}>💾 続きから（{cp + 1}階{cp + 1 > TOWER_GOAL ? '・無限回廊' : ''}）</BigBtn></div>}
+            {cp > 0 && <div className="mb-2"><BigBtn color="#E4572E" onClick={() => begin(cp + 1)}>💾 続きから（{cp + 1}階・第{towerChapter(cp + 1)}章）</BigBtn></div>}
             <div className="grid grid-cols-4 gap-1.5">
-              {starts.map(s => <button key={s} className="v7-cur rounded-xl py-1.5 font-black text-sm" onClick={() => begin(s)} style={{ background: cp === 0 && s === 1 ? '#E4572E' : '#fff', color: cp === 0 && s === 1 ? '#fff' : COLORS.ink, border: '1.5px solid var(--v7-line)', ...bFont }}>{s}階<div className="text-[9px] font-bold opacity-80">{s === 1 ? 'はじめから' : s > TOWER_GOAL ? '無限回廊' : 'セーブ'}</div></button>)}
+              {starts.map(s => <button key={s} className="v7-cur rounded-xl py-1.5 font-black text-sm" onClick={() => begin(s)} style={{ background: cp === 0 && s === 1 ? '#E4572E' : '#fff', color: cp === 0 && s === 1 ? '#fff' : COLORS.ink, border: '1.5px solid var(--v7-line)', ...bFont }}>{s}階<div className="text-[9px] font-bold opacity-80">{s === 1 ? 'はじめから' : `第${towerChapter(s)}章`}</div></button>)}
             </div>
             <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>
               <li>ボスを{TOWER_SEC / 1000}秒で倒せないと<b>猛攻（HP−{TOWER_HP.timeout}）</b>を受けて15秒延長。HPが0で終わり</li>
               <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。ボスを倒すと回復 +{TOWER_HP.clear + TOWER_HP.big}（ノーミス+{TOWER_HP.nomiss}）・雑魚は +{TOWER_HP.mob}</li>
               <li>出る問題：1〜10階は<b>Lv.1〜3</b>、11〜20階は<b>Lv.1〜6</b>、21階から<b>全レベル</b></li>
               <li>5の倍数の階は<b>ボス</b>（1体ずつ特別な力をもつ）。ほかの階は<b>雑魚</b>。<b>5階ごとにセーブ</b>（次からその次の階から続きができる）、10階ごとにHP+{TOWER_HP.cp}</li>
-              <li><b>50階に真のボス</b>。倒すと称号「塔を制覇」ときせかえ。51階からは<b>無限回廊</b></li>
+              <li>5階ごとのボスを倒すと<b>法則の断片</b>。<b>50階に真・因数の王</b>（称号「塔を制覇」）、<b>70階で第一部完</b></li>
             </ul>
           </Card>
+          <div className="mb-2"><BigBtn color="#1D2A5C" onClick={() => setBook(true)}>📖 数理の書（断片・魔物図鑑・物語の記録）</BigBtn></div>
           <div className="flex gap-2 mb-3">
             <button className="v7-pill v7-cur flex-1 justify-center" onClick={() => setShowRank(true)}><V7Icon name="cup" />最高到達階ランキング</button>
           </div>
@@ -6133,20 +6461,21 @@ function TowerApp({ acct, onExit }) {
           {run.last && <div className="v7-panel mb-3 text-center" style={{ borderColor: run.last.king ? '#b8860b' : 'var(--v7-line)' }}>
             {run.last.king ? (<>
               <div style={{ fontSize: 44 }}>👑</div>
-              <div className="font-black" style={{ fontSize: 22, color: '#b8860b', ...bFont }}>塔を制覇！</div>
-              <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>真・因数の王を倒した！ 称号「塔を制覇」ときせかえ「塔の頂」「天空の塔」を手に入れた</div>
+              <div className="font-black" style={{ fontSize: 22, color: '#b8860b', ...bFont }}>真・因数の王を撃破！</div>
+              <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>称号「塔を制覇」ときせかえ「塔の頂」「天空の塔」を手に入れた。塔はまだ上へ続いている…</div>
             </>) : (<>
               <div className="font-black" style={{ fontSize: 22, color: '#E4572E', ...bFont }}>{run.last.f}階 突破！</div>
               <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>{run.last.t}秒{run.last.nomiss ? ' ・ ノーミス' : ''} ・ HP +{run.last.heal}{run.last.cp ? ' ・ 💾 セーブしました' : ''}</div>
             </>)}
           </div>}
           <div className="text-center mb-2">
+            <div className="text-[11px] font-black" style={{ color: '#9a6a12' }}>第{Fn.ch}章 {(suriChapters().find(c => c.no === Fn.ch) || {}).title || ''}</div>
             <div className="font-black" style={{ fontSize: 40, color: COLORS.ink, lineHeight: 1.1, ...bFont }}>{run.f}<small className="text-lg">階</small></div>
-            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.endless ? '#7b2cbf' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.king ? '最上階・真のボス' : Fn.endless ? '♾ 無限回廊' : Fn.big ? 'ボスの階' : Fn.mob ? '雑魚の階' : run.f % 5 === 4 ? '次はボスの階' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
+            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.final ? '#1D4E89' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.final ? '最上階・第一部の最後のボス' : Fn.king ? '第10章のボス・真・因数の王' : Fn.big ? `ボスの階（法則の断片 ${Fn.ch}/14）` : run.f % 5 === 4 ? '次はボスの階' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
           </div>
           <Card className="mb-3">
             <div className="flex items-center gap-3">
-              <div style={{ fontSize: Fn.big || Fn.king ? '3.6rem' : '3rem', lineHeight: 1 }}>{Fn.boss.icon}</div>
+              <MonsterPic id={Fn.mid} icon={Fn.boss.icon} size={Fn.big ? 72 : 60} />
               <div className="min-w-0 flex-1">
                 <div className="v7-name" style={{ color: Fn.boss.color }}>{Fn.boss.name}</div>
                 <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {Fn.hpMax.toLocaleString()} ・ {Fn.sec}秒{Fn.T.tag ? ` ・ ${Fn.T.tag}` : ''}</div>
@@ -6154,19 +6483,20 @@ function TowerApp({ acct, onExit }) {
             </div>
             <ul className="text-[11px] font-bold list-disc pl-4 mt-1" style={{ color: COLORS.ink }}>
               {(Fn.T.desc || []).slice(0, 3).map(d => <li key={d}>{d}</li>)}
-              {Fn.big && Fn.endless && <li>大ボス：体力1.5倍・反撃が3回・反撃のダメージ1.5倍</li>}
               <li>出る問題：{Fn.lvMax < 9 ? `Lv.1〜${Fn.lvMax}` : 'すべてのレベル'}{Fn.lvMax < 9 ? `（${Fn.lvMax === 3 ? '11階から Lv.6 まで' : '21階から全レベル'}）` : ''}</li>
             </ul>
           </Card>
           <div className="v7-panel mb-3"><div className="flex items-center gap-2"><span className="text-[11px] font-black" style={{ color: COLORS.ink }}>あなたのHP</span><div className="flex-1"><HpBar v7 hp={run.hp} height={18} /></div></div></div>
-          <BigBtn color={Fn.boss.color} onClick={enter}>{run.f}階へ挑む</BigBtn>
+          <BigBtn color={Fn.boss.color} onClick={() => startFloor(false)}>{run.f}階へ挑む</BigBtn>
+          {suriPreEvents(run.f).every(e => (tw.read || {})[e.id]) && <div className="mt-1.5 flex justify-center gap-2"><button className="v7-pill v7-cur" onClick={() => startFloor(true)}>💬 会話をもう一度見てから挑む</button><button className="v7-pill v7-cur" onClick={() => setBook(true)}>📖 数理の書</button></div>}
           <div className="mt-2"><BigBtn small color={COLORS.inkSoft} onClick={() => finish('stop')}>ここでやめる（記録は残る）</BigBtn></div>
         </>)}
 
         {scr === 'over' && res && (<>
           <div className="text-center mb-3">
-            <div className="v7-name" style={{ fontSize: 22 }}>{res.why === 'ko' ? '力つきた…' : '挑戦おわり'}</div>
-            <div className="font-black" style={{ fontSize: 44, color: '#E4572E', lineHeight: 1.1, ...bFont }}>{res.why === 'ko' ? res.reached : res.reached - 1}<small className="text-lg">{res.why === 'ko' ? '階で倒れた' : '階まで突破'}</small></div>
+            <div className="v7-name" style={{ fontSize: 22 }}>{res.why === 'end' ? '📖 第一部 クリア！' : res.why === 'ko' ? '力つきた…' : '挑戦おわり'}</div>
+            <div className="font-black" style={{ fontSize: 44, color: res.why === 'end' ? '#1D4E89' : '#E4572E', lineHeight: 1.1, ...bFont }}>{res.why === 'ko' ? res.reached : res.reached - 1}<small className="text-lg">{res.why === 'ko' ? '階で倒れた' : '階まで突破'}</small></div>
+            {res.why === 'end' && <div className="text-sm font-black mt-1" style={{ color: '#9a6a12' }}>数学の世界に、終わりはない。</div>}
             <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{res.start}階から挑戦 ・ {res.cleared}階ぶん登った</div>
           </div>
           {res.log.length > 0 && <Card className="mb-3">
@@ -6176,17 +6506,19 @@ function TowerApp({ acct, onExit }) {
           </Card>}
           {res.exp && <div className="v7-panel mb-3"><ExpGain before={res.exp.before} after={res.exp.after} label="塔の経験値" /></div>}
           <BigBtn color="#E4572E" onClick={() => { setScr('home'); setRun(null); }}>塔の入口へ</BigBtn>
+          <div className="mt-2"><BigBtn small color="#1D2A5C" onClick={() => setBook(true)}>📖 数理の書を見る</BigBtn></div>
           <div className="mt-2"><BigBtn small color={COLORS.inkSoft} onClick={onExit}>タイトルにもどる</BigBtn></div>
         </>)}
       </div>
+      {book && <SuriBook tw={tw} heroName={heroName} onClose={() => setBook(false)} />}
       {showRank && <V7Modal title="最高到達階ランキング" onClose={() => setShowRank(false)}>
         {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p> : rows.slice(0, 30).map((r, i) => (
           <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
             <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
             <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', lineHeight: 1.25 }}>{r.name}</span></span>
-            <span className="font-black" style={{ color: r.f > TOWER_GOAL ? '#7b2cbf' : r.f >= TOWER_GOAL ? '#b8860b' : '#E4572E' }}>{r.f}階{r.f > TOWER_GOAL ? ' ♾' : r.f === TOWER_GOAL ? ' 👑' : ''}</span>
+            <span className="font-black" style={{ color: r.f >= TOWER_GOAL ? '#1D4E89' : r.f >= TOWER_KING_F ? '#b8860b' : '#E4572E' }}>{Math.min(r.f, TOWER_GOAL)}階{r.f >= TOWER_GOAL ? ' 📖' : r.f >= TOWER_KING_F ? ' 👑' : ''}</span>
           </div>))}
-        <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>突破した階の最高記録。同じ階なら先に到達した人が上</p>
+        <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>突破した階の最高記録（70階が最上階。以前の無限回廊の記録も70階として表示）。同じ階なら先に到達した人が上</p>
       </V7Modal>}
     </div>
   );
@@ -6199,9 +6531,9 @@ function TowerTileV7({ acct, onOpen }) {
   const b = tw.best || 0;
   return (
     <button className="v7-tile v7-cur" onClick={onOpen}>
-      <div className="top"><span className="v7-ico">🗼</span><span className="v7-badge">{b >= TOWER_GOAL ? `👑 ${b}階` : b ? `最高${b}階` : 'NEW'}</span></div>
-      <b>M5タワー</b>
-      <span className="s">{b >= TOWER_GOAL ? '無限回廊に挑戦中' : '1人で50階をめざす'}</span>
+      <div className="top"><span className="v7-ico">📖</span><span className="v7-badge">{b >= TOWER_GOAL ? '第一部クリア' : b ? `第${towerChapter(Math.min(TOWER_GOAL, b + 1))}章・${Math.min(b, TOWER_GOAL)}階` : 'NEW'}</span></div>
+      <b>数理の塔</b>
+      <span className="s">{b >= TOWER_GOAL ? '数理の書を読み返そう' : '70階の数学RPG'}</span>
       <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${Math.min(100, b / TOWER_GOAL * 100)}%`, background: '#E4572E' }} /></div>
     </button>
   );
@@ -6626,11 +6958,11 @@ const BADGES = [
   { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
   { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
   { id: 'wksup100', g: 'wksup', r: 4, icon: '🎺', label: '名サポーター', desc: '応援ポイントを通算100', test: st => ((st.wk || {}).sup || 0) >= 100 },
-  { id: 'tw10', g: 'tower', r: 2, icon: '🗼', label: '塔の挑戦者', desc: 'M5タワーで10階を突破', test: st => ((st.tower || {}).best || 0) >= 10 },
-  { id: 'tw30', g: 'tower', r: 3, icon: '🏯', label: '塔の熟練者', desc: 'M5タワーで30階を突破', test: st => ((st.tower || {}).best || 0) >= 30 },
-  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: 'M5タワーの50階で真・因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
-  { id: 'tw70', g: 'tower', r: 5, icon: '♾️', label: '無限回廊の旅人', desc: 'M5タワーで70階を突破', test: st => ((st.tower || {}).best || 0) >= 70 },
-  { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '回廊の果て', desc: 'M5タワーで100階を突破', test: st => ((st.tower || {}).best || 0) >= 100 },
+  { id: 'tw10', g: 'tower', r: 2, icon: '🗼', label: '塔の挑戦者', desc: '数理の塔で10階を突破', test: st => ((st.tower || {}).best || 0) >= 10 },
+  { id: 'tw30', g: 'tower', r: 3, icon: '🏯', label: '塔の熟練者', desc: '数理の塔で30階を突破', test: st => ((st.tower || {}).best || 0) >= 30 },
+  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: '数理の塔の50階で真・因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
+  { id: 'tw70', g: 'tower', r: 5, icon: '📖', label: '数理の書の継承者', desc: '数理の塔の70階を突破して、第一部をクリア', test: st => ((st.tower || {}).best || 0) >= 70 },
+  { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '終わりなき探究者', desc: '数理の塔の第一部を3回クリア', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
@@ -8195,7 +8527,7 @@ const ACT_INFO = {
   daily: { icon: '📅', label: 'デイリー', color: '#f4a261' },
   learn: { icon: '📚', label: '学びの部屋', color: '#7B61FF' },
   raidw: { icon: '🗓', label: '今週のボス', color: '#7b2cbf' },
-  tower: { icon: '🗼', label: 'M5タワー', color: '#E4572E' },
+  tower: { icon: '🗼', label: '数理の塔', color: '#E4572E' },
   dash: { icon: '👩‍🏫', label: 'ダッシュボード', color: '#2a9d8f' },
 };
 function presenceSet(patch) {
