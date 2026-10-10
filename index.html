@@ -22,7 +22,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
-<script src="suri-data.js?v=6"></script>
+<script src="suri-data.js?v=7"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -111,6 +111,13 @@
   @keyframes suriGlow { 0%, 100% { text-shadow: 0 0 6px #FFE9A8; } 50% { text-shadow: 0 0 16px #FFD54A, 0 0 28px #FFE9A8; } }
   @keyframes suriRays { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes suriStop { 0% { filter: none; } 100% { filter: saturate(.45) brightness(.9); } }
+  /* 会話の背景（16:9）：ふつうは画面いっぱいに広げて focus の場所を残して切りとる。fit:'contain' の背景は、縦長の画面では全体を見せて余白をぼかした同じ画像でうめる */
+  .suri-bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .suri-bgblur { display: none; }
+  @media (orientation: portrait) {
+    .suri-bgimg[data-fit="contain"] { object-fit: contain; }
+    .suri-bgblur[data-fit="contain"] { display: block; position: absolute; inset: -6%; width: 112%; height: 112%; object-fit: cover; filter: blur(14px) brightness(.7); }
+  }
   .suri-rm *, .suri-rm { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
   @keyframes suriGem { 0% { transform: scale(.2) rotate(-30deg); opacity: 0; } 70% { transform: scale(1.15) rotate(6deg); opacity: 1; } 100% { transform: scale(1); } }
   @keyframes fxVsPop { 0% { transform: scale(3) rotate(-20deg); opacity: 0; } 60% { transform: scale(0.9) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
@@ -283,7 +290,8 @@
     .v7-poly { font-size: clamp(2rem, 8vh, 3.8rem); }
     .v7-target { padding: 16px 12px 14px; }
   }
-  /* 数理の塔だけ：横向きなら、スマホでもタブレット版の2列の戦闘画面（.tw-land は塔の戦闘画面にだけ付く） */
+  /* 数理の塔の戦闘（.tw-land は塔の戦闘画面にだけ付く）：画面の切りかえは通常モードと同じ（スマホ縦＝スマホ版、タブレット・PCの横＝タブレット版）。
+     スマホを横にして遊んだときだけの予備として、横向きなら2列にする（通常モードには付かない） */
   @media (orientation: landscape) {
     .tw-land .v7-play { display: grid; grid-template-columns: minmax(250px, 34%) 1fr; gap: 12px; max-width: 1280px; }
     .tw-land .v7-zone { height: 100%; min-height: 0; overflow: hidden; }
@@ -308,7 +316,6 @@
     .tw-land .v7-fxcombo b { font-size: 64px; }
     .tw-land .v7-fxcombo small { font-size: 14px; }
   }
-  @keyframes twRotate { 0%, 20% { transform: rotate(0deg); } 55%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
   .v7-result { width: 100%; max-width: 30rem; padding: 18px 16px; text-align: center; }
   .v7-result .big { font-family: var(--v7-f-fx); font-size: 56px; color: var(--v7-gold); line-height: 1.1; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
   .v7-result .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; padding: 5px 2px; border-bottom: 1px solid rgba(230,236,255,.15); font-family: var(--v7-f-ui); }
@@ -2454,7 +2461,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.5.8</span>
+              <span className="v7-ver">ver.5.9</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3000,7 +3007,17 @@ function fxAdd(item, ms) {
 }
 const rectC = el => { if (!el || !el.getBoundingClientRect) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top }; };
 const qs = sel => document.querySelector(sel);
-const FX_REDUCE = (() => { try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+/* =====================================================================
+   端末まわり（Device）：ブラウザ・端末に関わる判定はここにまとめる。将来アプリにするときはここを差しかえる。
+   ・スマホ版／タブレット版の画面の切りかえは CSS（横幅900px以上かつ横向き＝タブレット版）にまかせ、ゲームの処理では判定しない
+   ===================================================================== */
+const Device = {
+  reduceMotion() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } },
+  isIOS() { try { return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); } catch (e) { return false; } },
+  isStandalone() { try { return !!(window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)); } catch (e) { return false; } },
+  isPortrait() { try { return window.innerHeight > window.innerWidth; } catch (e) { return true; } },
+};
+const FX_REDUCE = Device.reduceMotion();
 const FX = {
   burst(x, y, o = {}) {
     if (x == null) return;
@@ -6094,7 +6111,7 @@ function SuriPortrait({ who, full, dim, F }) {
 /* ---------- 会話の背景と演出 ----------
    背景は suri-data.js の backgrounds（image がなければ CSS の仮の背景）。セリフの { bg, fx, kind } で切りかえる */
 const suriBg = id => (id && (SURI().backgrounds || {})[id]) || null;
-const suriReduce = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+const suriReduce = () => Device.reduceMotion();
 function SuriBgArt({ id }) {
   const A = { position: 'absolute' };
   if (id === 'classroom') return (<div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #F2C48A 0%, #E9A866 62%, #7A4E31 62.5%, #5B3923 100%)' }}>
@@ -6125,7 +6142,7 @@ function SuriBackdrop({ bg, clockStop, emblem, reduce }) {
   const [ex, ey] = ea.split(' ');
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0, animation: clockStop ? 'suriStop 1.2s ease forwards' : 'none' }}>
-      {B.image && !bad ? <img src={B.image} alt="" draggable={false} onError={() => setBad(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: B.focus || '50% 50%' }} /> : <SuriBgArt id={bg} />}
+      {B.image && !bad ? <><img className="suri-bgblur" data-fit={B.fit || 'cover'} src={B.image} alt="" draggable={false} /><img className="suri-bgimg" data-fit={B.fit || 'cover'} src={B.image} alt="" draggable={false} onError={() => setBad(true)} style={{ objectPosition: B.focus || '50% 50%' }} /></> : <SuriBgArt id={bg} />}
       {bg === 'classroom' && <div className="absolute rounded-full" style={{ right: '7%', top: '4%', width: 'min(15vw, 64px)', height: 'min(15vw, 64px)', background: '#fffaf0', border: '4px solid #6b4a2b', boxShadow: clockStop ? '0 0 0 6px rgba(255,255,255,.5)' : 'none', transition: 'box-shadow 400ms' }}>
         <div className="absolute" style={{ left: '50%', top: '18%', width: 3, height: '32%', marginLeft: -1.5, background: '#333', transformOrigin: '50% 100%', transform: 'rotate(150deg)' }} />
         <div className="absolute" style={{ left: '50%', top: '10%', width: 1.5, height: '40%', marginLeft: -0.75, background: '#c0392b', transformOrigin: '50% 100%', animation: 'suriTick 60s steps(60) infinite', animationPlayState: clockStop || reduce ? 'paused' : 'running' }} />
@@ -6426,47 +6443,7 @@ function SuriBook({ tw, heroName, onClose }) {
   );
 }
 
-/* ---------- 数理の塔は横向きで遊ぶ：縦向きのあいだは案内を出す ----------
-   Android（Chrome など）は「全画面で横向きにする」で向きを固定できる。iPhone の Safari は固定できないので、案内だけ */
-function useTowerPortrait() {
-  const get = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
-  const [pt, setPt] = useState(get);
-  useEffect(() => {
-    const f = () => setPt(get());
-    window.addEventListener('resize', f); window.addEventListener('orientationchange', f);
-    const so = window.screen && window.screen.orientation; if (so && so.addEventListener) so.addEventListener('change', f);
-    return () => { window.removeEventListener('resize', f); window.removeEventListener('orientationchange', f); if (so && so.removeEventListener) so.removeEventListener('change', f); };
-  }, []);
-  // 塔を出るとき：全画面・向きの固定を元にもどす
-  useEffect(() => () => { try { const so = window.screen && window.screen.orientation; if (so && so.unlock) so.unlock(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (e) {} }, []);
-  return pt;
-}
-function RotateGuide({ onExit }) {
-  const so = window.screen && window.screen.orientation;
-  const ios = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const canLock = !ios && so && typeof so.lock === 'function' && !!document.documentElement.requestFullscreen;
-  const [err, setErr] = useState(false);
-  const lock = () => { uiSnd('ok'); document.documentElement.requestFullscreen().then(() => so.lock('landscape')).catch(() => setErr(true)); };
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center px-6 text-center" style={{ zIndex: 400, background: 'radial-gradient(ellipse at 50% 40%, #24356F, #0B1430 70%)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
-      <div className="suri-bgmath" />
-      <div className="relative" style={{ width: 70, height: 116, border: '5px solid #F3D27A', borderRadius: 14, animation: suriReduce() ? 'none' : 'twRotate 2.6s ease-in-out infinite', boxShadow: '0 0 24px rgba(243,210,122,.4)' }}>
-        <div className="absolute rounded-full" style={{ left: '50%', bottom: 6, width: 10, height: 10, marginLeft: -5, background: '#F3D27A' }} />
-        <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 30 }}>📖</div>
-      </div>
-      <div className="font-black mt-6 relative" style={{ color: '#fff', fontSize: 20, ...bFont }}>スマホを横向きにしてください</div>
-      <div className="text-sm font-bold mt-2 relative" style={{ color: '#C8D2F5', lineHeight: 1.7, maxWidth: 340 }}>数理の塔は横向きの画面で遊びます。<br />画面の向きのロックがオンになっていたら、オフにしてください。</div>
-      {canLock && <button className="mt-4 rounded-full px-5 py-2 font-black text-sm relative" onClick={lock} style={{ background: 'linear-gradient(180deg,#F3D27A,#d4a017)', color: '#1D1405' }}>全画面で横向きにする</button>}
-      {err && <div className="text-[11px] font-bold mt-2 relative" style={{ color: '#FFB4A8' }}>自動で向きを変えられませんでした。スマホを横にしてください</div>}
-      <button className="mt-5 text-xs font-black underline relative" style={{ color: '#8E9BC8' }} onClick={() => { uiSnd('back'); onExit(); }}>← タイトルにもどる</button>
-    </div>);
-}
-// 縦向きのあいだも中身（会話・戦闘の状態）はそのまま。案内を上に重ねるだけ
-function TowerApp(props) {
-  const portrait = useTowerPortrait();
-  return <>{<TowerAppMain {...props} />}{portrait && <RotateGuide onExit={props.onExit} />}</>;
-}
-function TowerAppMain({ acct, onExit }) {
+function TowerApp({ acct, onExit }) {
   const fb = useFbReady();
   const meKey = isReal(acct) ? acct.key : null;
   const [tOk, setTOk] = useState(undefined);   // 準備中：先生のアカウントか（読みこみ中は undefined）
