@@ -2406,7 +2406,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.8.3</span>
+              <span className="v7-ver">ver.8.4</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4165,6 +4165,16 @@ const BOSSES = [
   { id: 'maou', name: '平方の魔王', icon: '👿', color: '#b5487e' },
   { id: 'slime', name: '共通因数スライム', icon: '🫠', color: '#43C97B' },
   { id: 'robot', name: '展開ロボ Ω', icon: '🤖', color: '#457b9d' },
+  // ver.8.4：ボスの塔の5の倍数の階のボス（ほかのモードにも出る）
+  { id: 'abs', name: '絶対値ビースト', icon: '🐾', color: '#C2410C' },
+  { id: 'balance', name: '方程式バランサー', icon: '⚖️', color: '#457b9d' },
+  { id: 'mod', name: '余りマスター', icon: '🧙‍♂️', color: '#7b2cbf' },
+  { id: 'wave', name: '周期関数シード', icon: '🌱', color: '#3FA55F' },
+  { id: 'chimera', name: '多項式キマイラ', icon: '🦁', color: '#B7791F' },
+  { id: 'prime', name: '素数シャーク', icon: '🦈', color: '#0E86C6' },
+  { id: 'sim', name: '連立パペット', icon: '🎭', color: '#b5487e' },
+  { id: 'mirror', name: '対称式ファントム', icon: '🪞', color: '#6b5bd6' },
+  { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' },
 ];
 const TEACHER_BOSS = { id: 'teacher', name: '先生', icon: '👩‍🏫', color: '#d62828' };
 /* ボスの個性（クラス協力レイド）。書いていないものはふつう（部位3つ・弱点タイム・反撃は35秒後から40秒ごと・3秒しびれ）
@@ -4185,6 +4195,19 @@ const BOSS_TRAITS = {
   robot: { tag: '機械型', seal: { part: 'a', text: 'ジャミングが止まる', ojK: 0 }, parts: ['アンテナ', 'アーム', 'コア'], weak: { every: 30000, len: 20000 }, chainK: 0.08, counter: { every: 35000, stun: 0, oj: 3, name: '📡 ジャミング' },
     desc: ['反撃は「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが多い（30秒ごとに20秒）', '連携チェインのダメージアップが大きい（最大1.8倍）'] },
 };
+/* ver.8.4：塔のボスの個性（gim＝しかけ。useBossGim が全モード共通で動かす）。反撃があるのは王だけ（ドラゴンは上の dragon） */
+Object.assign(BOSS_TRAITS, {
+  abs: { tag: '境界型', gim: 'abs', parts: ['爪', '牙', 'しっぽ'], weak: false, counter: null, desc: ['まちがえたときのダメージ・しびれが2倍', '正解すると「−」が「＋」に変わる（塔と今週のボスでは時間+3秒）'] },
+  balance: { tag: '均衡型', gim: 'balance', parts: ['左の皿', '右の皿', '支柱'], weak: false, counter: null, desc: ['同じレベルの問題を2問続けて正解すると、ふつうのダメージ', 'それ以外の正解はダメージ半分（0にはならない）'] },
+  mod: { tag: '剰余型', gim: 'mod', parts: ['帽子', '杖', 'ローブ'], weak: false, counter: null, desc: ['6枚のタイルのうち1枚は、答えに似せたニセの因数（あまりがずれている）', '正解の組は必ず1つある'] },
+  wave: { tag: '波動型', gim: 'wave', parts: ['葉', 'つる', '根'], weak: false, counter: null, desc: ['5秒ごとにタイルの並びが1つずつずれる', 'ドラッグしている間はずれない'] },
+  chimera: { tag: '合体型', gim: 'chimera', parts: ['二次の頭', '三次の頭', 'しっぽ'], weak: false, counter: null, desc: ['「二次式の頭」と「三次式の頭」が12秒ごとに入れかわる', '二次の頭はたすきがけ・2乗の差（Lv4〜6・8・9）が1.5倍、三次の頭は3乗の和・差（Lv7）が2倍'] },
+  prime: { tag: '孤高型', gim: 'prime', parts: ['背びれ', '牙', '尾びれ'], weak: false, counter: null, desc: ['奇数コンボ目の正解はダメージ2倍、偶数コンボ目は半分', 'コンボが切れたら1コンボ目（2倍）から'] },
+  sim: { tag: '連携型', gim: 'sim', parts: ['右の糸', '左の糸', '仮面'], weak: false, counter: null, desc: ['式Ａと式Ｂが同時に出る。どちらから解いてもOK', 'ＡとＢを交互に解くと連携ゲージがたまり、4つで大ダメージ'] },
+  mirror: { tag: '鏡映型', gim: 'mirror', parts: ['左の鏡', '右の鏡', '核'], weak: false, counter: null, desc: ['ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）', '選んでいるタイルは金色で光る'] },
+  king: { tag: '最終決戦型', gim: 'king', hpK: 1.2, parts: ['王冠', '杖', 'マント'], revive: 0.3, counter: { start: 20000, every: 30000, warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' },
+    desc: ['体力が減るごとに「絶対値の力（ミス2倍）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じる', '体力が半分を切ると真の姿になって回復'] },
+});
 const traitOf = id => BOSS_TRAITS[id] || {};
 // 部位破壊で封じた技（その部位がこわれていれば効果を返す）
 const sealOf = (id, parts) => { const z = traitOf(id).seal; return z && (parts || []).some(p => p.id === z.part && p.broken) ? z : null; };
@@ -4581,7 +4604,7 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
     </Card>
     {isHost && <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ボス</div>
-      <div className="grid grid-cols-3 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-2 px-1 text-xs font-black" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : '#fff', border: `1.5px solid ${state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : 'var(--v7-line)'}`, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}<div className="text-[10px] font-bold opacity-80">{b.id === 'teacher' ? '先生と対決' : traitOf(b.id).tag}</div></button>)}</div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-2 px-1 text-xs font-black" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : '#fff', border: `1.5px solid ${state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : 'var(--v7-line)'}`, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}<div className="text-[10px] font-bold opacity-80">{b.id === 'teacher' ? '先生と対決' : traitOf(b.id).tag}</div></button>)}</div>
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>制限時間</div>
       <Seg items={[[2, '2分'], [3, '3分'], [5, '5分'], [7, '7分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>ボスの強さ（体力は人数×時間で自動で決まります）</div>
@@ -4641,7 +4664,7 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
       </div>
       <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>{(BT.desc || []).map(d => <li key={d}>{d}</li>)}</ul>
       {isHost && (<div className="mt-3">
-        <div className="grid grid-cols-3 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl">{b.icon}</div>{traitOf(b.id).tag}</button>; })}</div>
+        <div className="grid grid-cols-5 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl">{b.icon}</div>{traitOf(b.id).tag}</button>; })}</div>
         <div className="grid grid-cols-2 gap-2">
           <Seg items={[[2, '2分'], [3, '3分'], [5, '5分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
           <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
@@ -4898,8 +4921,11 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
   const me = myUid();
   const over = hp <= 0 || now >= state.endAt;
   const sch = raidSchedule(state, now);
+  // ボスのしかけ（塔のボス）。王は部位をこわすと力を封じる
+  const gm = useBossGim(traitOf(state.boss).gim || null, { active: now >= state.startAt && !over, t0: state.startAt, hpRatio: state.hpMax ? Math.max(0, hp) / state.hpMax : 1, broken: Object.fromEntries((calc.parts || []).map(p => [p.id, !!p.broken])) });
+  useEffect(() => { gm.tick(); });
   const lrec = useRef([]);
-  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0, dp: { a: 0, b: 0, c: 0 }, lastOk: 0, g: 0, buffs: 0, cures: 0, bars: 0, res: 0, tk: 0 });
+  const S = useRef({ d: 0, pf: 0, mc: 0, n: 0, dp: { a: 0, b: 0, c: 0 }, lastOk: 0, g: 0, buffs: 0, cures: 0, bars: 0, res: 0, tk: 0, extraD: 0 });
   const role = FR ? ((state.roles || {})[me] || 'atk') : null;
   const RL = role ? ROLES[role] : null;
   const myName = (who && who.name) || 'ゲスト';
@@ -4972,7 +4998,7 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
   });
   // 出す問題のレベル：ねらう部位の範囲で、2問続けて正解で上がる／ミスで下がる。弱点タイムはその型の問題
   const range = target === 'auto' ? [1, 9] : (() => { const p = RAID_PARTS.find(q => q.id === target); return [p.lv[0], p.lv[2]]; })();
-  const weakFam = sch.weak ? sch.weak.fam : null;
+  const weakFam = gm.chFam || (sch.weak ? sch.weak.fam : null);
   const pickLevel = useCallback((lv, how) => {
     let n = lv;
     if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
@@ -4987,7 +5013,7 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
   // フレンドレイド：役割の倍率・応援（10秒1.3倍）・救援問題は2倍
   const buffOn = FR && fx.buff && fx.buff.until > now;
   const curRes = useRef(null);
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * chainMul * ((BT.lvMul || {})[lv] || 1) * (RL ? RL.mul : 1) * (buffOn ? 1.3 : 1) * (curRes.current ? 2 : 1), [weakFam && weakFam.id, chainMul, state.boss, role, buffOn]);
+  const dmgMul = useCallback((lv, j, combo) => (weakFam && weakFam.lv.includes(lv) ? (weakFam.mul || 2) : 1) * chainMul * ((BT.lvMul || {})[lv] || 1) * (RL ? RL.mul : 1) * (buffOn ? 1.3 : 1) * (curRes.current ? 2 : 1) * gm.mul(lv, combo), [weakFam && weakFam.id, chainMul, state.boss, role, buffOn, gm.kPh, JSON.stringify(Object.values(calc.parts || {}).map(p => p.broken))]);
   const pickLevel2 = useCallback((lv, how) => { const n = pickLevel(lv, how); return role === 'gmb' ? Math.max(7, Math.min(9, how === 'init' ? 7 : n)) : n; }, [pickLevel, role]);
   // ティーチャー：仲間がミスした問題（救援問題）を順番に出す
   const resList = Object.entries(fx.res || {}).map(([id, r]) => ({ id, ...r })).filter(r => r && r.prob).sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -5002,7 +5028,7 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
     const P = r.prob; return { level: P.level, poly: P.poly, tiles: toArrB(P.tiles), factors: P.factors ? toArrB(P.factors) : undefined };
   }, [role]);
   // 救援してもらった：コンボが元にもどる
-  const ctl = useRef(null), restored = useRef({});
+  const ctl = gm.ctl, restored = useRef({});
   useEffect(() => {
     resList.forEach(r => {
       if (r.from !== me || !r.done || restored.current[r.id]) return;
@@ -5063,7 +5089,8 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
     bossExtra={<PartBars parts={calc.parts} />}
     opts={{
       pickLevel: pickLevel2, dmgMul, stunUntil, takeOj, nextOverride, ctlRef: ctl,
-      partMul: RL && RL.part ? RL.part : 1, missStun: role === 'gmb' ? 4000 : 1200,
+      partMul: RL && RL.part ? RL.part : 1, missStun: (role === 'gmb' ? 4000 : 1200) * gm.missMul,
+      buildProb: gm.buildProb, mirror: gm.mirror, hint: gm.hint || undefined,
       hot: lv => !!curRes.current || !!(weakFam && weakFam.lv.includes(lv)),
       bgmRate: [1, 1.08, 1.16, 1.26][calc.phase],
       note: lv => curRes.current ? `🎓 ${curRes.current.name}の救援問題！ 正解でコンボ復活＆ダメージ2倍` : weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ2倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : null,
@@ -5091,6 +5118,7 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
           <div className="text-sm">🎯 弱点タイム！ あと{Math.ceil((sch.weak.until - now) / 1000)}秒</div>
           <div className="text-[11px]">いまは「{weakFam.name}」の問題が出る。正解するとダメージ2倍！</div>
         </div>}
+        {gm.line('ミスのしびれ2倍') && <div className="text-center font-black text-[11px] mt-0.5" style={{ color: COLORS.ink, ...bFont }}>{gm.line('ミスのしびれ2倍')}</div>}
         {!weakFam && say && <BossSay say={say} />}
         {strip}
       </div>),
@@ -5098,12 +5126,14 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
     onHit={(d, info) => {
       lrec.current.push({ lv: info.lv, pid: info.pid, ok: !info.miss, ms: info.ms, j: info.j });
       const s = S.current, R0 = curRes.current;
+      if (info.miss) gm.onMiss();
       if (info.miss) {
         // ティーチャーがいれば、まちがえた問題（同じ問題）を救援問題として送る
         if (FR && role !== 'tch' && Object.values(state.roles || {}).includes('tch') && info.prob) fxRef('res').push({ from: me, name: myName, prob: info.prob, combo: info.prevCombo || 0, at: fbNow() }).catch(() => {});
         return;
       }
-      s.d = info.total; s.pf = info.pf; s.mc = info.best; s.n = info.n; s.dp = info.dp; s.lastOk = Date.now();
+      const extra = gm.onHit(d, info); s.extraD += extra; d += extra;
+      s.d = info.total + s.extraD; s.pf = info.pf; s.mc = info.best; s.n = info.n; s.dp = info.dp; s.lastOk = Date.now();
       if (FR) {
         const pf = info.j === 'Perfect';
         if (role === 'sup') {
@@ -5198,8 +5228,8 @@ async function ensureWeekMeta(wk) {
 const fmtDur = ms => { const m = Math.max(0, Math.floor(ms / 60000)); const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60; return d ? `${d}日${h}時間` : h ? `${h}時間${mm}分` : `${mm}分`; };
 const weekStartMs = wk => Date.parse(wk + 'T00:00:00+09:00');
 // 出撃（60秒）の中の弱点タイムと反撃（秒）。ボスの個性で変わる
-const WK_WEAK = { slime: [], kraken: [[18, 38]], robot: [[8, 23], [33, 48]] };
-const WK_CTR = { slime: [], dragon: [22, 44], kraken: [34], golem: [45], maou: [28, 50], robot: [30, 52] };
+const WK_WEAK = { slime: [], kraken: [[18, 38]], robot: [[8, 23], [33, 48]], abs: [], balance: [], mod: [], wave: [], chimera: [], prime: [], sim: [], mirror: [], king: [[6, 18], [36, 48]] };
+const WK_CTR = { slime: [], dragon: [22, 44], kraken: [34], golem: [45], maou: [28, 50], robot: [30, 52], abs: [], balance: [], mod: [], wave: [], chimera: [], prime: [], sim: [], mirror: [], king: [24, 52] };
 const wkWeakOf = id => WK_WEAK[id] || [[20, 35]];
 // 今週のボス（60秒の出撃）での個性の説明
 const WK_DESC = {
@@ -5210,6 +5240,7 @@ const WK_DESC = {
   maou: ['体力が半分を切ると第2形態に変身して、体力が回復する', 'ボスの体力が減るほど、反撃のしびれが長くなる', '弱点はいつも「2乗の差」'],
   robot: ['反撃「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが出撃中に2回ある'],
 };
+['abs', 'balance', 'mod', 'wave', 'chimera', 'prime', 'sim', 'mirror', 'king'].forEach(id => { WK_DESC[id] = BOSS_TRAITS[id].desc; });
 const wkCtrOf = id => WK_CTR[id] || [35];
 // 討伐報酬の経験値：参加20 ＋ ダメージの割合（最大60）＋ 1位30・2〜3位15
 const wkBonus = (info, me) => { if (!me) return 0; const rk = info.rows.indexOf(me) + 1; return Math.round((20 + Math.min(60, Math.round(me.d / info.hpMax * 400)) + (rk === 1 ? 30 : rk <= 3 ? 15 : 0)) * wkRageReward(info.rage || 0)); };
@@ -5414,14 +5445,18 @@ function WeeklyRaidApp({ acct, onExit }) {
 
   /* ---- 出撃のしかけ（ボスの個性しだい） ---- */
   const sec = scr === 'play' ? (Date.now() - sess.current.t0) / 1000 : 0;
+  // ボスのしかけ（塔のボス：絶対値・バランサー・余り・周期・キマイラ・素数・連立・鏡・王）
+  const gm = useBossGim(T.gim || null, { active: scr === 'play', t0: sess.current.t0, hpRatio: hpMax ? Math.max(0, hp) / hpMax : 1,
+    onAbs: () => { const S2 = sess.current; if ((S2.absExt || 0) >= 15000) return false; S2.absExt = (S2.absExt || 0) + 3000; setEndAt(e => e + 3000); return true; } });
   const weakWin = scr === 'play' ? wkWeakOf(boss.id).find(([a, b]) => sec >= a && sec < b) : null;
-  const weakFam = weakWin ? (T.weakFam ? RAID_FAMS.find(f => f.id === T.weakFam) : RAID_FAMS[hashSeed(`${sess.current.seed}:${weakWin[0]}`) % RAID_FAMS.length]) : null;
+  const weakFam = gm.chFam || (weakWin ? (T.weakFam ? RAID_FAMS.find(f => f.id === T.weakFam) : RAID_FAMS[hashSeed(`${sess.current.seed}:${weakWin[0]}`) % RAID_FAMS.length]) : null);
   const C = ctrOf(boss.id);
   const ctrT = scr === 'play' ? wkCtrOf(boss.id).find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
   const ctrWarn = ctrT != null && sec < ctrT;
   useEffect(() => {
     if (scr !== 'play') return;
     const S = sess.current;
+    gm.tick();
     if (weakWin && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1500 }); }
     if (ctrT != null && ctrWarn && !S.fired['c' + ctrT]) { S.fired['c' + ctrT] = 1; fxSound('roar'); }
     if (ctrT != null && !ctrWarn && !S.fired['s' + ctrT]) {
@@ -5448,14 +5483,14 @@ function WeeklyRaidApp({ acct, onExit }) {
   }, [weakFam && weakFam.id]);
   // ダメージの倍率：弱点×ボスの得意不得意×気まぐれルール×応援パワー（サポーターは自分のダメージ0.3倍）
   const dmgMul = useCallback((lv, j, combo) => {
-    let m = (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((T.lvMul || {})[lv] || 1);
+    let m = (weakFam && weakFam.lv.includes(lv) ? (weakFam.mul || 2) : 1) * ((T.lvMul || {})[lv] || 1) * gm.mul(lv, combo);
     const R = rule && rule.id;
     if (R === 'perfect' && j === 'Perfect') m *= 2;
     if (R === 'combo' && (combo || 0) >= 5) m *= 1.5;
     if (R === 'high') m *= lv >= 5 ? 1.5 : 0.7;
     if (R === 'lucky' && lv === 7) m *= 3;
     return role === 'sup' ? m * 0.3 : m * info.supMul;
-  }, [weakFam && weakFam.id, boss.id, rule && rule.id, role, info.supMul]);
+  }, [weakFam && weakFam.id, boss.id, rule && rule.id, role, info.supMul, gm.kPh]);
 
   const sessionOver = scr === 'play' && Date.now() >= endAt;
   useEffect(() => {
@@ -5497,6 +5532,7 @@ function WeeklyRaidApp({ acct, onExit }) {
     onQuit={() => { setEndAt(Date.now()); }}
     opts={{
       pickLevel, dmgMul, stunUntil, takeOj,
+      buildProb: gm.buildProb, ctlRef: gm.ctl, mirror: gm.mirror, hint: gm.hint || undefined, missStun: 1200 * gm.missMul,
       hot: lv => chest.current.on || !!(weakFam && weakFam.lv.includes(lv)),
       note: lv => chest.current.on ? '🎁 宝箱つきの問題！ 正解すると開く（まちがえると逃げる）' : weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
       overlay: (<>
@@ -5507,6 +5543,7 @@ function WeeklyRaidApp({ acct, onExit }) {
       topExtra: (<div className="text-center font-black text-[12px] py-0.5" style={{ color: ctrWarn ? '#b3402c' : weakFam ? '#C2410C' : COLORS.ink, ...bFont }}>
         {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : weakFam ? `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒`
           : role === 'sup' ? `📣 応援ポイント ${sess.current.sp}（正解1・Perfect2）` : `${rule ? `${rule.icon}${rule.name}` : ''}${info.supMul > 1.001 ? ` ・ 📣応援パワー +${Math.round((info.supMul - 1) * 100)}%` : ''}`}
+        {gm.line('ミスのしびれ2倍・正解で+3秒') && <div className="text-[11px]" style={{ color: COLORS.inkSoft }}>{gm.line('ミスのしびれ2倍・正解で+3秒')}</div>}
       </div>),
     }}
     onHit={(d, info2) => {
@@ -5524,7 +5561,9 @@ function WeeklyRaidApp({ acct, onExit }) {
       } else if (!info2.miss && CH.n < 2 && Math.random() < (rule && rule.id === 'chest' ? 0.18 : 0.06)) {
         CH.on = true; CH.n++; FX.band('🎁 宝箱があらわれた！', { color: '#d4a017', sub: '次の問題に正解すると開く', ms: 1300 });
       }
+      if (info2.miss) gm.onMiss();
       if (info2.miss || !d) return;
+      d += gm.onHit(d, info2);
       sess.current.d += d; sess.current.lastOk = Date.now();
       // サポーター：応援ポイント（みんなのダメージが上がる）
       if (role === 'sup') { const pt = info2.j === 'Perfect' ? 2 : 1; S.sp += pt; if (meKey && FB.db) FB.db.ref(`games/factor/raidw/${wk}/sup/${meKey}`).transaction(e => { e = e || {}; e.p = (e.p || 0) + pt; e.name = acct.name; e.nick = nick.current || ''; return e; }).catch(() => {}); }
@@ -5598,7 +5637,7 @@ function WeeklyRaidApp({ acct, onExit }) {
           <p className="text-[12px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>1回の出撃は{SESSION / 1000}秒。弱点タイムは2倍、反撃の予告が出たら正解して身を守ろう。まれに宝箱も！</p>
           <div className="mb-2"><Seg items={[['atk', '⚔ アタッカー'], ['sup', '📣 サポーター']]} cur={role} onPick={setRole} /></div>
           <p className="text-[10px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>{role === 'sup' ? 'サポーター：自分のダメージは0.3倍。正解するたびに応援ポイント（Perfectは2）→ 今週みんなのダメージが上がる（1ポイント+0.5%・最大+50%）。討伐報酬ももらえる' : 'アタッカー：ふつうにダメージを与える。サポーターの応援パワーでダメージアップ'}</p>
-          <BigBtn color={boss.color} onClick={() => { sess.current = { d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, chestLog: [] }; chest.current = { on: false, n: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + SESSION + 600); setScr('play'); }}>{role === 'sup' ? '📣' : '⚔'} 出撃する（{SESSION / 1000}秒）</BigBtn>
+          <BigBtn color={boss.color} onClick={() => { gm.reset(); sess.current = { absExt: 0, d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, chestLog: [] }; chest.current = { on: false, n: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + SESSION + 600); setScr('play'); }}>{role === 'sup' ? '📣' : '⚔'} 出撃する（{SESSION / 1000}秒）</BigBtn>
           <div className="flex justify-center gap-1.5 mt-2 flex-wrap">
             {firstToday && <span className="v7-chip" style={{ background: '#d4a017' }}>今日の初出撃は経験値2倍！</span>}
             {meKey && st && st.wk && st.wk.streak > 1 && st.wk.last === prevWeek(wk) && <span className="v7-chip" style={{ background: '#2a9d8f' }}>{st.wk.streak}週連続出撃中 → 今週も出撃で{st.wk.streak + 1}週</span>}
@@ -5717,7 +5756,7 @@ function towerFloor(f) {
     const dragon = B.gim === 'dragon';
     const T = dragon ? { ...traitOf('dragon'), tag: B.tag, desc: B.desc } : { tag: B.tag, desc: B.desc, weak: false, counter: null };
     const C = dragon ? ctrOf('dragon') : null;
-    return { f, gim: B.gim, king: false, endless: false, big: true, boss: { id: 'tw_' + B.gim, name: B.name, icon: B.icon, color: B.color, tag: B.tag }, T, hpMax: Math.round(base * lvK * 1.5), sec: TOWER_SEC / 1000, C, ctr: C ? [10, 22, 34] : [], weak: dragon ? [[8, 20]] : [], hpK: 1.5, revive: 0, lvMax, startLv };
+    return { f, gim: B.gim, king: false, endless: false, big: true, boss: { id: B.gim, name: B.name, icon: B.icon, color: B.color, tag: B.tag }, T, hpMax: Math.round(base * lvK * 1.5), sec: TOWER_SEC / 1000, C, ctr: C ? [10, 22, 34] : [], weak: dragon ? [[8, 20]] : [], hpK: 1.5, revive: 0, lvMax, startLv };
   }
   // 50階：真・因数の王（これまでのボスの力を段階的に使う）／51階から：無限回廊（いままでどおり）
   const boss = king ? TOWER_KING : BOSSES.find(b => b.id === TOWER_ORDER[hashSeed('tw:' + f) % 6]);
@@ -5733,6 +5772,72 @@ function towerFloor(f) {
 const towerOf = st => (st && st.tower) || {};
 const towerCp = tw => Math.floor(Math.min(TOWER_GOAL, tw.best || 0) / 10) * 10;   // チェックポイント（10・20・…・50）
 function loadTowerGuest() { const g = loadGuest(); return g.tower || {}; }
+/* ボスのしかけ（塔・今週のボス・クラス協力レイド・フレンドレイドで共通）
+   o = { active, t0（出撃・階の開始時刻）, hpRatio（ボスの体力の割合）, broken（{a,b,c} こわれた部位）, onAbs（絶対値：正解で時間をのばす。のびたら true） } */
+const GIM_INIT = () => ({ balLv: null, simLast: null, simG: 0, simAcc: 0, absN: 0, nextWave: 5, fired: {} });
+function useBossGim(gim, o) {
+  const S = useRef(null); if (!S.current) S.current = GIM_INIT();
+  const st = S.current;
+  const ctl0 = useRef(null), ctl = o.ctl || ctl0;
+  const sec = o.active && o.t0 ? (Date.now() - o.t0) / 1000 : 0;
+  const r = o.hpRatio == null ? 1 : o.hpRatio;
+  const kPh = gim === 'king' ? (r > 0.66 ? 1 : r > 0.33 ? 2 : 3) : 0;   // 王：絶対値 → 素数 → 周期
+  const kb = o.broken || {};
+  const absOn = gim === 'abs' || (kPh === 1 && !kb.a);
+  const primeOn = gim === 'prime' || kPh === 2, primeHalf = gim === 'prime' || (kPh === 2 && !kb.b);
+  const waveOn = gim === 'wave' || (kPh === 3 && !kb.c);
+  const head = gim === 'chimera' && o.active ? Math.floor(Math.max(0, sec) / 12) % 2 : null;
+  const chFam = head == null ? null : head === 0 ? { id: 'q2', name: '二次式の頭', lv: [4, 5, 6, 8, 9], mul: 1.5 } : { id: 'q3', name: '三次式の頭', lv: [7], mul: 2 };
+  const G = {
+    gim, kPh, absOn, chFam, ctl, mirror: gim === 'mirror',
+    reset: () => { S.current = GIM_INIT(); },
+    buildProb: gim === 'mod' ? towerModProb : gim === 'sim' ? towerSimProb : null,
+    missMul: absOn ? 2 : 1,
+    hint: gim === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : null,
+    // しかけによるダメージの倍率（弱点・キマイラの頭は呼ぶ側でかける）
+    mul: (lv, combo) => {
+      let m = 1;
+      if (gim === 'balance') m *= st.balLv === lv ? 1 : 0.5;
+      if (primeOn) m *= ((combo || 0) + 1) % 2 === 1 ? 2 : (primeHalf ? 0.5 : 1);
+      return m;
+    },
+    // 正解したとき：連立パペットのボーナスなど、追加のダメージを返す
+    onHit: (d, info, simBonus) => {
+      let extra = 0;
+      if (absOn) { const ext = o.onAbs ? o.onAbs() : false; const bc = rectC(qs('[data-boss]')); if (bc) FX.text(bc.x, bc.y + 40, ext ? '−→＋ ⏱+3秒' : '−→＋', '#7FD8FF', 22); }
+      if (gim === 'balance') st.balLv = st.balLv === info.lv ? null : info.lv;
+      if (gim === 'sim' && info.side) {
+        if (st.simLast && st.simLast !== info.side) st.simG++;
+        st.simLast = info.side; st.simAcc += d;
+        if (st.simG >= 4) { extra = simBonus != null ? simBonus : st.simAcc; st.simG = 0; st.simAcc = 0; FX.band('🎭 連立方程式、解けた！', { color: '#b5487e', sub: `連携ボーナス ${extra} ダメージ`, ms: 1400 }); FX.flash('#ffd54a', 0.35, 250); }
+      }
+      return extra;
+    },
+    onMiss: () => { st.balLv = null; },
+    // 毎回の描画のあとに呼ぶ：お知らせの帯・タイルをずらす
+    tick: () => {
+      if (!o.active) return;
+      if (chFam && !st.fired['h' + Math.floor(sec / 12)]) { st.fired['h' + Math.floor(sec / 12)] = 1; FX.band(`🦁 ${chFam.name}があらわれた！`, { color: '#B7791F', sub: `${chFam.id === 'q2' ? 'たすきがけ・2乗の差' : '3乗の和・差'}が ×${chFam.mul}`, ms: 1300 }); }
+      if (kPh && !st.fired['kp' + kPh]) { st.fired['kp' + kPh] = 1; const t = { 1: ['🐾 絶対値の力', 'ミス2倍'], 2: ['🦈 素数の力', '奇数コンボ2倍・偶数コンボ半分'], 3: ['🌱 周期の力', 'タイルの並びがずれていく'] }[kPh]; FX.band(`👑 王が${t[0]}を使った！`, { color: '#b8860b', sub: t[1], ms: 1500 }); }
+      if (waveOn && sec >= (st.nextWave || 5)) { if (ctl.current && ctl.current.rotate && ctl.current.rotate()) st.nextWave = sec + (gim === 'king' ? 7 : 5); }
+    },
+    // いまの状態の説明（1行）
+    line: missText => {
+      const nextC = ctl.current && ctl.current.combo ? ctl.current.combo() + 1 : 1;
+      return gim === 'abs' ? `🐾 ${missText || 'ミスは2倍'}・正解で −→＋`
+        : gim === 'balance' ? (st.balLv ? `⚖ 次も Lv.${st.balLv} を正解 → ふつうのダメージ（ちがうLvは半分）` : '⚖ まず1問正解（半分）→ 同じLvをもう1問で全ダメージ')
+        : gim === 'mod' ? '🧙 1枚はニセの因数（あまりがずれている）。だまされるな'
+        : gim === 'wave' ? '🌱 5秒ごとにタイルがずれる（ドラッグ中は止まる）'
+        : gim === 'prime' ? `🦈 次の正解は ${nextC}コンボ目 → ${nextC % 2 ? '×2' : '×0.5'}（${nextC % 2 ? '奇数' : '偶数'}）`
+        : gim === 'sim' ? `🎭 連携ゲージ ${'●'.repeat(st.simG)}${'○'.repeat(4 - st.simG)}（ＡとＢを交互に解く）`
+        : gim === 'mirror' ? '🪞 鏡写しのタイルが引き寄せられる。選んだタイルをよく見て'
+        : gim === 'chimera' && chFam ? `🦁 ${chFam.name}（あと${Math.ceil(12 - sec % 12)}秒）`
+        : gim === 'king' ? `👑 ${kPh === 1 ? (kb.a ? '絶対値の力（封印中）' : `絶対値の力：${missText || 'ミス2倍'}`) : kPh === 2 ? `素数の力：次は${nextC}コンボ目 ${nextC % 2 ? '×2' : (kb.b ? '×1' : '×0.5')}` : (kb.c ? '周期の力（封印中）' : '周期の力：タイルがずれる')}`
+        : null;
+    },
+  };
+  return G;
+}
 /* 余りマスター：答えの因数の定数を少しずらしたニセのタイルを1枚まぜる（正解の組は1つのまま） */
 function towerModProb(lv, seen) {
   for (let tries = 0; tries < 12; tries++) {
@@ -5794,7 +5899,8 @@ function TowerApp({ acct, onExit }) {
 
   const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
   const enter = () => {
-    fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false, absExt: 0, balLv: null, simLast: null, simG: 0, kb: {}, nextWave: 5 };
+    fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false, absExt: 0, kb: {} };
+    gm.reset();
     setStunUntil(0); setFogUntil(0); setEndAt(Date.now() + F.sec * 1000 + 600);
     v7Wipe(() => setScr('play'), { close: 380, hold: 80, open: 260 });
   };
@@ -5846,17 +5952,12 @@ function TowerApp({ acct, onExit }) {
   // 弱点の型も出題レベルの上限の中から（上限の外の型が決まっているボスは、出せる型からえらぶ）
   const famsOk = F ? RAID_FAMS.filter(x => x.lv.some(l => l <= F.lvMax)) : RAID_FAMS;
   const fixedFam = F && F.T.weakFam ? famsOk.find(x => x.id === F.T.weakFam) : null;
-  // 塔のボスのしかけ
+  // 塔のボスのしかけ（全モード共通の useBossGim）
   const G = F ? F.gim : null, FS = fl.current;
-  const kr = F ? hpBoss / F.hpMax : 1;
-  const kPh = G === 'king' ? (kr > 0.66 ? 1 : kr > 0.33 ? 2 : 3) : 0;   // 王：絶対値 → 素数 → 周期
   const kb = FS.kb || {};
-  const absOn = G === 'abs' || (kPh === 1 && !kb.a);
-  const primeOn = G === 'prime' || kPh === 2, primeHalf = G === 'prime' || (kPh === 2 && !kb.b);
-  const waveOn = G === 'wave' || (kPh === 3 && !kb.c);
-  const head = G === 'chimera' && scr === 'play' ? Math.floor(Math.max(0, sec) / 12) % 2 : null;
-  const chFam = head == null ? null : head === 0 ? { id: 'q2', name: '二次式の頭', lv: [4, 5, 6, 8, 9], mul: 1.5 } : { id: 'q3', name: '三次式の頭', lv: [7], mul: 2 };
-  const ctl = useRef(null);
+  const gm = useBossGim(G, { active: scr === 'play', t0: FS.t0, hpRatio: F ? hpBoss / F.hpMax : 1, broken: kb,
+    onAbs: () => { if (FS.absExt >= 30000) return false; FS.absExt += 3000; setEndAt(e => e + 3000); return true; } });
+  const { kPh, absOn, chFam, ctl } = gm;
   const weakFam = chFam || (weakWin ? (fixedFam || famsOk[hashSeed(`tw${run.f}:${weakWin[0]}`) % famsOk.length]) : null);
   const C = F && F.C;
   const ctrT = scr === 'play' && C ? F.ctr.find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
@@ -5865,9 +5966,7 @@ function TowerApp({ acct, onExit }) {
     if (scr !== 'play' || !run || run.hp <= 0) return;
     const S = fl.current;
     if (S.clearing || S.dead) return;
-    if (chFam && !S.fired['h' + Math.floor(sec / 12)]) { S.fired['h' + Math.floor(sec / 12)] = 1; FX.band(`🦁 ${chFam.name}があらわれた！`, { color: '#B7791F', sub: `${chFam.id === 'q2' ? 'たすきがけ・2乗の差' : '3乗の和・差'}が ×${chFam.mul}`, ms: 1300 }); }
-    if (kPh && !S.fired['kp' + kPh]) { S.fired['kp' + kPh] = 1; const t = { 1: ['🐾 絶対値の力', 'ミス2倍・正解で+3秒'], 2: ['🦈 素数の力', '奇数コンボ2倍・偶数コンボ半分'], 3: ['🌱 周期の力', 'タイルの並びがずれていく'] }[kPh]; FX.band(`👑 王が${t[0]}を使った！`, { color: '#b8860b', sub: t[1], ms: 1500 }); }
-    if (waveOn && sec >= (S.nextWave || 5)) { if (ctl.current && ctl.current.rotate()) S.nextWave = sec + (G === 'king' ? 7 : 5); }
+    gm.tick();
     if (weakWin && !chFam && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1300 }); }
     if (ctrT != null && ctrWarn && !S.fired['c' + ctrT]) { S.fired['c' + ctrT] = 1; fxSound('roar'); }
     if (ctrT != null && !ctrWarn && !S.fired['s' + ctrT]) {
@@ -5907,21 +6006,10 @@ function TowerApp({ acct, onExit }) {
   const lvMulT = lv => { const m = (F && F.T.lvMul || {})[lv] || 1; return m < 1 && F && F.lvMax < 9 ? 1 : m; };
   const dmgMul = (lv, j, combo) => {
     let m = (weakFam && weakFam.lv.includes(lv) ? (weakFam.mul || 2) : 1) * lvMulT(lv);
-    if (G === 'balance') m *= FS.balLv === lv ? 1 : 0.5;
-    if (primeOn) m *= ((combo || 0) + 1) % 2 === 1 ? 2 : (primeHalf ? 0.5 : 1);
-    return m;
+    return m * gm.mul(lv, combo);
   };
-  const buildProb = G === 'mod' ? towerModProb : G === 'sim' ? towerSimProb : null;
-  const nextC = ctl.current ? ctl.current.combo() + 1 : 1;
-  const gimLine = G === 'abs' ? `🐾 ミス −${TOWER_HP.miss * 2}（2倍）・正解で −→＋ 時間+3秒（あと${Math.max(0, 30 - FS.absExt / 1000)}秒ぶん）`
-    : G === 'balance' ? (FS.balLv ? `⚖ 次も Lv.${FS.balLv} を正解 → ふつうのダメージ（ちがうLvは半分）` : '⚖ まず1問正解（半分）→ 同じLvをもう1問で全ダメージ')
-    : G === 'mod' ? '🧙 1枚はニセの因数（あまりがずれている）。だまされるな'
-    : G === 'wave' ? '🌱 5秒ごとにタイルがずれる（ドラッグ中は止まる）'
-    : G === 'prime' ? `🦈 次の正解は ${nextC}コンボ目 → ${nextC % 2 ? '×2' : '×0.5'}（${nextC % 2 ? '奇数' : '偶数'}）`
-    : G === 'sim' ? `🎭 連携ゲージ ${'●'.repeat(FS.simG)}${'○'.repeat(4 - FS.simG)}（ＡとＢを交互に解く）`
-    : G === 'mirror' ? '🪞 鏡写しのタイルが引き寄せられる。選んだタイルをよく見て'
-    : G === 'king' ? `👑 ${kPh === 1 ? (kb.a ? '絶対値の力（封印中）' : '絶対値の力：ミス2倍・正解で+3秒') : kPh === 2 ? `素数の力：次は${nextC}コンボ目 ${nextC % 2 ? '×2' : (kb.b ? '×1' : '×0.5')}` : (kb.c ? '周期の力（封印中）' : '周期の力：タイルがずれる')}`
-    : null;
+  const buildProb = gm.buildProb;
+  const gimLine = gm.line(G === 'abs' ? `ミス −${TOWER_HP.miss * 2}（2倍）・時間+3秒（あと${Math.max(0, 30 - FS.absExt / 1000)}秒ぶん）` : 'ミス2倍・正解で+3秒');
   const kingParts = G === 'king' ? KING_PARTS.map(pt => ({ ...pt, broken: !!kb[pt.id] })) : null;
 
   if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`🗼 ${run.f}階${F.endless ? '・無限回廊' : ''}`}
@@ -5950,18 +6038,9 @@ function TowerApp({ acct, onExit }) {
       lrec.current.push({ lv: info2.lv, pid: info2.pid, ok: !info2.miss, ms: info2.ms, j: info2.j });
       const S = fl.current;
       if (S.clearing || S.dead) return;
-      if (info2.miss) { S.miss++; S.balLv = null; damageMe(TOWER_HP.miss * (absOn ? 2 : 1)); return; }
+      if (info2.miss) { S.miss++; gm.onMiss(); damageMe(TOWER_HP.miss * gm.missMul); return; }
       S.dmg += d; S.lastOk = Date.now();
-      // 絶対値：正解で −→＋、時間+3秒（1階で最大+30秒）
-      if (absOn && S.absExt < 30000) { S.absExt += 3000; setEndAt(e => e + 3000); const bc = rectC(qs('[data-boss]')); if (bc) FX.text(bc.x, bc.y + 40, '−→＋ ⏱+3秒', '#7FD8FF', 22); }
-      // 方程式バランサー：同じレベル2問目で全ダメージ（2問ひと組）
-      if (G === 'balance') S.balLv = S.balLv === info2.lv ? null : info2.lv;
-      // 連立パペット：Ａ・Ｂを交互に解くと連携ゲージ、4つで大ダメージ
-      if (G === 'sim' && info2.side) {
-        if (S.simLast && S.simLast !== info2.side) S.simG++;
-        S.simLast = info2.side;
-        if (S.simG >= 4) { S.simG = 0; const bonus = Math.round(F.hpMax * 0.15); S.dmg += bonus; FX.band('🎭 連立方程式、解けた！', { color: '#b5487e', sub: `連携ボーナス ${bonus} ダメージ`, ms: 1400 }); FX.flash('#ffd54a', 0.35, 250); }
-      }
+      S.dmg += gm.onHit(d, info2, G === 'sim' ? Math.round(F.hpMax * 0.15) : null);
       // 王の部位：こわすと力を封じてボーナス
       if (G === 'king' && info2.dp) KING_PARTS.forEach(pt => {
         if (!S.kb[pt.id] && (info2.dp[pt.id] || 0) >= F.hpMax * 0.12) { S.kb[pt.id] = true; S.dmg += Math.round(F.hpMax * 0.06); setTimeout(() => { FX.band(`💥 ${pt.name}を破壊！`, { color: '#b8860b', sub: pt.seal, ms: 1500 }); fxSound('shatter'); }, 500); }
