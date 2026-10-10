@@ -207,5 +207,7 @@ window.SURI_DATA = {
     sim: 'img/monsters/sim.webp',      // 連立パペット
     mirror: 'img/monsters/mirror.webp',   // 対称式ファントム
     king: 'img/monsters/king.webp',     // 因数の王
+    maou2: 'img/monsters/maou2.webp',    // 平方の魔王 第2形態（体力が半分を切ると変身）
+    king2: 'img/monsters/king2.webp',    // 真・因数の王（因数の王の真の姿）
   },
 };
