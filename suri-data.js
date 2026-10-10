@@ -192,5 +192,6 @@ window.SURI_DATA = {
      例：  slime: 'img/monsters/slime.png',
            king2: 'img/monsters/king2.png',   // 真の姿など、変身後は「ID＋2」 */
   images: {
+    dragon: 'img/monsters/dragon.webp',   // 因数ドラゴン（今週のボス・クラス協力レイド・フレンドレイド・数理の塔10階）
   },
 };

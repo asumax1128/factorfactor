@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
-<script src="suri-data.js?v=1"></script>
+<script src="suri-data.js?v=2"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -2411,7 +2411,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.5.1</span>
+              <span className="v7-ver">ver.5.2</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4248,7 +4248,7 @@ function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
   return (
     <div className="rounded-2xl px-3 py-2 shadow-lg relative overflow-hidden" style={{ background: dead ? 'linear-gradient(180deg,#fff3c4,#fff)' : r < 0.3 ? 'linear-gradient(180deg,#ffe1d9,#fff)' : COLORS.paper, flexShrink: 0, border: `3px solid ${boss.color}55` }}>
       <div className="flex items-center gap-3">
-        <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.img ? <MonsterPic id={null} src={boss.img} icon={boss.icon} size={big ? 'clamp(5rem, 14vw, 10rem)' : '2.8rem'} /> : boss.icon}</div>
+        <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.img || suriImg(boss.id) ? <MonsterPic id={boss.id} src={boss.img} icon={boss.icon} size={big ? 'clamp(5rem, 14vw, 10rem)' : '2.8rem'} /> : boss.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between flex-wrap gap-x-2">
             <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}{(boss.tag || traitOf(boss.id).tag) && <span className="v7-chip align-middle ml-2" style={{ background: boss.color, fontSize: big ? 13 : 9, padding: big ? '3px 10px' : '1px 6px' }}>{boss.tag || traitOf(boss.id).tag}</span>}</span>
@@ -4562,7 +4562,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
         <div className="v7-main">
           {dft && !ended ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ minHeight: 0 }}>
-              <div style={{ fontSize: dft.big ? 'clamp(5rem, 22vmin, 9rem)' : 'clamp(4rem, 16vmin, 7rem)', lineHeight: 1, filter: 'grayscale(.6) brightness(1.1)', transform: 'rotate(-12deg)', animation: 'fxVsPop 500ms both' }}>{boss.icon}</div>
+              <div style={{ fontSize: dft.big ? 'clamp(5rem, 22vmin, 9rem)' : 'clamp(4rem, 16vmin, 7rem)', lineHeight: 1, filter: 'grayscale(.6) brightness(1.1)', transform: 'rotate(-12deg)', animation: 'fxVsPop 500ms both' }}><MonsterPic id={boss.id} src={boss.img} icon={boss.icon} size={dft.big ? 'clamp(5rem, 22vmin, 9rem)' : 'clamp(4rem, 16vmin, 7rem)'} /></div>
               <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: dft.big ? 'clamp(3.2rem, 15vw, 6rem)' : 'clamp(2.6rem, 12vw, 4.6rem)', color: 'var(--v7-gold)', WebkitTextStroke: '2px #0B1430', textShadow: '0 5px 0 rgba(0,0,0,.35), 0 0 30px #FFD54A', animation: 'fxVsPop 520ms 120ms both', lineHeight: 1.1 }}>撃破！</div>
               <div className="v7-wnd mt-2 px-4 py-1.5 font-black" style={{ color: '#fff', fontSize: dft.big ? 18 : 15, animation: 'fxEnter 400ms 380ms both', ...bFont }}>{dft.text || `${boss.name}を倒した！`}</div>
               {dft.sub && <div className="mt-1.5 text-xs font-bold" style={{ color: '#AAB6E0', animation: 'fxEnter 400ms 600ms both' }}>{dft.sub}</div>}
@@ -4604,7 +4604,7 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
       <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? 'みんなは部屋コードを入れて「参加」。先生（ホスト）の画面をプロジェクターに映してください' : 'エントリーしました！ 先生がスタートするのを待っています…'}</div>
     </Card>
     <Card className="mb-4 text-center">
-      <div style={{ fontSize: '5rem', animation: 'fxPulseGold 1.6s ease-in-out infinite' }}>{boss.icon}</div>
+      <div style={{ fontSize: '5rem', animation: 'fxPulseGold 1.6s ease-in-out infinite' }}><MonsterPic id={boss.id} icon={boss.icon} size="8rem" /></div>
       <div className="text-2xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name}</div>
       <div className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}{teamCount ? ` ・ ${teamCount}チーム対抗` : ''}</div>
       {tmode ? <ul className="text-[11px] font-bold text-left list-disc pl-5 mt-2" style={{ color: COLORS.inkSoft }}>
@@ -4627,7 +4627,7 @@ function RaidLobby({ code, isHost, spectator, players, state, me, onRule, onStar
     </Card>
     {isHost && <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>ボス</div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-2 px-1 text-xs font-black" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : '#fff', border: `1.5px solid ${state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : 'var(--v7-line)'}`, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl">{b.icon}</div>{b.name}<div className="text-[10px] font-bold opacity-80">{b.id === 'teacher' ? '先生と対決' : traitOf(b.id).tag}</div></button>)}</div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">{[...BOSSES, TEACHER_BOSS].map(b => <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-2 px-1 text-xs font-black" style={{ background: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : '#fff', border: `1.5px solid ${state.boss === b.id || (!state.boss && b === BOSSES[0]) ? b.color : 'var(--v7-line)'}`, color: state.boss === b.id || (!state.boss && b === BOSSES[0]) ? '#fff' : COLORS.ink }}><div className="text-2xl"><MonsterPic id={b.id} icon={b.icon} size="2.6rem" /></div>{b.name}<div className="text-[10px] font-bold opacity-80">{b.id === 'teacher' ? '先生と対決' : traitOf(b.id).tag}</div></button>)}</div>
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>制限時間</div>
       <Seg items={[[2, '2分'], [3, '3分'], [5, '5分'], [7, '7分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
       <div className="text-xs font-black mt-3 mb-2" style={{ color: COLORS.inkSoft }}>ボスの強さ（体力は人数×時間で自動で決まります）</div>
@@ -4678,7 +4678,7 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
     </Card>
     <Card className="mb-3">
       <div className="flex items-center gap-3">
-        <div style={{ fontSize: '3.4rem', lineHeight: 1 }}>{boss.icon}</div>
+        <div style={{ fontSize: '3.4rem', lineHeight: 1 }}><MonsterPic id={boss.id} icon={boss.icon} size="4.6rem" /></div>
         <div className="min-w-0">
           <div className="v7-name" style={{ color: boss.color }}>{boss.name} <span className="v7-chip align-middle" style={{ background: boss.color }}>{BT.tag}</span></div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}</div>
@@ -4687,7 +4687,7 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
       </div>
       <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>{(BT.desc || []).map(d => <li key={d}>{d}</li>)}</ul>
       {isHost && (<div className="mt-3">
-        <div className="grid grid-cols-5 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl">{b.icon}</div>{traitOf(b.id).tag}</button>; })}</div>
+        <div className="grid grid-cols-5 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl"><MonsterPic id={b.id} icon={b.icon} size="2.2rem" /></div>{traitOf(b.id).tag}</button>; })}</div>
         <div className="grid grid-cols-2 gap-2">
           <Seg items={[[2, '2分'], [3, '3分'], [5, '5分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
           <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
@@ -4860,7 +4860,7 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
       </div>
     </div>
     {counting ? <Card className="mb-3 text-center">
-      <div style={{ fontSize: 'clamp(6rem, 18vw, 12rem)', animation: 'fxVsPop 900ms both' }}>{boss.icon}</div>
+      <div style={{ fontSize: 'clamp(6rem, 18vw, 12rem)', animation: 'fxVsPop 900ms both' }}><MonsterPic id={boss.id} icon={boss.icon} size="clamp(9rem, 26vw, 18rem)" /></div>
       <div className="text-4xl font-black" style={{ color: boss.color, ...bFont }}>{boss.name}</div>
       <div className="text-6xl font-black mt-2" style={{ color: COLORS.ink, ...bFont }}>{Math.max(1, cd)}</div>
     </Card> : (<>
@@ -5083,7 +5083,7 @@ function RaidClassPlay({ code, state: state0, acct, who, onLeave, isHost, onAgai
   if (now < state.startAt) return (
     <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center" style={{ background: V7_NIGHT }}>
       <FontImport />
-      <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}>{boss.icon}</div>
+      <div style={{ fontSize: '6rem', animation: 'fxVsPop 600ms both' }}><MonsterPic id={boss.id} icon={boss.icon} size="min(40vh, 70vw, 15rem)" /></div>
       <div className="v7-wnd px-5 py-2 text-2xl font-black" style={{ color: '#fff', ...bFont }}>{boss.name} があらわれた！</div>
       {traitOf(state.boss).tag && <div className="mt-2 text-center px-4" style={{ maxWidth: '28rem' }}>
         <span className="v7-chip" style={{ background: boss.color }}>{traitOf(state.boss).tag}</span>
@@ -5401,7 +5401,7 @@ function BossDex({ st }) {
       <div className="grid grid-cols-3 gap-2">
         {BOSSES.map(b => { const k = B[b.id] || 0, T = traitOf(b.id); return (
           <div key={b.id} className="rounded-xl px-1 py-2 text-center" style={{ background: k ? `${b.color}14` : '#F3F0EA', border: `1.5px solid ${k ? b.color : 'var(--v7-line)'}` }}>
-            <div className="text-3xl leading-none" style={{ filter: k ? 'none' : 'brightness(0) opacity(.25)' }}>{b.icon}</div>
+            <div className="text-3xl leading-none"><MonsterPic id={b.id} icon={b.icon} size="2.6rem" sil={!k} /></div>
             <div className="text-[11px] font-black mt-1" style={{ color: k ? b.color : COLORS.inkSoft, ...bFont }}>{k ? b.name : '？？？'}</div>
             <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{k ? `${T.tag} ・ 討伐${k}回` : '未討伐'}</div>
           </div>); })}
@@ -6628,7 +6628,7 @@ function WeeklyTileV7({ acct, onOpen }) {
   const first = meKey ? !(st && st.wk && st.wk.day === jstDate()) : loadLS('fxf_wk_day', '') !== jstDate();
   return (
     <button className="v7-tile v7-cur" onClick={onOpen}>
-      <div className="top"><span className="v7-ico">{boss.icon}</span>{pend ? <span className="v7-badge hot">報酬あり</span> : <span className="v7-badge">{r <= 0 ? '撃破！' : first ? 'EXP2倍' : `のこり${Math.round(r * 100)}%`}</span>}</div>
+      <div className="top"><span className="v7-ico"><MonsterPic id={boss.id} icon={boss.icon} size="1.7rem" /></span>{pend ? <span className="v7-badge hot">報酬あり</span> : <span className="v7-badge">{r <= 0 ? '撃破！' : first ? 'EXP2倍' : `のこり${Math.round(r * 100)}%`}</span>}</div>
       <b>今週のボス</b>
       <span className="s">{info.rage ? '😡怒りの' : ''}{boss.name}</span>
       <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${r * 100}%`, background: boss.color }} /></div>
