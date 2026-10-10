@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
-<script src="suri-data.js?v=5"></script>
+<script src="suri-data.js?v=6"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -95,6 +95,17 @@
   @keyframes fxSlideR { 0% { transform: translateX(120%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
   .suri-bgmath { position: absolute; inset: 0; pointer-events: none; opacity: .07; background-image: radial-gradient(circle at 20% 30%, #F3D27A 0 1px, transparent 2px), radial-gradient(circle at 80% 70%, #F3D27A 0 1px, transparent 2px), repeating-linear-gradient(45deg, transparent 0 38px, #F3D27A 38px 39px), repeating-linear-gradient(-45deg, transparent 0 38px, #F3D27A 38px 39px); background-size: 120px 120px, 160px 160px, auto, auto; }
   @keyframes suriFlip { 0% { transform: perspective(900px) rotateY(-28deg) translateX(18px); opacity: 0; transform-origin: left center; } 100% { transform: none; opacity: 1; } }
+  /* 会話の演出（プロローグなど） */
+  @keyframes suriFadeOut { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes suriWhiteIn { from { opacity: 0; } to { opacity: var(--to, .85); } }
+  @keyframes suriTick { to { transform: rotate(360deg); } }
+  @keyframes suriFog { 0% { transform: translateX(-6%); } 50% { transform: translateX(6%); } 100% { transform: translateX(-6%); } }
+  @keyframes suriPart { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.3); opacity: 0; } }
+  @keyframes suriEmblem { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 25% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); } }
+  @keyframes suriGlow { 0%, 100% { text-shadow: 0 0 6px #FFE9A8; } 50% { text-shadow: 0 0 16px #FFD54A, 0 0 28px #FFE9A8; } }
+  @keyframes suriRays { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes suriStop { 0% { filter: none; } 100% { filter: saturate(.45) brightness(.9); } }
+  .suri-rm *, .suri-rm { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
   @keyframes suriGem { 0% { transform: scale(.2) rotate(-30deg); opacity: 0; } 70% { transform: scale(1.15) rotate(6deg); opacity: 1; } 100% { transform: scale(1); } }
   @keyframes fxVsPop { 0% { transform: scale(3) rotate(-20deg); opacity: 0; } 60% { transform: scale(0.9) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
   @keyframes fxFeed { 0% { opacity: 0; transform: translateY(8px); } 8%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
@@ -1065,7 +1076,7 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
-  { ch: 'team', v: 'tower', title: '数理の塔', body: '数学の法則が失われた世界で、塔を登る物語。会話のあとに因数分解の「数理試練」。階を突破すると「数理の書」に学習記録が増え、5階ごとのボスに勝つと「法則の断片」が手に入る。5階ごとにセーブ！' },
+  { ch: 'team', v: 'tower', title: '数理の塔', body: '数学の法則が失われた世界で、塔を登る物語。会話のあとに因数分解の「数理試練」。階を突破すると「数理の書」に学習記録が増え、5階ごとのボスに勝つと「法則の断片」が手に入る。1階ごとにセーブされるので、いつでも続きから遊べる！' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
@@ -2411,7 +2422,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.5.5</span>
+              <span className="v7-ver">ver.5.6</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -5737,7 +5748,7 @@ function WeeklyRaidApp({ acct, onExit }) {
 /* ---------- 数理の塔（ひとりで1階ずつ登る） ----------
    ・1階＝ボス1体を45秒で倒す。時間切れはボスの猛攻（HP−25）で15秒延長
    ・自分のHPは階をまたいで持ち越し。ミス −5、反撃を受ける −12（大ボス×1.5）。階を突破すると少し回復
-   ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。5階ごとにセーブ（次から 5n+1 階から始められる）
+   ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。1階ごとにセーブ（突破した次の階から、いつでも続きができる）
    ・50階に「因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
 const TOWER_GOAL = 70, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';   // 数理の塔：70階で第一部完（無限回廊はなし）
 const TOWER_KING_F = 50;   // 因数の王（第10章のボス。倒すと称号「塔を制覇」）
@@ -5818,7 +5829,7 @@ function towerFloor(f) {
 }
 const towerOf = st => (st && st.tower) || {};
 const towerBest = tw => Math.min(TOWER_GOAL, (tw && tw.best) || 0);   // 突破した最高の階（むかしの無限回廊の記録は70階あつかい）
-const towerCp = tw => Math.min(TOWER_GOAL - 5, Math.floor(towerBest(tw) / 5) * 5);   // セーブ地点：5階ごと（次から 5n+1 階から。最大66階）
+const towerCp = tw => Math.min(TOWER_GOAL - 1, towerBest(tw));   // セーブ地点：1階ごと（突破した次の階から、いつでも続きができる。最大69＝70階から）
 function loadTowerGuest() { const g = loadGuest(); return g.tower || {}; }
 /* ボスのしかけ（塔・今週のボス・クラス協力レイド・フレンドレイドで共通）
    o = { active, t0（出撃・階の開始時刻）, hpRatio（ボスの体力の割合）, broken（{a,b,c} こわれた部位）, onAbs（絶対値：正解で時間をのばす。のびたら true） } */
@@ -5995,6 +6006,7 @@ function suriEvent(floor, type) {
 // その階で見る会話（戦闘前：章の導入→戦闘前、戦闘後：戦闘後）
 const suriPreEvents = f => [f === (suriChapters().find(c => c.no === towerChapter(f)) || {}).from ? suriEvent(f, 'chapter') : null, suriEvent(f, 'pre')].filter(Boolean);
 const suriPostEvents = f => [suriEvent(f, 'post')].filter(Boolean);
+const suriPrologue = () => { const e = (SURI().events || []).find(x => x && x.id === 'prologue'); return e ? { floor: 0, type: 'prologue', ...e } : null; };
 const suriEpiEvents = f => [suriEvent(f, 'epilogue')].filter(Boolean);   // 章のエピローグ（断片のあと）
 /* 図鑑・物語の記録の解放（むかしの記録 best から、突破した階のぶんは復元する） */
 function suriProgress(tw) {
@@ -6047,20 +6059,83 @@ function SuriPortrait({ who, full, dim, F }) {
       ) : <div className="relative"><MonsterPic id={who} icon={icon} size={box} /></div>}
     </div>);
 }
+/* ---------- 会話の背景と演出 ----------
+   背景は suri-data.js の backgrounds（image がなければ CSS の仮の背景）。セリフの { bg, fx, kind } で切りかえる */
+const suriBg = id => (id && (SURI().backgrounds || {})[id]) || null;
+const suriReduce = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+function SuriBgArt({ id }) {
+  const A = { position: 'absolute' };
+  if (id === 'classroom') return (<div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #F2C48A 0%, #E9A866 62%, #7A4E31 62.5%, #5B3923 100%)' }}>
+    <div style={{ ...A, left: '5%', top: '9%', width: '40%', height: '44%', background: 'linear-gradient(180deg, #FFE2A6, #FFAE62 70%, #F08A4B)', border: '6px solid #7a5232', boxShadow: 'inset 0 0 40px #fff6d6' }}>
+      <div style={{ ...A, left: '50%', top: 0, bottom: 0, width: 5, background: '#7a5232' }} /><div style={{ ...A, top: '50%', left: 0, right: 0, height: 5, background: '#7a5232' }} />
+    </div>
+    <div style={{ ...A, left: 0, top: '9%', width: '100%', height: '91%', background: 'linear-gradient(118deg, rgba(255,230,160,.42) 0%, rgba(255,214,140,.18) 38%, transparent 60%)', clipPath: 'polygon(5% 0, 45% 0, 100% 100%, 30% 100%)' }} />
+    <div style={{ ...A, left: '53%', top: '13%', width: '43%', height: '25%', background: '#2F4F3A', border: '5px solid #6b4a2b', boxShadow: 'inset 0 0 20px rgba(0,0,0,.35)' }} />
+    {[[8, 70, 30], [42, 72, 26], [72, 70, 30], [20, 84, 36], [60, 86, 36]].map(([l, t, w], i) => <div key={i} style={{ ...A, left: `${l}%`, top: `${t}%`, width: `${w}%`, height: '3.2%', background: '#C68B55', borderBottom: '6px solid #8a5a34', borderRadius: 3 }} />)}
+  </div>);
+  if (id === 'tower') return (<div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #56677F 0%, #8C9CB1 40%, #BAC5D0 62%, #59664F 76%, #3E4838 100%)' }}>
+    <div style={{ ...A, left: '30%', width: '40%', top: '-4%', height: '80%', clipPath: 'polygon(14% 0, 86% 0, 100% 100%, 0 100%)', background: 'repeating-linear-gradient(0deg, #7f7b72 0 16px, #66625a 16px 18px), #77736a' }}>
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,.35), transparent 30%, transparent 70%, rgba(0,0,0,.4))' }} />
+    </div>
+    <div style={{ ...A, left: '45%', width: '10%', top: '63%', height: '13%', background: '#25211b', borderRadius: '50% 50% 0 0 / 30% 30% 0 0', boxShadow: '0 0 0 4px #4a463e' }} />
+    <div className="absolute" style={{ left: '-10%', right: '-10%', top: 0, height: '62%', background: 'linear-gradient(180deg, rgba(226,231,238,.97) 0%, rgba(214,221,230,.85) 38%, rgba(200,208,220,0) 100%)', animation: 'suriFog 14s ease-in-out infinite' }} />
+  </div>);
+  return (<div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #BFE0F6 0%, #FFF1D2 52%, #D8C29C 52.5%, #B69A72 100%)' }}>
+    {[[0, 18, 22, 34, '#C9A27A'], [16, 26, 16, 26, '#E4C49A'], [70, 20, 18, 32, '#D3AE84'], [84, 28, 16, 24, '#BF956C']].map(([l, t, w, h, c], i) => <div key={i} style={{ ...A, left: `${l}%`, top: `${t}%`, width: `${w}%`, height: `${h}%`, background: c, borderRadius: '6px 6px 0 0', boxShadow: 'inset 0 -10px 0 rgba(0,0,0,.08)' }} />)}
+    <div style={{ ...A, left: 0, right: 0, top: '52.5%', bottom: 0, background: 'repeating-linear-gradient(90deg, transparent 0 46px, rgba(90,70,40,.25) 46px 48px), repeating-linear-gradient(0deg, transparent 0 22px, rgba(90,70,40,.25) 22px 24px)' }} />
+  </div>);
+}
+function SuriBackdrop({ bg, clockStop, emblem, reduce }) {
+  const B = suriBg(bg) || {};
+  const [bad, setBad] = useState(false);
+  useEffect(() => { setBad(false); }, [B.image]);
+  const ea = (B.image && !bad ? B.emblemAt : null) || '50% 66%';
+  const [ex, ey] = ea.split(' ');
+  return (
+    <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0, animation: clockStop ? 'suriStop 1.2s ease forwards' : 'none' }}>
+      {B.image && !bad ? <img src={B.image} alt="" draggable={false} onError={() => setBad(true)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: B.focus || '50% 50%' }} /> : <SuriBgArt id={bg} />}
+      {bg === 'classroom' && <div className="absolute rounded-full" style={{ right: '7%', top: '4%', width: 'min(15vw, 64px)', height: 'min(15vw, 64px)', background: '#fffaf0', border: '4px solid #6b4a2b', boxShadow: clockStop ? '0 0 0 6px rgba(255,255,255,.5)' : 'none', transition: 'box-shadow 400ms' }}>
+        <div className="absolute" style={{ left: '50%', top: '18%', width: 3, height: '32%', marginLeft: -1.5, background: '#333', transformOrigin: '50% 100%', transform: 'rotate(150deg)' }} />
+        <div className="absolute" style={{ left: '50%', top: '10%', width: 1.5, height: '40%', marginLeft: -0.75, background: '#c0392b', transformOrigin: '50% 100%', animation: 'suriTick 60s steps(60) infinite', animationPlayState: clockStop || reduce ? 'paused' : 'running' }} />
+      </div>}
+      {emblem && <div className="absolute rounded-full" style={{ left: ex, top: ey, width: 'min(22vw, 120px)', height: 'min(22vw, 120px)', background: 'radial-gradient(circle, #FFF6C8 0%, #F3D27A 30%, rgba(243,210,122,0) 70%)', animation: 'suriEmblem 1.6s ease both', pointerEvents: 'none' }} />}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,.25), transparent 22%, transparent 58%, rgba(5,8,20,.6))' }} />
+    </div>);
+}
+// ノート（数式・浮かび上がった一行）と、数理の書
+function SuriNotebook({ items, glow, burst }) {
+  return (
+    <div className="relative" style={{ width: 'min(78vw, 340px)', padding: '14px 18px', background: 'repeating-linear-gradient(180deg, #FFFDF6 0 30px, #C9D7EE 30px 31px)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.4)', borderLeft: '10px solid #E8B4B4', transform: 'rotate(-2deg)', animation: 'fxEnter 320ms ease both' }}>
+      {items.map((x, i) => x.kind === 'note'
+        ? <div key={i} className="text-right font-bold mt-2" style={{ color: glow ? '#B8860B' : '#6b6b6b', fontStyle: 'italic', fontSize: 15, opacity: burst ? 0 : 1, transition: 'opacity 900ms', animation: glow && !burst ? 'suriGlow 1.6s ease-in-out infinite' : 'fxEnter 600ms ease both' }}>{x.text}</div>
+        : <div key={i} className="font-black" style={{ color: '#1D2A5C', fontSize: 'clamp(20px, 6vw, 26px)', lineHeight: '31px', ...bFont }}>{x.text}</div>)}
+      {burst && Array.from({ length: 16 }).map((_, i) => { const a = (i / 16) * Math.PI * 2; return <span key={i} className="absolute rounded-full" style={{ right: '22%', bottom: 18, width: 6, height: 6, background: '#FFE9A8', boxShadow: '0 0 8px #FFD54A', '--dx': `${Math.round(Math.cos(a) * 120)}px`, '--dy': `${Math.round(Math.sin(a) * 90 - 60)}px`, animation: `suriPart 1.4s ${(i % 4) * 0.08}s ease-out both` }} />; })}
+    </div>);
+}
+function SuriTome({ open }) {
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 'min(52vw, 220px)', height: 'min(52vw, 220px)' }}>
+      <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${open ? '#FFF6C8cc' : '#F3D27A66'}, transparent 65%)`, transition: 'background 600ms' }} />
+      {open && <div className="absolute" style={{ inset: '-30%', background: 'repeating-conic-gradient(from 0deg, rgba(255,240,190,.35) 0 6deg, transparent 6deg 24deg)', borderRadius: '50%', animation: 'suriRays 18s linear infinite', maskImage: 'radial-gradient(circle, #000 30%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, #000 30%, transparent 70%)' }} />}
+      <div style={{ fontSize: 'min(30vw, 130px)', lineHeight: 1, animation: 'suriGem 900ms ease both', filter: 'drop-shadow(0 0 18px #F3D27A)' }}>📖</div>
+    </div>);
+}
 function StoryView({ events, heroName, onDone, onRead, replay }) {
   const list = (events || []).filter(Boolean);
   const hero = heroName || '旅人';
+  const reduce = suriReduce();
   const [ei, setEi] = useState(0), [li, setLi] = useState(0), [ty, setTy] = useState({ k: '', n: 0 });
   const ev = list[ei];
   const lines = ev ? (ev.lines || []).map(suriLine) : [];
   const L = lines[li];
+  const plain = !!(L && (L.kind === 'title' || L.kind === 'pause'));   // 文字送りなし
   const text = L ? fillHero(L.text, hero) : '';
-  const tk = `${ei}-${li}`, n = ty.k === tk ? ty.n : 0;
+  const tk = `${ei}-${li}`, n = reduce || plain ? text.length : ty.k === tk ? ty.n : 0;
   const setN = v => setTy({ k: tk, n: v });
   useEffect(() => { if (!ev) onDone && onDone(); }, [!!ev]);
-  // 文字送り（タップで全部表示）
+  // 文字送り（タップで全部表示。「動きを減らす」設定のときは最初から全部）
   useEffect(() => {
-    if (!text) return;
+    if (!text || reduce || plain) return;
     const t = setInterval(() => setTy(x => { const c = x.k === tk ? x.n : 0; if (c >= text.length) { clearInterval(t); return x; } return { k: tk, n: c + 2 }; }), 28);
     return () => clearInterval(t);
   }, [tk]);
@@ -6075,34 +6150,58 @@ function StoryView({ events, heroName, onDone, onRead, replay }) {
     onDone && onDone();
   };
   const skip = e => { e.stopPropagation(); uiSnd('back'); if (!replay && onRead) list.slice(ei).forEach(x => onRead(x.id)); onDone && onDone(); };
-  const sp = suriSpeaker(L, ev, hero);
+  const sp = L.kind === 'title' || L.kind === 'pause' || L.kind === 'math' || L.kind === 'note' ? null : suriSpeaker(L, ev, hero);
   const narr = L.who === 'narr';
-  // 絵：話している相手。主人公のセリフ・情景描写のときは、直前に話していた相手を少し暗く
-  let pw = null, pfull = false;
-  for (let k = li; k >= 0; k--) { const x = lines[k]; if (x.who !== 'hero' && x.who !== 'narr') { pw = x.who; pfull = !!x.full; break; } }
+  // 場面のようす：ここまでのセリフから（背景が切りかわると、ノート・書・時計などはリセット）
+  const isChar = w => w && !['hero', 'narr', 'voice', 'far'].includes(w) && !(suriChar(w) || {}).noPortrait;
+  let bg = ev.bg || null, fl = {}, nb = [], pw = null, pfull = false;
+  for (let k = 0; k <= li; k++) {
+    const x = lines[k];
+    if (x.bg && x.bg !== bg) { bg = x.bg; fl = {}; nb = []; pw = null; }
+    if (x.fx === 'clockstop') fl.clock = 1;
+    if (x.fx === 'noteglow') fl.glow = 1;
+    if (x.fx === 'particles') fl.burst = 1;
+    if (x.fx === 'book' || x.fx === 'bookopen') fl.book = 1;
+    if (x.fx === 'bookopen') fl.open = 1;
+    if (x.kind === 'math' || x.kind === 'note') nb.push(x);
+    if (isChar(x.who)) { pw = x.who; pfull = !!x.full; }
+  }
   if (narr && L.full) pfull = true;
   const dim = L.who === 'hero' || (narr && !L.full);
   const F = ev.floor ? towerFloor(ev.floor) : null;
   const last = li + 1 >= lines.length && ei + 1 >= list.length;
+  const prevWhite = li > 0 && lines[li - 1].fx === 'white';
+  // 舞台（まんなか）に出すもの
+  let stage = null;
+  if (L.kind === 'title') stage = <div key={'t' + tk} className="text-center px-4" style={{ animation: reduce ? 'none' : 'fxEnter 900ms 300ms ease both' }}><div className="font-black" style={{ color: '#fff', fontSize: 'clamp(24px, 7.4vw, 40px)', lineHeight: 1.35, textShadow: '0 2px 0 rgba(0,0,0,.4), 0 0 24px rgba(243,210,122,.6)', ...bFont }}>{text}</div></div>;
+  else if (L.kind === 'pause' || L.fx === 'emblem') stage = null;
+  else if (fl.book && !isChar(L.who)) stage = <SuriTome key={'b' + bg} open={!!fl.open} />;
+  else if (pw) stage = <div key={`${ei}-${pw}-${pfull ? 'f' : 'c'}`} style={{ animation: 'fxEnter 260ms ease both' }}><SuriPortrait who={pw} full={pfull} dim={dim} F={F} /></div>;
+  else if (nb.length) stage = <SuriNotebook key={'n' + bg} items={nb} glow={!!fl.glow} burst={!!fl.burst} />;
+  const hint = !last ? 'タップで次へ ▼' : replay ? 'タップでとじる' : ev.type === 'pre' || ev.type === 'chapter' ? 'タップで数理試練へ ▶' : 'タップで続ける ▶';
   return (
-    <div className="fixed inset-0 flex flex-col" onClick={next} style={{ zIndex: 60, background: 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)', fontFamily: "'Zen Kaku Gothic New', sans-serif", paddingTop: 'max(10px, env(safe-area-inset-top))', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', userSelect: 'none', WebkitUserSelect: 'none' }}>
-      <div className="suri-bgmath" />
-      <div className="flex items-center justify-between gap-2 px-3 relative" style={{ zIndex: 1 }}>
-        <span className="text-[11px] font-black rounded-full px-2.5 py-0.5 min-w-0" style={{ background: '#d4a01733', color: '#F3D27A', border: '1px solid #d4a01788', overflowWrap: 'anywhere' }}>{replay ? '📖 物語の記録 ・ ' : ''}{ev.title || ''}{ev.auto ? '（仮の会話）' : ''}</span>
-        <button onClick={skip} className="rounded-full px-3 py-1 text-xs font-black shrink-0" style={{ background: '#ffffff1a', color: '#fff', border: '1px solid #ffffff44' }}>{replay ? 'とじる ✕' : 'スキップ ⏭'}</button>
+    <div className={`fixed inset-0 flex flex-col${reduce ? ' suri-rm' : ''}`} onClick={next} style={{ zIndex: 60, background: 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)', fontFamily: "'Zen Kaku Gothic New', sans-serif", paddingTop: 'max(10px, env(safe-area-inset-top))', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', userSelect: 'none', WebkitUserSelect: 'none' }}>
+      {bg ? <SuriBackdrop bg={bg} clockStop={!!fl.clock} emblem={L.fx === 'emblem'} reduce={reduce} /> : <div className="suri-bgmath" />}
+      <div className="flex items-center justify-between gap-2 px-3 relative" style={{ zIndex: 5 }}>
+        <span className="text-[11px] font-black rounded-full px-2.5 py-0.5 min-w-0" style={{ background: 'rgba(11,20,48,.7)', color: '#F3D27A', border: '1px solid #d4a01788', overflowWrap: 'anywhere' }}>{replay ? '📖 物語の記録 ・ ' : ''}{ev.title || ''}{ev.auto ? '（仮の会話）' : ''}</span>
+        <button onClick={skip} className="rounded-full px-3 py-1 text-xs font-black shrink-0" style={{ background: 'rgba(11,20,48,.55)', color: '#fff', border: '1px solid #ffffff55' }}>{replay ? 'とじる ✕' : 'スキップ ⏭'}</button>
       </div>
-      <div className="flex-1 flex items-center justify-center relative" style={{ minHeight: 0, zIndex: 1 }}>
-        {pw && <div key={`${ei}-${pw}-${pfull ? 'f' : 'c'}`} style={{ animation: 'fxEnter 260ms ease both' }}><SuriPortrait who={pw} full={pfull} dim={dim} F={F} /></div>}
-      </div>
-      <div className="px-3 relative" style={{ zIndex: 1 }}>
+      <div className="flex-1 flex items-center justify-center relative" style={{ minHeight: 0, zIndex: 1 }}>{stage}</div>
+      {/* 白い光・暗転・暗転からのフェード（会話の窓より下） */}
+      {L.fx === 'white' && <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, background: '#fff', opacity: prevWhite ? 1 : undefined, '--to': 0.88, animation: prevWhite ? 'none' : 'suriWhiteIn 1.1s ease forwards' }} />}
+      {L.fx === 'black' && <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4, background: '#000' }} />}
+      {L.fx === 'fadein' && <div key={'fi' + tk} className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, background: '#000', animation: 'suriFadeOut 1.6s ease forwards' }} />}
+      <div className="px-3 relative" style={{ zIndex: 5 }}>
         <div className="mx-auto" style={{ maxWidth: 680 }}>
-          {sp != null && <div className="inline-block rounded-t-xl px-3 py-1 text-sm font-black" style={{ background: L.who === 'hero' ? '#5B8DEF' : '#d4a017', color: L.who === 'hero' ? '#fff' : '#1D1405', overflowWrap: 'anywhere', ...bFont }}>{sp}</div>}
-          <div className={sp != null ? 'rounded-b-2xl rounded-tr-2xl px-4 py-3' : 'rounded-2xl px-4 py-3'} style={{ background: narr ? 'rgba(6,10,26,.78)' : 'rgba(11,20,48,.92)', border: `2px solid ${narr ? '#8E9BC855' : L.who === 'hero' ? '#5B8DEFaa' : '#d4a017aa'}`, boxShadow: 'inset 0 0 0 2px #0B1430', minHeight: '5.5em' }}>
-            <div className="font-bold" style={{ color: narr ? '#C8D2F5' : '#fff', fontStyle: narr ? 'italic' : 'normal', textAlign: narr ? 'center' : 'left', fontSize: 'clamp(15px, 4.2vw, 19px)', lineHeight: 1.7, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
-              {text.slice(0, n)}<span style={{ opacity: 0 }}>{text.slice(n)}</span>
+          {L.kind === 'title' || L.kind === 'pause' ? <div className="text-center text-[11px] font-black py-3" style={{ color: '#F3D27A' }}>{hint}</div> : (<>
+            {sp != null && <div className="inline-block rounded-t-xl px-3 py-1 text-sm font-black" style={{ background: L.who === 'hero' ? '#5B8DEF' : L.who === 'voice' ? '#E9E3FF' : L.who === 'far' ? '#8E9BC8' : '#d4a017', color: L.who === 'hero' ? '#fff' : L.who === 'voice' ? '#3B2F7A' : L.who === 'far' ? '#0B1430' : '#1D1405', overflowWrap: 'anywhere', ...bFont }}>{sp}</div>}
+            <div className={sp != null ? 'rounded-b-2xl rounded-tr-2xl px-4 py-3' : 'rounded-2xl px-4 py-3'} style={{ background: narr ? 'rgba(6,10,26,.8)' : 'rgba(11,20,48,.93)', border: `2px solid ${L.kind ? '#F3D27A88' : narr ? '#8E9BC855' : L.who === 'hero' ? '#5B8DEFaa' : L.who === 'voice' ? '#C9BEFFaa' : '#d4a017aa'}`, boxShadow: 'inset 0 0 0 2px #0B1430', minHeight: '5.5em' }}>
+              <div className="font-bold" style={L.kind === 'math' ? { color: '#fff', textAlign: 'center', fontSize: 'clamp(22px, 6.5vw, 30px)', lineHeight: 1.6, ...bFont } : L.kind === 'note' ? { color: '#F3D27A', textAlign: 'center', fontStyle: 'italic', fontSize: 'clamp(17px, 5vw, 22px)', lineHeight: 1.7 } : { color: narr ? '#C8D2F5' : L.who === 'voice' ? '#E9E3FF' : '#fff', fontStyle: narr || L.who === 'far' ? 'italic' : 'normal', textAlign: narr ? 'center' : 'left', fontSize: L.who === 'far' ? 'clamp(13px, 3.8vw, 16px)' : 'clamp(15px, 4.2vw, 19px)', lineHeight: 1.7, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+                {L.kind === 'note' ? '「' : ''}{text.slice(0, n)}<span style={{ opacity: 0 }}>{text.slice(n)}</span>{L.kind === 'note' ? '」' : ''}
+              </div>
+              <div className="text-right text-[11px] font-black mt-1" style={{ color: '#F3D27A', opacity: done ? 1 : 0.35 }}>{hint}</div>
             </div>
-            <div className="text-right text-[11px] font-black mt-1" style={{ color: '#F3D27A', opacity: done ? 1 : 0.35 }}>{!last ? 'タップで次へ ▼' : replay ? 'タップでとじる' : ev.type === 'pre' || ev.type === 'chapter' ? 'タップで数理試練へ ▶' : 'タップで続ける ▶'}</div>
-          </div>
+          </>)}
         </div>
       </div>
     </div>
@@ -6260,7 +6359,12 @@ function SuriBook({ tw, heroName, onClose }) {
       <div className="text-[10px] font-bold mt-2 text-center" style={{ color: '#8E9BC8' }}>★ボス ・ ✓突破ずみ（試練を突破すると説明が読める）</div>
     </div>);
   } else {
+    const pro = suriPrologue();
     body = (<div key="ts" style={{ animation: 'suriFlip 360ms ease both' }}>
+      {pro && <button onClick={() => { uiSnd('ok'); setReplay([pro]); }} className="w-full p-2.5 mb-2 text-left" style={{ ...card, borderColor: '#d4a017' }}>
+        <div className="text-[13px] font-black" style={{ color: '#fff', ...bFont }}>📜 {pro.title || 'プロローグ'}</div>
+        <div className="text-[11px] font-bold mt-0.5" style={{ color: '#C8D2F5' }}>放課後の教室から、すべてが始まった。（タップで読み返す）</div>
+      </button>}
       {C.filter(c => c.from <= P.openTo + 1).map(c => { const open = c.from <= P.best + 1; const evs = []; for (let f = c.from; f <= c.to; f++) { evs.push(...suriPreEvents(f), ...suriPostEvents(f), ...suriEpiEvents(f)); } if (c.to === TOWER_GOAL) evs.push(suriEvent(TOWER_GOAL, 'ending'));
         return (<div key={c.no} className="p-2.5 mb-2" style={{ ...card, opacity: open ? 1 : 0.5 }}>
           <div className="text-[13px] font-black" style={{ color: open ? '#fff' : '#8E9BC8', ...bFont }}>第{c.no}章 {open ? c.title : '？？？'} {open && <span className="text-[10px]" style={{ color: gold }}>{c.from}〜{c.to}階</span>}</div>
@@ -6312,6 +6416,7 @@ function TowerApp({ acct, onExit }) {
   const [fogUntil, setFogUntil] = useState(0);
   const [defeat, setDefeat] = useState(null);   // 撃破の演出
   const [book, setBook] = useState(false);       // 数理の書
+  const [proView, setProView] = useState(false); // プロローグを読み返す（進み具合は変わらない）
   const [seq, setSeq] = useState(null);          // 会話・断片・エンディングの順番 { items:[{kind,ev|no}], i, after }
   const heroName = String((acct && acct.name) || '').trim() || '旅人';   // 会話の {playerName}（取れなければ「旅人」）
   // 数理の塔の記録（ログイン：stats.tower、ゲスト：この端末）
@@ -6359,10 +6464,17 @@ function TowerApp({ acct, onExit }) {
   const F = run ? towerFloor(run.f) : null;
   const hpBoss = F ? Math.max(0, F.hpMax - fl.current.dmg) : 0;
 
-  const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; start = Math.max(1, Math.min(TOWER_GOAL, start)); lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
-  // 「挑む」：まだ読んでいない会話（章の導入・戦闘前）があれば先に見せる。会話のあいだは戦闘の時間は進まない
+  // プロローグ：まだ1階も突破していなくて、まだ見ていない人だけ（すでに進めている人には出さない）
+  const needPrologue = f => f === 1 && towerBest(tw) === 0 && !!suriPrologue() && !(tw.read || {}).prologue;
+  const begin = start => {
+    if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; start = Math.max(1, Math.min(TOWER_GOAL, start)); lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null });
+    // はじめて登る人：プロローグ → 第1章のはじまり → 1階の戦闘前の会話 → 1階の数理試練
+    if (needPrologue(start)) { const evs = [suriPrologue(), ...suriPreEvents(1).filter(e => !(tw.read || {})[e.id])]; setSeq({ items: evs.map(ev => ({ kind: 'event', ev })), i: 0, after: 'enter' }); setScr('story'); return; }
+    setScr('floor');
+  };
+  // 「挑む」：まだ読んでいない会話（プロローグ・章の導入・戦闘前）があれば先に見せる。会話のあいだは戦闘の時間は進まない
   const startFloor = force => {
-    const evs = suriPreEvents(run.f).filter(e => force || !(tw.read || {})[e.id]);
+    const evs = [...(needPrologue(run.f) ? [suriPrologue()] : []), ...suriPreEvents(run.f).filter(e => force || !(tw.read || {})[e.id])];
     if (evs.length) { setSeq({ items: evs.map(ev => ({ kind: 'event', ev })), i: 0, after: 'enter' }); setScr('story'); }
     else enter();
   };
@@ -6408,7 +6520,7 @@ function TowerApp({ acct, onExit }) {
     const heal = info.mob ? TOWER_HP.mob + (nomiss ? 2 : 0) : TOWER_HP.clear + (nomiss ? TOWER_HP.nomiss : 0) + (info.big ? TOWER_HP.big : 0) + (f % 10 === 0 ? TOWER_HP.cp : 0);
     const t = Math.round((Date.now() - S.t0) / 1000);
     const gain = info.king || info.final ? 100 : info.big ? 8 : info.mob ? 3 : 4;
-    const next = { ...run, f: f + 1, hp: Math.min(100, run.hp + heal), cleared: run.cleared + 1, exp: run.exp + gain, log: [...run.log, { f, t, nomiss }], last: { f, t, heal, nomiss, big: info.big, cp: f % 5 === 0, king: info.king } };
+    const next = { ...run, f: f + 1, hp: Math.min(100, run.hp + heal), cleared: run.cleared + 1, exp: run.exp + gain, log: [...run.log, { f, t, nomiss }], last: { f, t, heal, nomiss, big: info.big, cp: true, king: info.king } };
     // 戦闘後：会話 → 学習記録 → 法則の断片 → エピローグ（どれも未読のみ）→ 70階はエンディング
     const firstEnd = f === TOWER_GOAL && !tw.end1;
     const pi = postItems(f);
@@ -6554,7 +6666,7 @@ function TowerApp({ acct, onExit }) {
         S.clearing = true;
         const bigD = F.big || F.king;
         setStunUntil(0); setFogUntil(0);
-        setDefeat({ big: bigD, word: '突破！', text: F.king ? '👑 真・因数の王を倒した！' : `${F.boss.name}の試練を突破！`, sub: `${run.f}階 突破！${run.f % 5 === 0 ? ' ・ 💾 セーブ' : ''}` });
+        setDefeat({ big: bigD, word: '突破！', text: F.king ? '👑 真・因数の王を倒した！' : `${F.boss.name}の試練を突破！`, sub: `${run.f}階 突破！ ・ 💾 セーブ` });
         setTimeout(() => v7Wipe(clearFloor, { close: 380, hold: 80, open: 260 }), bigD ? 3200 : 2100);
       }
       force(x => x + 1);
@@ -6571,7 +6683,7 @@ function TowerApp({ acct, onExit }) {
   /* ---- 画面：塔のロビー・次の階・結果 ---- */
   const rows = Object.entries(board || {}).map(([k, e]) => ({ k, ...e })).filter(e => e && e.f > 0 && e.name).sort((a, b) => b.f - a.f || (a.at || 0) - (b.at || 0));
   const myRank = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
-  // 始められる階：1階と、セーブした 5n+1 階（多いときは最近の分だけ）
+  // 始められる階：「続きから」（突破した次の階）のほかに、1階と、たどり着いた章のはじめ 5n+1 階（多いときは最近の分だけ）
   const allStarts = []; for (let c = 5; c <= cp; c += 5) allStarts.push(c + 1);
   const starts = [1, ...allStarts.slice(-11)];
   // いまの章の中の進み具合（5階ぶん）。塔の総階数は見せない
@@ -6611,11 +6723,12 @@ function TowerApp({ acct, onExit }) {
               <li>ボスを{TOWER_SEC / 1000}秒で倒せないと<b>猛攻（HP−{TOWER_HP.timeout}）</b>を受けて15秒延長。HPが0で終わり</li>
               <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。ボスを倒すと回復 +{TOWER_HP.clear + TOWER_HP.big}（ノーミス+{TOWER_HP.nomiss}）・雑魚は +{TOWER_HP.mob}</li>
               <li>出る問題：1〜10階は<b>Lv.1〜3</b>、11〜20階は<b>Lv.1〜6</b>、21階から<b>全レベル</b></li>
-              <li>5の倍数の階は<b>章のボス</b>（特別な力をもつ）。<b>5階ごとにセーブ</b>（次からその次の階から続きができる）、10階ごとにHP+{TOWER_HP.cp}</li>
+              <li>5の倍数の階は<b>章のボス</b>（特別な力をもつ）。<b>1階ごとにセーブ</b>（やめても、次は突破した次の階から続きができる）、10階ごとにHP+{TOWER_HP.cp}</li>
               <li>階を突破すると<b>数理の書</b>に学習記録が増え、章のボスに勝つと<b>法則の断片</b>が手に入る</li>
             </ul>
           </Card>
           <div className="mb-2"><BigBtn color="#1D2A5C" onClick={() => setBook(true)}>📖 数理の書（学習記録・断片・図鑑・物語）</BigBtn></div>
+          {suriPrologue() && ((tw.read || {}).prologue || towerBest(tw) > 0) && <div className="flex justify-center mb-2"><button className="v7-pill v7-cur" onClick={() => setProView(true)}>📜 プロローグ「最後の一行」をもう一度見る</button></div>}
           <div className="flex gap-2 mb-3">
             <button className="v7-pill v7-cur flex-1 justify-center" onClick={() => setShowRank(true)}><V7Icon name="cup" />最高到達階ランキング</button>
           </div>
@@ -6676,6 +6789,7 @@ function TowerApp({ acct, onExit }) {
         </>)}
       </div>
       {book && <SuriBook tw={tw} heroName={heroName} onClose={() => setBook(false)} />}
+      {proView && <StoryView events={[suriPrologue()]} heroName={heroName} replay onDone={() => setProView(false)} />}
       {showRank && <V7Modal title="最高到達階ランキング" onClose={() => setShowRank(false)}>
         {rows.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだ記録がありません</p> : rows.slice(0, 30).map((r, i) => (
           <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? 'var(--v7-accent-soft)' : 'transparent' }}>
