@@ -2406,7 +2406,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.8.2.1</span>
+              <span className="v7-ver">ver.8.2.2</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -5663,18 +5663,21 @@ const TOWER_GOAL = 50, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';
 const TOWER_KING = { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' };
 const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
 const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30 };
+/* 出題レベルの上限：1〜10階はLv1〜3、11〜20階はLv1〜6、21階からは全部 */
+const towerLvMax = f => f <= 10 ? 3 : f <= 20 ? 6 : 9;
 function towerFloor(f) {
   const king = f === TOWER_GOAL, endless = f > TOWER_GOAL, big = !king && f % 5 === 0;
   const boss = king ? TOWER_KING : BOSSES.find(b => b.id === (endless ? TOWER_ORDER[hashSeed('tw:' + f) % 6] : TOWER_ORDER[(f - 1) % 6]));
   const T = king ? { weak: {}, counter: {} } : traitOf(boss.id);
   const base = 140 + 14 * (f - 1);
-  const hpMax = king ? 1600 : Math.round(base * (T.hpK || 1) * (big ? 1.5 : 1) * (endless ? 1 + (f - TOWER_GOAL) * 0.01 : 1));
+  const lvK = f <= 10 ? 0.7 : f <= 20 ? 0.85 : 1;   // 出せるレベルが少ない階は体力も少なめ
+  const hpMax = king ? 1600 : Math.round(base * lvK * (T.hpK || 1) * (big ? 1.5 : 1) * (endless ? 1 + (f - TOWER_GOAL) * 0.01 : 1));
   const sec = king ? 60 : TOWER_SEC / 1000;
   const C = king ? { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' } : T.counter === null ? null : ctrOf(boss.id);
   const ctr = !C ? [] : king ? [10, 22, 34, 46] : big ? [10, 22, 34] : [14, 30];
   const weak = T.weak === false ? [] : king ? [[4, 16], [26, 38]] : boss.id === 'robot' ? [[5, 17], [24, 36]] : boss.id === 'kraken' ? [[6, 24]] : [[8, 20]];
   const name = king ? boss.name : `${big ? '大ボス・' : ''}${boss.name}`;
-  return { f, king, endless, big, boss: { ...boss, name }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), startLv: Math.max(1, Math.min(7, 1 + Math.floor((Math.min(f, 49) - 1) / 6))) };
+  return { f, king, endless, big, boss: { ...boss, name }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), lvMax: towerLvMax(f), startLv: Math.max(1, Math.min(towerLvMax(f), 7, 1 + Math.floor((Math.min(f, 49) - 1) / 6))) };
 }
 const towerOf = st => (st && st.tower) || {};
 const towerCp = tw => Math.floor(Math.min(TOWER_GOAL, tw.best || 0) / 10) * 10;   // チェックポイント（10・20・…・50）
@@ -5757,7 +5760,10 @@ function TowerApp({ acct, onExit }) {
   /* ---- 1階ぶんのしかけ ---- */
   const sec = scr === 'play' ? (Date.now() - fl.current.t0) / 1000 : 0;
   const weakWin = scr === 'play' && F ? F.weak.find(([a, b]) => sec >= a && sec < b) : null;
-  const weakFam = weakWin ? (F.T.weakFam ? RAID_FAMS.find(x => x.id === F.T.weakFam) : RAID_FAMS[hashSeed(`tw${run.f}:${weakWin[0]}`) % RAID_FAMS.length]) : null;
+  // 弱点の型も出題レベルの上限の中から（上限の外の型が決まっているボスは、出せる型からえらぶ）
+  const famsOk = F ? RAID_FAMS.filter(x => x.lv.some(l => l <= F.lvMax)) : RAID_FAMS;
+  const fixedFam = F && F.T.weakFam ? famsOk.find(x => x.id === F.T.weakFam) : null;
+  const weakFam = weakWin ? (fixedFam || famsOk[hashSeed(`tw${run.f}:${weakWin[0]}`) % famsOk.length]) : null;
   const C = F && F.C;
   const ctrT = scr === 'play' && C ? F.ctr.find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
   const ctrWarn = ctrT != null && sec < ctrT;
@@ -5795,18 +5801,21 @@ function TowerApp({ acct, onExit }) {
   const pickLevel = useCallback((lv, how) => {
     let n = lv;
     if (how === 'up') n = lv + 1; else if (how === 'miss') n = lv - 1;
-    n = Math.max(1, Math.min(9, how === 'init' ? (F ? F.startLv : 1) : n));
-    if (weakFam) { const c = weakFam.lv.slice().sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); return c[0]; }
+    const mx = F ? F.lvMax : 9;
+    n = Math.max(1, Math.min(mx, how === 'init' ? (F ? F.startLv : 1) : n));
+    if (weakFam) { const c = weakFam.lv.filter(l => l <= mx).sort((a, b) => Math.abs(a - n) - Math.abs(b - n)); if (c.length) return c[0]; }
     return n;
   }, [weakFam && weakFam.id, run && run.f]);
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * ((F && F.T.lvMul || {})[lv] || 1), [weakFam && weakFam.id, run && run.f]);
+  // ボスの得意・不得意（lvMul）。レベルの上限がある階では「ダメージ半分」は使わない
+  const lvMulT = lv => { const m = (F && F.T.lvMul || {})[lv] || 1; return m < 1 && F && F.lvMax < 9 ? 1 : m; };
+  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * lvMulT(lv), [weakFam && weakFam.id, run && run.f]);
 
   if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`🗼 ${run.f}階${F.endless ? '・無限回廊' : ''}`}
     onQuit={() => finish('quit')}
     opts={{
       pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '塔の挑戦をやめますか？（ここまでの記録は残ります）',
       hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
-      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : ((F.T.lvMul || {})[lv] < 1 ? '🪨 かたい！ この問題はダメージ半分' : (F.T.lvMul || {})[lv] > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
+      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
       overlay: (<>
         {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
         {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(26,16,51,.92), rgba(26,16,51,.7) 45%, rgba(26,16,51,.88))' }} />}
@@ -5875,6 +5884,7 @@ function TowerApp({ acct, onExit }) {
             <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>
               <li>ボスを{TOWER_SEC / 1000}秒で倒せないと<b>猛攻（HP−{TOWER_HP.timeout}）</b>を受けて15秒延長。HPが0で終わり</li>
               <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。突破で回復 +{TOWER_HP.clear}（ノーミス+{TOWER_HP.nomiss}・大ボス+{TOWER_HP.big}）</li>
+              <li>出る問題：1〜10階は<b>Lv.1〜3</b>、11〜20階は<b>Lv.1〜6</b>、21階から<b>全レベル</b></li>
               <li>5の倍数の階は<b>大ボス</b>。10階ごとに<b>チェックポイント</b>（HP+{TOWER_HP.cp}、次からそこから始められる）</li>
               <li><b>50階に真のボス</b>。倒すと称号「塔を制覇」ときせかえ。51階からは<b>無限回廊</b></li>
             </ul>
@@ -5912,6 +5922,7 @@ function TowerApp({ acct, onExit }) {
               {Fn.king ? [<li key="a">弱点タイムが2回、反撃「王の裁き」が4回（HP−{Math.round(TOWER_HP.ctr * Fn.hpK)}・墨・おじゃま）</li>, <li key="b">体力が半分を切ると真の姿になって30%回復</li>]
                 : (Fn.T.desc || []).slice(0, 2).map(d => <li key={d}>{d}</li>)}
               {Fn.big && <li>大ボス：体力1.5倍・反撃が3回・反撃のダメージ1.5倍</li>}
+              <li>出る問題：{Fn.lvMax < 9 ? `Lv.1〜${Fn.lvMax}` : 'すべてのレベル'}{Fn.lvMax < 9 ? `（${Fn.lvMax === 3 ? '11階から Lv.6 まで' : '21階から全レベル'}）` : ''}</li>
             </ul>
           </Card>
           <div className="v7-panel mb-3"><div className="flex items-center gap-2"><span className="text-[11px] font-black" style={{ color: COLORS.ink }}>あなたのHP</span><div className="flex-1"><HpBar v7 hp={run.hp} height={18} /></div></div></div>
