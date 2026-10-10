@@ -277,6 +277,32 @@
     .v7-poly { font-size: clamp(2rem, 8vh, 3.8rem); }
     .v7-target { padding: 16px 12px 14px; }
   }
+  /* 数理の塔だけ：横向きなら、スマホでもタブレット版の2列の戦闘画面（.tw-land は塔の戦闘画面にだけ付く） */
+  @media (orientation: landscape) {
+    .tw-land .v7-play { display: grid; grid-template-columns: minmax(250px, 34%) 1fr; gap: 12px; max-width: 1280px; }
+    .tw-land .v7-zone { height: 100%; min-height: 0; overflow: hidden; }
+    .tw-land .v7-fxbox { display: flex; flex: 1; min-height: 0; position: relative; border-radius: 10px; border: 2px dashed rgba(230,236,255,.18); align-items: center; justify-content: center; overflow: hidden; }
+    .tw-land .v7-judge-ph { display: none; }
+    .tw-land .v7-judge-tb { display: block; top: 40%; font-size: 64px; -webkit-text-stroke: 3px #fff; }
+    .tw-land .v7-fxcombo { display: flex; }
+  }
+  /* スマホの横向き（高さが小さい）：カード・ボタンがはみ出さないように詰める */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .tw-land { padding-top: 6px !important; padding-bottom: 6px !important; }
+    .tw-land .v7-play { grid-template-columns: minmax(230px, 36%) 1fr; gap: 8px; }
+    .tw-land .v7-zone, .tw-land .v7-main { gap: 5px; }
+    .tw-land .v7-st { padding: 1px 4px; }
+    .tw-land .v7-st small { font-size: 8px; letter-spacing: .06em; }
+    .tw-land .v7-st b { font-size: 17px; }
+    .tw-land .v7-hpb { height: 16px; }
+    .tw-land .v7-target { padding: 5px 8px 4px; }
+    .tw-land .v7-poly { font-size: clamp(1.15rem, 8.5vh, 2.2rem); }
+    .tw-land .v7-hint { display: none; }
+    .tw-land .v7-judge-tb { font-size: 40px; }
+    .tw-land .v7-fxcombo b { font-size: 64px; }
+    .tw-land .v7-fxcombo small { font-size: 14px; }
+  }
+  @keyframes twRotate { 0%, 20% { transform: rotate(0deg); } 55%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
   .v7-result { width: 100%; max-width: 30rem; padding: 18px 16px; text-align: center; }
   .v7-result .big { font-family: var(--v7-f-fx); font-size: 56px; color: var(--v7-gold); line-height: 1.1; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
   .v7-result .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; padding: 5px 2px; border-bottom: 1px solid rgba(230,236,255,.15); font-family: var(--v7-f-ui); }
@@ -2422,7 +2448,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.5.6</span>
+              <span className="v7-ver">ver.5.7</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4550,7 +4576,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   const left = endAt ? endAt - fbNow() : null;
   const isStun = stunned();
   return (
-    <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
+    <div className={`game-lock v7-battle w-full flex flex-col items-center px-3${o.land ? ' tw-land' : ''}`} style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
       <FontImport />
       <ComboAura combo={s.combo} />
       {o.overlay}
@@ -6394,7 +6420,47 @@ function SuriBook({ tw, heroName, onClose }) {
   );
 }
 
-function TowerApp({ acct, onExit }) {
+/* ---------- 数理の塔は横向きで遊ぶ：縦向きのあいだは案内を出す ----------
+   Android（Chrome など）は「全画面で横向きにする」で向きを固定できる。iPhone の Safari は固定できないので、案内だけ */
+function useTowerPortrait() {
+  const get = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+  const [pt, setPt] = useState(get);
+  useEffect(() => {
+    const f = () => setPt(get());
+    window.addEventListener('resize', f); window.addEventListener('orientationchange', f);
+    const so = window.screen && window.screen.orientation; if (so && so.addEventListener) so.addEventListener('change', f);
+    return () => { window.removeEventListener('resize', f); window.removeEventListener('orientationchange', f); if (so && so.removeEventListener) so.removeEventListener('change', f); };
+  }, []);
+  // 塔を出るとき：全画面・向きの固定を元にもどす
+  useEffect(() => () => { try { const so = window.screen && window.screen.orientation; if (so && so.unlock) so.unlock(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); } catch (e) {} }, []);
+  return pt;
+}
+function RotateGuide({ onExit }) {
+  const so = window.screen && window.screen.orientation;
+  const ios = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const canLock = !ios && so && typeof so.lock === 'function' && !!document.documentElement.requestFullscreen;
+  const [err, setErr] = useState(false);
+  const lock = () => { uiSnd('ok'); document.documentElement.requestFullscreen().then(() => so.lock('landscape')).catch(() => setErr(true)); };
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center px-6 text-center" style={{ zIndex: 400, background: 'radial-gradient(ellipse at 50% 40%, #24356F, #0B1430 70%)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="suri-bgmath" />
+      <div className="relative" style={{ width: 70, height: 116, border: '5px solid #F3D27A', borderRadius: 14, animation: suriReduce() ? 'none' : 'twRotate 2.6s ease-in-out infinite', boxShadow: '0 0 24px rgba(243,210,122,.4)' }}>
+        <div className="absolute rounded-full" style={{ left: '50%', bottom: 6, width: 10, height: 10, marginLeft: -5, background: '#F3D27A' }} />
+        <div className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 30 }}>📖</div>
+      </div>
+      <div className="font-black mt-6 relative" style={{ color: '#fff', fontSize: 20, ...bFont }}>スマホを横向きにしてください</div>
+      <div className="text-sm font-bold mt-2 relative" style={{ color: '#C8D2F5', lineHeight: 1.7, maxWidth: 340 }}>数理の塔は横向きの画面で遊びます。<br />画面の向きのロックがオンになっていたら、オフにしてください。</div>
+      {canLock && <button className="mt-4 rounded-full px-5 py-2 font-black text-sm relative" onClick={lock} style={{ background: 'linear-gradient(180deg,#F3D27A,#d4a017)', color: '#1D1405' }}>全画面で横向きにする</button>}
+      {err && <div className="text-[11px] font-bold mt-2 relative" style={{ color: '#FFB4A8' }}>自動で向きを変えられませんでした。スマホを横にしてください</div>}
+      <button className="mt-5 text-xs font-black underline relative" style={{ color: '#8E9BC8' }} onClick={() => { uiSnd('back'); onExit(); }}>← タイトルにもどる</button>
+    </div>);
+}
+// 縦向きのあいだも中身（会話・戦闘の状態）はそのまま。案内を上に重ねるだけ
+function TowerApp(props) {
+  const portrait = useTowerPortrait();
+  return <>{<TowerAppMain {...props} />}{portrait && <RotateGuide onExit={props.onExit} />}</>;
+}
+function TowerAppMain({ acct, onExit }) {
   const fb = useFbReady();
   const meKey = isReal(acct) ? acct.key : null;
   const [tOk, setTOk] = useState(undefined);   // 準備中：先生のアカウントか（読みこみ中は undefined）
@@ -6627,7 +6693,7 @@ function TowerApp({ acct, onExit }) {
   if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={fl.current.revived ? { ...F.boss, img: suriImg(F.mid + '2') || F.boss.img, name: F.king ? '真・因数の王' : F.boss.name } : F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`📖 第${F.ch}章 ・ ${run.f}階`}
     onQuit={() => finish('quit')}
     opts={{
-      pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '数理の塔の挑戦をやめますか？（ここまでの記録は残ります）',
+      land: true, pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '数理の塔の挑戦をやめますか？（ここまでの記録は残ります）',
       ctlRef: ctl, buildProb, mirror: G === 'mirror', defeat, hint: G === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : undefined,
       hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
       note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ${weakFam.mul || 2}倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
