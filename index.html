@@ -2406,7 +2406,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.4.42</span>
+              <span className="v7-ver">ver.4.43</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4477,8 +4477,19 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
   // 弱点タイムや「ねらう部位」が変わっても、いま解いている問題はそのまま。次の問題から反映する
   const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
+  // 撃破の演出（M5タワー）：BGMを止めてファンファーレ、ボスがくだけて紙吹雪。盤面は止める
+  const dft = o.defeat;
+  useEffect(() => {
+    if (!dft) return;
+    sound.bgm(false);
+    setTimeout(() => sound.play(dft.big ? 'clear' : 'combo'), 250);
+    const bc = rectC(qs('[data-boss]'));
+    if (bc) { FX.shards(bc, boss.color || '#ffd54a'); FX.burst(bc.x, bc.y, { color: '#FFD54A', colors: ['#FFD54A', '#fff', boss.color || '#ff7b00'], n: dft.big ? 40 : 24, r: dft.big ? 160 : 110 }); }
+    FX.flash('#fff', dft.big ? 0.6 : 0.4, 280); FX.shake(qs('.game-lock'), !!dft.big);
+    setTimeout(() => FX.confetti(dft.big ? 120 : 45), 300);
+  }, [!!dft]);
   const onMatch = useCallback((id1, id2) => {
-    if (busy || ended || stunned()) return;
+    if (busy || ended || stunned() || o.defeat) return;
     const t1 = prob.tiles.find(t => t.id === id1), t2 = prob.tiles.find(t => t.id === id2);
     if (!t1 || !t2) return;
     const ms = Date.now() - s.qs;
@@ -4544,7 +4555,14 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
           </div>
         </div>
         <div className="v7-main">
-          {ended ? <div className="fx-scroll flex-1 overflow-y-auto rounded-2xl px-2" style={{ touchAction: 'pan-y', background: 'rgba(245,242,236,.97)', color: 'var(--v7-ink)' }}>{footer}</div> : (<>
+          {dft && !ended ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center" style={{ minHeight: 0 }}>
+              <div style={{ fontSize: dft.big ? 'clamp(5rem, 22vmin, 9rem)' : 'clamp(4rem, 16vmin, 7rem)', lineHeight: 1, filter: 'grayscale(.6) brightness(1.1)', transform: 'rotate(-12deg)', animation: 'fxVsPop 500ms both' }}>{boss.icon}</div>
+              <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: dft.big ? 'clamp(3.2rem, 15vw, 6rem)' : 'clamp(2.6rem, 12vw, 4.6rem)', color: 'var(--v7-gold)', WebkitTextStroke: '2px #0B1430', textShadow: '0 5px 0 rgba(0,0,0,.35), 0 0 30px #FFD54A', animation: 'fxVsPop 520ms 120ms both', lineHeight: 1.1 }}>撃破！</div>
+              <div className="v7-wnd mt-2 px-4 py-1.5 font-black" style={{ color: '#fff', fontSize: dft.big ? 18 : 15, animation: 'fxEnter 400ms 380ms both', ...bFont }}>{dft.text || `${boss.name}を倒した！`}</div>
+              {dft.sub && <div className="mt-1.5 text-xs font-bold" style={{ color: '#AAB6E0', animation: 'fxEnter 400ms 600ms both' }}>{dft.sub}</div>}
+            </div>
+          ) : ended ? <div className="fx-scroll flex-1 overflow-y-auto rounded-2xl px-2" style={{ touchAction: 'pan-y', background: 'rgba(245,242,236,.97)', color: 'var(--v7-ink)' }}>{footer}</div> : (<>
             <div className="relative" style={{ flexShrink: 0 }}>
               <JudgePop judge={judge} at="ph" />
               {prob.poly2 ? (
@@ -5888,6 +5906,7 @@ function TowerApp({ acct, onExit }) {
   const [endAt, setEndAt] = useState(0);
   const [stunUntil, setStunUntil] = useState(0);
   const [fogUntil, setFogUntil] = useState(0);
+  const [defeat, setDefeat] = useState(null);   // 撃破の演出
   const [, force] = useState(0);
   const lrec = useRef([]);
   const nick = useRef('');
@@ -5901,7 +5920,7 @@ function TowerApp({ acct, onExit }) {
   const enter = () => {
     fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false, absExt: 0, kb: {} };
     gm.reset();
-    setStunUntil(0); setFogUntil(0); setEndAt(Date.now() + F.sec * 1000 + 600);
+    setStunUntil(0); setFogUntil(0); setDefeat(null); setEndAt(Date.now() + F.sec * 1000 + 600);
     v7Wipe(() => setScr('play'), { close: 380, hold: 80, open: 260 });
   };
   // 記録（チェックポイント・最高到達階）を保存。ログインしていればランキングにも
@@ -6016,7 +6035,7 @@ function TowerApp({ acct, onExit }) {
     onQuit={() => finish('quit')}
     opts={{
       pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '塔の挑戦をやめますか？（ここまでの記録は残ります）',
-      ctlRef: ctl, buildProb, mirror: G === 'mirror', hint: G === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : undefined,
+      ctlRef: ctl, buildProb, mirror: G === 'mirror', defeat, hint: G === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : undefined,
       hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
       note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ${weakFam.mul || 2}倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
       overlay: (<>
@@ -6052,8 +6071,10 @@ function TowerApp({ acct, onExit }) {
       }
       if (S.dmg >= F.hpMax) {
         S.clearing = true;
-        setTimeout(() => { FX.band(F.king ? '👑 真・因数の王を倒した！' : `${run.f}階 突破！`, { color: '#d4a017', ms: 1400 }); fxSound(F.big || F.king ? 'levelup' : 'badge'); }, 700);
-        setTimeout(() => v7Wipe(clearFloor, { close: 380, hold: 80, open: 260 }), 1500);
+        const bigD = F.big || F.king;
+        setStunUntil(0); setFogUntil(0);
+        setDefeat({ big: bigD, text: F.king ? '👑 真・因数の王を倒した！' : `${F.boss.name}を倒した！`, sub: `${run.f}階 突破！${run.f % 5 === 0 ? ' ・ 💾 セーブ' : ''}` });
+        setTimeout(() => v7Wipe(clearFloor, { close: 380, hold: 80, open: 260 }), bigD ? 3200 : 2100);
       }
       force(x => x + 1);
     }} />;
