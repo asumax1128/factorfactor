@@ -18,7 +18,7 @@ window.SURI_DATA = {
     { no: 7, from: 31, to: 35, title: '素数と数の根源', synopsis: '（仮）それ以上分けられない数たちの領域。すべての数の根っこにふれる。' },
     { no: 8, from: 36, to: 40, title: '複数の条件と連立', synopsis: '（仮）2つの条件が同時に試される階層。両方を満たす答えはひとつ。' },
     { no: 9, from: 41, to: 45, title: '対称性と変換', synopsis: '（仮）鏡写しの世界。入れかえても変わらないものを探す。' },
-    { no: 10, from: 46, to: 50, title: '数学的秩序の転換点', synopsis: '（仮）これまでの法則が一つにつながる場所。真・因数の王が待つ。' },
+    { no: 10, from: 46, to: 50, title: '数学的秩序の転換点', synopsis: '（仮）これまでの法則が一つにつながる場所。因数の王が待つ。' },
     { no: 11, from: 51, to: 55, title: '新しい数学の世界', synopsis: '（仮）見たことのない数があふれる階層。数の世界はもっと広かった。' },
     { no: 12, from: 56, to: 60, title: '数列とフィボナッチ', synopsis: '（仮）前の2つを足して次が生まれる、ふしぎな並びの階層。' },
     { no: 13, from: 61, to: 65, title: '黄金比と数学の美', synopsis: '（仮）美しい比率で形づくられた階層。フィボナッチの先に黄金比があらわれる。' },
@@ -193,5 +193,19 @@ window.SURI_DATA = {
            king2: 'img/monsters/king2.png',   // 真の姿など、変身後は「ID＋2」 */
   images: {
     dragon: 'img/monsters/dragon.webp',   // 因数ドラゴン（今週のボス・クラス協力レイド・フレンドレイド・数理の塔10階）
+    kraken: 'img/monsters/kraken.webp',   // たすきがけクラーケン
+    golem: 'img/monsters/golem.webp',    // 3乗ゴーレム
+    maou: 'img/monsters/maou.webp',     // 平方の魔王
+    slime: 'img/monsters/slime.webp',    // 共通因数スライム（塔1階の雑魚も兼用）
+    robot: 'img/monsters/robot.webp',    // 展開ロボΩ（塔7階の雑魚も兼用）
+    abs: 'img/monsters/abs.webp',      // 絶対値ビースト
+    balance: 'img/monsters/balance.webp',  // 方程式バランサー
+    mod: 'img/monsters/mod.webp',      // 余りマスター
+    wave: 'img/monsters/wave.webp',     // 周期関数シード
+    chimera: 'img/monsters/chimera.webp',  // 多項式キマイラ
+    prime: 'img/monsters/prime.webp',    // 素数シャーク
+    sim: 'img/monsters/sim.webp',      // 連立パペット
+    mirror: 'img/monsters/mirror.webp',   // 対称式ファントム
+    king: 'img/monsters/king.webp',     // 因数の王
   },
 };

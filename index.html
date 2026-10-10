@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
-<script src="suri-data.js?v=2"></script>
+<script src="suri-data.js?v=3"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -2411,7 +2411,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.5.2</span>
+              <span className="v7-ver">ver.5.3</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4179,7 +4179,7 @@ const BOSSES = [
   { id: 'prime', name: '素数シャーク', icon: '🦈', color: '#0E86C6' },
   { id: 'sim', name: '連立パペット', icon: '🎭', color: '#b5487e' },
   { id: 'mirror', name: '対称式ファントム', icon: '🪞', color: '#6b5bd6' },
-  { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' },
+  { id: 'king', name: '因数の王', icon: '👑', color: '#b8860b' },
 ];
 const TEACHER_BOSS = { id: 'teacher', name: '先生', icon: '👩‍🏫', color: '#d62828' };
 /* ボスの個性（クラス協力レイド）。書いていないものはふつう（部位3つ・弱点タイム・反撃は35秒後から40秒ごと・3秒しびれ）
@@ -5735,10 +5735,10 @@ function WeeklyRaidApp({ acct, onExit }) {
    ・1階＝ボス1体を45秒で倒す。時間切れはボスの猛攻（HP−25）で15秒延長
    ・自分のHPは階をまたいで持ち越し。ミス −5、反撃を受ける −12（大ボス×1.5）。階を突破すると少し回復
    ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。5階ごとにセーブ（次から 5n+1 階から始められる）
-   ・50階に「真・因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
+   ・50階に「因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
 const TOWER_GOAL = 70, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';   // 数理の塔：70階で第一部完（無限回廊はなし）
-const TOWER_KING_F = 50;   // 真・因数の王（第10章のボス。倒すと称号「塔を制覇」）
-const TOWER_KING = { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' };
+const TOWER_KING_F = 50;   // 因数の王（第10章のボス。倒すと称号「塔を制覇」）
+const TOWER_KING = { id: 'king', name: '因数の王', icon: '👑', color: '#b8860b' };
 const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
 const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30, mob: 3 };
 /* 出題レベルの上限：1〜10階はLv1〜3、11〜20階はLv1〜6、21階からは全部 */
@@ -5804,7 +5804,7 @@ function towerFloor(f) {
     return { f, ch, mid, gim: B.gim, final: fin, king: false, big: true, boss: { id: mid, name: B.name, icon: B.icon, img, color: B.color, tag: B.tag }, T, hpMax: fin ? 1800 : Math.round(base * lvK * 1.5), sec: fin ? 60 : TOWER_SEC / 1000, C,
       ctr: !C ? [] : fin ? [10, 22, 34, 46] : [10, 22, 34], weak: dragon ? [[8, 20]] : fin ? [[4, 16], [26, 38]] : [], hpK: fin ? 1.7 : 1.5, revive: fin ? 0.3 : 0, lvMax, startLv };
   }
-  // 50階：真・因数の王（これまでのボスの力を段階的に使う。倒すと称号「塔を制覇」）
+  // 50階：因数の王（これまでのボスの力を段階的に使う。倒すと称号「塔を制覇」）
   const boss = TOWER_KING;
   const T = { weak: {}, counter: {}, tag: '最終決戦型', desc: ['体力が減るごとに「絶対値の力（ミス2倍・正解で+3秒）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」を使う', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じてボーナスダメージ', '弱点タイムが2回、反撃「王の裁き」が4回。半分を切ると真の姿で30%回復'] };
   const C = { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' };
@@ -6402,7 +6402,7 @@ function TowerApp({ acct, onExit }) {
         S.clearing = true;
         const bigD = F.big || F.king;
         setStunUntil(0); setFogUntil(0);
-        setDefeat({ big: bigD, text: F.king ? '👑 真・因数の王を倒した！' : `${F.boss.name}を倒した！`, sub: `${run.f}階 突破！${run.f % 5 === 0 ? ' ・ 💾 セーブ' : ''}` });
+        setDefeat({ big: bigD, text: F.king ? '👑 因数の王を倒した！' : `${F.boss.name}を倒した！`, sub: `${run.f}階 突破！${run.f % 5 === 0 ? ' ・ 💾 セーブ' : ''}` });
         setTimeout(() => v7Wipe(clearFloor, { close: 380, hold: 80, open: 260 }), bigD ? 3200 : 2100);
       }
       force(x => x + 1);
@@ -6457,7 +6457,7 @@ function TowerApp({ acct, onExit }) {
               <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。ボスを倒すと回復 +{TOWER_HP.clear + TOWER_HP.big}（ノーミス+{TOWER_HP.nomiss}）・雑魚は +{TOWER_HP.mob}</li>
               <li>出る問題：1〜10階は<b>Lv.1〜3</b>、11〜20階は<b>Lv.1〜6</b>、21階から<b>全レベル</b></li>
               <li>5の倍数の階は<b>ボス</b>（1体ずつ特別な力をもつ）。ほかの階は<b>雑魚</b>。<b>5階ごとにセーブ</b>（次からその次の階から続きができる）、10階ごとにHP+{TOWER_HP.cp}</li>
-              <li>5階ごとのボスを倒すと<b>法則の断片</b>。<b>50階に真・因数の王</b>（称号「塔を制覇」）、<b>70階で第一部完</b></li>
+              <li>5階ごとのボスを倒すと<b>法則の断片</b>。<b>50階に因数の王</b>（称号「塔を制覇」）、<b>70階で第一部完</b></li>
             </ul>
           </Card>
           <div className="mb-2"><BigBtn color="#1D2A5C" onClick={() => setBook(true)}>📖 数理の書（断片・魔物図鑑・物語の記録）</BigBtn></div>
@@ -6471,7 +6471,7 @@ function TowerApp({ acct, onExit }) {
           {run.last && <div className="v7-panel mb-3 text-center" style={{ borderColor: run.last.king ? '#b8860b' : 'var(--v7-line)' }}>
             {run.last.king ? (<>
               <div style={{ fontSize: 44 }}>👑</div>
-              <div className="font-black" style={{ fontSize: 22, color: '#b8860b', ...bFont }}>真・因数の王を撃破！</div>
+              <div className="font-black" style={{ fontSize: 22, color: '#b8860b', ...bFont }}>因数の王を撃破！</div>
               <div className="text-[12px] font-bold" style={{ color: COLORS.ink }}>称号「塔を制覇」ときせかえ「塔の頂」「天空の塔」を手に入れた。塔はまだ上へ続いている…</div>
             </>) : (<>
               <div className="font-black" style={{ fontSize: 22, color: '#E4572E', ...bFont }}>{run.last.f}階 突破！</div>
@@ -6481,7 +6481,7 @@ function TowerApp({ acct, onExit }) {
           <div className="text-center mb-2">
             <div className="text-[11px] font-black" style={{ color: '#9a6a12' }}>第{Fn.ch}章 {(suriChapters().find(c => c.no === Fn.ch) || {}).title || ''}</div>
             <div className="font-black" style={{ fontSize: 40, color: COLORS.ink, lineHeight: 1.1, ...bFont }}>{run.f}<small className="text-lg">階</small></div>
-            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.final ? '#1D4E89' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.final ? '最上階・第一部の最後のボス' : Fn.king ? '第10章のボス・真・因数の王' : Fn.big ? `ボスの階（法則の断片 ${Fn.ch}/14）` : run.f % 5 === 4 ? '次はボスの階' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
+            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.final ? '#1D4E89' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.final ? '最上階・第一部の最後のボス' : Fn.king ? '第10章のボス・因数の王' : Fn.big ? `ボスの階（法則の断片 ${Fn.ch}/14）` : run.f % 5 === 4 ? '次はボスの階' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
           </div>
           <Card className="mb-3">
             <div className="flex items-center gap-3">
@@ -6973,7 +6973,7 @@ const BADGES = [
   { id: 'wksup100', g: 'wksup', r: 4, icon: '🎺', label: '名サポーター', desc: '応援ポイントを通算100', test: st => ((st.wk || {}).sup || 0) >= 100 },
   { id: 'tw10', g: 'tower', r: 2, icon: '🗼', label: '塔の挑戦者', desc: '数理の塔で10階を突破', test: st => ((st.tower || {}).best || 0) >= 10 },
   { id: 'tw30', g: 'tower', r: 3, icon: '🏯', label: '塔の熟練者', desc: '数理の塔で30階を突破', test: st => ((st.tower || {}).best || 0) >= 30 },
-  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: '数理の塔の50階で真・因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
+  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: '数理の塔の50階で因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
   { id: 'tw70', g: 'tower', r: 5, icon: '📖', label: '数理の書の継承者', desc: '数理の塔の70階を突破して、第一部をクリア', test: st => ((st.tower || {}).best || 0) >= 70 },
   { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '終わりなき探究者', desc: '数理の塔の第一部を3回クリア', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
