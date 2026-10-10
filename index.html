@@ -1060,7 +1060,7 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
-  { ch: 'team', v: 'tower', title: 'ボスの塔', body: 'ひとりで1階ずつボスを倒して登る。1階45秒、HPは次の階に持ちこし。10階ごとにチェックポイント、50階の真のボスを倒すと「塔を制覇」。その先は無限回廊！' },
+  { ch: 'team', v: 'tower', title: 'ボスの塔', body: 'ひとりで1階ずつ登る。5の倍数の階は特別な力をもつボス、ほかは2〜3問で倒せる雑魚。1階45秒、HPは次の階に持ちこし。10階ごとにチェックポイント、50階の真・因数の王を倒すと「塔を制覇」。その先は無限回廊！' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（10問タイムアタック＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
@@ -2406,7 +2406,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">ver.8.2.2</span>
+              <span className="v7-ver">ver.8.3</span>
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -4223,7 +4223,7 @@ function BossPanel({ boss, hp, max, timeLeft, big, hitKey, extra }) {
         <div ref={ref} data-boss="1" className="leading-none select-none" style={{ fontSize: big ? 'clamp(5rem, 14vw, 10rem)' : '2.6rem', filter: dead ? 'grayscale(1) opacity(.5)' : r < 0.3 ? 'drop-shadow(0 0 12px #ff2e2e)' : 'none', transform: dead ? 'rotate(90deg)' : 'none', transition: 'transform 600ms, filter 600ms', animation: dead ? 'none' : `fxPulseGold ${r < 0.3 ? 600 : 1600}ms ease-in-out infinite` }}>{boss.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between flex-wrap gap-x-2">
-            <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}{traitOf(boss.id).tag && <span className="v7-chip align-middle ml-2" style={{ background: boss.color, fontSize: big ? 13 : 9, padding: big ? '3px 10px' : '1px 6px' }}>{traitOf(boss.id).tag}</span>}</span>
+            <span className={`font-black ${big ? 'text-3xl' : 'text-sm truncate'}`} style={{ color: boss.color, ...bFont }}>{boss.name}{r < 0.3 && !dead ? ' 😡' : ''}{(boss.tag || traitOf(boss.id).tag) && <span className="v7-chip align-middle ml-2" style={{ background: boss.color, fontSize: big ? 13 : 9, padding: big ? '3px 10px' : '1px 6px' }}>{boss.tag || traitOf(boss.id).tag}</span>}</span>
             {timeLeft != null && !dead && <span className={`font-black ${big ? 'text-3xl' : 'text-sm'}`} style={{ color: timeLeft < 30000 ? COLORS.coral : COLORS.ink, ...bFont }}>⏱ {Math.floor(Math.max(0, timeLeft) / 60000)}:{String(Math.floor(Math.max(0, timeLeft) / 1000) % 60).padStart(2, '0')}</span>}
           </div>
           <div className="relative rounded-full overflow-hidden mt-1" style={{ height: big ? 34 : 16, background: COLORS.paperDark, border: `2px solid ${COLORS.ink}14` }}>
@@ -4426,7 +4426,9 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
   const seen = useRef(new Set());
   const S = useRef({ lv: 1, streak: 0, combo: 0, dmg: 0, n: 0, pf: 0, best: 0, stunUntil: 0, qs: Date.now(), dp: { a: 0, b: 0, c: 0 } });
   const firstLv = o.pickLevel ? o.pickLevel(1, 'init') : 1;
-  const [prob, setProb] = useState(() => { const b = buildBoard(firstLv, seen.current, 6); return { level: firstLv, ...b }; });
+  // 問題の作り方を外から差しかえられる（塔のボス：ニセのタイル・2つの式など）
+  const mk = lv => o.buildProb ? o.buildProb(lv, seen.current) : { level: lv, ...buildBoard(lv, seen.current, 6) };
+  const [prob, setProb] = useState(() => mk(firstLv));
   const [flash, setFlash] = useState({});
   const [judge, setJudge] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -4445,9 +4447,10 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
     // 救援問題など、外から差しこむ問題があればそれを出す
     const ov = o.nextOverride ? o.nextOverride() : null;
     if (ov) { setProb(ov); setFlash({}); setBusy(false); s.qs = Date.now(); return; }
-    const b = buildBoard(lv, seen.current, 6); const k = o.takeOj ? o.takeOj() : 0; setProb({ level: lv, ...b, tiles: k ? addOjama(b.tiles, b.poly, lv, k) : b.tiles }); setFlash({}); setBusy(false); s.qs = Date.now();
+    const b = mk(lv); const k = o.takeOj ? o.takeOj() : 0; setProb({ ...b, tiles: k ? addOjama(b.tiles, b.poly, lv, k) : b.tiles }); setFlash({}); setBusy(false); s.qs = Date.now();
   };
-  if (o.ctlRef) o.ctlRef.current = { restoreCombo: n => { if (n > s.combo) { s.combo = n; s.best = Math.max(s.best, n); } }, combo: () => s.combo };
+  if (o.ctlRef) o.ctlRef.current = { restoreCombo: n => { if (n > s.combo) { s.combo = n; s.best = Math.max(s.best, n); } }, combo: () => s.combo,
+    rotate: () => { if (BB_DRAG.on) return false; setProb(p => p.tiles.length > 1 ? { ...p, tiles: [p.tiles[p.tiles.length - 1], ...p.tiles.slice(0, -1)] } : p); return true; } };
   // 弱点タイム・部位の選びなおしなどで、出す問題のレベルが変わったら次の問題から合わせる
   // 弱点タイムや「ねらう部位」が変わっても、いま解いている問題はそのまま。次の問題から反映する
   const stunned = () => Date.now() < Math.max(s.stunUntil, o.stunUntil || 0);
@@ -4457,12 +4460,15 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
     if (!t1 || !t2) return;
     const ms = Date.now() - s.qs;
     const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
-    if (polyEqual(multiply(t1.factor, t2.factor), prob.poly)) {
+    const pr = multiply(t1.factor, t2.factor);
+    const side = polyEqual(pr, prob.poly) ? 'A' : prob.poly2 && polyEqual(pr, prob.poly2) ? 'B' : null;
+    if (side) {
+      const lvH = side === 'B' ? (prob.level2 || prob.level) : prob.level;
       const j = getJudgment(ms);
-      const mul = o.dmgMul ? o.dmgMul(prob.level, j.label, s.combo) : 1;
-      const d = Math.round(raidDamage(prob.level, j.label, s.combo) * mul);
+      const mul = o.dmgMul ? o.dmgMul(lvH, j.label, s.combo) : 1;
+      const d = Math.round(raidDamage(lvH, j.label, s.combo) * mul);
       s.combo++; s.best = Math.max(s.best, s.combo); s.dmg += d; s.n++; if (j.label === 'Perfect') s.pf++;
-      s.dp[partOfLv(prob.level)] += Math.round(d * (o.partMul || 1));
+      s.dp[partOfLv(lvH)] += Math.round(d * (o.partMul || 1));
       s.streak++;
       setBusy(true); setFlash({ [id1]: 'correct', [id2]: 'correct' });
       fxMerge(els, j.color);
@@ -4472,7 +4478,7 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
         const tg = rectC(qs('[data-fxtarget]')), bc = rectC(qs('[data-boss]'));
         FX.fly(tg, bc, { color: mul >= 2 ? '#ff2e63' : '#ff7b00', label: d, big: d >= 40, dur: 420, onEnd: () => { if (bc) { FX.burst(bc.x, bc.y, { color: '#ff7b00', n: 16, r: 70 }); FX.text(bc.x, bc.y - 10, `-${d}`, '#ff2e2e', d >= 40 ? 34 : 26); } setHitKey(k => k + 1); sound.play('hit'); } });
       }, 300);
-      onHit && onHit(d, { j: j.label, lv: prob.level, pid: patternOf(prob.level, prob.factors), ms, combo: s.combo, pf: s.pf, best: s.best, total: s.dmg, n: s.n, dp: { ...s.dp } });
+      onHit && onHit(d, { j: j.label, lv: lvH, side, pid: patternOf(lvH, side === 'B' ? prob.factors2 : prob.factors), ms, combo: s.combo, pf: s.pf, best: s.best, total: s.dmg, n: s.n, dp: { ...s.dp } });
       let lv = prob.level;
       if (o.pickLevel) { lv = o.pickLevel(lv, s.streak >= 2 ? 'up' : 'ok'); if (s.streak >= 2) s.streak = 0; }
       else if (s.streak >= 2 && lv < 9) { lv++; s.streak = 0; }
@@ -4518,10 +4524,19 @@ function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, s
           {ended ? <div className="fx-scroll flex-1 overflow-y-auto rounded-2xl px-2" style={{ touchAction: 'pan-y', background: 'rgba(245,242,236,.97)', color: 'var(--v7-ink)' }}>{footer}</div> : (<>
             <div className="relative" style={{ flexShrink: 0 }}>
               <JudgePop judge={judge} at="ph" />
-              <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} spurt={o.hot ? o.hot(prob.level) : false} />
+              {prob.poly2 ? (
+                <div className="v7-target" data-fxtarget="1" style={{ padding: '6px 10px' }}>
+                  <div className="text-[11px] font-bold mb-0.5" style={{ color: '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{(o.note && o.note(prob.level)) || 'どちらの式から解いてもOK'}{isStun ? ' ・ しびれ中…' : ''}</div>
+                  {[['A', prob.poly, prob.level], ['B', prob.poly2, prob.level2 || prob.level]].map(([k, py, lv]) => (
+                    <div key={k} data-poly={k === 'A' ? JSON.stringify(py) : undefined} data-poly2={k === 'B' ? JSON.stringify(py) : undefined} className="flex items-center gap-2" style={{ borderTop: k === 'B' ? '1px dashed #D9DEEA' : 'none' }}>
+                      <span className="v7-chip" style={{ background: k === 'A' ? '#E4572E' : '#2F6FD6' }}>{k === 'A' ? '式Ａ' : '式Ｂ'}</span>
+                      <span className="font-black" style={{ color: '#1D2633', fontSize: 'clamp(1.05rem, 4.6vmin, 1.9rem)', ...bFont }}><MathText text={formatPoly(py)} /></span>
+                    </div>))}
+                </div>
+              ) : <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={isStun ? 'しびれ中…' : `Lv.${prob.level}`} gaugeKey={s.qs} gaugeMs={QUESTION_TIMEOUT_MS} note={o.note ? o.note(prob.level) : null} spurt={o.hot ? o.hot(prob.level) : false} />}
             </div>
-            <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} />
-            <p className="v7-hint" style={{ flexShrink: 0 }}>2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ</p>
+            <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || isStun} dim={isStun} flash={flash} mirror={o.mirror} />
+            <p className="v7-hint" style={{ flexShrink: 0 }}>{o.hint || '2問続けて正解でレベルアップ（ダメージ増）・まちがえると少しひるむ'}</p>
           </>)}
         </div>
       </div>
@@ -5662,26 +5677,94 @@ function WeeklyRaidApp({ acct, onExit }) {
 const TOWER_GOAL = 50, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';
 const TOWER_KING = { id: 'king', name: '真・因数の王', icon: '👑', color: '#b8860b' };
 const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
-const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30 };
+const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30, mob: 3 };
 /* 出題レベルの上限：1〜10階はLv1〜3、11〜20階はLv1〜6、21階からは全部 */
 const towerLvMax = f => f <= 10 ? 3 : f <= 20 ? 6 : 9;
+/* 1〜49階の雑魚（5の倍数以外）：名前とアイコンだけ。特殊能力なし、2〜3問で倒せる */
+const TOWER_MOBS = {
+  1: ['共通因数スライム', '🫠'], 2: ['公倍数バット', '🦇'], 3: ['分数モグラ', '🦫'], 4: ['マイナスコーピオン', '🦂'], 6: ['素数コウモリ', '🦇'], 7: ['展開ロボΩ', '🤖'], 8: ['根号スパイダー', '🕷️'], 9: ['余りスライム', '🟢'],
+  11: ['係数ゴーレム', '🧱'], 12: ['逆数ミミック', '📦'], 13: ['不等号ナイト', '⚔️'], 14: ['二項係数ビー', '🐝'], 16: ['放物線モス', '🦋'], 17: ['絶対値ウルフ', '🐺'], 18: ['三乗ゴブリン', '👺'], 19: ['判別式バット', '🦇'],
+  21: ['角度バジリスク', '🐍'], 22: ['円周率スライム', '🌀'], 23: ['接線タートル', '🐢'], 24: ['正弦バード', '🐦'], 26: ['対数バット', '🦇'], 27: ['指数キツネ', '🦊'], 28: ['漸化式ラット', '🐀'], 29: ['変域ハーピー', '🪽'],
+  31: ['極大スライム', '🔵'], 32: ['極小スライム', '🔴'], 33: ['二項係数ビー', '🐝'], 34: ['ベクトルゴーレム', '🗿'], 36: ['行列ゴーレム', '🧊'], 37: ['微分カマキリ', '🦗'], 38: ['積分スライム', '🫧'], 39: ['極限ドラゴン', '🐲'],
+  41: ['無理数ゴースト', '👻'], 42: ['余弦クラゲ', '🪼'], 43: ['複素数フクロウ', '🦉'], 44: ['接近ゴーレム', '🪨'], 46: ['数列フェニックス', '🔥'], 47: ['円錐ハンター', '🎯'], 48: ['確率ピエロ', '🃏'], 49: ['虚数ゴースト', '👻'],
+};
+/* 5の倍数の階のボス（gim：しかけの種類） */
+const TOWER_BOSSES = {
+  5: { gim: 'abs', name: '絶対値ビースト', icon: '🐾', color: '#C2410C', tag: '境界型', desc: ['まちがえたときのダメージが2倍（−10）', '正解すると「−」が「＋」に変わり、制限時間が3秒のびる（最大+30秒）'] },
+  10: { gim: 'dragon', name: '因数ドラゴン', icon: '🐉', color: '#2a9d8f', tag: '攻撃型', desc: ['反撃「炎のブレス」を予告してから撃ってくる（しびれ＋おじゃまタイル）', '予告中に正解すればガードできる'] },
+  15: { gim: 'balance', name: '方程式バランサー', icon: '⚖️', color: '#457b9d', tag: '均衡型', desc: ['同じレベルの問題を2問続けて正解すると、ふつうのダメージ', 'それ以外の正解はダメージ半分（0にはならない）'] },
+  20: { gim: 'mod', name: '余りマスター', icon: '🧙‍♂️', color: '#7b2cbf', tag: '剰余型', desc: ['6枚のタイルのうち1枚は、答えに似せたニセの因数（あまりがずれている）', 'ニセのタイルでは正解の組は作れない（正解の組は必ず1つある）'] },
+  25: { gim: 'wave', name: '周期関数シード', icon: '🌱', color: '#3FA55F', tag: '波動型', desc: ['5秒ごとにタイルの並びが1つずつずれる', 'ドラッグしている間はずれない'] },
+  30: { gim: 'chimera', name: '多項式キマイラ', icon: '🦁', color: '#B7791F', tag: '合体型', desc: ['「二次式の頭」と「三次式の頭」が12秒ごとに入れかわる', '二次の頭のときはたすきがけ・2乗の差（Lv4〜6・8・9）が1.5倍、三次の頭のときは3乗の和・差（Lv7）が2倍', '弱点以外の正解もふつうに効く'] },
+  35: { gim: 'prime', name: '素数シャーク', icon: '🦈', color: '#0E86C6', tag: '孤高型', desc: ['奇数コンボ目の正解はダメージ2倍、偶数コンボ目は半分', 'コンボが切れたら1コンボ目（2倍）から'] },
+  40: { gim: 'sim', name: '連立パペット', icon: '🎭', color: '#b5487e', tag: '連携型', desc: ['式Ａと式Ｂが同時に出る。どちらから解いてもOK', 'ＡとＢを交互に解くと連携ゲージがたまり、4つで大ダメージ'] },
+  45: { gim: 'mirror', name: '対称式ファントム', icon: '🪞', color: '#6b5bd6', tag: '鏡映型', desc: ['ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）', '選んでいるタイルは金色で光る'] },
+};
+const KING_PARTS = [{ id: 'a', name: '王冠', lv: [1, 3], seal: '絶対値の力（ミス2倍）を封じた' }, { id: 'b', name: '杖', lv: [4, 6], seal: '素数の力の「半分」を封じた' }, { id: 'c', name: 'マント', lv: [7, 9], seal: '周期の力（タイルのずれ）を封じた' }];
+const mobHp = f => { const lv = Math.max(1, Math.min(towerLvMax(f), 7, 1 + Math.floor((f - 1) / 6))); return Math.round((LEVEL_POINTS[lv] || 10) * 1.15 * 2.5); };
 function towerFloor(f) {
   const king = f === TOWER_GOAL, endless = f > TOWER_GOAL, big = !king && f % 5 === 0;
-  const boss = king ? TOWER_KING : BOSSES.find(b => b.id === (endless ? TOWER_ORDER[hashSeed('tw:' + f) % 6] : TOWER_ORDER[(f - 1) % 6]));
-  const T = king ? { weak: {}, counter: {} } : traitOf(boss.id);
+  const lvMax = towerLvMax(f), startLv = Math.max(1, Math.min(lvMax, 7, 1 + Math.floor((Math.min(f, 49) - 1) / 6)));
   const base = 140 + 14 * (f - 1);
   const lvK = f <= 10 ? 0.7 : f <= 20 ? 0.85 : 1;   // 出せるレベルが少ない階は体力も少なめ
-  const hpMax = king ? 1600 : Math.round(base * lvK * (T.hpK || 1) * (big ? 1.5 : 1) * (endless ? 1 + (f - TOWER_GOAL) * 0.01 : 1));
+  if (!endless && !king && !big) {
+    // 雑魚：特殊能力なし（反撃・弱点・変身なし）
+    const [name, icon] = TOWER_MOBS[f] || ['ザコ', '👾'];
+    return { f, mob: true, king: false, endless: false, big: false, boss: { id: 'mob', name, icon, color: '#6F7785', tag: '雑魚' }, T: { tag: '雑魚', weak: false, counter: null, desc: ['特別な力はない。2〜3問正解で倒せる'] }, hpMax: mobHp(f), sec: TOWER_SEC / 1000, C: null, ctr: [], weak: [], hpK: 1, revive: 0, lvMax, startLv };
+  }
+  if (!endless && !king) {
+    const B = TOWER_BOSSES[f];
+    const dragon = B.gim === 'dragon';
+    const T = dragon ? { ...traitOf('dragon'), tag: B.tag, desc: B.desc } : { tag: B.tag, desc: B.desc, weak: false, counter: null };
+    const C = dragon ? ctrOf('dragon') : null;
+    return { f, gim: B.gim, king: false, endless: false, big: true, boss: { id: 'tw_' + B.gim, name: B.name, icon: B.icon, color: B.color, tag: B.tag }, T, hpMax: Math.round(base * lvK * 1.5), sec: TOWER_SEC / 1000, C, ctr: C ? [10, 22, 34] : [], weak: dragon ? [[8, 20]] : [], hpK: 1.5, revive: 0, lvMax, startLv };
+  }
+  // 50階：真・因数の王（これまでのボスの力を段階的に使う）／51階から：無限回廊（いままでどおり）
+  const boss = king ? TOWER_KING : BOSSES.find(b => b.id === TOWER_ORDER[hashSeed('tw:' + f) % 6]);
+  const T = king ? { weak: {}, counter: {}, tag: '最終決戦型', desc: ['体力が減るごとに「絶対値の力（ミス2倍・正解で+3秒）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」を使う', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じてボーナスダメージ', '弱点タイムが2回、反撃「王の裁き」が4回。半分を切ると真の姿で30%回復'] } : traitOf(boss.id);
+  const hpMax = king ? 1600 : Math.round(base * (T.hpK || 1) * (big ? 1.5 : 1) * (1 + (f - TOWER_GOAL) * 0.01));
   const sec = king ? 60 : TOWER_SEC / 1000;
   const C = king ? { warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' } : T.counter === null ? null : ctrOf(boss.id);
   const ctr = !C ? [] : king ? [10, 22, 34, 46] : big ? [10, 22, 34] : [14, 30];
   const weak = T.weak === false ? [] : king ? [[4, 16], [26, 38]] : boss.id === 'robot' ? [[5, 17], [24, 36]] : boss.id === 'kraken' ? [[6, 24]] : [[8, 20]];
   const name = king ? boss.name : `${big ? '大ボス・' : ''}${boss.name}`;
-  return { f, king, endless, big, boss: { ...boss, name }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), lvMax: towerLvMax(f), startLv: Math.max(1, Math.min(towerLvMax(f), 7, 1 + Math.floor((Math.min(f, 49) - 1) / 6))) };
+  return { f, gim: king ? 'king' : null, king, endless, big, boss: { ...boss, name, tag: king ? '最終決戦型' : undefined }, T, hpMax, sec, C, ctr, weak, hpK: king ? 1.7 : big ? 1.5 : 1, revive: king ? 0.3 : (T.revive || 0), lvMax, startLv };
 }
 const towerOf = st => (st && st.tower) || {};
 const towerCp = tw => Math.floor(Math.min(TOWER_GOAL, tw.best || 0) / 10) * 10;   // チェックポイント（10・20・…・50）
 function loadTowerGuest() { const g = loadGuest(); return g.tower || {}; }
+/* 余りマスター：答えの因数の定数を少しずらしたニセのタイルを1枚まぜる（正解の組は1つのまま） */
+function towerModProb(lv, seen) {
+  for (let tries = 0; tries < 12; tries++) {
+    const b = buildBoard(lv, seen, 6), t = b.tiles;
+    let pi = -1, pj = -1;
+    for (let i = 0; i < t.length && pi < 0; i++) for (let j = i + 1; j < t.length; j++) if (polyEqual(multiply(t[i].factor, t[j].factor), b.poly)) { pi = i; pj = j; break; }
+    if (pi < 0) continue;
+    const src = [pi, pj].find(i => t[i].factor.type === 'linear');
+    const slot = t.findIndex((x, i) => i !== pi && i !== pj);
+    if (src == null || slot < 0) continue;
+    const f0 = t[src].factor, d = [1, -1, 2, -2][Math.floor(Math.random() * 4)];
+    const fake = { ...f0, b: (f0.b || 0) + d };
+    if (!fake.b || t.some(x => factorKey(x.factor) === factorKey(fake))) continue;
+    const tiles = t.map((x, i) => i === slot ? { ...x, factor: fake, fake: true } : x);
+    let n = 0; for (let i = 0; i < tiles.length; i++) for (let j = i + 1; j < tiles.length; j++) if (polyEqual(multiply(tiles[i].factor, tiles[j].factor), b.poly)) n++;
+    if (n === 1) return { level: lv, ...b, tiles };
+  }
+  return { level: lv, ...buildBoard(lv, seen, 6) };
+}
+/* 連立パペット：式Ａ・式Ｂ（それぞれ正解の組が1つ）を3枚ずつ、合わせて6枚 */
+function towerSimProb(lv, seen) {
+  for (let tries = 0; tries < 12; tries++) {
+    const A = buildBoard(lv, seen, 3), B = buildBoard(lv, seen, 3);
+    if (polyEqual(A.poly, B.poly)) continue;
+    const tiles = [...A.tiles, ...B.tiles];
+    for (let i = tiles.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [tiles[i], tiles[j]] = [tiles[j], tiles[i]]; }
+    let na = 0, nb = 0;
+    for (let i = 0; i < tiles.length; i++) for (let j = i + 1; j < tiles.length; j++) { const pr = multiply(tiles[i].factor, tiles[j].factor); if (polyEqual(pr, A.poly)) na++; if (polyEqual(pr, B.poly)) nb++; }
+    if (na === 1 && nb === 1) return { level: lv, poly: A.poly, factors: A.factors, poly2: B.poly, factors2: B.factors, level2: lv, tiles };
+  }
+  return { level: lv, ...buildBoard(lv, seen, 6) };
+}
 function TowerApp({ acct, onExit }) {
   const fb = useFbReady();
   const meKey = isReal(acct) ? acct.key : null;
@@ -5711,7 +5794,7 @@ function TowerApp({ acct, onExit }) {
 
   const begin = start => { if (window.__fxfTowerFrom) start = window.__fxfTowerFrom; lrec.current = []; setRes(null); setRun({ start, f: start, hp: 100, cleared: 0, exp: 0, log: [], last: null }); setScr('floor'); };
   const enter = () => {
-    fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false };
+    fl.current = { dmg: 0, t0: Date.now() + 600, fired: {}, lastOk: 0, oj: 0, miss: 0, revived: false, clearing: false, absExt: 0, balLv: null, simLast: null, simG: 0, kb: {}, nextWave: 5 };
     setStunUntil(0); setFogUntil(0); setEndAt(Date.now() + F.sec * 1000 + 600);
     v7Wipe(() => setScr('play'), { close: 380, hold: 80, open: 260 });
   };
@@ -5739,9 +5822,9 @@ function TowerApp({ acct, onExit }) {
     const run = runRef.current; if (!run || run.hp <= 0) return;
     const S = fl.current, f = run.f, info = towerFloor(f);
     const nomiss = S.miss === 0;
-    const heal = TOWER_HP.clear + (nomiss ? TOWER_HP.nomiss : 0) + (info.big ? TOWER_HP.big : 0) + (f % 10 === 0 ? TOWER_HP.cp : 0);
+    const heal = info.mob ? TOWER_HP.mob + (nomiss ? 2 : 0) : TOWER_HP.clear + (nomiss ? TOWER_HP.nomiss : 0) + (info.big ? TOWER_HP.big : 0) + (f % 10 === 0 ? TOWER_HP.cp : 0);
     const t = Math.round((Date.now() - S.t0) / 1000);
-    const gain = info.king ? 100 : info.big ? 8 : 4;
+    const gain = info.king ? 100 : info.big ? 8 : info.mob ? 3 : 4;
     const next = { ...run, f: f + 1, hp: Math.min(100, run.hp + heal), cleared: run.cleared + 1, exp: run.exp + gain, log: [...run.log, { f, t, nomiss }], last: { f, t, heal, nomiss, big: info.big, cp: f % 10 === 0, king: info.king } };
     setRun(next);
     saveProgress(f, info.king);
@@ -5763,7 +5846,18 @@ function TowerApp({ acct, onExit }) {
   // 弱点の型も出題レベルの上限の中から（上限の外の型が決まっているボスは、出せる型からえらぶ）
   const famsOk = F ? RAID_FAMS.filter(x => x.lv.some(l => l <= F.lvMax)) : RAID_FAMS;
   const fixedFam = F && F.T.weakFam ? famsOk.find(x => x.id === F.T.weakFam) : null;
-  const weakFam = weakWin ? (fixedFam || famsOk[hashSeed(`tw${run.f}:${weakWin[0]}`) % famsOk.length]) : null;
+  // 塔のボスのしかけ
+  const G = F ? F.gim : null, FS = fl.current;
+  const kr = F ? hpBoss / F.hpMax : 1;
+  const kPh = G === 'king' ? (kr > 0.66 ? 1 : kr > 0.33 ? 2 : 3) : 0;   // 王：絶対値 → 素数 → 周期
+  const kb = FS.kb || {};
+  const absOn = G === 'abs' || (kPh === 1 && !kb.a);
+  const primeOn = G === 'prime' || kPh === 2, primeHalf = G === 'prime' || (kPh === 2 && !kb.b);
+  const waveOn = G === 'wave' || (kPh === 3 && !kb.c);
+  const head = G === 'chimera' && scr === 'play' ? Math.floor(Math.max(0, sec) / 12) % 2 : null;
+  const chFam = head == null ? null : head === 0 ? { id: 'q2', name: '二次式の頭', lv: [4, 5, 6, 8, 9], mul: 1.5 } : { id: 'q3', name: '三次式の頭', lv: [7], mul: 2 };
+  const ctl = useRef(null);
+  const weakFam = chFam || (weakWin ? (fixedFam || famsOk[hashSeed(`tw${run.f}:${weakWin[0]}`) % famsOk.length]) : null);
   const C = F && F.C;
   const ctrT = scr === 'play' && C ? F.ctr.find(t => sec >= t - C.warn / 1000 && sec < t + 1) : null;
   const ctrWarn = ctrT != null && sec < ctrT;
@@ -5771,7 +5865,10 @@ function TowerApp({ acct, onExit }) {
     if (scr !== 'play' || !run || run.hp <= 0) return;
     const S = fl.current;
     if (S.clearing || S.dead) return;
-    if (weakWin && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1300 }); }
+    if (chFam && !S.fired['h' + Math.floor(sec / 12)]) { S.fired['h' + Math.floor(sec / 12)] = 1; FX.band(`🦁 ${chFam.name}があらわれた！`, { color: '#B7791F', sub: `${chFam.id === 'q2' ? 'たすきがけ・2乗の差' : '3乗の和・差'}が ×${chFam.mul}`, ms: 1300 }); }
+    if (kPh && !S.fired['kp' + kPh]) { S.fired['kp' + kPh] = 1; const t = { 1: ['🐾 絶対値の力', 'ミス2倍・正解で+3秒'], 2: ['🦈 素数の力', '奇数コンボ2倍・偶数コンボ半分'], 3: ['🌱 周期の力', 'タイルの並びがずれていく'] }[kPh]; FX.band(`👑 王が${t[0]}を使った！`, { color: '#b8860b', sub: t[1], ms: 1500 }); }
+    if (waveOn && sec >= (S.nextWave || 5)) { if (ctl.current && ctl.current.rotate()) S.nextWave = sec + (G === 'king' ? 7 : 5); }
+    if (weakWin && !chFam && !S.fired['w' + weakWin[0]]) { S.fired['w' + weakWin[0]] = 1; FX.band(`🎯 弱点：${weakFam.name}`, { color: '#ff7b00', sub: `${weakWin[1] - weakWin[0]}秒間 ダメージ2倍！`, ms: 1300 }); }
     if (ctrT != null && ctrWarn && !S.fired['c' + ctrT]) { S.fired['c' + ctrT] = 1; fxSound('roar'); }
     if (ctrT != null && !ctrWarn && !S.fired['s' + ctrT]) {
       S.fired['s' + ctrT] = 1;
@@ -5808,14 +5905,32 @@ function TowerApp({ acct, onExit }) {
   }, [weakFam && weakFam.id, run && run.f]);
   // ボスの得意・不得意（lvMul）。レベルの上限がある階では「ダメージ半分」は使わない
   const lvMulT = lv => { const m = (F && F.T.lvMul || {})[lv] || 1; return m < 1 && F && F.lvMax < 9 ? 1 : m; };
-  const dmgMul = useCallback(lv => (weakFam && weakFam.lv.includes(lv) ? 2 : 1) * lvMulT(lv), [weakFam && weakFam.id, run && run.f]);
+  const dmgMul = (lv, j, combo) => {
+    let m = (weakFam && weakFam.lv.includes(lv) ? (weakFam.mul || 2) : 1) * lvMulT(lv);
+    if (G === 'balance') m *= FS.balLv === lv ? 1 : 0.5;
+    if (primeOn) m *= ((combo || 0) + 1) % 2 === 1 ? 2 : (primeHalf ? 0.5 : 1);
+    return m;
+  };
+  const buildProb = G === 'mod' ? towerModProb : G === 'sim' ? towerSimProb : null;
+  const nextC = ctl.current ? ctl.current.combo() + 1 : 1;
+  const gimLine = G === 'abs' ? `🐾 ミス −${TOWER_HP.miss * 2}（2倍）・正解で −→＋ 時間+3秒（あと${Math.max(0, 30 - FS.absExt / 1000)}秒ぶん）`
+    : G === 'balance' ? (FS.balLv ? `⚖ 次も Lv.${FS.balLv} を正解 → ふつうのダメージ（ちがうLvは半分）` : '⚖ まず1問正解（半分）→ 同じLvをもう1問で全ダメージ')
+    : G === 'mod' ? '🧙 1枚はニセの因数（あまりがずれている）。だまされるな'
+    : G === 'wave' ? '🌱 5秒ごとにタイルがずれる（ドラッグ中は止まる）'
+    : G === 'prime' ? `🦈 次の正解は ${nextC}コンボ目 → ${nextC % 2 ? '×2' : '×0.5'}（${nextC % 2 ? '奇数' : '偶数'}）`
+    : G === 'sim' ? `🎭 連携ゲージ ${'●'.repeat(FS.simG)}${'○'.repeat(4 - FS.simG)}（ＡとＢを交互に解く）`
+    : G === 'mirror' ? '🪞 鏡写しのタイルが引き寄せられる。選んだタイルをよく見て'
+    : G === 'king' ? `👑 ${kPh === 1 ? (kb.a ? '絶対値の力（封印中）' : '絶対値の力：ミス2倍・正解で+3秒') : kPh === 2 ? `素数の力：次は${nextC}コンボ目 ${nextC % 2 ? '×2' : (kb.b ? '×1' : '×0.5')}` : (kb.c ? '周期の力（封印中）' : '周期の力：タイルがずれる')}`
+    : null;
+  const kingParts = G === 'king' ? KING_PARTS.map(pt => ({ ...pt, broken: !!kb[pt.id] })) : null;
 
   if (scr === 'play' && run && F) return <RaidPlay key={'tw' + run.f} boss={F.boss} hp={hpBoss} max={F.hpMax} endAt={endAt} ended={false} title={`🗼 ${run.f}階${F.endless ? '・無限回廊' : ''}`}
     onQuit={() => finish('quit')}
     opts={{
       pickLevel, dmgMul, stunUntil, takeOj, quitMsg: '塔の挑戦をやめますか？（ここまでの記録は残ります）',
+      ctlRef: ctl, buildProb, mirror: G === 'mirror', hint: G === 'sim' ? '式Ａ・式Ｂ、どちらの組を作ってもOK（交互に解くと連携ゲージ）' : F.mob ? '雑魚：2〜3問正解で倒せる' : undefined,
       hot: lv => !!(weakFam && weakFam.lv.includes(lv)),
-      note: lv => weakFam ? (weakFam.lv.includes(lv) ? '🎯 弱点の問題！ 正解でダメージ2倍' : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
+      note: lv => weakFam ? (weakFam.lv.includes(lv) ? `🎯 弱点の問題！ 正解でダメージ${weakFam.mul || 2}倍` : `次の問題から弱点「${weakFam.name}」が出るよ`) : (lvMulT(lv) < 1 ? '🪨 かたい！ この問題はダメージ半分' : lvMulT(lv) > 1 ? '✨ ボスの苦手な問題！ ダメージアップ' : null),
       overlay: (<>
         {ctrWarn && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 37, boxShadow: 'inset 0 0 60px 20px rgba(255,30,30,.6)', animation: 'fxVignette 500ms infinite' }} />}
         {Date.now() < fogUntil && <div className="pointer-events-none absolute inset-0" style={{ zIndex: 45, background: 'radial-gradient(circle at 30% 60%, rgba(26,16,51,.92), rgba(26,16,51,.7) 45%, rgba(26,16,51,.88))' }} />}
@@ -5825,16 +5940,32 @@ function TowerApp({ acct, onExit }) {
       topExtra: (<div className="py-0.5">
         <div className="flex items-center gap-2"><span className="text-[11px] font-black shrink-0" style={{ color: COLORS.ink, ...bFont }}>あなた</span><div className="flex-1"><HpBar v7 hp={run.hp} height={16} /></div></div>
         <div className="text-center font-black text-[12px]" style={{ color: ctrWarn ? '#b3402c' : weakFam ? '#C2410C' : COLORS.inkSoft, ...bFont }}>
-          {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : weakFam ? `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒` : `ミス −${TOWER_HP.miss} ・ 反撃 −${Math.round(TOWER_HP.ctr * F.hpK)} ・ 時間切れ −${TOWER_HP.timeout}`}
+          {ctrWarn ? `⚠ ${C.name.replace(/^\S+\s/, '')}まで${Math.max(1, Math.ceil(ctrT - sec))}秒！ 正解して身を守れ` : chFam ? `🦁 ${chFam.name}（あと${Math.ceil(12 - sec % 12)}秒）` : weakFam ? `🎯 弱点タイム「${weakFam.name}」あと${Math.ceil(weakWin[1] - sec)}秒` : gimLine || `ミス −${TOWER_HP.miss}${C ? ` ・ 反撃 −${Math.round(TOWER_HP.ctr * F.hpK)}` : ''} ・ 時間切れ −${TOWER_HP.timeout}`}
         </div>
+        {gimLine && (ctrWarn || weakFam) && <div className="text-center font-black text-[11px]" style={{ color: COLORS.inkSoft, ...bFont }}>{gimLine}</div>}
+        {kingParts && <div className="flex gap-1 mt-0.5">{kingParts.map(pt => <span key={pt.id} className="flex-1 text-center rounded-md text-[10px] font-black py-0.5" style={{ background: pt.broken ? '#E8E2D6' : '#FFF4D6', color: pt.broken ? '#9aa' : '#9a6a12', textDecoration: pt.broken ? 'line-through' : 'none' }}>{pt.name} Lv{pt.lv[0]}〜{pt.lv[1]}{pt.broken ? ' 破壊' : ''}</span>)}</div>}
       </div>),
     }}
     onHit={(d, info2) => {
       lrec.current.push({ lv: info2.lv, pid: info2.pid, ok: !info2.miss, ms: info2.ms, j: info2.j });
       const S = fl.current;
       if (S.clearing || S.dead) return;
-      if (info2.miss) { S.miss++; damageMe(TOWER_HP.miss); return; }
+      if (info2.miss) { S.miss++; S.balLv = null; damageMe(TOWER_HP.miss * (absOn ? 2 : 1)); return; }
       S.dmg += d; S.lastOk = Date.now();
+      // 絶対値：正解で −→＋、時間+3秒（1階で最大+30秒）
+      if (absOn && S.absExt < 30000) { S.absExt += 3000; setEndAt(e => e + 3000); const bc = rectC(qs('[data-boss]')); if (bc) FX.text(bc.x, bc.y + 40, '−→＋ ⏱+3秒', '#7FD8FF', 22); }
+      // 方程式バランサー：同じレベル2問目で全ダメージ（2問ひと組）
+      if (G === 'balance') S.balLv = S.balLv === info2.lv ? null : info2.lv;
+      // 連立パペット：Ａ・Ｂを交互に解くと連携ゲージ、4つで大ダメージ
+      if (G === 'sim' && info2.side) {
+        if (S.simLast && S.simLast !== info2.side) S.simG++;
+        S.simLast = info2.side;
+        if (S.simG >= 4) { S.simG = 0; const bonus = Math.round(F.hpMax * 0.15); S.dmg += bonus; FX.band('🎭 連立方程式、解けた！', { color: '#b5487e', sub: `連携ボーナス ${bonus} ダメージ`, ms: 1400 }); FX.flash('#ffd54a', 0.35, 250); }
+      }
+      // 王の部位：こわすと力を封じてボーナス
+      if (G === 'king' && info2.dp) KING_PARTS.forEach(pt => {
+        if (!S.kb[pt.id] && (info2.dp[pt.id] || 0) >= F.hpMax * 0.12) { S.kb[pt.id] = true; S.dmg += Math.round(F.hpMax * 0.06); setTimeout(() => { FX.band(`💥 ${pt.name}を破壊！`, { color: '#b8860b', sub: pt.seal, ms: 1500 }); fxSound('shatter'); }, 500); }
+      });
       // 変身（魔王・王）：体力が半分を切ったら一度だけ回復
       if (F.revive && !S.revived && S.dmg >= F.hpMax * 0.5) {
         S.revived = true; S.dmg -= Math.round(F.hpMax * F.revive);
@@ -5866,7 +5997,7 @@ function TowerApp({ acct, onExit }) {
           <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
           <div className="text-center mb-3">
             <div className="v7-name" style={{ fontSize: 24 }}>🗼 ボスの塔</div>
-            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>1階ごとにボス1体（{TOWER_SEC / 1000}秒）。HPを持ちこして、どこまで登れるか</div>
+            <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>1階ごとに敵1体（{TOWER_SEC / 1000}秒）。HPを持ちこして、どこまで登れるか</div>
           </div>
           <div className="v7-panel mb-3">
             <div className="flex items-end justify-between mb-1">
@@ -5883,9 +6014,9 @@ function TowerApp({ acct, onExit }) {
             </div>
             <ul className="text-[11px] font-bold list-disc pl-4 mt-2" style={{ color: COLORS.ink }}>
               <li>ボスを{TOWER_SEC / 1000}秒で倒せないと<b>猛攻（HP−{TOWER_HP.timeout}）</b>を受けて15秒延長。HPが0で終わり</li>
-              <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。突破で回復 +{TOWER_HP.clear}（ノーミス+{TOWER_HP.nomiss}・大ボス+{TOWER_HP.big}）</li>
+              <li>ミス −{TOWER_HP.miss}・反撃 −{TOWER_HP.ctr}（予告中に正解でガード）。ボスを倒すと回復 +{TOWER_HP.clear + TOWER_HP.big}（ノーミス+{TOWER_HP.nomiss}）・雑魚は +{TOWER_HP.mob}</li>
               <li>出る問題：1〜10階は<b>Lv.1〜3</b>、11〜20階は<b>Lv.1〜6</b>、21階から<b>全レベル</b></li>
-              <li>5の倍数の階は<b>大ボス</b>。10階ごとに<b>チェックポイント</b>（HP+{TOWER_HP.cp}、次からそこから始められる）</li>
+              <li>5の倍数の階は<b>ボス</b>（1体ずつ特別な力をもつ）。ほかの階は2〜3問で倒せる<b>雑魚</b>。10階ごとに<b>チェックポイント</b>（HP+{TOWER_HP.cp}、次からそこから始められる）</li>
               <li><b>50階に真のボス</b>。倒すと称号「塔を制覇」ときせかえ。51階からは<b>無限回廊</b></li>
             </ul>
           </Card>
@@ -5908,7 +6039,7 @@ function TowerApp({ acct, onExit }) {
           </div>}
           <div className="text-center mb-2">
             <div className="font-black" style={{ fontSize: 40, color: COLORS.ink, lineHeight: 1.1, ...bFont }}>{run.f}<small className="text-lg">階</small></div>
-            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.endless ? '#7b2cbf' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.king ? '最上階・真のボス' : Fn.endless ? '♾ 無限回廊' : Fn.big ? '大ボスの階' : run.f % 10 === 9 ? '次はチェックポイントの手前' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
+            <div className="text-[11px] font-black" style={{ color: Fn.king ? '#b8860b' : Fn.endless ? '#7b2cbf' : Fn.big ? '#b3402c' : COLORS.inkSoft }}>{Fn.king ? '最上階・真のボス' : Fn.endless ? '♾ 無限回廊' : Fn.big ? 'ボスの階' : Fn.mob ? '雑魚の階' : run.f % 10 === 9 ? '次はチェックポイントの手前' : `${TOWER_GOAL}階まであと${TOWER_GOAL - run.f + 1}階`}</div>
           </div>
           <Card className="mb-3">
             <div className="flex items-center gap-3">
@@ -5919,9 +6050,8 @@ function TowerApp({ acct, onExit }) {
               </div>
             </div>
             <ul className="text-[11px] font-bold list-disc pl-4 mt-1" style={{ color: COLORS.ink }}>
-              {Fn.king ? [<li key="a">弱点タイムが2回、反撃「王の裁き」が4回（HP−{Math.round(TOWER_HP.ctr * Fn.hpK)}・墨・おじゃま）</li>, <li key="b">体力が半分を切ると真の姿になって30%回復</li>]
-                : (Fn.T.desc || []).slice(0, 2).map(d => <li key={d}>{d}</li>)}
-              {Fn.big && <li>大ボス：体力1.5倍・反撃が3回・反撃のダメージ1.5倍</li>}
+              {(Fn.T.desc || []).slice(0, 3).map(d => <li key={d}>{d}</li>)}
+              {Fn.big && Fn.endless && <li>大ボス：体力1.5倍・反撃が3回・反撃のダメージ1.5倍</li>}
               <li>出る問題：{Fn.lvMax < 9 ? `Lv.1〜${Fn.lvMax}` : 'すべてのレベル'}{Fn.lvMax < 9 ? `（${Fn.lvMax === 3 ? '11階から Lv.6 まで' : '21階から全レベル'}）` : ''}</li>
             </ul>
           </Card>
@@ -6790,10 +6920,13 @@ function useBattleSound(muted) {
 }
 
 /* ---------- 盤面（ドラッグでつなぐ） ---------- */
-function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7 }) {
+const BB_DRAG = { on: false };   // いまドラッグ中か（塔の「周期関数シード」がタイルを動かすのを止める）
+function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7, mirror }) {
   const gridRef = useRef(null), tileRefs = useRef({});
   const [sel, setSel] = useState(null);
-  const [drag, setDrag] = useState(false);
+  const [drag, setDragS] = useState(false);
+  const setDrag = v => { BB_DRAG.on = !!v; setDragS(v); };
+  useEffect(() => () => { BB_DRAG.on = false; }, []);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const center = id => {
     const el = tileRefs.current[id], g = gridRef.current;
@@ -6851,8 +6984,11 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7 }) {
             <circle cx={c.x} cy={c.y} r="6" fill={COLORS.amber} />
           </>); })()}
         </svg>
-        {tiles.map(tile => {
+        {tiles.map((tile, ti) => {
           const isSel = sel === tile.id, fl = flash && flash[tile.id];
+          // 塔の「対称式ファントム」：ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）
+          const selIdx = sel ? tiles.findIndex(t => t.id === sel) : -1;
+          const isMir = mirror && drag && selIdx >= 0 && ti === tiles.length - 1 - selIdx && ti !== selIdx;
           const sk = tileSkin(v7);
           let bg = sk.bg, bc = sk.bc, tc = sk.color, sh = sk.glow;
           if (v7 && !sh) sh = '0 4px 0 #0A1230';
@@ -6865,7 +7001,7 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7 }) {
           return (
             <div key={tile.id} data-btile={tile.id} data-f={JSON.stringify(tile.factor)} ref={el => { tileRefs.current[tile.id] = el; }} onPointerDown={e => down(e, tile.id)}
               className="rounded-xl flex items-center justify-center font-bold shadow select-none cursor-pointer"
-              style={{ background: bg, border: `2px solid ${bc}`, color: tc, boxShadow: sh, transform: v7 ? (isSel ? 'translateY(-3px) scale(1.04)' : 'none') : `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+              style={{ background: bg, border: `2px solid ${bc}`, color: tc, boxShadow: isMir ? '0 0 0 3px rgba(185,168,255,.75), 0 0 16px #b9a8ff' : isSel && mirror ? '0 0 0 4px #FFC94D, 0 0 18px #FFC94D' : sh, transform: v7 ? (isSel ? 'translateY(-3px) scale(1.04)' : isMir ? `translate(${(() => { const a = center(sel), b = center(tile.id); const d = Math.hypot(a.x - b.x, a.y - b.y) || 1; return `${(a.x - b.x) / d * 7}px, ${(a.y - b.y) / d * 7}px`; })()}) scale(0.97)` : 'none') : `rotate(${hashRotation(tile.id)}deg) ${isSel ? 'scale(1.08)' : 'scale(1)'}`, transition: 'transform 120ms ease, background 150ms ease', fontSize, fontFamily: "'Zen Maru Gothic', sans-serif", touchAction: 'none', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
               <MathText text={formatFactorTile(tile.factor)} />
             </div>
           );
