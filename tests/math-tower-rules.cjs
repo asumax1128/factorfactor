@@ -15,7 +15,8 @@ const R = require("../math-tower-core");
       host: "127.0.0.1",
       port: 9000,
       rules: fs.readFileSync(
-        require.resolve("../firebase/math-tower.emulator.rules.json"),
+        process.env.MATH_TOWER_RULES ||
+          require.resolve("../firebase/math-tower.emulator.rules.json"),
         "utf8",
       ),
     },

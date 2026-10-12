@@ -5,7 +5,7 @@
     "build:tower": "node scripts/build-math-tower.cjs",
     "test:tower": "node --test tests/math-tower-*.test.cjs",
     "test:tower:browser": "node tests/math-tower-browser.cjs",
-    "test:tower:rules": "node tests/math-tower-rules.cjs",
+    "test:tower:rules": "node scripts/run-math-tower-rules.cjs",
     "test:regression": "node tests/legacy-regression.cjs"
   },
   "devDependencies": {

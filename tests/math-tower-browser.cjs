@@ -88,10 +88,17 @@ const seed = () => ({
           const old = await page
             .locator("[data-poly]")
             .getAttribute("data-poly");
+          const family = await page
+            .locator(".mt-controls")
+            .getAttribute("data-math-family");
           await page
             .getByRole("button", { name: "ポーズ", exact: true })
             .click();
           await page.getByRole("button", { name: "再開", exact: true }).click();
+          assert.equal(
+            await page.locator(".mt-controls").getAttribute("data-math-family"),
+            family,
+          );
           assert.notEqual(
             await page.locator("[data-poly]").getAttribute("data-poly"),
             old,
@@ -131,6 +138,13 @@ const seed = () => ({
       );
       await page.getByRole("button", { name: "ホームへ", exact: true }).click();
       await page.getByRole("button", { name: /数理の書/ }).click();
+      const notes = page.locator("[data-math-book] article");
+      assert.equal(
+        await notes.count(),
+        5,
+        "four learning notes plus one fragment, without an empty duplicate",
+      );
+      for (const text of await notes.allTextContents()) assert.ok(text.trim());
       await page.getByRole("button", { name: "図鑑", exact: true }).click();
       await page
         .getByRole("button", { name: "画像を拡大", exact: true })

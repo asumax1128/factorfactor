@@ -59,6 +59,10 @@ npm run test:tower:rules
 
 `math-tower.emulator.rules.json` は最小のローカルfixtureであり本番へ配備しない。認可テストは必ずloopback9000とdemoプロジェクトを使用する。公式エミュレータ取得に `storage.googleapis.com` への通信が必要。取得時のチェックサム/TLS検証は維持する。
 
+2026-10-12の公開前チェックで公式エミュレータ4.11.2を取得・検証し、認可17項目が通過した。Node SDKがNO_PROXYを使わずHTTP_PROXYをWebSocketへ渡すため、`test:tower:rules` の専用子プロセスだけはloopback用にHTTPプロキシを除外する。HTTPSプロキシ・CA・認証設定は維持し、実サービスへは接続しない。
+
+手動共有の本番ルールは、`node scripts/audit-math-tower-rules.cjs /非公開の現行ルール.json /チェックアウト外の監査先` で候補を生成する。`MATH_TOWER_RULES=/監査先/integrated.rules.json npm run test:tower:rules` で統合後も検証する。元ルールの他の枝を完全保持し、既存mathTowerV2がある場合は自動置換せず停止する。これは本番配備操作ではない。
+
 ## 正式サイトへ反映する前の操作
 
 1. エミュレータ認可テスト、現行本番ルールの差分監査、実機と未実施の回帰を完了する。

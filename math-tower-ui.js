@@ -13,7 +13,7 @@
       const [ei, setEi] = useState(0), [li, setLi] = useState(0), [reveal, setReveal] = useState(progress.reveal || {}), ending = useRef(false);
       const ev = events[ei], lines = (ev.lines || []).map(line), l = lines[li];
       const text = String(l.text || "").replaceAll("{playerName}", hero).replaceAll("\u6570\u7406\u306E\u5854", "\u6570\u5B66\u306E\u5854");
-      let bg = ev.bg;
+      let bg = ev.bg || (ev.floor > 0 ? "f0" + ev.floor : null);
       for (let j = 0; j <= li; j++) if (lines[j].bg) bg = lines[j].bg;
       const active = l.who;
       let sceneStart = 0;
@@ -91,7 +91,7 @@
           "ja"
         ) : sort === "count" ? (p.kills[b] || 0) - (p.kills[a] || 0) : a - b
       );
-      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor]).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, d.toUpperCase(), "\uFF1A", x.best, "/5\u968E ", x.records[5] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), p.reward && /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u5148\u751F\u8A66\u904A\u306E\u8A18\u9332\uFF09")), tab === "monsters" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", null, "\u4E26\u3079\u66FF\u3048", /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "floor" }, "\u968E\u9806"), /* @__PURE__ */ React.createElement("option", { value: "name" }, "\u540D\u524D"), /* @__PURE__ */ React.createElement("option", { value: "count" }, "\u8A0E\u4F10\u6570"))), /* @__PURE__ */ React.createElement("label", null, "\u7D5E\u308A\u8FBC\u307F", /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor] && !n.fragment).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, d.toUpperCase(), "\uFF1A", x.best, "/5\u968E ", x.records[5] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), p.reward && /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u5148\u751F\u8A66\u904A\u306E\u8A18\u9332\uFF09")), tab === "monsters" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", null, "\u4E26\u3079\u66FF\u3048", /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "floor" }, "\u968E\u9806"), /* @__PURE__ */ React.createElement("option", { value: "name" }, "\u540D\u524D"), /* @__PURE__ */ React.createElement("option", { value: "count" }, "\u8A0E\u4F10\u6570"))), /* @__PURE__ */ React.createElement("label", null, "\u7D5E\u308A\u8FBC\u307F", /* @__PURE__ */ React.createElement(
         "select",
         {
           value: filter,
@@ -259,7 +259,10 @@
           bref.current = n;
           setBattle(n);
         };
-        const mk = (lv) => ({ level: lv, ...H.buildBoard(lv, seen.current, 6) });
+        const mk = (lv) => {
+          const board = H.buildBoard(lv, seen.current, 6);
+          return { level: lv, family: H.patternOf(lv, board.factors), ...board };
+        };
         const showStory = (ids, next) => {
           const x = data.current;
           const list = ids.map((id) => x.content.events.find((e) => e.id === id)).filter(Boolean);
@@ -332,6 +335,7 @@
               setSeconds(Math.ceil(content.policy.problemMs / 1e3));
               setPaused(false);
               setOutcome(null);
+              setNotice("");
               setScreen("battle");
             };
             const ids = [];
@@ -429,7 +433,22 @@
           }, 180);
         };
         const resume = () => {
-          setProb(mk(bref.current.lv));
+          let next = null;
+          for (let i = 0; i < 200; i++) {
+            const candidate = mk(bref.current.lv);
+            if (candidate.family === prob.family && !H.polyEqual(candidate.poly, prob.poly)) {
+              next = candidate;
+              break;
+            }
+          }
+          if (!next) {
+            setError(
+              "\u540C\u7CFB\u7D71\u306E\u5225\u554F\u984C\u3092\u4F5C\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30DD\u30FC\u30BA\u306E\u307E\u307E\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+            );
+            return;
+          }
+          setError("");
+          setProb(next);
           clock.current = Date.now();
           setNotice("\u540C\u7A0B\u5EA6\u306E\u5225\u554F\u984C\u3067\u518D\u958B");
           setSeconds(Math.ceil(content.policy.problemMs / 1e3));
@@ -535,7 +554,7 @@
             }
           ),
           floor === 5 && /* @__PURE__ */ React.createElement("p", null, "\u30CC\u30EB\u306E\u53CD\u6483\uFF1A\u8AA4\u7B54\u6642\u306E\u30C0\u30E1\u30FC\u30B8\u304C\u5897\u3048\u307E\u3059")
-        ), /* @__PURE__ */ React.createElement("div", { className: "mt-controls" }, /* @__PURE__ */ React.createElement(HpBar, { hp: battle.hp }), /* @__PURE__ */ React.createElement("p", null, "HP ", battle.hp, " \u30FB \u6B8B\u308A ", seconds, "\u79D2 \u30FB \u6700\u5927\u30B3\u30F3\u30DC", " ", battle.bestCombo), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setPaused(true) }, "\u30DD\u30FC\u30BA"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setMuted(!muted) }, muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3")), /* @__PURE__ */ React.createElement("p", { role: "status" }, notice || "2\u679A\u306E\u56E0\u6570\u30BF\u30A4\u30EB\u3092\u3064\u306A\u3054\u3046"), /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("div", { className: "mt-controls", "data-math-family": prob.family }, /* @__PURE__ */ React.createElement(HpBar, { hp: battle.hp }), /* @__PURE__ */ React.createElement("p", null, "HP ", battle.hp, " \u30FB \u6B8B\u308A ", seconds, "\u79D2 \u30FB \u6700\u5927\u30B3\u30F3\u30DC", " ", battle.bestCombo), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setPaused(true) }, "\u30DD\u30FC\u30BA"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setMuted(!muted) }, muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3")), /* @__PURE__ */ React.createElement("p", { role: "status" }, notice || "2\u679A\u306E\u56E0\u6570\u30BF\u30A4\u30EB\u3092\u3064\u306A\u3054\u3046"), /* @__PURE__ */ React.createElement(
           TargetCard,
           {
             poly: prob.poly,

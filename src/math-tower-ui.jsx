@@ -29,7 +29,7 @@
     const text = String(l.text || "")
       .replaceAll("{playerName}", hero)
       .replaceAll("数理の塔", "数学の塔");
-    let bg = ev.bg;
+    let bg = ev.bg || (ev.floor > 0 ? "f0" + ev.floor : null);
     for (let j = 0; j <= li; j++) if (lines[j].bg) bg = lines[j].bg;
     const active = l.who;
     let sceneStart = 0;
@@ -157,7 +157,7 @@
         </nav>
         {tab === "notes" &&
           c.notes
-            .filter((n) => p.notes[n.floor])
+            .filter((n) => p.notes[n.floor] && !n.fragment)
             .map((n) => (
               <article key={n.floor}>
                 <h3>{n.title}</h3>
@@ -432,7 +432,10 @@
         bref.current = n;
         setBattle(n);
       };
-      const mk = (lv) => ({ level: lv, ...H.buildBoard(lv, seen.current, 6) });
+      const mk = (lv) => {
+        const board = H.buildBoard(lv, seen.current, 6);
+        return { level: lv, family: H.patternOf(lv, board.factors), ...board };
+      };
       const showStory = (ids, next) => {
         const x = data.current;
         const list = ids
@@ -507,6 +510,7 @@
             setSeconds(Math.ceil(content.policy.problemMs / 1000));
             setPaused(false);
             setOutcome(null);
+            setNotice("");
             setScreen("battle");
           };
           const ids = [];
@@ -616,7 +620,25 @@
         }, 180);
       };
       const resume = () => {
-        setProb(mk(bref.current.lv));
+        let next = null;
+        for (let i = 0; i < 200; i++) {
+          const candidate = mk(bref.current.lv);
+          if (
+            candidate.family === prob.family &&
+            !H.polyEqual(candidate.poly, prob.poly)
+          ) {
+            next = candidate;
+            break;
+          }
+        }
+        if (!next) {
+          setError(
+            "同系統の別問題を作れませんでした。ポーズのまま再試行してください。",
+          );
+          return;
+        }
+        setError("");
+        setProb(next);
         clock.current = Date.now();
         setNotice("同程度の別問題で再開");
         setSeconds(Math.ceil(content.policy.problemMs / 1000));
@@ -786,7 +808,7 @@
                 />
                 {floor === 5 && <p>ヌルの反撃：誤答時のダメージが増えます</p>}
               </div>
-              <div className="mt-controls">
+              <div className="mt-controls" data-math-family={prob.family}>
                 <HpBar hp={battle.hp} />
                 <p>
                   HP {battle.hp} ・ 残り {seconds}秒 ・ 最大コンボ{" "}

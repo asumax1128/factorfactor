@@ -10582,7 +10582,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
 }
 
 /* ソロとオンライン対戦の切り替え */
-const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, multiply, polyEqual, BattleBoard, TargetCard, HpBar, FB, useFbReady, useBattleSound }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
+const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, HpBar, FB, useFbReady, useBattleSound }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');
   const [modeArg, setModeArg] = useState(null);

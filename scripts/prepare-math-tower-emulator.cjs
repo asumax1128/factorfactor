@@ -24,5 +24,5 @@ const rules = {
 };
 fs.writeFileSync(
   path.join(__dirname, "../firebase/math-tower.emulator.rules.json"),
-  JSON.stringify(rules, null, 2),
+  JSON.stringify(rules, null, 2) + "\n",
 );
