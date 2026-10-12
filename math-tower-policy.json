@@ -1,0 +1,12 @@
+{
+  "id": "ch1-approved-trial-20261012",
+  "miss": 5,
+  "timeout": 10,
+  "problemMs": 45000,
+  "bossUnits": 15,
+  "bossAbility": "double-miss",
+  "bossHeal": 100,
+  "weights": [0.5, 0.3, 0.2],
+  "ranks": [0.95, 0.85, 0.70],
+  "hardHighGuard": true
+}

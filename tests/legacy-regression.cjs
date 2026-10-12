@@ -1,0 +1,96 @@
+const assert = require("node:assert/strict"),
+  fs = require("node:fs"),
+  cp = require("node:child_process");
+const { chromium, context, sleep } = require("./browser-harness.cjs");
+const Babel = require("@babel/standalone");
+const baseline = cp.execFileSync(
+  "git",
+  ["show", "56981bd90b9aa54a39b0db5458b34d867ec39249:index.html"],
+  { encoding: "utf8", maxBuffer: 10e6 },
+);
+const source = fs.readFileSync("index.html", "utf8");
+function functions(html) {
+  const jsx = html.match(
+    /<script type="text\/plain" id="app-source">([\s\S]*?)<\/script>/,
+  )[1];
+  const ast = Babel.transform(jsx, {
+    presets: ["react"],
+    ast: true,
+    code: false,
+  }).ast;
+  return Object.fromEntries(
+    ast.program.body
+      .filter((n) => n.type === "FunctionDeclaration")
+      .map((n) => [
+        n.id.name,
+        JSON.stringify(n, (k, v) =>
+          [
+            "loc",
+            "start",
+            "end",
+            "leadingComments",
+            "trailingComments",
+            "innerComments",
+            "extra",
+          ].includes(k)
+            ? undefined
+            : v,
+        ),
+      ]),
+  );
+}
+const before = functions(baseline),
+  after = functions(source);
+let unchanged = 0;
+for (const [name, value] of Object.entries(before)) {
+  if (["AppRoot", "FactorHunt", "TowerTileV7"].includes(name)) continue;
+  assert.equal(after[name], value, "Shared function changed: " + name);
+  unchanged++;
+}
+console.log(
+  "PASS " +
+    unchanged +
+    " existing functions unchanged (AST), including all shared battle/game/auth functions",
+);
+(async () => {
+  let b = await chromium.launch({
+    executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
+  });
+  try {
+    const t = await context(b, { account: { guest: true, name: "Guest" } }),
+      p = t.page;
+    await p.getByRole("button", { name: "スタート", exact: true }).click();
+    await p.locator("[data-tile-id]").first().waitFor();
+    console.log("PASS solo battle");
+    await p.reload();
+    await p.getByRole("button", { name: /学びの部屋/ }).click();
+    await p.getByText("レベル別の正答率と平均時間", { exact: true }).waitFor();
+    console.log("PASS learning room");
+    await p.reload();
+    await p
+      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+      .click();
+    await p
+      .getByRole("button", { name: "CPUと練習スタート", exact: true })
+      .click();
+    await p.locator("[data-btile]").first().waitFor();
+    console.log("PASS CPU battle");
+    await p.reload();
+    await p.getByRole("button", { name: /今週のボス/ }).click();
+    await p.getByRole("button", { name: /出撃する/ }).click();
+    await p.locator("[data-btile]").first().waitFor();
+    console.log("PASS weekly raid");
+    await p.reload();
+    await p.getByRole("button", { name: /デイリーミッション/ }).click();
+    await sleep(500);
+    assert.ok((await p.locator("body").innerText()).includes("デイリー"));
+    console.log("PASS daily");
+    assert.deepEqual(t.errors, []);
+    await t.ctx.close();
+  } finally {
+    await b.close();
+  }
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

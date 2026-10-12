@@ -1,0 +1,32 @@
+{
+  "mathTowerV2": {
+    ".read": false,
+    ".write": false,
+    "access": {
+      "$account": {
+        ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/teachers/' + $account).exists()",
+        ".write": false
+      }
+    },
+    "content": {
+      "$account": {
+        "chapter1": {
+          ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/teachers/' + $account).exists() && root.child('games/factor/mathTowerV2/access/' + $account + '/enabled').val() === true && root.child('games/factor/mathTowerV2/access/' + $account + '/role').val() === 'teacher'",
+          ".write": false
+        }
+      }
+    },
+    "trialProgress": {
+      "$account": {
+        ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/teachers/' + $account).exists() && root.child('games/factor/mathTowerV2/access/' + $account + '/enabled').val() === true && root.child('games/factor/mathTowerV2/access/' + $account + '/role').val() === 'teacher'",
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/teachers/' + $account).exists() && root.child('games/factor/mathTowerV2/access/' + $account + '/enabled').val() === true && root.child('games/factor/mathTowerV2/access/' + $account + '/role').val() === 'teacher' && newData.exists()",
+        ".validate": "newData.hasChildren(['schemaVersion', 'purpose', 'revision', 'difficulties']) && newData.child('schemaVersion').val() === 1 && newData.child('purpose').val() === 'trial' && newData.child('revision').val() === (data.exists() ? data.child('revision').val() + 1 : 1)",
+        "difficulties": {
+          "$difficulty": {
+            ".validate": "($difficulty === 'easy' || $difficulty === 'normal' || $difficulty === 'hard') && newData.hasChildren(['best', 'hp']) && newData.child('best').isNumber() && newData.child('best').val() >= 0 && newData.child('best').val() <= 5 && newData.child('hp').isNumber() && newData.child('hp').val() >= 0 && newData.child('hp').val() <= 100"
+          }
+        }
+      }
+    }
+  }
+}

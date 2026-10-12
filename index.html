@@ -23,6 +23,10 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
 <script src="suri-data.js?v=7"></script>
+<link rel="stylesheet" href="math-tower.css" />
+<script src="math-tower-core.js"></script>
+<script src="math-tower-store.js"></script>
+<script src="math-tower-ui.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -2451,7 +2455,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
             <div className="v7-tiles4">
               <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />
               <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />
-              <TowerTileV7 acct={acct} onOpen={() => onMode && onMode('tower')} />
+              <MathTowerTile acct={acct} onOpen={() => onMode && onMode('tower')} />
               <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
             </div>
             <div className="v7-foot">
@@ -6851,7 +6855,7 @@ function TowerApp({ acct, onExit }) {
     </div>
   );
 }
-function TowerTileV7({ acct, onOpen }) {
+function LegacyTowerTileV7({ acct, onOpen }) {
   const fb = useFbReady();
   const meKey = isReal(acct) ? acct.key : null;
   const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
@@ -10578,9 +10582,11 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
 }
 
 /* ソロとオンライン対戦の切り替え */
+const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, multiply, polyEqual, BattleBoard, TargetCard, HpBar, FB, useFbReady, useBattleSound }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
-  const [mode, setMode] = useState('solo');
+  const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');
   const [modeArg, setModeArg] = useState(null);
+  useEffect(() => { const direct = () => { if (location.hash === '#math-tower') setMode('tower'); }; window.addEventListener('hashchange', direct); return () => window.removeEventListener('hashchange', direct); }, []);
   // アカウント：{key, name}（ログイン）または {guest:true, name}（ゲスト）。未選択ならログイン画面
   const [acct, setAcctS] = useState(() => loadLS(ACCT_LS, null));
   const setAcct = a => { setAcctS(a); saveLS(ACCT_LS, a); };
@@ -10604,7 +10610,7 @@ function AppRoot() {
       : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
-      : mode === 'tower' ? <TowerApp acct={acct} onExit={toSolo} />
+      : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
       : <FactorHunt acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={go} />}
   </>);
 }
