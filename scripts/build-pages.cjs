@@ -20,6 +20,7 @@ fs.writeFileSync(
 );
 const allowed = [
   "index.html",
+  "game-audio.js",
   "manifest.webmanifest",
   "suri-data.js",
   "math-tower-core.js",
@@ -36,6 +37,27 @@ for (const name of allowed) {
 }
 fs.cpSync(path.join(root, "img"), path.join(out, "img"), { recursive: true });
 fs.writeFileSync(path.join(out, ".nojekyll"), "");
+// New HTML must not combine new UI with a cached previous store/audio module.
+let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
+for (const file of [
+  "game-audio.js",
+  "math-tower-core.js",
+  "math-tower-store.js",
+  "math-tower-ui.js",
+  "math-tower-release.js",
+  "math-tower.css",
+]) {
+  const hash = crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(path.join(out, file)))
+    .digest("hex")
+    .slice(0, 16);
+  html = html
+    .replaceAll('src="' + file + '"', 'src="' + file + "?v=" + hash + '"')
+    .replaceAll('href="' + file + '"', 'href="' + file + "?v=" + hash + '"');
+}
+fs.writeFileSync(path.join(out, "index.html"), html);
+
 const c = JSON.parse(
   fs.readFileSync(path.join(out, "math-tower/chapter1.json")),
 );

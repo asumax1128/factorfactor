@@ -326,3 +326,6 @@
     min-height: 44px;
   }
 }
+
+.mt-recovery { position: fixed; z-index: 120; bottom: 8px; left: 8px; right: 8px; max-height: 45dvh; overflow: auto; margin: auto; max-width: 720px; padding: 12px; color: #fff; background: #711f25; border: 2px solid #ffcb87; border-radius: 12px; line-height: 1.5; }
+.mt-recovery p { margin: 4px 0; }

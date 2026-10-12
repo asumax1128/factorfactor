@@ -17,6 +17,7 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+<script src="game-audio.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -432,17 +433,30 @@ function useResultBgm(show, muted) {
 const MENU_DIFF_LS = 'fxf_menu_diff_v1';
 const UI_MUTE_LS = 'fxf_ui_mute_v1';
 let UI_MUTE = (() => { try { return localStorage.getItem(UI_MUTE_LS) === '1'; } catch (e) { return false; } })();
-function setUiMute(v) { UI_MUTE = !!v; try { localStorage.setItem(UI_MUTE_LS, v ? '1' : '0'); } catch (e) {} }
+function setUiMute(v) { UI_MUTE = !!v; if (window.GameAudio) window.GameAudio.setMenuMuted(UI_MUTE); try { localStorage.setItem(UI_MUTE_LS, v ? '1' : '0'); } catch (e) {} }
+function useGameMute() {
+  const [muted, setMuted] = useState(() => window.GameAudio ? window.GameAudio.isMuted() : true);
+  useEffect(() => {
+    if (!window.GameAudio) { try { Tone.getDestination().mute = true; } catch (_) {} return; }
+    window.GameAudio.sync();
+    return window.GameAudio.subscribe(setMuted);
+  }, []);
+  const change = useCallback(v => {
+    if (!window.GameAudio) return;
+    window.GameAudio.setMuted(typeof v === 'function' ? v(window.GameAudio.isMuted()) : v);
+  }, []);
+  return [muted, change];
+}
 function uiCtx() { try { const c = Tone.getContext().rawContext; if (c && c.state === 'suspended') c.resume().catch(() => {}); return c; } catch (e) { return null; } }
 function uiTone(c, f, t, d, type, v, f2) {
   const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + t;
   o.type = type; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
   g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + d);
-  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + d + 0.05);
+  o.connect(g); g.connect(window.GameAudio.menuOutput(c)); o.start(t0); o.stop(t0 + d + 0.05);
 }
 // cur＝カーソル「ピッ」、ok＝決定「ピコッ」、back＝もどる「ポン」、swirl＝暗転
 function uiSnd(kind) {
-  if (UI_MUTE) return;
+  if (UI_MUTE || !window.GameAudio || window.GameAudio.isMuted()) return;
   const c = uiCtx(); if (!c || c.state !== 'running') return;
   try {
     if (kind === 'cur') uiTone(c, 1320, 0, 0.035, 'square', 0.05);
@@ -1429,7 +1443,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   const [resolving, setResolving] = useState(false);
   const [lastGain, setLastGain] = useState(null);
   const [caught, setCaught] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useGameMute();
   const [playerName, setPlayerName] = useState(() => (acct && acct.name) || '');
   const [soloExp, setSoloExp] = useState(null); // このプレイでもらった経験値 {before, after}
   const learnRef = useRef([]);   // 苦手分析・図鑑用の記録（このプレイ分）
@@ -1553,8 +1567,9 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
       }
       if (cancelled) return;
 
-      Tone.getDestination().mute = false;
       Tone.getDestination().volume.value = 0;
+      if (window.GameAudio) window.GameAudio.sync();
+      else Tone.getDestination().mute = true;
 
       buzz = new Tone.Synth({
         oscillator: { type: 'square' },
@@ -2464,7 +2479,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
               {GAS_ENDPOINT_URL === '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); setRankTab('local'); }}><V7Icon name="cup" />ランキング</button>}
               <button className="v7-pill v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><V7Icon name="help" />あそびかた</button>
               <ConnCheck v7 />
-              <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? '音オフ' : '音オン'}</button>
+              <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? 'メニュー音オフ' : 'メニュー音オン'}</button>
+              <button className="v7-pill v7-cur" data-snd="none" aria-label={muted ? 'ゲーム全体の音を出す' : 'ゲーム全体の音を消す'} onClick={() => setMuted(m => !m)}>{muted ? '全音オフ' : '全音オン'}</button>
               {acct && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
               <span className="v7-ver">ver.5.9</span>
             </div>
@@ -3680,7 +3696,7 @@ function GhostLane({ rows, total }) {
 
 /* ---------- 10問ランナー（デイリー・苦手ドリル共通） ---------- */
 function PracticeRunner({ kind, title, problems, ghosts, myName, onDone, onQuit }) {
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useGameMute();
   const sound = useBattleSound(muted);
   const [phase, setPhase] = useState('count');
   const [cd, setCd] = useState(3);
@@ -4515,7 +4531,7 @@ function PartBars({ parts, big }) {
    opts（授業用だけ）：pickLevel(前のLv, 'init'|'ok'|'miss') → 次のLv、dmgMul(lv) → 倍率、stunUntil、overlay、topExtra */
 function RaidPlay({ boss, hp, max, endAt, ended, title, onHit, onQuit, footer, sessionInfo, opts, bossExtra }) {
   const o = opts || {};
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useGameMute();
   const sound = useBattleSound(muted);
   useResultBgm(ended, muted);
   const seen = useRef(new Set());
@@ -4835,7 +4851,7 @@ function RaidBoard({ code, state, isHost, onLeave, onAgain }) {
   const left = state.endAt - now;
   const won = hp <= 0, over = won || left <= 0;
   const sch = raidSchedule(state, now);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useGameMute();
   const sound = useBattleSound(muted);
   useResultBgm(over, muted);
   const [say, setSay] = useState(null);
@@ -7637,14 +7653,22 @@ async function recordMatch(acct, info) {
 function useBattleSound(muted) {
   const ref = useRef({});
   const mutedRef = useRef(muted);
-  useEffect(() => { mutedRef.current = muted; const r = ref.current; if (r.bgm) r.bgm.mute = muted; }, [muted]);
+  mutedRef.current = muted;
+  useEffect(() => {
+    const r = ref.current;
+    Object.entries(r).forEach(([key, p]) => {
+      if (!p || typeof p !== 'object') return;
+      try { p.mute = muted; if (muted && key !== 'bgm' && p.state === 'started' && p.stop) p.stop(); } catch (_) {}
+      try { if (muted && p.releaseAll) p.releaseAll(); if (muted && p.triggerRelease) p.triggerRelease(); } catch (_) {}
+    });
+  }, [muted]);
   useEffect(() => {
     let cancelled = false;
     const r = ref.current;
     const load = async (key, uri, vol, loop) => {
       try {
         const p = new Tone.Player().toDestination();
-        p.volume.value = vol; if (loop) p.loop = true;
+        p.volume.value = vol; p.mute = mutedRef.current; if (loop) p.loop = true;
         r[key] = p;
         const buf = await decodeDataUriToAudioBuffer(uri);
         if (!cancelled) { p.buffer = new Tone.ToneAudioBuffer(buf); if (key === 'bgm') setBgmLoop(p); }
@@ -8262,7 +8286,7 @@ function BattleApp({ acct: who, onExit }) {
   const [err, setErr] = useState('');
   const acct = isReal(who) ? who : null;            // 記録が残るアカウント（ゲストは null）
   const [myNick, setMyNick] = useState('');
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useGameMute();
   const [seenGid, setSeenGid] = useState({});       // 大会：結果を見終わった試合
   const sound = useBattleSound(muted);
   const myName = (who && who.name) || 'ゲスト';
@@ -10583,7 +10607,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
 }
 
 /* ソロとオンライン対戦の切り替え */
-const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, HpBar, FB, useFbReady, useBattleSound }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
+const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');
   const [modeArg, setModeArg] = useState(null);

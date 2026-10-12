@@ -63,19 +63,91 @@
     );
     return { key, content, progress };
   }
+  function conflict() {
+    const e = Error(
+      "保存先の記録が更新されています。最新の記録を読み込んでください",
+    );
+    e.code = "TOWER_CONFLICT";
+    return e;
+  }
   async function save(db, uid, acct, progress) {
     const key = await access(db, uid, acct);
     const ref = db.ref(`${BASE}/trialProgress/${key}`);
-    const result = await ref.transaction((current) => {
-      const rev = current ? current.revision : 0;
-      if (rev !== progress.revision) return undefined;
-      return { ...progress, revision: rev + 1 };
-    });
-    if (!result.committed)
-      throw Error(
-        "別の端末で記録が更新されました。保存せず再読み込みしてください",
+    // get() without an active listener can leave the transaction's local cache
+    // empty even after reading an existing record. Keep the query registered
+    // until the transaction completes, and never publish optimistic writes.
+    const keep = () => {};
+    ref.on("value", keep, () => {});
+    try {
+      const latest = (await ref.get()).val();
+      if ((latest ? latest.revision : 0) !== progress.revision)
+        throw conflict();
+      const result = await ref.transaction(
+        (current) => {
+          const rev = current ? current.revision : 0;
+          if (rev !== progress.revision) return undefined;
+          return { ...progress, revision: rev + 1 };
+        },
+        undefined,
+        false,
       );
-    return { ...progress, revision: progress.revision + 1 };
+      if (!result.committed) throw conflict();
+      const confirmed = result.snapshot.val();
+      if (!confirmed || confirmed.revision !== progress.revision + 1)
+        throw Error(
+          "保存の完了を確認できません。最新の記録を読み込んでください",
+        );
+      return { ...progress, revision: confirmed.revision };
+    } finally {
+      ref.off("value", keep);
+    }
   }
-  root.MathTowerStore = { BASE, access, load, save };
+  // One writer per mounted trial screen. Changes are applied to the latest
+  // local state at execution, not to an old snapshot captured at enqueue time.
+  function createWriter({ read, write, commit, busy, live = () => true }) {
+    let tail = Promise.resolve(),
+      count = 0,
+      failure = null,
+      acknowledged = null;
+    return {
+      reset(progress) {
+        if (count) throw Error("保存処理の終了を待ってください");
+        acknowledged = JSON.stringify(progress);
+        failure = null;
+      },
+      isBusy: () => count > 0,
+      idle: () => tail,
+      enqueue(change, retry = false) {
+        if (!count && retry && failure && failure.code !== "TOWER_CONFLICT")
+          failure = null;
+        count++;
+        busy(true);
+        const job = tail
+          .then(async () => {
+            if (!live()) throw Error("画面が閉じられました");
+            if (failure) throw failure;
+            const base = root.MathTowerRules.copy(read());
+            const next = change(base);
+            if (JSON.stringify(next) === acknowledged) return base;
+            const saved = await write(next);
+            if (live()) {
+              commit(saved);
+              acknowledged = JSON.stringify(saved);
+            }
+            return saved;
+          })
+          .catch((e) => {
+            failure = e;
+            throw e;
+          })
+          .finally(() => {
+            count--;
+            if (live()) busy(count > 0);
+          });
+        tail = job.catch(() => {});
+        return job;
+      },
+    };
+  }
+  root.MathTowerStore = { BASE, access, load, save, createWriter };
 })(window);

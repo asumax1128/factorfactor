@@ -25,6 +25,7 @@ fs.writeFileSync(
 );
 const copy = (from, to) => fs.copyFileSync(from, path.join(site, to));
 for (const f of [
+  "game-audio.js",
   "math-tower-core.js",
   "math-tower-store.js",
   "math-tower-ui.js",
@@ -57,6 +58,7 @@ h = h.replace(
   /<script src="https:\/\/www.gstatic.com\/firebasejs\/[^"']+"><\/script>/g,
   "",
 );
+h = h.replace(/<script src="game-audio.js"><\/script>/g, "");
 h = h.replace(/<script src="math-tower-release.js"><\/script>/g, "");
 h = h.replace(/<script src="suri-data[^"']*"><\/script>/g, "");
 h = h.replace(/<link[^>]+(?:manifest|katex)[^>]*>/g, "");
@@ -66,7 +68,7 @@ h = h.replace(
 );
 h = h.replace(
   /<script src="math-tower-core.js">/,
-  '<script src="private-content.js"></script><script src="bootstrap.js"></script><script src="firebase-mock.js"></script><script src="math-tower-core.js">',
+  '<script src="private-content.js"></script><script src="bootstrap.js"></script><script src="game-audio.js"></script><script src="firebase-mock.js"></script><script src="math-tower-core.js">',
 );
 h = h.replace(
   "<head>",

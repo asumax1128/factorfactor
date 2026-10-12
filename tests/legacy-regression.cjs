@@ -18,6 +18,23 @@ function functions(html) {
     ast: true,
     code: false,
   }).ast;
+  const normalise = (n) => {
+    if (!n || typeof n !== "object") return;
+    if (
+      n.type === "CallExpression" &&
+      n.callee?.name === "useGameMute" &&
+      n.arguments.length === 0
+    ) {
+      n.callee.name = "useState";
+      n.arguments = [{ type: "BooleanLiteral", value: false }];
+    }
+    for (const v of Object.values(n))
+      if (v && typeof v === "object") {
+        if (Array.isArray(v)) v.forEach(normalise);
+        else normalise(v);
+      }
+  };
+  normalise(ast.program);
   return Object.fromEntries(
     ast.program.body
       .filter((n) => n.type === "FunctionDeclaration")
@@ -43,7 +60,18 @@ const before = functions(baseline),
   after = functions(source);
 let unchanged = 0;
 for (const [name, value] of Object.entries(before)) {
-  if (["AppRoot", "FactorHunt", "TowerTileV7"].includes(name)) continue;
+  if (
+    [
+      "AppRoot",
+      "FactorHunt",
+      "TowerTileV7",
+      "setUiMute",
+      "uiTone",
+      "uiSnd",
+      "useBattleSound",
+    ].includes(name)
+  )
+    continue;
   assert.equal(after[name], value, "Shared function changed: " + name);
   unchanged++;
 }

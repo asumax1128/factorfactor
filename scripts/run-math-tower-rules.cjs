@@ -2,6 +2,7 @@ const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 const targets = {
   tower: "math-tower-rules.cjs",
+  save: "math-tower-live-save.cjs",
   "production-audit": "math-tower-production-audit.cjs",
 };
 const target = targets[process.argv[2] || "tower"];

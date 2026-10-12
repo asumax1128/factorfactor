@@ -1,4 +1,4 @@
-/* Public UI only. Story text and images are loaded from protected RTDB. */
+/* Chapter-one UI; Firebase protects trial access and progress. */
 (function (root) {
   const { useState, useEffect, useRef } = React,
     R = root.MathTowerRules,
@@ -82,10 +82,14 @@
           {progress.read[ev.id] && (
             <Button
               onClick={() => {
+                if (ending.current) return;
                 if (ei + 1 < events.length) {
                   setEi(ei + 1);
                   setLi(0);
-                } else onDone();
+                } else {
+                  ending.current = true;
+                  onDone();
+                }
               }}
             >
               既読をスキップ
@@ -123,7 +127,7 @@
       </div>
     );
   }
-  function Book({ c, p, onClose }) {
+  function Book({ c, p, onClose, closing }) {
     const [tab, setTab] = useState("notes"),
       [sort, setSort] = useState("floor"),
       [filter, setFilter] = useState("all"),
@@ -149,7 +153,9 @@
     return (
       <section className="mt-panel" data-math-book>
         <h2>数理の書</h2>
-        <Button onClick={onClose}>とじる</Button>
+        <Button disabled={closing} onClick={onClose}>
+          とじる
+        </Button>
         <nav>
           <Button onClick={() => setTab("notes")}>学習記録</Button>
           <Button onClick={() => setTab("monsters")}>図鑑</Button>
@@ -332,9 +338,10 @@
         [flash, setFlash] = useState({}),
         [notice, setNotice] = useState(""),
         [seconds, setSeconds] = useState(0),
-        [muted, setMuted] = useState(false),
+        [muted, setMuted] = H.useGameMute(),
         [outcome, setOutcome] = useState(null),
-        [saving, setSaving] = useState(false);
+        [saving, setSaving] = useState(false),
+        [recovering, setRecovering] = useState(false);
       const data = useRef(null),
         bref = useRef(null),
         screenRef = useRef(screen),
@@ -347,32 +354,88 @@
         guard = useRef(false),
         sound = H.useBattleSound(muted),
         life = useRef(true),
-        queue = useRef(Promise.resolve());
+        writer = useRef(null),
+        recoveryBusy = useRef(false),
+        acctRef = useRef(acct);
+      acctRef.current = acct;
       screenRef.current = screen;
       pausedRef.current = paused;
       const setData = (v) => {
         data.current = v;
         setLoaded(v);
       };
-      const persist = async (progress) => {
-        const operation = async () => {
-          if (!life.current) throw Error("画面が閉じられました");
-          setSaving(true);
-          const saved = await Store.save(H.FB.db, H.FB.uid, acct, {
-            ...progress,
-            revision: data.current.progress.revision,
-          });
-          if (life.current) setData({ ...data.current, progress: saved });
-          return saved;
-        };
-        const job = queue.current.then(operation);
-        queue.current = job.catch(() => {});
+      if (!writer.current)
+        writer.current = Store.createWriter({
+          read: () => {
+            if (!data.current || data.current.key !== acctRef.current.key)
+              throw Error("記録の読み込みが完了していません");
+            return data.current.progress;
+          },
+          write: (p) => Store.save(H.FB.db, H.FB.uid, acctRef.current, p),
+          commit: (p) => {
+            setData({ ...data.current, progress: p });
+            setError("");
+          },
+          busy: setSaving,
+          live: () => life.current,
+        });
+      const persist = (change) => writer.current.enqueue(change, true);
+      const recover = async () => {
+        if (recoveryBusy.current || writer.current.isBusy()) return;
+        recoveryBusy.current = true;
+        setRecovering(true);
+        setPaused(true);
+        sound.bgm(false);
         try {
-          return await job;
+          await writer.current.idle();
+          const latest = await Store.load(H.FB.db, H.FB.uid, acctRef.current);
+          if (!life.current) return;
+          R.validatePolicy(latest.content.policy);
+          writer.current.reset(latest.progress);
+          pending.current = null;
+          afterStory.current = null;
+          guard.current = false;
+          bref.current = null;
+          setBattle(null);
+          setProb(null);
+          setEvents([]);
+          setData(latest);
+          setError("");
+          setScreen("home");
+        } catch (e) {
+          if (life.current) setError(e.message);
         } finally {
-          if (life.current) setSaving(false);
+          recoveryBusy.current = false;
+          if (life.current) setRecovering(false);
         }
       };
+      const recoveryPanel = error && (
+        <section className="mt-recovery" role="alert">
+          <p>{error}</p>
+          <p>
+            最新の記録を読み込むと、未保存の進行・戦闘結果は失われる可能性があります。保存済みの記録は削除しません。
+          </p>
+          {(screen === "story" || screen === "savingResult") && (
+            <Button
+              disabled={saving || recovering}
+              onClick={() => (screen === "story" ? storyDone() : retrySave())}
+            >
+              保存を再試行
+            </Button>
+          )}
+          <Button disabled={saving || recovering} onClick={recover}>
+            最新の記録を読み込む
+          </Button>
+          <Button
+            onClick={() => {
+              sound.bgm(false);
+              onExit();
+            }}
+          >
+            タイトルへ戻る
+          </Button>
+        </section>
+      );
       useEffect(() => {
         life.current = true;
         if (!fb.ready) return;
@@ -390,6 +453,7 @@
           .then((x) => {
             if (!live) return;
             R.validatePolicy(x.content.policy);
+            writer.current.reset(x.progress);
             setData(x);
             setScreen("home");
           })
@@ -426,6 +490,16 @@
         sound.bgm(screen === "battle" && !paused);
         return () => sound.bgm(false);
       }, [screen, paused, muted]);
+      useEffect(() => {
+        if (!saving) return;
+        const timer = setTimeout(() => {
+          if (life.current)
+            setError(
+              "保存の応答を待っています。通信状態を確認してください。通信復帰後に保存が完了する場合があります。",
+            );
+        }, 10000);
+        return () => clearTimeout(timer);
+      }, [saving]);
       const content = loaded && loaded.content,
         progress = loaded && loaded.progress;
       const updateBattle = (n) => {
@@ -456,8 +530,10 @@
         setData({ ...data.current, progress: p });
       };
       const storyDone = async () => {
+        if (writer.current.isBusy()) return;
         try {
-          await persist(data.current.progress);
+          setError("");
+          await persist((p) => p);
           afterStory.current();
         } catch (e) {
           setError(e.message);
@@ -487,14 +563,15 @@
         prepare(d.best + 1);
       };
       const start = async () => {
-        if (saving || guard.current) return;
+        if (writer.current.isBusy() || guard.current) return;
         guard.current = true;
         setError("");
         try {
-          const p = R.copy(data.current.progress);
-          p.startedAt = p.startedAt || Date.now();
-          p.seen[floor] = true;
-          await persist(p);
+          await persist((p) => {
+            p.startedAt = p.startedAt || Date.now();
+            p.seen[floor] = true;
+            return p;
+          });
           const begin = () => {
             seen.current = new Set();
             const s = R.begin(
@@ -528,18 +605,14 @@
       };
       const finish = async (s) => {
         if (pending.current) return;
-        const p = R.complete(
-          data.current.progress,
-          s,
-          content.policy,
-          runId.current,
-          Date.now(),
-        );
-        pending.current = { p, s };
+        const attempt = { s, id: runId.current, at: Date.now() };
+        pending.current = attempt;
         setOutcome(R.result(s, content.policy));
         setScreen("savingResult");
         try {
-          await persist(p);
+          await persist((p) =>
+            R.complete(p, attempt.s, content.policy, attempt.id, attempt.at),
+          );
           pending.current = null;
           setScreen("result");
         } catch (e) {
@@ -547,8 +620,12 @@
         }
       };
       const retrySave = async () => {
+        if (writer.current.isBusy() || !pending.current) return;
+        const attempt = pending.current;
         try {
-          await persist(pending.current.p);
+          await persist((p) =>
+            R.complete(p, attempt.s, content.policy, attempt.id, attempt.at),
+          );
           pending.current = null;
           setError("");
           setScreen("result");
@@ -646,13 +723,14 @@
       };
       const restart = async () => {
         try {
-          const p = R.copy(data.current.progress);
-          p.difficulties[difficulty] = {
-            ...p.difficulties[difficulty],
-            best: 0,
-            hp: 100,
-          };
-          await persist(p);
+          await persist((p) => {
+            p.difficulties[difficulty] = {
+              ...p.difficulties[difficulty],
+              best: 0,
+              hp: 100,
+            };
+            return p;
+          });
           prepare(1);
         } catch (e) {
           setError(e.message);
@@ -667,9 +745,10 @@
           [f + "-post", ...(f === 5 ? ["5-epilogue"] : [])],
           async () => {
             try {
-              const p = R.copy(data.current.progress);
-              delete p.pendingStory;
-              await persist(p);
+              await persist((p) => {
+                delete p.pendingStory;
+                return p;
+              });
               setScreen(f === 5 ? "chapterEnd" : "home");
             } catch (e) {
               setError(e.message);
@@ -697,6 +776,7 @@
               onRead={markRead}
               onDone={storyDone}
             />
+            {recoveryPanel}
             {error && (
               <div className="mt-error">
                 <p>{error}</p>
@@ -718,11 +798,7 @@
               タイトルへ
             </Button>
           </header>
-          {error && (
-            <p className="mt-error" role="alert">
-              {error}
-            </p>
-          )}
+          {recoveryPanel}
           {screen === "home" && (
             <section className="mt-panel">
               <h2>第1章</h2>
@@ -934,8 +1010,9 @@
             <Book
               c={content}
               p={progress}
+              closing={saving}
               onClose={() =>
-                persist(data.current.progress)
+                persist((p) => p)
                   .then(() => setScreen("home"))
                   .catch((e) => setError(e.message))
               }

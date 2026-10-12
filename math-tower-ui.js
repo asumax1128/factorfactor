@@ -56,10 +56,14 @@
           Button,
           {
             onClick: () => {
+              if (ending.current) return;
               if (ei + 1 < events.length) {
                 setEi(ei + 1);
                 setLi(0);
-              } else onDone();
+              } else {
+                ending.current = true;
+                onDone();
+              }
             }
           },
           "\u65E2\u8AAD\u3092\u30B9\u30AD\u30C3\u30D7"
@@ -79,7 +83,7 @@
         /* @__PURE__ */ React.createElement("button", { className: "mt-dialog", onClick: next, "data-math-dialog": true }, /* @__PURE__ */ React.createElement("strong", null, speaker), /* @__PURE__ */ React.createElement("p", null, text), /* @__PURE__ */ React.createElement("small", null, "\u30BF\u30C3\u30D7\u3067\u6B21\u3078 \u25BC"))
       );
     }
-    function Book({ c, p, onClose }) {
+    function Book({ c, p, onClose, closing }) {
       const [tab, setTab] = useState("notes"), [sort, setSort] = useState("floor"), [filter, setFilter] = useState("all"), [zoom, setZoom] = useState(null), [scale, setScale] = useState(1), [pan, setPan] = useState({ x: 0, y: 0 });
       const drag = useRef(null);
       let floors = Object.keys(c.floors).map(Number).filter((f) => p.seen[f]);
@@ -91,7 +95,7 @@
           "ja"
         ) : sort === "count" ? (p.kills[b] || 0) - (p.kills[a] || 0) : a - b
       );
-      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor] && !n.fragment).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, d.toUpperCase(), "\uFF1A", x.best, "/5\u968E ", x.records[5] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), p.reward && /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u5148\u751F\u8A66\u904A\u306E\u8A18\u9332\uFF09")), tab === "monsters" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", null, "\u4E26\u3079\u66FF\u3048", /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "floor" }, "\u968E\u9806"), /* @__PURE__ */ React.createElement("option", { value: "name" }, "\u540D\u524D"), /* @__PURE__ */ React.createElement("option", { value: "count" }, "\u8A0E\u4F10\u6570"))), /* @__PURE__ */ React.createElement("label", null, "\u7D5E\u308A\u8FBC\u307F", /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { disabled: closing, onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor] && !n.fragment).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, d.toUpperCase(), "\uFF1A", x.best, "/5\u968E ", x.records[5] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), p.reward && /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u5148\u751F\u8A66\u904A\u306E\u8A18\u9332\uFF09")), tab === "monsters" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", null, "\u4E26\u3079\u66FF\u3048", /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "floor" }, "\u968E\u9806"), /* @__PURE__ */ React.createElement("option", { value: "name" }, "\u540D\u524D"), /* @__PURE__ */ React.createElement("option", { value: "count" }, "\u8A0E\u4F10\u6570"))), /* @__PURE__ */ React.createElement("label", null, "\u7D5E\u308A\u8FBC\u307F", /* @__PURE__ */ React.createElement(
         "select",
         {
           value: filter,
@@ -175,34 +179,77 @@
         return /* @__PURE__ */ React.createElement("button", { className: "v7-tile v7-cur", onClick: onOpen }, /* @__PURE__ */ React.createElement("div", { className: "top" }, /* @__PURE__ */ React.createElement("span", { className: "v7-ico" }, "\u{1F4D6}"), /* @__PURE__ */ React.createElement("span", { className: "v7-badge" }, "\u5148\u751F\u8A66\u904A")), /* @__PURE__ */ React.createElement("b", null, "\u6570\u5B66\u306E\u5854"), /* @__PURE__ */ React.createElement("span", { className: "s" }, "\u5192\u967A\u3092\u59CB\u3081\u308B"));
       }
       function App({ acct, onExit }) {
-        const fb = H.useFbReady(), [loaded, setLoaded] = useState(null), [error, setError] = useState(""), [screen, setScreen] = useState("loading"), [difficulty, setDifficulty] = useState("normal"), [floor, setFloor] = useState(1), [events, setEvents] = useState([]), [battle, setBattle] = useState(null), [prob, setProb] = useState(null), [paused, setPaused] = useState(false), [flash, setFlash] = useState({}), [notice, setNotice] = useState(""), [seconds, setSeconds] = useState(0), [muted, setMuted] = useState(false), [outcome, setOutcome] = useState(null), [saving, setSaving] = useState(false);
-        const data = useRef(null), bref = useRef(null), screenRef = useRef(screen), pausedRef = useRef(false), pending = useRef(null), afterStory = useRef(null), seen = useRef(/* @__PURE__ */ new Set()), clock = useRef(Date.now()), runId = useRef(""), guard = useRef(false), sound = H.useBattleSound(muted), life = useRef(true), queue = useRef(Promise.resolve());
+        const fb = H.useFbReady(), [loaded, setLoaded] = useState(null), [error, setError] = useState(""), [screen, setScreen] = useState("loading"), [difficulty, setDifficulty] = useState("normal"), [floor, setFloor] = useState(1), [events, setEvents] = useState([]), [battle, setBattle] = useState(null), [prob, setProb] = useState(null), [paused, setPaused] = useState(false), [flash, setFlash] = useState({}), [notice, setNotice] = useState(""), [seconds, setSeconds] = useState(0), [muted, setMuted] = H.useGameMute(), [outcome, setOutcome] = useState(null), [saving, setSaving] = useState(false), [recovering, setRecovering] = useState(false);
+        const data = useRef(null), bref = useRef(null), screenRef = useRef(screen), pausedRef = useRef(false), pending = useRef(null), afterStory = useRef(null), seen = useRef(/* @__PURE__ */ new Set()), clock = useRef(Date.now()), runId = useRef(""), guard = useRef(false), sound = H.useBattleSound(muted), life = useRef(true), writer = useRef(null), recoveryBusy = useRef(false), acctRef = useRef(acct);
+        acctRef.current = acct;
         screenRef.current = screen;
         pausedRef.current = paused;
         const setData = (v) => {
           data.current = v;
           setLoaded(v);
         };
-        const persist = async (progress2) => {
-          const operation = async () => {
-            if (!life.current) throw Error("\u753B\u9762\u304C\u9589\u3058\u3089\u308C\u307E\u3057\u305F");
-            setSaving(true);
-            const saved = await Store.save(H.FB.db, H.FB.uid, acct, {
-              ...progress2,
-              revision: data.current.progress.revision
-            });
-            if (life.current) setData({ ...data.current, progress: saved });
-            return saved;
-          };
-          const job = queue.current.then(operation);
-          queue.current = job.catch(() => {
+        if (!writer.current)
+          writer.current = Store.createWriter({
+            read: () => {
+              if (!data.current || data.current.key !== acctRef.current.key)
+                throw Error("\u8A18\u9332\u306E\u8AAD\u307F\u8FBC\u307F\u304C\u5B8C\u4E86\u3057\u3066\u3044\u307E\u305B\u3093");
+              return data.current.progress;
+            },
+            write: (p) => Store.save(H.FB.db, H.FB.uid, acctRef.current, p),
+            commit: (p) => {
+              setData({ ...data.current, progress: p });
+              setError("");
+            },
+            busy: setSaving,
+            live: () => life.current
           });
+        const persist = (change) => writer.current.enqueue(change, true);
+        const recover = async () => {
+          if (recoveryBusy.current || writer.current.isBusy()) return;
+          recoveryBusy.current = true;
+          setRecovering(true);
+          setPaused(true);
+          sound.bgm(false);
           try {
-            return await job;
+            await writer.current.idle();
+            const latest = await Store.load(H.FB.db, H.FB.uid, acctRef.current);
+            if (!life.current) return;
+            R.validatePolicy(latest.content.policy);
+            writer.current.reset(latest.progress);
+            pending.current = null;
+            afterStory.current = null;
+            guard.current = false;
+            bref.current = null;
+            setBattle(null);
+            setProb(null);
+            setEvents([]);
+            setData(latest);
+            setError("");
+            setScreen("home");
+          } catch (e) {
+            if (life.current) setError(e.message);
           } finally {
-            if (life.current) setSaving(false);
+            recoveryBusy.current = false;
+            if (life.current) setRecovering(false);
           }
         };
+        const recoveryPanel = error && /* @__PURE__ */ React.createElement("section", { className: "mt-recovery", role: "alert" }, /* @__PURE__ */ React.createElement("p", null, error), /* @__PURE__ */ React.createElement("p", null, "\u6700\u65B0\u306E\u8A18\u9332\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u3001\u672A\u4FDD\u5B58\u306E\u9032\u884C\u30FB\u6226\u95D8\u7D50\u679C\u306F\u5931\u308F\u308C\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002\u4FDD\u5B58\u6E08\u307F\u306E\u8A18\u9332\u306F\u524A\u9664\u3057\u307E\u305B\u3093\u3002"), (screen === "story" || screen === "savingResult") && /* @__PURE__ */ React.createElement(
+          Button,
+          {
+            disabled: saving || recovering,
+            onClick: () => screen === "story" ? storyDone() : retrySave()
+          },
+          "\u4FDD\u5B58\u3092\u518D\u8A66\u884C"
+        ), /* @__PURE__ */ React.createElement(Button, { disabled: saving || recovering, onClick: recover }, "\u6700\u65B0\u306E\u8A18\u9332\u3092\u8AAD\u307F\u8FBC\u3080"), /* @__PURE__ */ React.createElement(
+          Button,
+          {
+            onClick: () => {
+              sound.bgm(false);
+              onExit();
+            }
+          },
+          "\u30BF\u30A4\u30C8\u30EB\u3078\u623B\u308B"
+        ));
         useEffect(() => {
           life.current = true;
           if (!fb.ready) return;
@@ -219,6 +266,7 @@
           Store.load(H.FB.db, H.FB.uid, acct).then((x) => {
             if (!live) return;
             R.validatePolicy(x.content.policy);
+            writer.current.reset(x.progress);
             setData(x);
             setScreen("home");
           }).catch((e) => {
@@ -254,6 +302,16 @@
           sound.bgm(screen === "battle" && !paused);
           return () => sound.bgm(false);
         }, [screen, paused, muted]);
+        useEffect(() => {
+          if (!saving) return;
+          const timer = setTimeout(() => {
+            if (life.current)
+              setError(
+                "\u4FDD\u5B58\u306E\u5FDC\u7B54\u3092\u5F85\u3063\u3066\u3044\u307E\u3059\u3002\u901A\u4FE1\u72B6\u614B\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u901A\u4FE1\u5FA9\u5E30\u5F8C\u306B\u4FDD\u5B58\u304C\u5B8C\u4E86\u3059\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002"
+              );
+          }, 1e4);
+          return () => clearTimeout(timer);
+        }, [saving]);
         const content = loaded && loaded.content, progress = loaded && loaded.progress;
         const updateBattle = (n) => {
           bref.current = n;
@@ -281,8 +339,10 @@
           setData({ ...data.current, progress: p });
         };
         const storyDone = async () => {
+          if (writer.current.isBusy()) return;
           try {
-            await persist(data.current.progress);
+            setError("");
+            await persist((p) => p);
             afterStory.current();
           } catch (e) {
             setError(e.message);
@@ -312,14 +372,15 @@
           prepare(d2.best + 1);
         };
         const start = async () => {
-          if (saving || guard.current) return;
+          if (writer.current.isBusy() || guard.current) return;
           guard.current = true;
           setError("");
           try {
-            const p = R.copy(data.current.progress);
-            p.startedAt = p.startedAt || Date.now();
-            p.seen[floor] = true;
-            await persist(p);
+            await persist((p) => {
+              p.startedAt = p.startedAt || Date.now();
+              p.seen[floor] = true;
+              return p;
+            });
             const begin = () => {
               seen.current = /* @__PURE__ */ new Set();
               const s = R.begin(
@@ -353,18 +414,14 @@
         };
         const finish = async (s) => {
           if (pending.current) return;
-          const p = R.complete(
-            data.current.progress,
-            s,
-            content.policy,
-            runId.current,
-            Date.now()
-          );
-          pending.current = { p, s };
+          const attempt = { s, id: runId.current, at: Date.now() };
+          pending.current = attempt;
           setOutcome(R.result(s, content.policy));
           setScreen("savingResult");
           try {
-            await persist(p);
+            await persist(
+              (p) => R.complete(p, attempt.s, content.policy, attempt.id, attempt.at)
+            );
             pending.current = null;
             setScreen("result");
           } catch (e) {
@@ -372,8 +429,12 @@
           }
         };
         const retrySave = async () => {
+          if (writer.current.isBusy() || !pending.current) return;
+          const attempt = pending.current;
           try {
-            await persist(pending.current.p);
+            await persist(
+              (p) => R.complete(p, attempt.s, content.policy, attempt.id, attempt.at)
+            );
             pending.current = null;
             setError("");
             setScreen("result");
@@ -456,13 +517,14 @@
         };
         const restart = async () => {
           try {
-            const p = R.copy(data.current.progress);
-            p.difficulties[difficulty] = {
-              ...p.difficulties[difficulty],
-              best: 0,
-              hp: 100
-            };
-            await persist(p);
+            await persist((p) => {
+              p.difficulties[difficulty] = {
+                ...p.difficulties[difficulty],
+                best: 0,
+                hp: 100
+              };
+              return p;
+            });
             prepare(1);
           } catch (e) {
             setError(e.message);
@@ -476,9 +538,10 @@
           [f + "-post", ...f === 5 ? ["5-epilogue"] : []],
           async () => {
             try {
-              const p = R.copy(data.current.progress);
-              delete p.pendingStory;
-              await persist(p);
+              await persist((p) => {
+                delete p.pendingStory;
+                return p;
+              });
               setScreen(f === 5 ? "chapterEnd" : "home");
             } catch (e) {
               setError(e.message);
@@ -500,9 +563,9 @@
               onRead: markRead,
               onDone: storyDone
             }
-          ), error && /* @__PURE__ */ React.createElement("div", { className: "mt-error" }, /* @__PURE__ */ React.createElement("p", null, error), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: storyDone }, "\u4FDD\u5B58\u3092\u518D\u8A66\u884C")));
+          ), recoveryPanel, error && /* @__PURE__ */ React.createElement("div", { className: "mt-error" }, /* @__PURE__ */ React.createElement("p", null, error), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: storyDone }, "\u4FDD\u5B58\u3092\u518D\u8A66\u884C")));
         const d = progress.difficulties[difficulty], enemy = content.characters[content.floors[floor]] || {};
-        return /* @__PURE__ */ React.createElement("main", { className: "mt-app", "data-math-screen": screen }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("h1", null, "\u6570\u5B66\u306E\u5854"), /* @__PURE__ */ React.createElement("span", null, "\u5148\u751F\u8A66\u904A\u30FB\u7B2C1\u7AE0"), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: exit }, "\u30BF\u30A4\u30C8\u30EB\u3078")), error && /* @__PURE__ */ React.createElement("p", { className: "mt-error", role: "alert" }, error), screen === "home" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u7B2C1\u7AE0"), /* @__PURE__ */ React.createElement("p", null, content.title), /* @__PURE__ */ React.createElement("nav", null, Object.keys(R.CAPS).map((x) => /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("main", { className: "mt-app", "data-math-screen": screen }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("h1", null, "\u6570\u5B66\u306E\u5854"), /* @__PURE__ */ React.createElement("span", null, "\u5148\u751F\u8A66\u904A\u30FB\u7B2C1\u7AE0"), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: exit }, "\u30BF\u30A4\u30C8\u30EB\u3078")), recoveryPanel, screen === "home" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u7B2C1\u7AE0"), /* @__PURE__ */ React.createElement("p", null, content.title), /* @__PURE__ */ React.createElement("nav", null, Object.keys(R.CAPS).map((x) => /* @__PURE__ */ React.createElement(
           Button,
           {
             key: x,
@@ -578,7 +641,8 @@
           {
             c: content,
             p: progress,
-            onClose: () => persist(data.current.progress).then(() => setScreen("home")).catch((e) => setError(e.message))
+            closing: saving,
+            onClose: () => persist((p) => p).then(() => setScreen("home")).catch((e) => setError(e.message))
           }
         ));
       }

@@ -171,7 +171,7 @@
         const nv = fn(cur);
         if (nv === undefined) return { committed: false };
         await send({ kind: "set", path, v: norm(nv) });
-        return { committed: true };
+        return { committed: true, snapshot: snap(path) };
       },
       onDisconnect() {
         return { remove() {}, cancel() {} };

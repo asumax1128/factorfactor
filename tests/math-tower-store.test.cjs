@@ -12,6 +12,8 @@ function fixture() {
   );
   const db = {
     ref: (path) => ({
+      on: () => {},
+      off: () => {},
       get: async () => ({
         val: () =>
           path.includes("/access/")
@@ -24,7 +26,7 @@ function fixture() {
         const n = fn(value);
         if (n === undefined) return { committed: false };
         value = n;
-        return { committed: true };
+        return { committed: true, snapshot: { val: () => value } };
       },
     }),
   };
@@ -41,7 +43,7 @@ test("trial saves do not write any official path and stale revisions cannot over
   b.progress.difficulties.easy.best = 1;
   await assert.rejects(
     () => t.Store.save(t.db, "uid-b", acct, b.progress),
-    /別の端末/,
+    (e) => e.code === "TOWER_CONFLICT",
   );
   assert.equal(t.read().difficulties.easy.best, 2);
 });
@@ -92,6 +94,7 @@ test("revoked grant during download and failed network writes fail without overw
   u.db.ref = (p) =>
     p.includes("/trialProgress/")
       ? {
+          ...original(p),
           transaction: async () => {
             throw Error("NETWORK_ERROR");
           },

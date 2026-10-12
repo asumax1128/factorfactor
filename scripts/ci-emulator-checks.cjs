@@ -26,3 +26,5 @@ run(["scripts/run-math-tower-rules.cjs"], {
 run(["scripts/run-math-tower-rules.cjs", "production-audit"], {
   MATH_TOWER_AUDIT_DIR: audit,
 });
+
+run(["scripts/run-math-tower-rules.cjs", "save"]);

@@ -13,6 +13,7 @@ async function context(
     pc = false,
     url = "http://localhost/",
     peers = [],
+    onOperation = null,
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -24,6 +25,7 @@ async function context(
     requests = [];
   await ctx.exposeBinding("__fbGet", () => tree);
   await ctx.exposeBinding("__fbOp", async (_, op) => {
+    if (onOperation) await onOperation(op, tree);
     writes.push(op);
     const parts = op.path.split("/");
     let node = tree;
@@ -93,9 +95,13 @@ async function context(
 }
 async function story(page) {
   for (let n = 0; n < 300; n++) {
-    const dialog = page.locator("[data-math-dialog]");
-    if (!(await dialog.count())) return;
-    await dialog.click();
+    const clicked = await page.evaluate(() => {
+      const dialog = document.querySelector("[data-math-dialog]");
+      if (!dialog) return false;
+      dialog.click();
+      return true;
+    });
+    if (!clicked) return;
     await sleep(25);
   }
   throw Error("Story did not finish");
