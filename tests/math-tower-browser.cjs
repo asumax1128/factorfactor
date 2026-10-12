@@ -10,7 +10,7 @@ const {
 const content = JSON.parse(
   fs.readFileSync(
     process.env.MATH_TOWER_CONTENT ||
-      "/workspace/handoff-preservation/chapter1-content.json",
+      require.resolve("../math-tower/chapter1.json"),
   ),
 );
 const seed = () => ({

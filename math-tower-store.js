@@ -18,9 +18,19 @@
   }
   async function load(db, uid, acct) {
     const key = await access(db, uid, acct);
-    const content = (
-      await db.ref(`${BASE}/content/${key}/chapter1`).get()
-    ).val();
+    // Materials are public by explicit approval. Access to trial data still
+    // requires RTDB grant/teacher/UID verification, including after download.
+    let content;
+    if (root.MathTowerContentUrl) {
+      const response = await root.fetch(root.MathTowerContentUrl, {
+        cache: "no-cache",
+      });
+      if (!response.ok) throw Error("第1章の素材を読み込めませんでした");
+      content = await response.json();
+      await access(db, uid, acct);
+    } else {
+      content = (await db.ref(`${BASE}/content/${key}/chapter1`).get()).val();
+    }
     if (!content || content.chapter !== 1 || content.version !== 1)
       throw Error("第1章のコンテンツが準備されていません");
     const value = (await db.ref(`${BASE}/trialProgress/${key}`).get()).val();

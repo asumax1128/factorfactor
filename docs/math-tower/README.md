@@ -74,3 +74,5 @@ npm run test:tower:rules
 今回の作業では本番ルール・本番データ・main・Pages・旧dev/Cloudflareは変更しない。
 
 現行Console全文での監査結果と先生登録の独立差分は [本番ルール監査報告](../../reports/2026-10-12_firebase-production-rules-audit.md) を参照。候補生成先を `MATH_TOWER_AUDIT_DIR` に指定して `npm run test:tower:audit` を実行すると、現行/塔のみ/先生のみ/統合の4候補を順番にローカル検証する。同じエミュレータへ複数ルールスイートを同時実行しない。
+
+2026-10-13の最新指示では本番統合/素材公開/初回設定後の通常自動更新へ移行。[本番設定案](production-setup.md)が最新。公開chapter1.jsonを使用し、DB認可・trial保存を保護する。以前のDB-only素材配信/ローカルZIP標準の記述は履歴。`npm run build:pages` が公開用distを検査して生成する。初回の本番設定は承認待ちで、まだ公開していない。

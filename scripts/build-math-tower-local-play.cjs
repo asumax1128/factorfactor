@@ -57,6 +57,7 @@ h = h.replace(
   /<script src="https:\/\/www.gstatic.com\/firebasejs\/[^"']+"><\/script>/g,
   "",
 );
+h = h.replace(/<script src="math-tower-release.js"><\/script>/g, "");
 h = h.replace(/<script src="suri-data[^"']*"><\/script>/g, "");
 h = h.replace(/<link[^>]+(?:manifest|katex)[^>]*>/g, "");
 h = h.replace(

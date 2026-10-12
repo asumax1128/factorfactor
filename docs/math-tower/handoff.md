@@ -63,3 +63,7 @@
 ## 操作試遊による更新（2026-10-13）
 
 [ローカル試遊報告](../../reports/2026-10-13_math-tower-local-play.md)を参照。CodexプレビューURLがないため、非公開保管repo経由のWindows/Python＋同一Wi-Fi iPhoneモック試遊を提供。入室コードは起動時発行、原稿/画像/JSもサーバー認証後のみ配信。localStorage保存で端末同期なし、本番先生認証ではない。ドラッグ案内・ヌルの2倍表示・HARDのHP0/Lv8説明・塔のみスマホCSSを追加。試遊policy/既存因数分解エンジンは変更なし。配布パッケージを公開repo/Pagesへ置かない。
+
+## 本番統合準備による更新（2026-10-13）
+
+最新方針は[初回本番設定案](production-setup.md)。ローカルZIPを標準にしない。公開許可されたchapter1.jsonをPagesに含め、RTDB grant確認後に読み、trialProgressだけを既存本番DBで保護する。過去の秘匿前提は更新。CIは全チェック後の限定成果物だけをPagesへ渡すが、初回Settings/Firebase/grantの承認までは無効。現行mainを再fetchして同じ56981bdであることを確認。実機/本番管理状態は未検証。通常更新後のmain-history SHA rollbackと初回前バックアップの復旧を区別する。50階への拡張は未実装。
