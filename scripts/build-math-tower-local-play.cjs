@@ -103,4 +103,17 @@ fs.copyFileSync(
   path.join(root, "tools/math-tower-local-play/start.py"),
   path.join(output, "start.py"),
 );
+fs.copyFileSync(
+  path.join(root, "docs/math-tower/local-play.md"),
+  path.join(output, "README.md"),
+);
+fs.writeFileSync(
+  path.join(output, "start-windows.bat"),
+  fs
+    .readFileSync(
+      path.join(root, "tools/math-tower-local-play/start-windows.bat"),
+      "utf8",
+    )
+    .replace(/\r?\n/g, "\r\n"),
+);
 console.log("Private local package prepared (not published).");
