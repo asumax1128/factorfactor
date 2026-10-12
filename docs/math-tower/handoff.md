@@ -67,3 +67,11 @@
 ## 本番統合準備による更新（2026-10-13）
 
 最新方針は[初回本番設定案](production-setup.md)。ローカルZIPを標準にしない。公開許可されたchapter1.jsonをPagesに含め、RTDB grant確認後に読み、trialProgressだけを既存本番DBで保護する。過去の秘匿前提は更新。CIは全チェック後の限定成果物だけをPagesへ渡すが、初回Settings/Firebase/grantの承認までは無効。現行mainを再fetchして同じ56981bdであることを確認。実機/本番管理状態は未検証。通常更新後のmain-history SHA rollbackと初回前バックアップの復旧を区別する。50階への拡張は未実装。
+
+## 初回本番公開完了（2026-10-13）
+
+ユーザーが初回設定A〜Dを承認。Pages Sourceは画面でGitHub Actionsへの切替保存を確認。最新Console exportは前回原本とbyte一致し、17×2＋157を再実行して通過。ユーザーが統合ルール公開、既存先生確認、指定した本人へのgrantのboolean true/string teacher配置、RTDB_RULES_BASELINE secretとMATH_TOWER_AUTODEPLOY=true variableの設定を実施した。accountKey等の個人値はこの公開記録へ転載しない。
+
+正式mainへ6dc521dをfast-forward統合/push。Actions run 38282734762のverify job 114923677831でビルド/単体/エミュレータ/ブラウザ/既存回帰/対戦/アカウント/公開ファイル検査とartifact生成が成功。deploy job 114925477967のconfigure-pages/deployがsuccessであることを公開GitHub jobページから確認。管理APIは引き続きForbiddenで、実ルール/設定の確認根拠はユーザーのConsole提供と画面/報告である。
+
+本番URLは https://asumax1128.github.io/factorfactor/ 。この環境からgithub.io本文のHTTP取得は403で未確認。実機Safari/実アカウントのPC-iPhone保存/再ログイン/競合確認はユーザー試遊待ち。モック/エミュレータと本番実機を混同しない。通常の許可された塔更新は同じ検証workflowを通して自動公開し、ルール/grant等は別承認を維持。初回前の復旧原本と実装bundleは非公開factorのproduction/first-setup-20261013に保全。今回の記録だけで新しい本番deployを起動しないよう作業branchへ保存する。
