@@ -2,7 +2,7 @@
 
 ## 現在の基準
 
-2026-10-12（日本時間）、正式repoのmain `56981bd90b9aa54a39b0db5458b34d867ec39249` を読み取り照合後、`work/math-tower-ch1` を作成。旧devは `0dd2f14b5081bb6acd831003026706d653e8f5ab` の読み取り専用資料。役割はユーザー最終決定、Codex実装/テスト、ChatGPT企画/数学監修/レビュー、Claude将来引き継ぎ。
+2026-10-12（日本時間）、正式repoのmain `56981bd90b9aa54a39b0db5458b34d867ec39249` を読み取り照合後、`math-tower-ch1` を作成。旧devは `0dd2f14b5081bb6acd831003026706d653e8f5ab` の読み取り専用資料。役割はユーザー最終決定、Codex実装/テスト、ChatGPT企画/数学監修/レビュー、Claude将来引き継ぎ。
 
 現在有効な許可/保留は [decisions.md](decisions.md)。過去の旧dev文書にある承認を今回の許可へ転用しない。
 
