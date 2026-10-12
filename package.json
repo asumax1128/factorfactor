@@ -13,7 +13,8 @@
     "test:ci:rules": "node scripts/ci-emulator-checks.cjs",
     "test:accounts": "node tests/account-ranking-regression.cjs",
     "test:audio": "node --test tests/game-audio.test.cjs && node tests/audio-regression.cjs",
-    "test:tower:recovery": "node tests/math-tower-recovery-browser.cjs"
+    "test:tower:recovery": "node tests/math-tower-recovery-browser.cjs",
+    "test:tower:rpg": "node tests/math-tower-rpg-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

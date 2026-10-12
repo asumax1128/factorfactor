@@ -34,33 +34,7 @@
     if (!content || content.chapter !== 1 || content.version !== 1)
       throw Error("第1章のコンテンツが準備されていません");
     const value = (await db.ref(`${BASE}/trialProgress/${key}`).get()).val();
-    const fresh = root.MathTowerRules.fresh();
-    const progress = { ...fresh, ...(value || {}) };
-    for (const k of [
-      "read",
-      "reveal",
-      "seen",
-      "kills",
-      "notes",
-      "newInfo",
-      "history",
-    ])
-      progress[k] = progress[k] || {};
-    progress.difficulties = Object.fromEntries(
-      Object.entries(fresh.difficulties).map(([d, x]) => [
-        d,
-        {
-          ...x,
-          ...((value && value.difficulties && value.difficulties[d]) || {}),
-          records:
-            (value &&
-              value.difficulties &&
-              value.difficulties[d] &&
-              value.difficulties[d].records) ||
-            {},
-        },
-      ]),
-    );
+    const progress = root.MathTowerRules.migrate(value);
     return { key, content, progress };
   }
   function conflict() {

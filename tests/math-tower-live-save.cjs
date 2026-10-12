@@ -49,6 +49,18 @@ function compat(db, hooks = {}) {
   const S = window.MathTowerStore,
     acct = { key: "ateacher" };
   try {
+    const legacy = R.fresh();
+    delete legacy.progressVersion;
+    delete legacy.adventures;
+    delete legacy.clearedFloors;
+    legacy.difficulties.normal.best = 1;
+    legacy.difficulties.normal.records[1] = {
+      rank: "S",
+      accuracy: 1,
+      firstClearAt: 42,
+    };
+    legacy.difficulties.normal.hp = 87;
+    legacy.read.prologue = true;
     await env.withSecurityRulesDisabled(async (c) =>
       F.set(F.ref(c.database()), {
         games: {
@@ -58,7 +70,7 @@ function compat(db, hooks = {}) {
             mathTowerV2: {
               access: { ateacher: { enabled: true, role: "teacher" } },
               content: { ateacher: { chapter1: { chapter: 1, version: 1 } } },
-              trialProgress: { ateacher: { ...R.fresh(), revision: 1 } },
+              trialProgress: { ateacher: { ...legacy, revision: 1 } },
             },
           },
         },
@@ -67,12 +79,20 @@ function compat(db, hooks = {}) {
     const a = compat(env.authenticatedContext("u1").database()),
       b = compat(env.authenticatedContext("u2").database());
     let one = await S.load(a, "u1", acct);
+    assert.equal(one.progress.adventures.normal.floor, 2);
+    assert.equal(one.progress.difficulties.normal.records[1].rank, "S");
+    assert.equal(one.progress.difficulties.normal.records[0], undefined);
+    assert.equal(one.progress.migrationBackup.revision, 1);
     for (let i = 0; i < 5; i++) {
       one.progress = await S.save(a, "u1", acct, one.progress);
       assert.equal(one.progress.revision, i + 2);
     }
+    assert.equal(
+      (await S.load(a, "u1", acct)).progress.migrationBackup.revision,
+      1,
+    );
     console.log(
-      "PASS actual SDK cold-cache and five sequential saves on one client",
+      "PASS actual SDK migrated legacy record, immutable backup, cold-cache and five sequential saves on one client",
     );
     const stale = await S.load(b, "u2", acct);
     one.progress = await S.save(a, "u1", acct, one.progress);

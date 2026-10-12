@@ -327,5 +327,482 @@
   }
 }
 
-.mt-recovery { position: fixed; z-index: 120; bottom: 8px; left: 8px; right: 8px; max-height: 45dvh; overflow: auto; margin: auto; max-width: 720px; padding: 12px; color: #fff; background: #711f25; border: 2px solid #ffcb87; border-radius: 12px; line-height: 1.5; }
-.mt-recovery p { margin: 4px 0; }
+.mt-recovery {
+  position: fixed;
+  z-index: 120;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  max-height: 45dvh;
+  overflow: auto;
+  margin: auto;
+  max-width: 720px;
+  padding: 12px;
+  color: #fff;
+  background: #711f25;
+  border: 2px solid #ffcb87;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+.mt-recovery p {
+  margin: 4px 0;
+}
+
+/* Stable story geometry: dialogue text scrolls inside a fixed lower window. */
+.mt-story {
+  height: 100dvh;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background-repeat: no-repeat;
+}
+.mt-dialog {
+  height: clamp(170px, 25dvh, 230px);
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px;
+}
+.mt-dialog strong,
+.mt-dialog small {
+  flex: none;
+}
+.mt-dialog p {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 8px 0;
+  padding-right: 4px;
+  font-size: clamp(15px, 3.9vw, 19px);
+  -webkit-overflow-scrolling: touch;
+}
+.mt-stage img {
+  height: 100%;
+  align-self: flex-end;
+}
+.mt-notebook {
+  position: absolute;
+  width: min(80%, 460px);
+  max-height: 90%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-2deg);
+  overflow: auto;
+  padding: 24px 24px 28px 38px;
+  border: 1px solid #cbbd91;
+  border-left: 12px solid #8f4d45;
+  border-radius: 6px 12px 12px 6px;
+  color: #243652;
+  background:
+    linear-gradient(90deg, #af946433, transparent 12%),
+    repeating-linear-gradient(#fff9e8 0 31px, #b8cbdc99 31px 32px);
+  box-shadow:
+    0 18px 45px #0008,
+    inset 0 0 35px #d3b26866;
+}
+.mt-notebook:before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #c27c7899;
+}
+.mt-paper-heading {
+  font-size: 12px;
+  letter-spacing: 0.17em;
+  color: #866f49;
+  margin-bottom: 16px;
+}
+.mt-notebook p {
+  line-height: 32px;
+  margin: 0;
+  animation: mtink 650ms ease both;
+}
+.mt-paper-math {
+  font-family: Georgia, serif;
+  font-size: clamp(22px, 6vw, 32px);
+}
+.mt-paper-note {
+  font-size: clamp(16px, 4.5vw, 23px);
+  font-weight: bold;
+  color: #8c5d13;
+  text-shadow: 0 0 12px #ffc83b;
+}
+.mt-paper-burst {
+  animation: mtglow 900ms;
+}
+.mt-tome {
+  position: absolute;
+  width: min(68%, 340px);
+  height: 180px;
+  align-self: center;
+  top: 30%;
+  filter: drop-shadow(0 0 22px #f5d872);
+  display: flex;
+  perspective: 600px;
+}
+.mt-tome i {
+  flex: 1;
+  background: linear-gradient(90deg, #d4b56a, #fff8d9 12%, #ead9a7);
+  border: 4px double #a87c37;
+  border-radius: 8px;
+  transform: rotateY(12deg);
+}
+.mt-tome i:last-child {
+  transform: rotateY(-12deg);
+}
+.mt-tome span {
+  position: absolute;
+  inset: 40% 0 auto;
+  z-index: 1;
+  text-align: center;
+  color: #9a6a12;
+  font-size: 36px;
+}
+@keyframes mtink {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    text-shadow: 0 0 16px #ffc83b;
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* Tower scoped layout: the shared solo board and styles remain unchanged. */
+.mt-battle-app {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: max(6px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  background: radial-gradient(ellipse at top, #203770, #0a1431 72%);
+  color: #fff5dc;
+}
+.mt-battle-app > header {
+  margin: 0 auto 6px;
+  width: 100%;
+  flex: none;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 5px;
+  min-height: 42px;
+}
+.mt-battle-app h1 {
+  font-size: 18px;
+  margin: 0;
+  white-space: nowrap;
+}
+.mt-battle-app header span {
+  font-size: 11px;
+}
+.mt-battle-app header .mt-button {
+  margin: 0;
+  padding: 8px 10px;
+  min-height: 40px;
+  font-size: 12px;
+  background: #111e42;
+  border: 1px solid #667cab;
+}
+.mt-battle {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.mt-enemy {
+  height: clamp(108px, 18dvh, 168px);
+  border: 1px solid #c3a662;
+  overflow: hidden;
+  box-shadow: inset 0 0 24px #09133377;
+}
+.mt-enemy h2 {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 14px;
+  z-index: 1;
+}
+.mt-enemy img {
+  height: calc(100% - 34px);
+  margin-top: 18px;
+  max-width: 80%;
+}
+.mt-enemy > .v7-hpb,
+.mt-enemy > .relative {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 4px;
+  height: 18px !important;
+}
+.mt-enemy-hit img {
+  animation: mt-hit 220ms ease-out;
+}
+.mt-controls {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mt-battle-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  flex: none;
+  min-height: 44px;
+  font-size: clamp(11px, 3.1vw, 15px);
+  font-weight: bold;
+}
+.mt-icon {
+  min-width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #7495d3;
+  background: linear-gradient(#2a427d, #121e42);
+  box-shadow:
+    0 3px 0 #040919,
+    inset 0 1px 0 #ffffff55;
+  font-size: 20px;
+  color: #f7d67a;
+  touch-action: manipulation;
+}
+.mt-icon[aria-pressed="true"] {
+  border-color: #f1cf72;
+  background: linear-gradient(#514629, #292333);
+}
+.mt-battle-notice {
+  height: 18px;
+  min-height: 18px;
+  font-size: 12px;
+  text-align: center;
+  color: #f7dc8a;
+  overflow: hidden;
+}
+.mt-controls > .v7-target {
+  height: clamp(96px, 14dvh, 132px);
+  min-height: 0;
+  flex: none;
+  margin: 0;
+  padding: 12px 8px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mt-controls > .v7-target .fxm {
+  font-size: clamp(28px, 8vw, 46px);
+}
+.mt-controls > .v7-target .v7-poly {
+  min-width: 0;
+  overflow: hidden;
+}
+.mt-controls > .v7-target > div:nth-child(2) {
+  font-size: 10px;
+}
+.mt-board {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  padding-bottom: 4px;
+}
+.mt-board [data-btile] {
+  min-height: 0 !important;
+  font-size: clamp(23px, 6vw, 34px) !important;
+  border-radius: 14px;
+  border-width: 3px !important;
+  box-shadow: 0 5px 0 #050a20 !important;
+}
+.mt-board [data-f*='"type":"const"'] {
+  font-size: clamp(32px, 8vw, 46px) !important;
+}
+.mt-board [data-f*='"type":"quadratic"'] {
+  font-size: clamp(14px, 3.8vw, 24px) !important;
+}
+.mt-adventure-menu {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.mt-adventure-menu .mt-button {
+  min-height: 52px;
+  background: linear-gradient(#263d74, #142449);
+  border: 1px solid #b39a60;
+  box-shadow: 0 4px 0 #0a1430;
+}
+.mt-cutin {
+  z-index: 96;
+  background: #050a22c9;
+  backdrop-filter: blur(4px);
+}
+.mt-cutin section {
+  width: min(100%, 560px);
+  padding: 25px;
+  text-align: center;
+  border: 2px solid #d4ae55;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #233b70, #0d1739);
+  box-shadow:
+    0 0 50px #edc76333,
+    inset 0 0 20px #efd17b11;
+}
+.mt-cutin h2 {
+  font-size: 24px;
+  color: #ffe6a6;
+}
+.mt-cutin p {
+  line-height: 1.8;
+  margin: 16px 0;
+}
+.mt-cutin-emblem {
+  color: #fbd278;
+  font-size: 38px;
+}
+.mt-magic {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 85;
+}
+.mt-magic-card {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d6f3ff;
+  border: 2px solid #fff4b9;
+  border-radius: 12px;
+  color: #173155;
+  font-size: 22px;
+  box-shadow: 0 0 25px #76dfff;
+}
+.mt-magic-orb {
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 10%,
+    #fff0ae 30%,
+    #73ddff 55%,
+    transparent 72%
+  );
+  box-shadow:
+    0 0 20px #61dbff,
+    0 0 40px #b9eeff;
+}
+.mt-impact {
+  position: absolute;
+  inset: 20% 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(circle, #fff7bd99, transparent 50%);
+}
+.mt-impact span {
+  color: #fff0a3;
+  font-size: 32px;
+  font-weight: 900;
+  text-shadow: 0 2px 3px #6f3c1c;
+  animation: mt-damage 240ms ease-out;
+}
+[data-time-stopped="true"] .v7-target .h-full {
+  animation-play-state: paused !important;
+}
+@keyframes mt-hit {
+  0% {
+    filter: brightness(4);
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes mt-damage {
+  from {
+    transform: scale(0.8) translateY(8px);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(1.1) translateY(-8px);
+    opacity: 1;
+  }
+}
+@media (max-height: 650px) and (max-width: 899px) {
+  .mt-enemy {
+    height: 92px;
+  }
+  .mt-controls {
+    gap: 4px;
+  }
+  .mt-battle {
+    gap: 4px;
+  }
+  .mt-battle-app header {
+    min-height: 36px;
+    margin-bottom: 4px;
+  }
+  .mt-battle-app header span {
+    display: none;
+  }
+  .mt-controls > .v7-target {
+    height: 88px;
+  }
+  .mt-dialog {
+    height: 175px;
+  }
+}
+@media (min-width: 900px) and (orientation: landscape) {
+  .mt-battle {
+    grid-template-columns: 1fr 1.3fr;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .mt-enemy {
+    height: 100%;
+    min-height: 0;
+  }
+  .mt-enemy img {
+    height: 70%;
+    margin-top: 10%;
+  }
+  .mt-board {
+    height: auto;
+  }
+  .mt-controls > .v7-target .fxm {
+    font-size: 38px;
+  }
+  .mt-board [data-btile] {
+    font-size: 30px !important;
+  }
+  .mt-board [data-f*='"type":"quadratic"'] {
+    font-size: 22px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-notebook p,
+  .mt-enemy-hit img,
+  .mt-impact span {
+    animation: none;
+  }
+}
+.mt-notebook {
+  height: min(80%, 300px);
+}

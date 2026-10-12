@@ -48,7 +48,7 @@ test("chapter HP carries, no mob heal, boss heals, rewards are idempotent and tr
   }
   assert.equal(q.reward, true);
   assert.equal(q.history.run5.verified, false);
-  assert.equal(q.pendingStory.floor, 5);
+  assert.equal(q.adventures.easy.floor, 5);
   assert.equal(q.difficulties.normal.best, 0);
 });
 test("invalid floors/difficulties/config reject; grades are accuracy-first", () => {

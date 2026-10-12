@@ -3,7 +3,15 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   path = require("node:path");
 const { spawn } = require("node:child_process");
-const { chromium, story, drag, sleep } = require("./browser-harness.cjs");
+const {
+  chromium,
+  story,
+  drag,
+  sleep,
+  newTower,
+  continueTower,
+  dismissCutin,
+} = require("./browser-harness.cjs");
 const pcSmoke = process.argv.includes("--pc-smoke");
 const output =
   process.env.MATH_TOWER_LOCAL_PLAY || "/workspace/tower-local-play";
@@ -55,7 +63,7 @@ v.serve_forever()`,
     await page.locator("[name=code]").fill(config.code);
     await page.getByRole("button", { name: "入室", exact: true }).click();
     await page
-      .getByRole("button", { name: "NORMAL", exact: true })
+      .getByRole("button", { name: "はじめから", exact: true })
       .waitFor({ timeout: 10000 })
       .catch(async (e) => {
         console.log(
@@ -83,22 +91,25 @@ v.serve_forever()`,
       "PASS local HTTP login; all assets gated; traversal and foreign-origin login denied; mock game boot",
     );
     for (let floor = 1; floor <= 5; floor++) {
-      await page
-        .getByRole("button", { name: "冒険を続ける", exact: true })
-        .click();
+      if (floor === 1) await newTower(page);
+      else await continueTower(page);
       if (floor === 1)
         assert(
           (await page.locator(".mt-instructions").innerText()).includes("6枚"),
         );
-      if (floor === 5)
-        assert(
-          (await page.locator(".mt-instructions").innerText()).includes("2倍"),
-        );
+
       await page
         .getByRole("button", { name: "試練を開始", exact: true })
         .click();
       await page.locator("[data-math-dialog]").waitFor();
-      await story(page);
+      await story(page, floor !== 5);
+      if (floor === 5) {
+        assert.match(
+          await page.locator("[data-math-cutin]").innerText(),
+          /2倍/,
+        );
+        await dismissCutin(page);
+      }
       await page.locator("[data-btile]").first().waitFor();
       assert.equal(await page.locator("[data-btile]").count(), 6);
       if (pcSmoke) {
@@ -196,7 +207,9 @@ v.serve_forever()`,
     const before = await page.evaluate(() => localStorage.getItem("progress"));
     assert(before);
     await page.reload();
-    await page.getByRole("button", { name: "NORMAL", exact: true }).waitFor();
+    await page
+      .getByRole("button", { name: "はじめから", exact: true })
+      .waitFor();
     assert.equal(
       await page.evaluate(() => localStorage.getItem("progress")),
       before,
@@ -211,9 +224,7 @@ v.serve_forever()`,
       "PASS localStorage reload; six touch targets; no horizontal overflow; no external HTTP requests; no page errors",
     );
     await page.getByRole("button", { name: "HARD", exact: true }).click();
-    await page
-      .getByRole("button", { name: "冒険を続ける", exact: true })
-      .click();
+    await continueTower(page);
     await page.getByRole("button", { name: "試練を開始", exact: true }).click();
     await page.locator("[data-math-dialog]").waitFor();
     await story(page);

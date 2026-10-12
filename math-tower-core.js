@@ -134,6 +134,9 @@
   function fresh() {
     return {
       schemaVersion: 1,
+      progressVersion: 2,
+      adventures: {},
+      clearedFloors: {},
       purpose: "trial",
       revision: 0,
       startedAt: 0,
@@ -151,13 +154,141 @@
       ),
     };
   }
-  function complete(progress, s, p, id, now) {
-    const n = copy(progress);
+  // The RTDB envelope remains schemaVersion 1; progressVersion is the app format.
+  function migrate(value) {
+    const raw = copy(value || {}),
+      n = { ...fresh(), ...raw };
+    if ((raw.progressVersion || 1) > 2 || (raw.schemaVersion || 1) > 1)
+      throw Error(
+        "この記録には新しい版の数学の塔が必要です。更新してから読み込んでください",
+      );
+    for (const k of [
+      "read",
+      "reveal",
+      "seen",
+      "kills",
+      "notes",
+      "newInfo",
+      "history",
+      "clearedFloors",
+      "adventures",
+    ])
+      n[k] = n[k] || {};
+    n.difficulties = Object.fromEntries(
+      Object.keys(CAPS).map((d) => [
+        d,
+        {
+          best: 0,
+          hp: 100,
+          ...(raw.difficulties || {})[d],
+          records: Object.fromEntries(
+            Object.entries(
+              ((raw.difficulties || {})[d] || {}).records || {},
+            ).filter(([, r]) => r != null),
+          ),
+        },
+      ]),
+    );
+    if (raw.progressVersion !== 2 && value) {
+      n.migrationBackup = raw; // immutable original, including unknown fields
+      n.migration = { from: 1, to: 2 };
+      for (const d of Object.keys(CAPS)) {
+        const old = (raw.difficulties || {})[d];
+        if (!old) continue;
+        const pending =
+          raw.pendingStory && raw.pendingStory.difficulty === d
+            ? raw.pendingStory
+            : null;
+        const played =
+          old.best > 0 ||
+          old.hp < 100 ||
+          Object.values(raw.history || {}).some(
+            (x) => x && x.difficulty === d,
+          ) ||
+          pending ||
+          raw.activeDifficulty === d;
+        if (old.adventure && old.adventure.difficulty === d)
+          n.adventures[d] = copy(old.adventure);
+        else if (!n.adventures[d] && played)
+          n.adventures[d] = {
+            difficulty: d,
+            floor: pending ? pending.floor : Math.min(5, old.best + 1),
+            hp: old.hp,
+            phase: pending
+              ? "post"
+              : old.best >= 5
+                ? "cleared"
+                : old.hp <= 0
+                  ? "defeated"
+                  : "ready",
+            startedAt: raw.startedAt || 0,
+          };
+      }
+      // A legacy visit with no result had no difficulty field: preserve evidence,
+      // do not guess which difficulty that visit belonged to.
+      delete n.pendingStory;
+    }
+    for (const d of Object.values(n.difficulties)) {
+      if (raw.progressVersion !== 2)
+        for (let f = 1; f <= d.best; f++) n.clearedFloors[f] = true;
+      for (const f of Object.keys(d.records)) n.clearedFloors[f] = true;
+    }
+    for (const [f, count] of Object.entries(n.kills))
+      if (count > 0) n.clearedFloors[f] = true;
+    n.progressVersion = 2;
+    return n;
+  }
+  function startAdventure(progress, difficulty, now) {
+    if (!CAPS[difficulty]) throw Error("Invalid difficulty");
+    const n = migrate(progress);
+    n.adventures[difficulty] = {
+      difficulty,
+      floor: 1,
+      hp: 100,
+      phase: "ready",
+      startedAt: now,
+    };
+    return n;
+  }
+  function restoreAdventure(progress, difficulty) {
+    const n = copy(progress),
+      original = migrate(n.migrationBackup).adventures[difficulty];
+    if (!n.migrationBackup || !original)
+      throw Error("復元できる冒険がありません");
+    n.adventures[difficulty] = copy(original);
+    return n;
+  }
+  function finishStory(progress, difficulty) {
+    const n = copy(progress),
+      a = n.adventures[difficulty];
+    if (a && a.phase === "post") {
+      a.phase = a.floor === 5 ? "cleared" : "ready";
+      a.floor = Math.min(5, a.floor + 1);
+    }
+    return n;
+  }
+  function complete(progress, s, p, id, now, mode = "adventure") {
+    const n = migrate(progress);
     if (n.history[id]) return n;
     const r = result(s, p);
-    n.history[id] = { ...r, floor: s.floor, difficulty: s.difficulty, at: now };
+    n.history[id] = {
+      ...r,
+      floor: s.floor,
+      difficulty: s.difficulty,
+      mode,
+      at: now,
+    };
     const d = n.difficulties[s.difficulty];
-    d.hp = s.won && s.floor === 5 ? Math.min(100, s.hp + p.bossHeal) : s.hp;
+    if (mode === "adventure") {
+      d.hp = s.won && s.floor === 5 ? Math.min(100, s.hp + p.bossHeal) : s.hp;
+      n.adventures[s.difficulty] = {
+        ...(n.adventures[s.difficulty] || {}),
+        difficulty: s.difficulty,
+        floor: s.floor,
+        hp: d.hp,
+        phase: s.won ? "post" : "defeated",
+      };
+    }
     if (s.won) {
       const old = d.records[s.floor];
       const better =
@@ -179,7 +310,7 @@
       n.notes[s.floor] = true;
       n.newInfo["floor" + s.floor] = true;
       n.kills[s.floor] = (n.kills[s.floor] || 0) + 1;
-      n.pendingStory = { floor: s.floor, difficulty: s.difficulty };
+      n.clearedFloors[s.floor] = true;
       if (s.floor === 5) {
         n.fragment = true;
         n.reward = true;
@@ -197,6 +328,10 @@
     result,
     fresh,
     complete,
+    migrate,
+    startAdventure,
+    restoreAdventure,
+    finishStory,
     copy,
   };
   if (typeof module !== "undefined") module.exports = api;

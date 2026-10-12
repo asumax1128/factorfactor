@@ -1,6 +1,8 @@
 const fs = require("node:fs"),
   assert = require("node:assert/strict");
 const {
+  newTower,
+  continueTower,
   chromium,
   context,
   story,
@@ -70,13 +72,9 @@ const seed = () => ({
       await page
         .getByRole("button", { name: "数学の塔", exact: false })
         .click();
-      await page
-        .getByRole("button", { name: difficulty.toUpperCase(), exact: true })
-        .click();
+      await newTower(page, difficulty);
       for (let floor = 1; floor <= 5; floor++) {
-        await page
-          .getByRole("button", { name: "冒険を続ける", exact: true })
-          .click();
+        if (floor > 1) await continueTower(page, difficulty);
         await page
           .getByRole("button", { name: "試練を開始", exact: true })
           .click();
@@ -157,10 +155,11 @@ const seed = () => ({
       await page
         .getByRole("button", { name: "数学の塔", exact: false })
         .click();
-      await page
-        .getByRole("button", { name: difficulty.toUpperCase(), exact: true })
-        .click();
-      assert.ok((await page.locator(".mt-panel").innerText()).includes("5/5"));
+      await page.getByRole("button", { name: "続きから", exact: true }).click();
+      assert.equal(
+        await page.locator(`[data-adventure=${difficulty}]`).innerText(),
+        "第1章クリア",
+      );
       t.tree.games.factor.logins.ateacher["teacher-second"] = "1234";
       const other = await context(browser, {
         tree: t.tree,
@@ -171,10 +170,11 @@ const seed = () => ({
         .getByRole("button", { name: "数学の塔", exact: false })
         .click();
       await other.page
-        .getByRole("button", { name: difficulty.toUpperCase(), exact: true })
+        .getByRole("button", { name: "続きから", exact: true })
         .click();
-      assert.ok(
-        (await other.page.locator(".mt-panel").innerText()).includes("5/5"),
+      assert.equal(
+        await other.page.locator(`[data-adventure=${difficulty}]`).innerText(),
+        "第1章クリア",
       );
       await other.ctx.close();
       assert.deepEqual(t.errors, []);
@@ -191,9 +191,7 @@ const seed = () => ({
     const t = await context(browser, { tree: seed() }),
       page = t.page;
     await page.getByRole("button", { name: "数学の塔", exact: false }).click();
-    await page
-      .getByRole("button", { name: "冒険を続ける", exact: true })
-      .click();
+    await newTower(page);
     await page.getByRole("button", { name: "試練を開始", exact: true }).click();
     await page.locator("[data-math-dialog]").waitFor();
     await story(page);

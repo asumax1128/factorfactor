@@ -32,6 +32,16 @@
     let bg = ev.bg || (ev.floor > 0 ? "f0" + ev.floor : null);
     for (let j = 0; j <= li; j++) if (lines[j].bg) bg = lines[j].bg;
     const active = l.who;
+    const paperLines = lines
+      .slice(0, li + 1)
+      .filter((x) => ["math", "note"].includes(x.kind));
+    const bookSeen = lines
+      .slice(0, li + 1)
+      .some((x) => ["book", "bookopen"].includes(x.fx));
+    const notebook = ev.id === "prologue" && bg === "classroom" && !bookSeen;
+    const book =
+      ["book", "bookopen"].includes(l.fx) ||
+      (ev.id === "prologue" && bg === "classroom" && bookSeen);
     let sceneStart = 0;
     for (let j = 0; j <= li; j++) if (lines[j].bg) sceneStart = j;
     const visible = lines
@@ -108,7 +118,34 @@
               }}
             />
           ))}
-          {!ids.length && (
+          {notebook && (
+            <div
+              className={
+                "mt-notebook " + (l.fx === "particles" ? "mt-paper-burst" : "")
+              }
+              aria-label="ノートの紙面"
+            >
+              <div className="mt-paper-heading">FACTOR × FACTOR</div>
+              {paperLines.map((x, i) => (
+                <p
+                  key={i}
+                  className={
+                    x.kind === "note" ? "mt-paper-note" : "mt-paper-math"
+                  }
+                >
+                  {x.text}
+                </p>
+              ))}
+            </div>
+          )}
+          {book && !notebook && (
+            <div className="mt-tome" aria-label="光る数理の書">
+              <span>✦</span>
+              <i />
+              <i />
+            </div>
+          )}
+          {!ids.length && !notebook && !book && (
             <span className="mt-symbol">
               {["book", "bookopen"].includes(l.fx)
                 ? "📖"
@@ -125,6 +162,131 @@
           <small>タップで次へ ▼</small>
         </button>
       </div>
+    );
+  }
+  function CutIn({ info, onConfirm }) {
+    return (
+      <div
+        className="mt-overlay mt-cutin"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mt-cutin-title"
+        data-math-cutin={info.id}
+      >
+        <section>
+          <div className="mt-cutin-emblem">✦</div>
+          <h2 id="mt-cutin-title">{info.title}</h2>
+          <p>{info.text}</p>
+          <Button autoFocus onClick={onConfirm}>
+            確認して再開
+          </Button>
+        </section>
+      </div>
+    );
+  }
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function MagicAttack({ attack, paused, onImpact }) {
+    const layer = useRef(null),
+      pause = useRef(paused),
+      done = useRef(onImpact);
+    pause.current = paused;
+    done.current = onImpact;
+    useEffect(() => {
+      const el = layer.current;
+      let raf,
+        last,
+        elapsed = 0,
+        alive = true;
+      const cards = attack.cards.map(({ html, rect }) => {
+        const ghost = document.createElement("div");
+        ghost.className = "mt-magic-card";
+        ghost.innerHTML = html;
+        ghost.style.width = rect.width + "px";
+        ghost.style.height = rect.height + "px";
+        el.appendChild(ghost);
+        return ghost;
+      });
+      const orb = document.createElement("div");
+      orb.className = "mt-magic-orb";
+      el.appendChild(orb);
+      const frame = (now) => {
+        if (!alive) return;
+        if (last !== undefined && !pause.current)
+          elapsed += Math.min(50, now - last);
+        last = now;
+        const center = (node) => {
+          const r = node.getBoundingClientRect();
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        };
+        const q = document.querySelector(".mt-controls [data-poly]"),
+          enemy = document.querySelector(".mt-enemy img");
+        if (!q || !enemy) return;
+        const target = center(q),
+          hit = center(enemy),
+          origin = attack.cards.map((x) => ({
+            x: x.rect.left + x.rect.width / 2,
+            y: x.rect.top + x.rect.height / 2,
+          }));
+        // Layout is measured each frame: rotation/address-bar/viewport changes are safe.
+        const liveCards = attack.ids.map((id) =>
+          document.querySelector('[data-btile="' + id + '"]'),
+        );
+        liveCards.forEach((node, i) => {
+          if (node) origin[i] = center(node);
+        });
+        const middle = {
+          x: (origin[0].x + origin[1].x) / 2,
+          y: (origin[0].y + origin[1].y) / 2,
+        };
+        cards.forEach((card, i) => {
+          const t = Math.min(1, elapsed / 160),
+            fly = Math.min(1, Math.max(0, (elapsed - 160) / 180));
+          const x = lerp(lerp(origin[i].x, middle.x, t), target.x, fly),
+            y = lerp(lerp(origin[i].y, middle.y, t), target.y, fly);
+          card.style.left = x + "px";
+          card.style.top = y + "px";
+          card.style.transform = `translate(-50%,-50%) scale(${1 - fly * 0.55}) rotate(${(i ? 1 : -1) * (1 - t) * 10}deg)`;
+          card.style.opacity =
+            elapsed < 340 ? 1 : Math.max(0, 1 - (elapsed - 340) / 80);
+        });
+        const flight = Math.min(1, Math.max(0, (elapsed - 400) / 220));
+        orb.style.left = lerp(target.x, hit.x, flight) + "px";
+        orb.style.top =
+          lerp(target.y, hit.y, flight) -
+          Math.sin(flight * Math.PI) * 35 +
+          "px";
+        orb.style.opacity = elapsed >= 340 ? 1 : 0;
+        el.dataset.phase =
+          elapsed < 160
+            ? "merge"
+            : elapsed < 340
+              ? "formula"
+              : elapsed < 400
+                ? "energy"
+                : elapsed < 620
+                  ? "flight"
+                  : "impact";
+        if (elapsed >= 620) {
+          alive = false;
+          done.current();
+          return;
+        }
+        raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+      return () => {
+        alive = false;
+        cancelAnimationFrame(raf);
+        el.replaceChildren();
+      };
+    }, [attack]);
+    return (
+      <div
+        ref={layer}
+        className="mt-magic"
+        aria-hidden="true"
+        data-math-attack=""
+      />
     );
   }
   function Book({ c, p, onClose, closing }) {
@@ -193,6 +355,28 @@
                 {d.toUpperCase()}：{x.best}/5階 {x.records[5] ? "章クリア" : ""}
               </p>
             ))}
+            {Object.entries(p.difficulties).flatMap(([d, x]) =>
+              Object.entries(x.records)
+                .filter(([, r]) => r != null)
+                .map(([floor, r]) => (
+                  <p key={d + floor}>
+                    {d.toUpperCase()} 第{floor}階：最高{r.rank} ・ 正答率
+                    {Math.round(r.accuracy * 100)}%
+                  </p>
+                )),
+            )}
+            <h3>最近の戦績</h3>
+            {Object.entries(p.history)
+              .filter(([, r]) => r != null)
+              .sort(([, a], [, b]) => b.at - a.at)
+              .slice(0, 10)
+              .map(([id, r]) => (
+                <p key={id}>
+                  {String(r.difficulty || "").toUpperCase()} 第{r.floor}階 ・{" "}
+                  {r.mode === "replay" ? "再挑戦" : "本編"} ・{" "}
+                  {r.rank || "敗北"}
+                </p>
+              ))}
             {p.reward && <p>零光の探索者（先生試遊の記録）</p>}
           </article>
         )}
@@ -341,7 +525,11 @@
         [muted, setMuted] = H.useGameMute(),
         [outcome, setOutcome] = useState(null),
         [saving, setSaving] = useState(false),
-        [recovering, setRecovering] = useState(false);
+        [recovering, setRecovering] = useState(false),
+        [playMode, setPlayMode] = useState("adventure"),
+        [attack, setAttack] = useState(null),
+        [impact, setImpact] = useState(null),
+        [cutin, setCutin] = useState(null);
       const data = useRef(null),
         bref = useRef(null),
         screenRef = useRef(screen),
@@ -356,10 +544,23 @@
         life = useRef(true),
         writer = useRef(null),
         recoveryBusy = useRef(false),
-        acctRef = useRef(acct);
+        acctRef = useRef(acct),
+        attackRef = useRef(null),
+        cutinRef = useRef(null),
+        explained = useRef(new Set()),
+        animationTimer = useRef(null);
       acctRef.current = acct;
       screenRef.current = screen;
       pausedRef.current = paused;
+      cutinRef.current = cutin;
+      const explain = (info) => {
+        if (!explained.current.has(info.id)) {
+          explained.current.add(info.id);
+          cutinRef.current = info;
+          setCutin(info);
+        }
+      };
+      useEffect(() => () => clearTimeout(animationTimer.current), []);
       const setData = (v) => {
         data.current = v;
         setLoaded(v);
@@ -401,6 +602,11 @@
           setEvents([]);
           setData(latest);
           setError("");
+          attackRef.current = null;
+          setAttack(null);
+          setCutin(null);
+          cutinRef.current = null;
+          guard.current = false;
           setScreen("home");
         } catch (e) {
           if (life.current) setError(e.message);
@@ -487,9 +693,9 @@
         return () => document.removeEventListener("visibilitychange", hide);
       }, []);
       useEffect(() => {
-        sound.bgm(screen === "battle" && !paused);
+        sound.bgm(screen === "battle" && !paused && !cutin);
         return () => sound.bgm(false);
-      }, [screen, paused, muted]);
+      }, [screen, paused, muted, cutin]);
       useEffect(() => {
         if (!saving) return;
         const timer = setTimeout(() => {
@@ -502,6 +708,30 @@
       }, [saving]);
       const content = loaded && loaded.content,
         progress = loaded && loaded.progress;
+      useEffect(() => {
+        if (screen !== "battle") return;
+        const fit = () =>
+          document
+            .querySelectorAll(
+              ".mt-board [data-btile] > .fxm, .mt-controls .v7-poly > .fxm",
+            )
+            .forEach((text) => {
+              text.style.fontSize = "";
+              const base = parseFloat(getComputedStyle(text).fontSize),
+                width = text.getBoundingClientRect().width,
+                parent = text.parentElement;
+              const available = parent.clientWidth - 10;
+              if (width > available && available > 0)
+                text.style.fontSize = (base * available) / width + "px";
+            });
+        const observer = new ResizeObserver(fit);
+        document
+          .querySelectorAll(".mt-board [data-btile],.mt-controls .v7-poly")
+          .forEach((x) => observer.observe(x));
+        fit();
+        document.fonts.ready.then(() => life.current && fit());
+        return () => observer.disconnect();
+      }, [screen, prob]);
       const updateBattle = (n) => {
         bref.current = n;
         setBattle(n);
@@ -543,24 +773,36 @@
         setFloor(f);
         setScreen("prepare");
       };
-      const continueAdventure = () => {
-        const pd = data.current.progress.pendingStory;
-        if (pd) {
-          setFloor(pd.floor);
-          setDifficulty(pd.difficulty);
-          showPost(pd.floor);
+      const continueAdventure = (chosen = difficulty) => {
+        const adventure = data.current.progress.adventures[chosen];
+        if (!adventure) return;
+        setDifficulty(chosen);
+        setPlayMode("adventure");
+        setFloor(adventure.floor);
+        if (adventure.phase === "post") {
+          showPost(adventure.floor, chosen, "adventure");
           return;
         }
-        const d = data.current.progress.difficulties[difficulty];
-        if (d.best >= 5) {
+        if (adventure.phase === "cleared") {
           setScreen("chapterEnd");
           return;
         }
-        if (d.hp <= 0) {
+        if (adventure.hp <= 0) {
           setScreen("restart");
           return;
         }
-        prepare(d.best + 1);
+        prepare(adventure.floor);
+      };
+      const newAdventure = async (chosen) => {
+        if (writer.current.isBusy()) return;
+        try {
+          await persist((p) => R.startAdventure(p, chosen, Date.now()));
+          setDifficulty(chosen);
+          setPlayMode("adventure");
+          prepare(1);
+        } catch (e) {
+          setError(e.message);
+        }
       };
       const start = async () => {
         if (writer.current.isBusy() || guard.current) return;
@@ -570,6 +812,8 @@
           await persist((p) => {
             p.startedAt = p.startedAt || Date.now();
             p.seen[floor] = true;
+            if (playMode === "adventure")
+              p.adventures[difficulty].phase = "battle";
             return p;
           });
           const begin = () => {
@@ -577,7 +821,9 @@
             const s = R.begin(
               floor,
               difficulty,
-              data.current.progress.difficulties[difficulty].hp,
+              playMode === "replay"
+                ? 100
+                : data.current.progress.adventures[difficulty].hp,
               content.policy,
             );
             runId.current = crypto.randomUUID();
@@ -588,7 +834,20 @@
             setPaused(false);
             setOutcome(null);
             setNotice("");
+            explained.current = new Set();
             setScreen("battle");
+            if (floor === 5)
+              explain({
+                id: "nul",
+                title: "零の番人ヌル",
+                text: `能力：誤答ダメージ2倍（HP −${content.policy.miss * 2}）。時間切れはHP −${content.policy.timeout}です。`,
+              });
+            else if (difficulty === "hard")
+              explain({
+                id: "hard-rule",
+                title: "HARDの撃破条件",
+                text: "敵HPを削り切り、Lv8以上の問題に正解すると撃破できます。",
+              });
           };
           const ids = [];
           if (floor === 1) {
@@ -605,13 +864,25 @@
       };
       const finish = async (s) => {
         if (pending.current) return;
-        const attempt = { s, id: runId.current, at: Date.now() };
+        const attempt = {
+          s,
+          id: runId.current,
+          at: Date.now(),
+          mode: playMode,
+        };
         pending.current = attempt;
         setOutcome(R.result(s, content.policy));
         setScreen("savingResult");
         try {
           await persist((p) =>
-            R.complete(p, attempt.s, content.policy, attempt.id, attempt.at),
+            R.complete(
+              p,
+              attempt.s,
+              content.policy,
+              attempt.id,
+              attempt.at,
+              attempt.mode,
+            ),
           );
           pending.current = null;
           setScreen("result");
@@ -624,7 +895,14 @@
         const attempt = pending.current;
         try {
           await persist((p) =>
-            R.complete(p, attempt.s, content.policy, attempt.id, attempt.at),
+            R.complete(
+              p,
+              attempt.s,
+              content.policy,
+              attempt.id,
+              attempt.at,
+              attempt.mode,
+            ),
           );
           pending.current = null;
           setError("");
@@ -634,10 +912,11 @@
         }
       };
       useEffect(() => {
-        if (screen !== "battle" || paused) return;
+        if (screen !== "battle" || paused || attack || cutin) return;
         const timer = setInterval(() => {
           const s = bref.current;
-          if (!s || s.won || s.hp <= 0) return;
+          if (!s || s.won || s.hp <= 0 || guard.current || cutinRef.current)
+            return;
           setSeconds(
             Math.max(
               0,
@@ -656,12 +935,13 @@
           }
         }, 100);
         return () => clearInterval(timer);
-      }, [screen, paused, content]);
+      }, [screen, paused, content, attack, cutin]);
       const match = (a, b) => {
         if (
           screenRef.current !== "battle" ||
           pausedRef.current ||
-          guard.current
+          guard.current ||
+          cutinRef.current
         )
           return;
         const s = bref.current,
@@ -671,32 +951,81 @@
         guard.current = true;
         const ok = H.polyEqual(H.multiply(t1.factor, t2.factor), prob.poly),
           n = R.answer(s, ok, Date.now() - clock.current, content.policy);
-        updateBattle(n);
         setFlash({
           [a]: ok ? "correct" : "wrong",
           [b]: ok ? "correct" : "wrong",
         });
-        sound.play(ok ? "ok" : "miss");
-        setNotice(
-          ok
-            ? `正解！ コンボ×${R.COMBO[Math.min(3, n.combo - 1)]}`
-            : s.floor === 5
-              ? "反撃！ 誤答ダメージ増加"
-              : "誤答：同じレベルで再挑戦",
-        );
-        if (n.won || n.hp <= 0) {
-          guard.current = false;
-          finish(n);
-          return;
+        if (ok) {
+          const nodes = [a, b].map((id) =>
+            document.querySelector('[data-btile="' + id + '"]'),
+          );
+          const fx = {
+            ids: [a, b],
+            cards: nodes.map((node) => ({
+              html: node.innerHTML,
+              rect: node.getBoundingClientRect().toJSON(),
+            })),
+            next: n,
+            damage: n.damage - s.damage,
+          };
+          attackRef.current = fx;
+          setAttack(fx);
+        } else {
+          sound.play("miss");
+          updateBattle(n);
+          setNotice("誤答：同じレベルで再挑戦");
+          if (n.hp <= 0) {
+            guard.current = false;
+            finish(n);
+            return;
+          }
+          setProb(mk(n.lv));
+          clock.current = Date.now();
+          animationTimer.current = setTimeout(() => {
+            guard.current = false;
+            if (life.current) setFlash({});
+          }, 180);
         }
-        setProb(mk(n.lv));
-        clock.current = Date.now();
-        setTimeout(() => {
+      };
+      const hitEnemy = () => {
+        const fx = attackRef.current;
+        if (!fx || screenRef.current !== "battle") return;
+        attackRef.current = null;
+        setAttack(null);
+        updateBattle(fx.next);
+        setImpact({ id: runId.current + fx.next.correct, damage: fx.damage });
+        sound.play("ok");
+        setNotice(`正解！ コンボ×${R.COMBO[Math.min(3, fx.next.combo - 1)]}`);
+        animationTimer.current = setTimeout(() => {
+          if (!life.current || screenRef.current !== "battle") return;
+          setImpact(null);
+          setFlash({});
           guard.current = false;
-          if (life.current) setFlash({});
-        }, 180);
+          if (fx.next.won) {
+            finish(fx.next);
+            return;
+          }
+          setProb(mk(fx.next.lv));
+          clock.current = Date.now();
+          setSeconds(Math.ceil(content.policy.problemMs / 1000));
+          if (
+            difficulty === "hard" &&
+            floor !== 5 &&
+            fx.next.damage >= 8 &&
+            !fx.next.solvedHigh
+          )
+            explain({
+              id: "hard-remaining",
+              title: "あと一歩！",
+              text: "敵HPは0です。Lv8以上の問題への正解で撃破できます。",
+            });
+        }, 110);
       };
       const resume = () => {
+        if (attackRef.current || guard.current) {
+          setPaused(false);
+          return;
+        }
         let next = null;
         for (let i = 0; i < 200; i++) {
           const candidate = mk(bref.current.lv);
@@ -721,35 +1050,22 @@
         setSeconds(Math.ceil(content.policy.problemMs / 1000));
         setPaused(false);
       };
-      const restart = async () => {
-        try {
-          await persist((p) => {
-            p.difficulties[difficulty] = {
-              ...p.difficulties[difficulty],
-              best: 0,
-              hp: 100,
-            };
-            return p;
-          });
-          prepare(1);
-        } catch (e) {
-          setError(e.message);
-        }
-      };
+      const restart = () =>
+        playMode === "replay" ? prepare(floor) : newAdventure(difficulty);
       const exit = () => {
         sound.bgm(false);
         onExit();
       };
-      const showPost = (f) =>
+      const showPost = (f, chosen = difficulty, mode = playMode) =>
         showStory(
           [f + "-post", ...(f === 5 ? ["5-epilogue"] : [])],
           async () => {
             try {
-              await persist((p) => {
-                delete p.pendingStory;
-                return p;
-              });
-              setScreen(f === 5 ? "chapterEnd" : "home");
+              if (mode === "adventure")
+                await persist((p) => R.finishStory(p, chosen));
+              setScreen(
+                mode === "adventure" && f === 5 ? "chapterEnd" : "home",
+              );
             } catch (e) {
               setError(e.message);
             }
@@ -787,10 +1103,14 @@
             )}
           </>
         );
-      const d = progress.difficulties[difficulty],
+      const d = progress.adventures[difficulty] || { hp: 100, floor: 1 },
         enemy = content.characters[content.floors[floor]] || {};
       return (
-        <main className="mt-app" data-math-screen={screen}>
+        <main
+          className={"mt-app" + (screen === "battle" ? " mt-battle-app" : "")}
+          data-math-screen={screen}
+          data-time-stopped={paused || !!attack || !!cutin || !!impact}
+        >
           <header>
             <h1>数学の塔</h1>
             <span>先生試遊・第1章</span>
@@ -803,23 +1123,22 @@
             <section className="mt-panel">
               <h2>第1章</h2>
               <p>{content.title}</p>
-              <nav>
-                {Object.keys(R.CAPS).map((x) => (
-                  <Button
-                    key={x}
-                    aria-pressed={difficulty === x}
-                    onClick={() => setDifficulty(x)}
-                  >
-                    {x.toUpperCase()}
-                  </Button>
-                ))}
+              <nav className="mt-adventure-menu">
+                <Button onClick={() => setScreen("newSelect")}>
+                  はじめから
+                </Button>
+                <Button onClick={() => setScreen("continueSelect")}>
+                  続きから
+                </Button>
+                <Button
+                  onClick={() => {
+                    setPlayMode("replay");
+                    setScreen("floorSelect");
+                  }}
+                >
+                  クリアした階を選ぶ
+                </Button>
               </nav>
-              <p>
-                進行 {d.best}/5階 ・ HP {d.hp}
-              </p>
-              <Button disabled={saving} onClick={continueAdventure}>
-                冒険を続ける
-              </Button>
               <Button
                 onClick={() => {
                   const p = R.copy(data.current.progress);
@@ -840,29 +1159,170 @@
                   プロローグを読み返す
                 </Button>
               )}
+              {progress.migrationBackup && (
+                <Button onClick={() => setScreen("migrationBackup")}>
+                  移行前の記録・復旧
+                </Button>
+              )}
               <p>試遊記録はランキング・学習履歴・公式称号へ反映されません。</p>
+            </section>
+          )}
+          {screen === "migrationBackup" && (
+            <section className="mt-panel">
+              <h2>移行前の記録・復旧</h2>
+              <p>
+                初回移行前の記録を保存できます。個人の試遊記録のため公開しないでください。
+              </p>
+              <Button
+                onClick={() => {
+                  const url = URL.createObjectURL(
+                    new Blob(
+                      [JSON.stringify(progress.migrationBackup, null, 2)],
+                      { type: "application/json" },
+                    ),
+                  );
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "math-tower-before-migration.json";
+                  a.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                バックアップを保存
+              </Button>
+              {Object.keys(R.migrate(progress.migrationBackup).adventures).map(
+                (chosen) => (
+                  <Button
+                    key={chosen}
+                    onClick={() => {
+                      setDifficulty(chosen);
+                      setScreen("restoreConfirm");
+                    }}
+                  >
+                    {chosen.toUpperCase()}の移行前の冒険を復元
+                  </Button>
+                ),
+              )}
+              <p>
+                復元は選んだ難易度の進行中の冒険だけを戻します。移行後の図鑑・学習記録・クリア履歴・最高評価は消しません。
+              </p>
+              <Button onClick={() => setScreen("home")}>戻る</Button>
+            </section>
+          )}
+          {screen === "restoreConfirm" && (
+            <section className="mt-panel" role="dialog" aria-modal="true">
+              <h2>移行前の{difficulty.toUpperCase()}の冒険を復元しますか？</h2>
+              <p>
+                この難易度の現在の冒険を置き換えます。ほかの冒険や永続記録はそのままです。
+              </p>
+              <Button
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    await persist((p) => R.restoreAdventure(p, difficulty));
+                    setScreen("home");
+                  } catch (e) {
+                    setError(e.message);
+                  }
+                }}
+              >
+                確認して復元
+              </Button>
+              <Button onClick={() => setScreen("migrationBackup")}>
+                キャンセル
+              </Button>
+            </section>
+          )}
+          {["newSelect", "continueSelect", "replaySelect"].includes(screen) && (
+            <section className="mt-panel">
+              <h2>
+                {screen === "newSelect"
+                  ? "はじめから"
+                  : screen === "continueSelect"
+                    ? "続きから"
+                    : `${floor}階の再挑戦`}
+              </h2>
+              {Object.keys(R.CAPS).map((chosen) => {
+                const a = progress.adventures[chosen];
+                return (
+                  <article key={chosen}>
+                    <h3>{chosen.toUpperCase()}</h3>
+                    <p data-adventure={chosen}>
+                      {!a
+                        ? "データなし"
+                        : a.phase === "cleared"
+                          ? "第1章クリア"
+                          : `第${a.floor}階${a.phase === "post" ? "の会話から" : a.phase === "defeated" ? "・敗北（再開始）" : "から再開"} ・ HP ${a.hp}`}
+                    </p>
+                    <Button
+                      disabled={saving || (screen === "continueSelect" && !a)}
+                      onClick={() => {
+                        if (screen === "continueSelect")
+                          continueAdventure(chosen);
+                        else if (screen === "replaySelect") {
+                          setDifficulty(chosen);
+                          setPlayMode("replay");
+                          prepare(floor);
+                        } else {
+                          setDifficulty(chosen);
+                          if (a) setScreen("replaceConfirm");
+                          else newAdventure(chosen);
+                        }
+                      }}
+                    >
+                      {chosen.toUpperCase()}を選ぶ
+                    </Button>
+                  </article>
+                );
+              })}
+              <Button onClick={() => setScreen("home")}>戻る</Button>
+            </section>
+          )}
+          {screen === "replaceConfirm" && (
+            <section className="mt-panel" role="dialog" aria-modal="true">
+              <h2>{difficulty.toUpperCase()}の冒険を置き換えますか？</h2>
+              <p>
+                この難易度の進行中の冒険だけを第1階・HP100で置き換えます。他の難易度、クリア履歴、図鑑、学習記録、最高評価は残ります。
+              </p>
+              <Button
+                disabled={saving}
+                onClick={() => newAdventure(difficulty)}
+              >
+                置き換えて開始
+              </Button>
+              <Button onClick={() => setScreen("newSelect")}>キャンセル</Button>
+            </section>
+          )}
+          {screen === "floorSelect" && (
+            <section className="mt-panel">
+              <h2>クリアした階を選ぶ</h2>
+              <p>再挑戦はHP100から開始。本編の冒険の進行・HPは変更しません。</p>
+              {[1, 2, 3, 4, 5].map((f) => (
+                <Button
+                  key={f}
+                  disabled={!progress.clearedFloors[f]}
+                  onClick={() => {
+                    setFloor(f);
+                    setScreen("replaySelect");
+                  }}
+                >
+                  {f}階{!progress.clearedFloors[f] ? " 未解放" : ""}
+                </Button>
+              ))}
+              <Button onClick={() => setScreen("home")}>戻る</Button>
             </section>
           )}
           {screen === "prepare" && (
             <section className="mt-panel">
               <h2>{floor}階の準備</h2>
               <p>
-                HP {d.hp} ・ {difficulty.toUpperCase()}
+                HP {playMode === "replay" ? 100 : d.hp} ・{" "}
+                {difficulty.toUpperCase()} ・{" "}
+                {playMode === "replay" ? "独立した再挑戦" : "本編の冒険"}
               </p>
               {floor === 1 && (
                 <p className="mt-instructions">
                   6枚から、掛け合わせると上の式になる2枚を選びます。1枚を押したまま、もう1枚へ線を引いて指（マウス）を離してください。
-                </p>
-              )}
-              {floor === 5 && (
-                <p className="mt-instructions">
-                  ヌルの能力：誤答ダメージ2倍（HP −{content.policy.miss * 2}
-                  ）。時間切れはHP −{content.policy.timeout}です。
-                </p>
-              )}
-              {difficulty === "hard" && floor !== 5 && (
-                <p>
-                  HARDの撃破条件：敵HPを削り切り、Lv8以上の問題に正解すること。
                 </p>
               )}
               {progress.seen[floor] && (
@@ -877,7 +1337,7 @@
           {screen === "battle" && battle && (
             <section className="mt-battle">
               <div
-                className="mt-enemy"
+                className={"mt-enemy" + (impact ? " mt-enemy-hit" : "")}
                 style={{
                   backgroundImage: `url("${content.backgrounds["f0" + floor].image}")`,
                 }}
@@ -887,7 +1347,14 @@
                   src={enemy.image}
                   alt={name(content, content.floors[floor], progress.reveal)}
                 />
+                {impact && (
+                  <div className="mt-impact" key={impact.id} aria-hidden="true">
+                    <span>−{impact.damage.toFixed(1)}</span>
+                  </div>
+                )}
                 <HpBar
+                  v7
+                  height={18}
                   hp={
                     (Math.max(
                       0,
@@ -898,35 +1365,34 @@
                     100
                   }
                 />
-                {floor === 5 && (
-                  <p>
-                    ヌルの能力：誤答ダメージ2倍（HP −{content.policy.miss * 2}）
-                  </p>
-                )}
               </div>
               <div className="mt-controls" data-math-family={prob.family}>
-                <HpBar hp={battle.hp} />
-                <p>
-                  HP {battle.hp} ・ 残り {seconds}秒 ・ 最大コンボ{" "}
-                  {battle.bestCombo}
-                </p>
-                <nav>
-                  <Button onClick={() => setPaused(true)}>ポーズ</Button>
-                  <Button onClick={() => setMuted(!muted)}>
-                    {muted ? "音を出す" : "消音"}
-                  </Button>
-                </nav>
-                <p role="status">
-                  {notice || "1枚を押したまま、もう1枚へ線を引いて離そう"}
-                </p>
-                {difficulty === "hard" &&
-                  floor !== 5 &&
-                  battle.damage >= 8 &&
-                  !battle.solvedHigh && (
-                    <p className="mt-instructions" role="status">
-                      敵HPは0です。HARDはLv8以上の正解で撃破できます。あと少し！
-                    </p>
-                  )}
+                <div className="mt-battle-toolbar">
+                  <span>HP {battle.hp}</span>
+                  <span>残り {seconds}秒</span>
+                  <span>コンボ {battle.combo}</span>
+                  <button
+                    className="mt-icon"
+                    aria-label="ポーズ"
+                    disabled={!!impact}
+                    aria-pressed={paused}
+                    onClick={() => setPaused(true)}
+                  >
+                    Ⅱ
+                  </button>
+                  <button
+                    className="mt-icon"
+                    aria-label={muted ? "音を出す" : "消音"}
+                    aria-pressed={muted}
+                    onClick={() => setMuted(!muted)}
+                  >
+                    {muted ? "🔇" : "🔊"}
+                  </button>
+                </div>
+                <HpBar hp={battle.hp} height={16} label={false} v7 />
+                <div className="mt-battle-notice" role="status">
+                  {notice}
+                </div>
                 <TargetCard
                   poly={prob.poly}
                   level={prob.level}
@@ -939,12 +1405,33 @@
                   <BattleBoard
                     tiles={prob.tiles}
                     onMatch={match}
-                    disabled={paused || saving}
+                    disabled={
+                      paused || saving || !!attack || !!impact || !!cutin
+                    }
                     flash={flash}
                     v7
                   />
                 </div>
               </div>
+              {attack && (
+                <MagicAttack
+                  attack={attack}
+                  paused={paused}
+                  onImpact={hitEnemy}
+                />
+              )}
+
+              {cutin && (
+                <CutIn
+                  info={cutin}
+                  onConfirm={() => {
+                    setCutin(null);
+                    cutinRef.current = null;
+                    clock.current = Date.now();
+                    setSeconds(Math.ceil(content.policy.problemMs / 1000));
+                  }}
+                />
+              )}
               {paused && (
                 <div className="mt-overlay">
                   <h2>ポーズ</h2>
@@ -984,12 +1471,14 @@
           )}
           {screen === "restart" && (
             <section className="mt-panel">
-              <h2>章の再挑戦</h2>
+              <h2>{playMode === "replay" ? "同じ階の再挑戦" : "章の再挑戦"}</h2>
               <p>
-                章の進行を1階へ戻しHP100で再開します。過去のランクと既読は残ります。
+                {playMode === "replay"
+                  ? "本編の保存はそのまま、この階をHP100で再挑戦します。"
+                  : "この難易度の冒険だけを1階・HP100で再開します。過去のランクと既読は残ります。"}
               </p>
               <Button disabled={saving} onClick={restart}>
-                第1章を再開始
+                {playMode === "replay" ? "この階を再挑戦" : "第1章を再開始"}
               </Button>
               <Button onClick={() => setScreen("home")}>ホームへ</Button>
             </section>
@@ -1021,6 +1510,6 @@
         </main>
       );
     }
-    return { App, Tile };
+    return { App, Tile, CutIn };
   };
 })(window);

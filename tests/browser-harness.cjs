@@ -14,6 +14,7 @@ async function context(
     url = "http://localhost/",
     peers = [],
     onOperation = null,
+    towerContent = null,
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -50,6 +51,8 @@ async function context(
     const u = new URL(route.request().url());
     requests.push(u.href);
     if (u.hostname === "localhost") {
+      if (towerContent && u.pathname === "/math-tower/chapter1.json")
+        return route.fulfill({ json: towerContent });
       const f = path.resolve(root, "." + u.pathname);
       if (
         f.startsWith(root + path.sep) &&
@@ -93,7 +96,7 @@ async function context(
   await page.goto(url);
   return { ctx, page, writes, errors, tree, requests };
 }
-async function story(page) {
+async function story(page, confirm = true) {
   for (let n = 0; n < 300; n++) {
     const clicked = await page.evaluate(() => {
       const dialog = document.querySelector("[data-math-dialog]");
@@ -101,7 +104,10 @@ async function story(page) {
       dialog.click();
       return true;
     });
-    if (!clicked) return;
+    if (!clicked) {
+      if (confirm) await dismissCutin(page);
+      return;
+    }
     await sleep(25);
   }
   throw Error("Story did not finish");
@@ -141,5 +147,56 @@ async function drag(page, correct = true) {
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 4 });
   await page.mouse.up();
   await sleep(210);
+  if (await page.locator(".mt-battle").count()) {
+    await page.waitForFunction(
+      () =>
+        !document.querySelector("[data-math-attack]") &&
+        !document.querySelector(".mt-impact"),
+    );
+    await dismissCutin(page);
+  }
+  await page.waitForFunction(
+    () => !document.querySelector('[data-math-screen="savingResult"]'),
+  );
+  await sleep(40);
 }
-module.exports = { chromium, context, story, drag, sleep, root };
+async function dismissCutin(page) {
+  if (await page.locator("[data-math-cutin]").count())
+    await page
+      .getByRole("button", { name: "確認して再開", exact: true })
+      .click();
+}
+async function newTower(page, d = "normal") {
+  await page.getByRole("button", { name: "はじめから", exact: true }).click();
+  await page
+    .getByRole("button", { name: d.toUpperCase() + "を選ぶ", exact: true })
+    .click();
+  if (await page.locator("[data-math-screen=replaceConfirm]").count())
+    await page
+      .getByRole("button", { name: "置き換えて開始", exact: true })
+      .click();
+  await page.locator("[data-math-screen=prepare]").waitFor();
+}
+async function continueTower(page, d = "normal") {
+  await page.getByRole("button", { name: "続きから", exact: true }).click();
+  const btn = page.getByRole("button", {
+    name: d.toUpperCase() + "を選ぶ",
+    exact: true,
+  });
+  if (await btn.isDisabled()) {
+    await page.getByRole("button", { name: "戻る", exact: true }).click();
+    await newTower(page, d);
+  } else await btn.click();
+}
+module.exports = {
+  pair,
+  newTower,
+  continueTower,
+  dismissCutin,
+  chromium,
+  context,
+  story,
+  drag,
+  sleep,
+  root,
+};

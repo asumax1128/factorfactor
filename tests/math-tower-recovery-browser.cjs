@@ -2,6 +2,7 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   R = require("../math-tower-core");
 const {
+  continueTower,
   chromium,
   context,
   story,
@@ -15,7 +16,7 @@ const content = require("../math-tower/chapter1.json");
   });
   try {
     const progress = {
-      ...R.fresh(),
+      ...R.startAdventure(R.fresh(), "normal", 100),
       revision: 1,
       seen: { 1: true },
       notes: { 1: true },
@@ -77,7 +78,7 @@ const content = require("../math-tower/chapter1.json");
     await p.locator("[data-math-screen=home]").waitFor();
     assert.equal(saves().length, 1, "unchanged book closes do not save again");
     console.log("PASS delayed book close, busy guard and unchanged-book no-op");
-    await p.getByRole("button", { name: "冒険を続ける", exact: true }).click();
+    await continueTower(p);
     await p.getByRole("button", { name: "試練を開始", exact: true }).click();
     await p.locator("[data-math-dialog]").waitFor();
     await p
@@ -160,7 +161,7 @@ const content = require("../math-tower/chapter1.json");
       { path, latest },
     );
     const count = saves().length;
-    await p.getByRole("button", { name: "冒険を続ける", exact: true }).click();
+    await continueTower(p);
     await p.getByRole("button", { name: "試練を開始", exact: true }).click();
     await p.locator(".mt-recovery").waitFor();
     assert.equal(saves().length, count);
@@ -168,7 +169,7 @@ const content = require("../math-tower/chapter1.json");
       .getByRole("button", { name: "最新の記録を読み込む", exact: true })
       .click();
     await p.locator("[data-math-screen=home]").waitFor();
-    await p.getByRole("button", { name: "冒険を続ける", exact: true }).click();
+    await continueTower(p);
     await p.getByRole("button", { name: "試練を開始", exact: true }).click();
     await p.locator("[data-math-dialog]").waitFor();
     assert.equal(

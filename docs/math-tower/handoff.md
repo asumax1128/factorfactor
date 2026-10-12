@@ -70,3 +70,9 @@
 # 2026-10-13 セーブ・音声修正の引き継ぎ
 
 詳細は [修正記録](../../reports/2026-10-13_save-audio-fixes.md)。保存はStore.createWriterの単一キューで行い、確定revisionを次の保存の基準とする。競合後に強制上書きや自動再試行を追加しない。音声はGameAudio/useGameMute経由で制御し、直接出力するWeb Audioにも共有Gainを通す。新規モードでローカルのuseState(false)によるミュートを追加しない。回帰テストはActionsに組み込み済み。iPhone Safari実機確認は残る。
+
+## 第1章のRPG改善・進行形式の更新
+
+最新仕様と移行の詳細は[RPG改善記録](../../reports/2026-10-13_math-tower-rpg-improvements.md)。難易度共通の冒険には戻さない。共通のクリア階と各難易度の`adventures`を区別し、独立再挑戦は本編を更新しない。保存の外側schemaVersionはルール互換の1、アプリ形式progressVersionは2。migrationBackupを上書き・削除せず、復元でも永久記録やrevisionを巻き戻さない。旧pendingStoryは冒険ごとのphaseへ移した。旧hp/bestを再開地点に使わない。
+
+MagicAttackは正解判定後に表示し、HP更新は命中時。guard・attackRef・cutinRefによる二重入力／タイマー抑制を維持する。CutInはFactoryから再利用可能。ノートは背景とは別の描画部品で、原稿のmath/note行を紙面内へ表示する。共有BattleBoardやソロCSSを塔の変更のために変えない。最新のUI・保存テストはActionsで実行する。
