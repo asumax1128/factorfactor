@@ -773,6 +773,22 @@
               <p>
                 HP {d.hp} ・ {difficulty.toUpperCase()}
               </p>
+              {floor === 1 && (
+                <p className="mt-instructions">
+                  6枚から、掛け合わせると上の式になる2枚を選びます。1枚を押したまま、もう1枚へ線を引いて指（マウス）を離してください。
+                </p>
+              )}
+              {floor === 5 && (
+                <p className="mt-instructions">
+                  ヌルの能力：誤答ダメージ2倍（HP −{content.policy.miss * 2}
+                  ）。時間切れはHP −{content.policy.timeout}です。
+                </p>
+              )}
+              {difficulty === "hard" && floor !== 5 && (
+                <p>
+                  HARDの撃破条件：敵HPを削り切り、Lv8以上の問題に正解すること。
+                </p>
+              )}
               {progress.seen[floor] && (
                 <p>{name(content, content.floors[floor], progress.reveal)}</p>
               )}
@@ -798,7 +814,7 @@
                 <HpBar
                   hp={
                     (Math.max(
-                      0.01,
+                      0,
                       (floor === 5 ? content.policy.bossUnits : 8) -
                         battle.damage,
                     ) /
@@ -806,7 +822,11 @@
                     100
                   }
                 />
-                {floor === 5 && <p>ヌルの反撃：誤答時のダメージが増えます</p>}
+                {floor === 5 && (
+                  <p>
+                    ヌルの能力：誤答ダメージ2倍（HP −{content.policy.miss * 2}）
+                  </p>
+                )}
               </div>
               <div className="mt-controls" data-math-family={prob.family}>
                 <HpBar hp={battle.hp} />
@@ -820,7 +840,17 @@
                     {muted ? "音を出す" : "消音"}
                   </Button>
                 </nav>
-                <p role="status">{notice || "2枚の因数タイルをつなごう"}</p>
+                <p role="status">
+                  {notice || "1枚を押したまま、もう1枚へ線を引いて離そう"}
+                </p>
+                {difficulty === "hard" &&
+                  floor !== 5 &&
+                  battle.damage >= 8 &&
+                  !battle.solvedHigh && (
+                    <p className="mt-instructions" role="status">
+                      敵HPは0です。HARDはLv8以上の正解で撃破できます。あと少し！
+                    </p>
+                  )}
                 <TargetCard
                   poly={prob.poly}
                   level={prob.level}
