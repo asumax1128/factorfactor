@@ -72,3 +72,5 @@ npm run test:tower:rules
 5. 先生/生徒/ゲストの実際のアクセスと副作用を確認する。
 
 今回の作業では本番ルール・本番データ・main・Pages・旧dev/Cloudflareは変更しない。
+
+現行Console全文での監査結果と先生登録の独立差分は [本番ルール監査報告](../../reports/2026-10-12_firebase-production-rules-audit.md) を参照。候補生成先を `MATH_TOWER_AUDIT_DIR` に指定して `npm run test:tower:audit` を実行すると、現行/塔のみ/先生のみ/統合の4候補を順番にローカル検証する。同じエミュレータへ複数ルールスイートを同時実行しない。

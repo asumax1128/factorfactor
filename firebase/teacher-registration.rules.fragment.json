@@ -1,0 +1,12 @@
+{
+  "teacherKeys": {
+    "$k": {
+      ".write": "auth != null && root.child('games/factor/logins/' + $k + '/' + auth.uid).exists() && root.child('games/factor/teacherPass').exists() && root.child('games/factor/teacherPass').isString() && root.child('games/factor/teacherPass').val().length > 0 && newData.isString() && newData.val() === root.child('games/factor/teacherPass').val()"
+    }
+  },
+  "teachers": {
+    "$k": {
+      ".write": "auth != null && root.child('games/factor/logins/' + $k + '/' + auth.uid).exists() && root.child('games/factor/teacherPass').exists() && root.child('games/factor/teacherPass').isString() && root.child('games/factor/teacherPass').val().length > 0 && root.child('games/factor/teacherKeys/' + $k).exists() && root.child('games/factor/teacherKeys/' + $k).isString() && root.child('games/factor/teacherKeys/' + $k).val() === root.child('games/factor/teacherPass').val()"
+    }
+  }
+}

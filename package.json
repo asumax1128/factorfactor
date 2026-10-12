@@ -6,6 +6,7 @@
     "test:tower": "node --test tests/math-tower-*.test.cjs",
     "test:tower:browser": "node tests/math-tower-browser.cjs",
     "test:tower:rules": "node scripts/run-math-tower-rules.cjs",
+    "test:tower:audit": "node scripts/run-math-tower-rules.cjs production-audit",
     "test:regression": "node tests/legacy-regression.cjs"
   },
   "devDependencies": {

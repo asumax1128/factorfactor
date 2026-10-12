@@ -13,7 +13,9 @@ fs.mkdirSync(output, { recursive: true });
 const real = fs.realpathSync(output);
 if (real === root || real.startsWith(root + path.sep))
   throw Error("Audit exports must remain outside checkout");
-const before = JSON.parse(fs.readFileSync(input, "utf8")),
+const before = JSON.parse(
+    fs.readFileSync(input, "utf8").replace(/^\uFEFF/, ""),
+  ),
   rules = before.rules;
 assert.ok(
   rules && rules.games && rules.games.factor,
@@ -48,6 +50,76 @@ fs.writeFileSync(
   JSON.stringify(after, null, 2) + "\n",
   { mode: 0o600 },
 );
+// Keep the tower addition and the two teacher write predicates separate.
+const teacherFragment = require("../firebase/teacher-registration.rules.fragment.json");
+const teacherOnly = JSON.parse(JSON.stringify(before));
+for (const branch of ["teacherKeys", "teachers"]) {
+  assert.ok(
+    before.rules.games.factor[branch]?.$k?.[".write"],
+    "Expected existing " + branch + "/$k write predicate",
+  );
+  teacherOnly.rules.games.factor[branch].$k[".write"] =
+    teacherFragment[branch].$k[".write"];
+}
+const combined = JSON.parse(JSON.stringify(teacherOnly));
+combined.rules.games.factor.mathTowerV2 = after.rules.games.factor.mathTowerV2;
+const restored = JSON.parse(JSON.stringify(combined));
+delete restored.rules.games.factor.mathTowerV2;
+for (const branch of ["teacherKeys", "teachers"])
+  restored.rules.games.factor[branch].$k[".write"] =
+    before.rules.games.factor[branch].$k[".write"];
+assert.deepEqual(
+  restored,
+  before,
+  "Only mathTowerV2 and the two write predicates may change",
+);
+const candidates = {
+  "current.canonical.json": before,
+  "tower-only.rules.json": after,
+  "teacher-only.rules.json": teacherOnly,
+  "combined.rules.json": combined,
+};
+for (const [name, data] of Object.entries(candidates))
+  fs.writeFileSync(
+    path.join(real, name),
+    JSON.stringify(data, null, 2) + "\n",
+    { mode: 0o600 },
+  );
+const { execFileSync } = require("node:child_process");
+for (const [name, from, to] of [
+  ["01-add-math-tower.diff", "current.canonical.json", "tower-only.rules.json"],
+  [
+    "02-fix-teacher-registration.diff",
+    "current.canonical.json",
+    "teacher-only.rules.json",
+  ],
+  [
+    "02-on-tower-candidate.diff",
+    "tower-only.rules.json",
+    "combined.rules.json",
+  ],
+]) {
+  let diff = "";
+  try {
+    diff = execFileSync(
+      "diff",
+      [
+        "-u",
+        "--label",
+        from,
+        "--label",
+        to,
+        path.join(real, from),
+        path.join(real, to),
+      ],
+      { encoding: "utf8" },
+    );
+  } catch (e) {
+    if (e.status !== 1) throw e;
+    diff = e.stdout;
+  }
+  fs.writeFileSync(path.join(real, name), diff, { mode: 0o600 });
+}
 fs.writeFileSync(
   path.join(real, "audit-summary.json"),
   JSON.stringify(
