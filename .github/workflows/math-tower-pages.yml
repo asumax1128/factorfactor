@@ -46,7 +46,6 @@ jobs:
           java-version: "21"
       - run: python scripts/check-pages-workflow.py
       - run: npm ci
-      - run: npm ci --prefix server/online-rated --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - name: Select installed browser and local snapshot path
         run: node -e 'require("fs").appendFileSync(process.env.GITHUB_ENV,"CHROMIUM_PATH="+require("playwright").chromium.executablePath()+"\nRTDB_RULES_BASELINE_FILE="+process.env.RUNNER_TEMP+"/rtdb-baseline.json\n")'
@@ -63,7 +62,7 @@ jobs:
           JS
       - run: npm run build:pages
       - name: Check committed generated UI
-        run: git diff --exit-code -- math-tower-ui.js math-tower-release.js online-rated-ui.js server/online-rated/engine-source.js
+        run: git diff --exit-code -- math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js server/online-rated/engine-source.js
       - run: npm run test:tower
       - name: Actual emulator rules and compatibility
         run: |
@@ -78,15 +77,9 @@ jobs:
       - run: npm run test:regression
       - run: npm run test:online
       - run: npm run test:online-rated
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4; server runtime parity
-        with:
-          node-version: "22"
-      - name: Server Auth, transactions and ratings in demo emulators only
+      - name: Spark Auth, matching and ratings in demo emulators only
         run: |
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database,functions --project demo-factorfactor-tower --config firebase.online-rated.emulator.json "HTTP_PROXY= http_proxy= node tests/online-rated-service-emulator.cjs"
-      - name: New protected rules in demo database only
-        run: |
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only database --project demo-factorfactor-tower --config firebase/emulator.json "HTTP_PROXY= http_proxy= node tests/online-rated-rules.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"
       - run: npm run test:accounts
       - name: Recheck final public payload after tests
         run: node scripts/build-pages.cjs

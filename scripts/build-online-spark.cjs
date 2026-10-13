@@ -1,0 +1,64 @@
+const fs = require("node:fs"),
+  path = require("node:path"),
+  esbuild = require("esbuild");
+require("./build-rated-engine.cjs");
+const source = fs.readFileSync("server/online-rated/engine-source.js", "utf8");
+const completion =
+  "({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES});";
+if (!source.includes(completion))
+  throw Error("Engine completion changed; review required");
+const body = source.replace(completion, "return " + completion);
+esbuild
+  .build({
+    stdin: {
+      contents:
+        'window.OnlineSpark = require("./src/online-spark-client.cjs");',
+      resolveDir: process.cwd(),
+    },
+    outfile: "online-spark.js",
+    bundle: true,
+    format: "iife",
+    target: "es2019",
+    plugins: [
+      {
+        name: "browser-math-engine",
+        setup(build) {
+          build.onLoad(
+            { filter: /server\/online-rated\/engine\.cjs$/ },
+            (args) => {
+              const original = fs.readFileSync(args.path, "utf8");
+              const at = original.indexOf("const clone =");
+              if (at < 0) throw Error("Engine wrapper changed");
+              return {
+                contents:
+                  'const makeRuntime=new Function("Math","Date","fref","TSV","fbNow",' +
+                  JSON.stringify(body) +
+                  ");const script={runInNewContext:c=>makeRuntime(c.Math,c.Date,c.fref,c.TSV,c.fbNow)};\n" +
+                  original.slice(at),
+                loader: "js",
+                resolveDir: path.dirname(args.path),
+              };
+            },
+          );
+          build.onLoad(
+            { filter: /server\/online-rated\/core\.cjs$/ },
+            (args) => {
+              const original = fs.readFileSync(args.path, "utf8");
+              return {
+                contents: original.replace(
+                  'const crypto = require("node:crypto"),\n  Engine = require("./engine.cjs");',
+                  'const Engine = require("./engine.cjs");',
+                ),
+                loader: "js",
+                resolveDir: path.dirname(args.path),
+              };
+            },
+          );
+        },
+      },
+    ],
+  })
+  .catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  });

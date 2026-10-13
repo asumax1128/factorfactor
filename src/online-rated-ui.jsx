@@ -1,4 +1,4 @@
-/* Enabled only after an approved, verified server cutover. No admin credentials. */
+/* Spark RTDB transport only. No external server or admin credentials. */
 (function (root) {
   root.OnlineRatedFactory = function (H) {
     const { useState, useRef, useEffect } = React;
@@ -9,7 +9,7 @@
       normal_master: "NORMALマスター",
       dual_master: "双璧のマスター",
     };
-    function App({ acct, onExit, endpoint }) {
+    function App({ acct, onExit }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
         [screen, setScreen] = useState("select"),
@@ -23,10 +23,14 @@
         retry = useRef(null),
         requestRef = useRef(null);
       const sound = H.useBattleSound(muted);
+      const [spark] = useState(() =>
+        H.createTransport && acct?.key ? H.createTransport(acct) : null,
+      );
       current.current = state;
       useEffect(
         () => () => {
           life.current = false;
+          spark?.close();
           sound.bgm(false);
         },
         [],
@@ -37,33 +41,28 @@
         setBusy(true);
         setError("");
         try {
-          if (
-            endpoint !==
-            "https://asia-southeast1-asumath-games.cloudfunctions.net/onlineRated"
-          )
-            throw Error("新制度の接続先が未確認です");
-          const token = await H.getIdToken();
-          const controller = new AbortController(),
-            timer = setTimeout(() => controller.abort(), 10000);
-          let r;
+          if (!spark)
+            throw Error(
+              "対戦の準備ができていません。メニューから開き直してください",
+            );
+          let timeout;
+          const slow = new Promise((_, reject) => {
+            timeout = setTimeout(
+              () =>
+                reject(
+                  Error(
+                    "通信が遅れています。接続を確認し、再試行してください。保存結果は再確認します。",
+                  ),
+                ),
+              15000,
+            );
+          });
+          let v;
           try {
-            r = await fetch(endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + token,
-              },
-              body: JSON.stringify({
-                accountKey: acct.key,
-                command: { protocol: 2, ...command },
-              }),
-              signal: controller.signal,
-            });
+            v = await Promise.race([spark.request(command), slow]);
           } finally {
-            clearTimeout(timer);
+            clearTimeout(timeout);
           }
-          const v = await r.json();
-          if (!r.ok || v.error) throw Error(v.error || "通信に失敗しました");
           if (!life.current) return;
           retry.current = null;
           setState(v);

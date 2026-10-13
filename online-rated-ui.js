@@ -9,15 +9,19 @@
         normal_master: "NORMAL\u30DE\u30B9\u30BF\u30FC",
         dual_master: "\u53CC\u74A7\u306E\u30DE\u30B9\u30BF\u30FC"
       };
-      function App({ acct, onExit, endpoint }) {
+      function App({ acct, onExit }) {
         var _a, _b, _c, _d, _e, _f, _g;
         const [state, setState] = useState(null), [error, setError] = useState(""), [screen, setScreen] = useState("select"), [tab, setTab] = useState("easy"), [busy, setBusy] = useState(false), [muted, setMuted] = H.useGameMute();
         const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null);
         const sound = H.useBattleSound(muted);
+        const [spark] = useState(
+          () => H.createTransport && (acct == null ? void 0 : acct.key) ? H.createTransport(acct) : null
+        );
         current.current = state;
         useEffect(
           () => () => {
             life.current = false;
+            spark == null ? void 0 : spark.close();
             sound.bgm(false);
           },
           []
@@ -29,29 +33,27 @@
           setBusy(true);
           setError("");
           try {
-            if (endpoint !== "https://asia-southeast1-asumath-games.cloudfunctions.net/onlineRated")
-              throw Error("\u65B0\u5236\u5EA6\u306E\u63A5\u7D9A\u5148\u304C\u672A\u78BA\u8A8D\u3067\u3059");
-            const token = await H.getIdToken();
-            const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 1e4);
-            let r;
+            if (!spark)
+              throw Error(
+                "\u5BFE\u6226\u306E\u6E96\u5099\u304C\u3067\u304D\u3066\u3044\u307E\u305B\u3093\u3002\u30E1\u30CB\u30E5\u30FC\u304B\u3089\u958B\u304D\u76F4\u3057\u3066\u304F\u3060\u3055\u3044"
+              );
+            let timeout;
+            const slow = new Promise((_, reject) => {
+              timeout = setTimeout(
+                () => reject(
+                  Error(
+                    "\u901A\u4FE1\u304C\u9045\u308C\u3066\u3044\u307E\u3059\u3002\u63A5\u7D9A\u3092\u78BA\u8A8D\u3057\u3001\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u4FDD\u5B58\u7D50\u679C\u306F\u518D\u78BA\u8A8D\u3057\u307E\u3059\u3002"
+                  )
+                ),
+                15e3
+              );
+            });
+            let v;
             try {
-              r = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + token
-                },
-                body: JSON.stringify({
-                  accountKey: acct.key,
-                  command: { protocol: 2, ...command }
-                }),
-                signal: controller.signal
-              });
+              v = await Promise.race([spark.request(command), slow]);
             } finally {
-              clearTimeout(timer);
+              clearTimeout(timeout);
             }
-            const v = await r.json();
-            if (!r.ok || v.error) throw Error(v.error || "\u901A\u4FE1\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
             if (!life.current) return;
             retry.current = null;
             setState(v);
