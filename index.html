@@ -8282,7 +8282,33 @@ async function fetchRatings(accts, bty) {
 const bountyOf = st => { const k = (st && st.streak) || 0; return k >= 3 ? Math.min(100, (k - 2) * 10) : 0; };
 function BattleApp({ acct: who, onExit }) {
   const fb = useFbReady();
-  const ratedConfig = useFbValue(fb.ready ? 'onlineSparkV1/config' : null);
+  // The rollout config belongs to Firebase, never to the CPU practice DBX.
+  const [configRetry, setConfigRetry] = useState(0);
+  const [ratedStatus, setRatedStatus] = useState({ state: 'loading', config: null, error: '' });
+  useEffect(() => {
+    setRatedStatus({ state: 'loading', config: null, error: '' });
+    if (!fb.ready || !FB.db) return;
+    let alive = true;
+    const ref = FB.db.ref('games/factor/onlineSparkV1/config');
+    const fail = e => { clearTimeout(timer); if (alive) setRatedStatus({ state: 'error', config: null, error: e?.code === 'PERMISSION_DENIED' || /permission/i.test(e?.message || '') ? '対戦設定の読み取り権限を確認できません。再試行してください。' : '対戦設定を読み込めませんでした。通信を確認して再試行してください。' }); };
+    const timer = setTimeout(() => fail(new Error('CONFIG_TIMEOUT')), 10000);
+    const fn = snap => {
+      if (!alive) return;
+      clearTimeout(timer);
+      const c = snap.val();
+      if (c !== null && (typeof c?.enabled !== 'boolean' || c?.protocol !== 'spark-v1')) {
+        setRatedStatus({ state: 'error', config: null, error: '対戦設定の型またはprotocolを確認できません。再試行してください。' });
+        return;
+      }
+      setRatedStatus({ state: 'ready', config: c, error: '' });
+    };
+    ref.on('value', fn, fail);
+    return () => { alive = false; clearTimeout(timer); ref.off('value', fn); };
+  }, [fb.ready, configRetry]);
+  const ratedConfig = ratedStatus.config;
+  const ratedEnabled = ratedStatus.state === 'ready' && ratedConfig?.enabled === true;
+  const ratedUnavailable = ratedEnabled && !OnlineRatedApp;
+  const ratedMessage = ratedStatus.error || (ratedUnavailable ? '新しい対戦画面を読み込めませんでした。ページを再読み込みしてください。' : ratedStatus.state === 'loading' ? '対戦設定を確認しています…' : '');
   const [scr, setScr] = useState('home');           // home | lobby | game
   const [code, setCode] = useState('');
   const [isHost, setIsHost] = useState(false);
@@ -8715,9 +8741,9 @@ function BattleApp({ acct: who, onExit }) {
   if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })))} onCancel={() => { cancelQm(); setScr('home'); }} />);
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
-  if (scr === 'rated') return ratedConfig?.enabled === true && OnlineRatedApp ? <OnlineRatedApp key={acct?.key || 'guest'} acct={acct} onExit={() => setScr('home')} /> : shell(<Card><p>新しい対戦制度は準備中です。</p><button onClick={() => setScr('home')}>戻る</button></Card>);
+  if (scr === 'rated') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={acct?.key || 'guest'} acct={acct} onExit={() => setScr('home')} /> : shell(<Card><p>新しい対戦制度は準備中です。</p><button onClick={() => setScr('home')}>戻る</button></Card>);
   if (scr === 'home') return shell(
-    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => ratedConfig?.enabled === true ? setScr('rated') : quickMatch()} onRatedStats={ratedConfig?.enabled === true ? () => setScr('rated') : null}
+    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; ratedEnabled ? setScr('rated') : quickMatch(); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('rated') : null}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
   if (scr === 'dash') return <TeacherDash onBack={() => setScr('home')} onWatch={c => joinRoom(c, true)} />;
 
@@ -9077,7 +9103,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
 }
 
 /* ---------- 対戦のトップ画面 ---------- */
-function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats }) {
+function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats, quickPending, quickMessage, quickError, onConfigRetry, ratedEnabled }) {
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
   const [nameOf, setNameOf] = useState({});
@@ -9119,8 +9145,10 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       {!fb.ready && <div className="v7-panel text-sm text-center font-bold" style={{ color: 'var(--v7-sub)', gridColumn: '1 / -1' }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</div>}
       <div className="v7-col">
         <div>
-          <button disabled={!fb.ready} onClick={onQuick} className="v7-go v7-cur" style={{ fontSize: 19, padding: 15 }}>すぐ遊ぶ（ランダム対戦）</button>
-          <p className="text-[10px] font-bold mt-1 text-center" style={{ color: 'var(--v7-sub)' }}>1対1・方式と難易度は投票。待つあいだはCPU練習、相手が来たら乱入！</p>
+          <button disabled={!fb.ready || quickPending} onClick={onQuick} className="v7-go v7-cur" style={{ fontSize: 19, padding: 15 }}>すぐ遊ぶ（ランダム対戦）</button>
+          <p className="text-[10px] font-bold mt-1 text-center" style={{ color: 'var(--v7-sub)' }}>{ratedEnabled ? 'EASY / NORMALを選んで相手を検索。マッチング後はA/B方式を投票。' : '1対1・方式と難易度は投票。待つあいだはCPU練習、相手が来たら乱入！'}</p>
+          {quickMessage && <p role={quickError ? 'alert' : 'status'} className="text-xs font-bold mt-1 text-center">{quickMessage}</p>}
+          {quickError && <button onClick={onConfigRetry} className="v7-pill v7-cur">設定を再試行</button>}
           {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: '#C2410C' }}>{err}</p>}
         </div>
 

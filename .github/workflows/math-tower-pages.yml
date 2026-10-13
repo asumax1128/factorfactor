@@ -78,6 +78,7 @@ jobs:
       - run: npm run test:regression
       - run: npm run test:online
       - run: npm run test:online-rated
+      - run: npm run test:online-entry
       - name: Spark Auth, matching and ratings in demo emulators only
         run: |
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"

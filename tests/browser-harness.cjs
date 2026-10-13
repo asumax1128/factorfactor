@@ -18,6 +18,8 @@ async function context(
     captureTower = false,
     assetOverrides = null,
     blockedAssets = [],
+    firebaseSource = null,
+    siteRoot = root,
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -64,15 +66,15 @@ async function context(
         });
       if (towerContent && u.pathname === "/math-tower/chapter1.json")
         return route.fulfill({ json: towerContent });
-      const f = path.resolve(root, "." + u.pathname);
+      const f = path.resolve(siteRoot, "." + u.pathname);
       if (
-        f.startsWith(root + path.sep) &&
+        f.startsWith(siteRoot + path.sep) &&
         fs.existsSync(f) &&
         fs.statSync(f).isFile()
       )
         return route.fulfill({ path: f });
       if (u.pathname === "/")
-        return route.fulfill({ path: path.join(root, "index.html") });
+        return route.fulfill({ path: path.join(siteRoot, "index.html") });
       return route.abort();
     }
     const libs = [
@@ -91,7 +93,9 @@ async function context(
     if (/firebase-app-compat/.test(u.href))
       return route.fulfill({
         contentType: "application/javascript",
-        body: fs.readFileSync(path.join(__dirname, "firebase-mock.js")),
+        body:
+          firebaseSource ||
+          fs.readFileSync(path.join(__dirname, "firebase-mock.js")),
       });
     if (/firebase-(auth|database)-compat/.test(u.href))
       return route.fulfill({ contentType: "application/javascript", body: "" });

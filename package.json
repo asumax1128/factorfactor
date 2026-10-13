@@ -19,7 +19,8 @@
     "test:tower:flow": "node tests/math-tower-flow-browser.cjs",
     "build:online-rated": "node scripts/build-online-rated.cjs",
     "test:online-rated": "node --test tests/online-rated.test.cjs tests/online-rated-migration.test.cjs && node tests/online-spark-browser.cjs",
-    "test:tower:background": "node tests/math-tower-floor3-background.cjs"
+    "test:tower:background": "node tests/math-tower-floor3-background.cjs",
+    "test:online-entry": "node tests/online-spark-entry.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

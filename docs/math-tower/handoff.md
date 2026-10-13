@@ -98,3 +98,5 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 最新方針は[Spark版](../online-spark-setup.md)。Blaze・Functionsは使用禁止。新制度の初回保存は本人の新profileとバックアップだけを同時作成し、旧accountsを変更しない。本番ルールは最新TXTの全旧枝を保持し、onlineSparkV1だけを追加する。
 
 第3階の原本ZIPは受領済み。`36e0123` で1672×941のPNGを無加工で参照し、中心cover表示、マイナス左／プラス右を検証した。原本SHA256は `d81d75734c057c802bcd80e85e5d6f3a65dff8a0716aced5bbbb63d00514f77c`。旧画像はgit履歴とリポジトリ外の確認用控えに残す。新test:tower:backgroundは他素材・原稿の完全保持、5画面サイズ、色の左右、切れ・会話重複を検証する。
+
+- 2026-10-13: Sparkオンライン入口の初回設定通知遅延による旧qm誤遷移を再現・修正。FB.db専用監視とエラー/再試行、protocol検証を追加。塔・Firebase設定・記録は変更なし。詳細 reports/2026-10-13_online-entry-config-fix.md。
