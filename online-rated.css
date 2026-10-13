@@ -233,3 +233,14 @@
 .or-app.or-menu .or-primary{background:#E4572E;color:#fff;border-color:#E4572E;box-shadow:inset 0 -3px 0 #b84122;}
 .or-app.or-menu header button{border-radius:99px;}
 .or-app.or-menu button[aria-pressed="true"]{background:#1d2633;color:white;border-color:#1d2633;}
+
+/* Ver.5.15: exact legacy UI family/weights; no math/KaTeX selectors. */
+.or-app { font-weight:500; }
+.or-app h2, .or-app h3, .or-app button:not([data-btile]), .or-app .or-new-title {
+  font-family:var(--v7-f-ui); font-weight:900;
+}
+.or-app .or-intrusion, .or-app .or-opponent, .or-app .or-connection, .or-app .or-special {
+  font-family:var(--v7-f-ui); font-weight:700;
+}
+.or-app .or-rule, .or-app .or-ranking, .or-app .or-version {font-weight:700;}
+.or-app strong, .or-app .or-rating, .or-app .or-delta, .or-app .or-exp b {font-weight:900;}

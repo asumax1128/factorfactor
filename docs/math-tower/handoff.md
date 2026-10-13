@@ -136,3 +136,8 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 - CombatFXはDOMクローンと既存FXを使い、入力カードを変形/消去しない。独自FXのIDとタイマーだけを退出時に解除。他モード・塔のエフェクトを巻き込まない。
 - 新規のすぐ遊ぶは終了済み結果を確認済みにして選択画面へ。進行中試合の復帰は残す。結果のメニュー戻りにもackReceiptを必ず通す。
 - 詳細と未検証は reports/2026-10-13_online-ui-combat-v514.md。Safari実機と本番HTTPアクセスは環境制約により未確認。
+
+
+## Ver.5.15 日本語UIフォント基準
+
+正式なデザイン基準は [UIデザイン基準](../ui-reference/design-standard.md)および `docs/ui-reference/design-standard.md`。比較画像原本は `docs/ui-reference/factorfactor_font_ui_comparison.jpg`。旧42011a6の画面Ver.5.9、Zen Maru Gothic 500/700/900、共有FontImportを確認した。新オンラインのFontImport欠落を補い、見出し/ボタン900へ統一。数式/KaTeX/MathText、ソロ/CPU/塔のルール、Firebaseの記録・認可は変更なし。次の通常公開はVer.5.16。新機能にも共通フォントを必ず読み込み、数式へUIフォントを上書きしない。

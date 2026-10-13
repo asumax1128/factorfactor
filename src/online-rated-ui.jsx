@@ -543,6 +543,7 @@
         <main
           className={`or-app ${screen === "play" ? "or-playing" : "or-menu"}`}
         >
+          <H.FontImport />
           {["play", "result"].includes(screen) && (
             <H.FxLayer level={112} combat />
           )}

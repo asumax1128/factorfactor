@@ -398,6 +398,7 @@
           {
             className: `or-app ${screen === "play" ? "or-playing" : "or-menu"}`
           },
+          /* @__PURE__ */ React.createElement(H.FontImport, null),
           ["play", "result"].includes(screen) && /* @__PURE__ */ React.createElement(H.FxLayer, { level: 112, combat: true }),
           screen !== "play" && /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
             "button",

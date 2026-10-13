@@ -13,3 +13,8 @@
 - 本番Firebase変更/移行/新課金サービス/オンライン公開をこの監査コミットから実行しない。サーバー検証と新クライアントの混在テストが通過してから、承認済みの範囲で段階公開する。
 
 監査の起動は既存demoエミュレータで、`RTDB_RULES_BASELINE_FILE`を指定して`node scripts/run-math-tower-rules.cjs rating-audit`。新仕様の安全性テストではなく、旧実装の問題を記録する監査なので、将来の改善で拒否が正しくなった場合は期待値を見直す。常設CIに旧脆弱性の許可を要求するテストとして追加しない。
+
+
+## Ver.5.15 日本語UIフォント基準
+
+正式なデザイン基準は [UIデザイン基準](ui-reference/design-standard.md)および `docs/ui-reference/design-standard.md`。比較画像原本は `docs/ui-reference/factorfactor_font_ui_comparison.jpg`。旧42011a6の画面Ver.5.9、Zen Maru Gothic 500/700/900、共有FontImportを確認した。新オンラインのFontImport欠落を補い、見出し/ボタン900へ統一。数式/KaTeX/MathText、ソロ/CPU/塔のルール、Firebaseの記録・認可は変更なし。次の通常公開はVer.5.16。新機能にも共通フォントを必ず読み込み、数式へUIフォントを上書きしない。
