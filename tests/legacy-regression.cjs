@@ -63,6 +63,8 @@ for (const [name, value] of Object.entries(before)) {
   if (
     [
       "AppRoot",
+      "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
+      "BattleHome", // Routes new ranking only when the protected feature flag is enabled.
       "FactorHunt",
       "TowerTileV7",
       "setUiMute",

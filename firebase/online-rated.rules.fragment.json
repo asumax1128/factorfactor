@@ -1,0 +1,8 @@
+{
+  "onlineRatedV2": {
+    ".read": false,
+    ".write": false,
+    "privateState": { ".read": false, ".write": false },
+    "config": { ".read": "auth != null", ".write": false }
+  }
+}

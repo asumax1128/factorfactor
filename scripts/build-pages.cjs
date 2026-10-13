@@ -21,6 +21,8 @@ fs.writeFileSync(
 const allowed = [
   "index.html",
   "game-audio.js",
+  "online-rated-ui.js",
+  "online-rated.css",
   "fonts/katex/KaTeX_Main-Regular.woff2",
   "fonts/katex/KaTeX_Math-Italic.woff2",
   "fonts/katex/LICENSE-MIT.txt",
@@ -45,6 +47,8 @@ fs.writeFileSync(path.join(out, ".nojekyll"), "");
 let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
 for (const file of [
   "game-audio.js",
+  "online-rated-ui.js",
+  "online-rated.css",
   "fonts/katex/KaTeX_Main-Regular.woff2",
   "fonts/katex/KaTeX_Math-Italic.woff2",
   "fonts/katex/LICENSE-MIT.txt",

@@ -29,6 +29,8 @@
 <script src="math-tower-store.js"></script>
 <script src="math-tower-release.js"></script>
 <script src="math-tower-ui.js"></script>
+<script src="online-rated-ui.js"></script>
+<link rel="stylesheet" href="online-rated.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -8279,6 +8281,7 @@ async function fetchRatings(accts, bty) {
 const bountyOf = st => { const k = (st && st.streak) || 0; return k >= 3 ? Math.min(100, (k - 2) * 10) : 0; };
 function BattleApp({ acct: who, onExit }) {
   const fb = useFbReady();
+  const ratedConfig = useFbValue(fb.ready ? 'onlineRatedV2/config' : null);
   const [scr, setScr] = useState('home');           // home | lobby | game
   const [code, setCode] = useState('');
   const [isHost, setIsHost] = useState(false);
@@ -8711,8 +8714,9 @@ function BattleApp({ acct: who, onExit }) {
   if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })))} onCancel={() => { cancelQm(); setScr('home'); }} />);
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
+  if (scr === 'rated') return ratedConfig?.enabled && ratedConfig?.endpoint && OnlineRatedApp ? <OnlineRatedApp key={acct?.key || 'guest'} acct={acct} endpoint={ratedConfig.endpoint} onExit={() => setScr('home')} /> : shell(<Card><p>新しい対戦制度は準備中です。</p><button onClick={() => setScr('home')}>戻る</button></Card>);
   if (scr === 'home') return shell(
-    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => quickMatch()}
+    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => ratedConfig?.enabled ? setScr('rated') : quickMatch()} onRatedStats={ratedConfig?.enabled ? () => setScr('rated') : null}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
   if (scr === 'dash') return <TeacherDash onBack={() => setScr('home')} onWatch={c => joinRoom(c, true)} />;
 
@@ -9072,7 +9076,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
 }
 
 /* ---------- 対戦のトップ画面 ---------- */
-function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash }) {
+function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats }) {
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
   const [nameOf, setNameOf] = useState({});
@@ -9168,7 +9172,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
         </div>
 
         <div className="v7-foot">
-          <button className="v7-pill v7-cur" onClick={() => setWin('rank')}><V7Icon name="cup" />レーティングランキング</button>
+          <button className="v7-pill v7-cur" onClick={() => onRatedStats ? onRatedStats() : setWin('rank')}><V7Icon name="cup" />レーティングランキング</button>
           {bountyRows.length > 0 && <button className="v7-pill v7-cur" onClick={() => setWin('bounty')}><V7Icon name="star" />賞金首リスト<span className="v7-badge">{bountyRows.length}</span></button>}
           <button className="v7-pill v7-cur" onClick={() => setWin('all')}><V7Icon name="list" />みんなの成績</button>
         </div>
@@ -9176,6 +9180,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
     </div>
 
     {win === 'vs' && stats && <V7Modal title="相手ごとの成績" onClose={() => setWin(null)}><VsTable vs={stats.vs} nameOf={nameOf} /></V7Modal>}
+    {onRatedStats && <button className="v7-pill v7-cur" onClick={() => setWin('rank')}>旧総合レーティングの記録</button>}
     {win === 'rank' && <V7Modal title="レーティングランキング" onClose={() => setWin(null)}>
       <div className="text-xs font-black mb-2" style={{ color: 'var(--v7-sub)' }}>3戦以上・{seasonLabel(seasonKey())} のこり{seasonDaysLeft()}日（名前をタップすると成績）</div>
       {rank == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>{fb.ready ? '読み込み中…' : '接続待ち'}</p>
@@ -10607,6 +10612,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
 }
 
 /* ソロとオンライン対戦の切り替え */
+const OnlineRatedApp = window.OnlineRatedFactory ? window.OnlineRatedFactory({ FB, BattleBoard, TargetCard, useBattleSound, useGameMute, getIdToken: () => firebase.auth().currentUser.getIdToken() }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');

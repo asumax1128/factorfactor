@@ -88,3 +88,9 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 [導線・会話表示の変更記録](../../reports/2026-10-13_math-tower-adventure-flow.md)。戦闘後のStoryを保存し、R.finishStoryの確定後にafterFloorを表示する。次の階は保存済みadventuresのready状態から再開し、UI遷移で階を加算しない。第5階はchapterEnd、再挑戦は本編と独立したfloorSelectへ戻れる。storyBusy/actionBusyとWriterの直列化を維持する。
 
 会話のunit画像は単体へ展開する。3-preのtwin_fox＋name:プラスを、単体プラスの発言として解釈する。セット画像は戦闘・図鑑に残す。プラス左/マイナス右の位置固定と話者強調を維持。原稿と素材をこの不具合のために削除しない。test:tower:flowは直接進行・全31行・保存失敗/競合も検証する。
+
+## 第3階の正式仕様変更とオンライン新制度の候補
+
+上記の旧左右位置は最新依頼で変更された。正式仕様は**マイナス左／プラス右、背景は左青／右赤**。別ブランチ `fix/tower-floor3-official-background` の `e9e1b7c` は位置変更のみで、正式背景原本の取得と差し替え・検証を待つ。インライン画像を旧画像の反転や新規生成で代用しない。セット画像は会話に追加しない。
+
+オンラインの承認済み仕様・実装・移行・復旧は[実装記録](../online-rated-v2-implementation.md)、テストと未確認事項は[公開前報告](../../reports/2026-10-13_online-rated-v2-preflight.md)。旧レートはEASYへ同値移行、NORMAL1500、新対戦数0、3戦条件、5称号。新制度は `feat/online-rated-v2` の候補で未公開。最新本番ルール・実人数・外部バックアップ・料金・旧試合終了確認を省かない。塔の通常公開とオンラインの本番切替を混同しない。

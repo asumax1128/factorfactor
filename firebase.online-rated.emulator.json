@@ -1,0 +1,11 @@
+{
+  "functions": { "source": "server/online-rated" },
+  "database": { "rules": "firebase/math-tower.emulator.rules.json" },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "database": { "port": 9000 },
+    "functions": { "port": 5001 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

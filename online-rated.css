@@ -1,0 +1,60 @@
+.or-app {
+  max-width: 900px;
+  margin: auto;
+  padding: 12px max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom));
+  color: #edf2ff;
+  background: #111e43;
+  min-height: 100dvh;
+  font-family: system-ui, sans-serif;
+}
+.or-app header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.or-app h2 {
+  font-size: 18px;
+}
+.or-app section {
+  padding: 16px 0;
+}
+.or-app button {
+  min-height: 44px;
+  padding: 10px 14px;
+  margin: 4px;
+  border: 1px solid #e3bc54;
+  border-radius: 12px;
+  background: #24376a;
+  color: #fff;
+  font-weight: 700;
+}
+.or-app button:disabled {
+  opacity: 0.5;
+}
+.or-app [role="alert"] {
+  background: #5c263b;
+  padding: 12px;
+}
+.or-battle .v7-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.or-battle [data-btile] {
+  min-height: 110px;
+}
+@media (max-width: 440px) {
+  .or-app header {
+    flex-wrap: wrap;
+  }
+  .or-app .v7-target {
+    min-height: 110px;
+    overflow: visible;
+  }
+  .or-app .v7-poly {
+    overflow: visible;
+    line-height: 1.4;
+  }
+}
