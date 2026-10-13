@@ -71,6 +71,7 @@ jobs:
       - run: npm run test:audio
       - run: npm run test:tower:polish
       - run: npm run test:tower:flow
+      - run: npm run test:tower:background
       - run: npm run test:tower:rpg
       - run: npm run test:tower:recovery
       - run: npm run test:tower:browser

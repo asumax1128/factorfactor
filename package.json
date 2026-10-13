@@ -16,7 +16,8 @@
     "test:tower:recovery": "node tests/math-tower-recovery-browser.cjs",
     "test:tower:rpg": "node tests/math-tower-rpg-browser.cjs",
     "test:tower:polish": "node tests/math-tower-ui-polish.cjs",
-    "test:tower:flow": "node tests/math-tower-flow-browser.cjs"
+    "test:tower:flow": "node tests/math-tower-flow-browser.cjs",
+    "test:tower:background": "node tests/math-tower-floor3-background.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
