@@ -195,11 +195,11 @@ test("NORMAL result does not touch EASY; forged tile IDs and sequence gaps rejec
   assert(x.state.players.ab.normal.rating > 1500);
   assert.equal(x.state.players.aa.normal.games, 1);
 });
-test("three valid matches per difficulty for ranking; titles independent and retained", () => {
+test("EASY 1501 and NORMAL three matches; titles independent and retained", () => {
   const s = base();
   s.players.aa.easy.games = 3;
   s.players.aa.easy.w = 2;
-  assert.equal(C.rankings(s, "easy", now).length, 1);
+  assert.equal(C.rankings(s, "easy", now).length, 2);
   assert.equal(C.rankings(s, "normal", now).length, 0);
   assert.deepEqual(C.badges(1820, 1500), {
     easy_adept: true,
@@ -266,4 +266,27 @@ test("vote timeout/mode split uses server choice, expired wait and prestart canc
   );
   assert.equal(z.matchId, undefined);
   assert.equal(z.state.players.aa.easy.games, 0);
+});
+
+test("EASY boundary, legacy zero-match carry and normalized ratings; NORMAL unchanged", () => {
+  const s = base();
+  s.players.aa.easy.rating = 1501;
+  s.players.ab.easy.rating = 1500.9;
+  s.players.ac.easy.rating = 1500;
+  assert.deepEqual(
+    C.rankings(s, "easy", now).map((r) => r.key),
+    ["aa"],
+  );
+  s.players.ab.easy.rating = 1800;
+  s.players.ac.normal.games = 3;
+  assert.deepEqual(
+    C.rankings(s, "easy", now).map((r) => r.key),
+    ["ab", "aa"],
+  );
+  assert.equal(C.rankings(s, "normal", now)[0].key, "ac");
+  assert.equal(s.players.ab.easy.games, 0);
+  assert.equal(s.players.ab.normal.rating, 1500);
+  const before = JSON.stringify(s);
+  C.rankings(s, "easy", now);
+  assert.equal(JSON.stringify(s), before);
 });

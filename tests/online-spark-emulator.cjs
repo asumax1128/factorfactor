@@ -78,6 +78,36 @@ assert.deepEqual(restored, original);
       assert.equal(s.ratings.normal.rating, 1500);
       assert.equal(s.ratings.easy.games, 0);
     }
+    await env.withSecurityRulesDisabled((ctx) =>
+      set(ref(ctx.database(), "games/factor/accounts/aunvisited"), {
+        name: "Unvisited",
+        stats: { rating: 1850 },
+      }),
+    );
+    const ratingsOnly = await a.client.request({ type: "ratings" });
+    assert.ok(
+      ratingsOnly.rankings.easy.some(
+        (r) => r.key === "aunvisited" && r.rating === 1850 && r.games === 0,
+      ),
+    );
+    assert.equal(ratingsOnly.rankings.normal.length, 0);
+    await env.withSecurityRulesDisabled(async (ctx) =>
+      assert.equal(
+        (
+          await get(
+            ref(
+              ctx.database(),
+              "games/factor/onlineSparkV1/profiles/aunvisited",
+            ),
+          )
+        ).val(),
+        null,
+      ),
+    );
+    assert.equal(ratingsOnly.match, null);
+    console.log(
+      "PASS native rules: EASY zero-game carry/read-only old accounts, NORMAL three-game gate",
+    );
     console.log(
       "PASS real Auth + atomic own migration: legacy 1800/1620 → EASY, NORMAL1500, new1500/1500, zero new games",
     );
@@ -286,7 +316,7 @@ assert.deepEqual(restored, original);
           .waitFor();
       }
       const [aa, bb] = screens;
-      await aa.page.getByText("EASY：", { exact: false }).waitFor();
+      // Rating details intentionally live on the separate ratings screen.
       await aa.page
         .getByRole("button", { name: "EASYで相手を探す", exact: true })
         .click();

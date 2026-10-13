@@ -60,9 +60,16 @@ jobs:
           const r=JSON.parse(s);if(!r.rules?.games?.factor)throw Error('Invalid rules export');
           fs.writeFileSync(process.env.RTDB_RULES_BASELINE_FILE,s,{mode:0o600});
           JS
+      - name: Verify formal release version
+        if: github.event_name != 'workflow_dispatch' || inputs.source_sha == ''
+        env:
+          RELEASE_BASE: ${{ github.event.before }}
+          APPROVED_MAJOR_VERSION: ${{ vars.APPROVED_MAJOR_VERSION }}
+        run: node scripts/check-release-version.cjs
       - run: npm run build:pages
       - name: Check committed generated UI
-        run: git diff --exit-code -- math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js server/online-rated/engine-source.js
+        run: git diff --exit-code -- game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js server/online-rated/engine-source.js
+      - run: npm run test:version
       - run: npm run test:tower
       - name: Actual emulator rules and compatibility
         run: |
@@ -79,6 +86,7 @@ jobs:
       - run: npm run test:online
       - run: npm run test:online-rated
       - run: npm run test:online-entry
+      - run: npm run test:online-menu
       - name: Spark Auth, matching and ratings in demo emulators only
         run: |
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"

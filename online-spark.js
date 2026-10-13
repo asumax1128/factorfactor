@@ -537,18 +537,18 @@
       }
       function rankings(state, d, now) {
         if (!["easy", "normal"].includes(d)) throw Error("INVALID_DIFFICULTY");
-        const rows = Object.entries(state.players || {}).filter(([, p]) => p[d].games >= 3).map(([key, p]) => ({
+        const rows = Object.entries(state.players || {}).map(([key, p]) => ({
           key,
           name: p.name,
           title: p.title || null,
           ...normalize(copy(p[d]), season(now))
-        }));
+        })).filter((r) => d === "easy" ? r.rating >= 1501 : r.games >= 3);
         rows.sort(
-          (a, b) => b.rating - a.rating || b.w / b.games - a.w / a.games || a.key.localeCompare(b.key)
+          (a, b) => b.rating - a.rating || (b.games ? b.w / b.games : 0) - (a.games ? a.w / a.games : 0) || a.key.localeCompare(b.key)
         );
         let rank = 0;
         return rows.map((r, i) => {
-          if (!i || r.rating !== rows[i - 1].rating || r.w / r.games !== rows[i - 1].w / rows[i - 1].games)
+          if (!i || r.rating !== rows[i - 1].rating || (r.games ? r.w / r.games : 0) !== (rows[i - 1].games ? rows[i - 1].w / rows[i - 1].games : 0))
             rank = i + 1;
           return { ...r, rank };
         });
@@ -676,14 +676,51 @@
             return p;
           });
         }
-        async function response(m = null) {
-          var _a, _b, _c, _d;
+        async function response(m = null, withLegacy = false) {
+          var _a, _b, _c, _d, _e;
           if (m) await apply(m);
-          const p = (await profileRef.get()).val();
+          let p = (await profileRef.get()).val();
           profiles[key] = p;
+          const players = { ...profiles };
+          if (withLegacy) {
+            const [profileSnapshot, legacySnapshot] = await Promise.all([
+              pr.get(),
+              db.ref("games/factor/accounts").get()
+            ]);
+            Object.assign(players, profileSnapshot.val() || {});
+            p = players[key];
+            const legacy = legacySnapshot.val() || {};
+            for (const [k, a] of Object.entries(legacy)) {
+              if (players[k] || !(a == null ? void 0 : a.name) || typeof ((_a = a.stats) == null ? void 0 : _a.rating) !== "number" || !Number.isFinite(a.stats.rating))
+                continue;
+              players[k] = {
+                name: a.name,
+                easy: {
+                  rating: a.stats.rating,
+                  games: 0,
+                  w: 0,
+                  l: 0,
+                  d: 0,
+                  season: new Date(now() + 9 * 36e5).toISOString().slice(0, 7),
+                  maxRating: a.stats.rating,
+                  seasonMax: a.stats.rating
+                },
+                normal: {
+                  rating: 1500,
+                  games: 0,
+                  w: 0,
+                  l: 0,
+                  d: 0,
+                  season: new Date(now() + 9 * 36e5).toISOString().slice(0, 7),
+                  maxRating: 1500,
+                  seasonMax: 1500
+                }
+              };
+            }
+          }
           const ranks = {
-            easy: C.rankings({ players: profiles }, "easy", now()),
-            normal: C.rankings({ players: profiles }, "normal", now())
+            easy: C.rankings({ players }, "easy", now()),
+            normal: C.rankings({ players }, "normal", now())
           };
           return {
             ticket: m ? null : ticket,
@@ -695,9 +732,9 @@
               voteEnd: m.voteEnd,
               votes: m.votes || {},
               game: m.phase === "play" ? E.view(m.game, uid) : null,
-              result: ((_a = m.receipt) == null ? void 0 : _a.result) || null,
+              result: ((_b = m.receipt) == null ? void 0 : _b.result) || null,
               receipt: m.receipt || null,
-              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_b = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _b.key) === key ? "win" : "lose" : null
+              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_c = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _c.key) === key ? "win" : "lose" : null
             } : null,
             ratings: {
               easy: C.ratingView(p.easy, now()),
@@ -710,8 +747,8 @@
               normal: ranks.normal.slice(0, 10)
             },
             ranks: {
-              easy: ((_c = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _c.rank) || null,
-              normal: ((_d = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _d.rank) || null
+              easy: ((_d = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _d.rank) || null,
+              normal: ((_e = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _e.rank) || null
             }
           };
         }
@@ -831,6 +868,7 @@
           if (command.protocol !== void 0 && command.protocol !== 2)
             throw Error("UPDATE_REQUIRED");
           await ensure();
+          if (command.type === "ratings") return response(null, true);
           if (command.type === "enqueue") return enqueue(command.difficulty);
           if (command.type === "equipTitle") {
             await tx(profileRef, (p) => {
@@ -838,7 +876,7 @@
               if (!((_a = p.badges) == null ? void 0 : _a[command.title])) throw Error("TITLE_NOT_EARNED");
               return { ...p, title: command.title };
             });
-            return response(await find());
+            return response(await find(), true);
           }
           if (command.type === "ackReceipt") {
             await tx(profileRef, (p) => {

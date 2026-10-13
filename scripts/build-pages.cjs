@@ -20,6 +20,7 @@ fs.writeFileSync(
 );
 const allowed = [
   "index.html",
+  "game-version.js",
   "game-audio.js",
   "online-spark.js",
   "online-rated-ui.js",
@@ -47,6 +48,7 @@ fs.writeFileSync(path.join(out, ".nojekyll"), "");
 // New HTML must not combine new UI with a cached previous store/audio module.
 let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
 for (const file of [
+  "game-version.js",
   "game-audio.js",
   "online-spark.js",
   "online-rated-ui.js",
@@ -122,6 +124,10 @@ fs.writeFileSync(
   JSON.stringify(
     {
       mode: "real-firebase-teacher-grant-trial",
+      gameVersion:
+        JSON.parse(fs.readFileSync(path.join(root, "version.json"))).major +
+        "." +
+        JSON.parse(fs.readFileSync(path.join(root, "version.json"))).minor,
       sourceCommit: require("node:child_process")
         .execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" })
         .trim(),

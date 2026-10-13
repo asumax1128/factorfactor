@@ -8,7 +8,7 @@
     "test:tower:rules": "node scripts/run-math-tower-rules.cjs",
     "test:tower:audit": "node scripts/run-math-tower-rules.cjs production-audit",
     "test:regression": "node tests/legacy-regression.cjs",
-    "build:pages": "npm run build:tower && npm run build:online-rated && node scripts/build-pages.cjs",
+    "build:pages": "node scripts/build-version.cjs && npm run build:tower && npm run build:online-rated && node scripts/build-pages.cjs",
     "test:online": "node tests/online-regression.cjs",
     "test:ci:rules": "node scripts/ci-emulator-checks.cjs",
     "test:accounts": "node tests/account-ranking-regression.cjs",
@@ -20,7 +20,9 @@
     "build:online-rated": "node scripts/build-online-rated.cjs",
     "test:online-rated": "node --test tests/online-rated.test.cjs tests/online-rated-migration.test.cjs && node tests/online-spark-browser.cjs",
     "test:tower:background": "node tests/math-tower-floor3-background.cjs",
-    "test:online-entry": "node tests/online-spark-entry.cjs"
+    "test:online-entry": "node tests/online-spark-entry.cjs",
+    "test:online-menu": "node tests/online-menu-browser.cjs",
+    "test:version": "node --test tests/game-version.test.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

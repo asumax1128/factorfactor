@@ -52,8 +52,12 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     await p.evaluate(() => window.__releaseConfig());
     await p.waitForTimeout(100);
     await quick.click();
-    await p.getByRole("button", { name: "EASY", exact: true }).waitFor();
-    await p.getByRole("button", { name: "NORMAL", exact: true }).waitFor();
+    await p
+      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .waitFor();
+    await p
+      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .waitFor();
     assert.deepEqual(t.errors, []);
     console.log(
       "PASS delayed enabled config opens difficulty choice, never legacy queue",
@@ -106,7 +110,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await denied.page
-      .getByRole("button", { name: "NORMAL", exact: true })
+      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(denied.errors, []);
     console.log(
@@ -133,7 +137,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await timeout.page
-      .getByRole("button", { name: "NORMAL", exact: true })
+      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(timeout.errors, []);
     await timeout.ctx.close();
@@ -198,10 +202,10 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await publicPage.page
-      .getByRole("button", { name: "EASY", exact: true })
+      .getByRole("button", { name: "EASYで相手を探す", exact: true })
       .waitFor();
     await publicPage.page
-      .getByRole("button", { name: "NORMAL", exact: true })
+      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
       .waitFor();
     await publicPage.page
       .getByRole("button", { name: "EASYで相手を探す", exact: true })
@@ -247,7 +251,9 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     await cpu.page
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
-    await cpu.page.getByRole("button", { name: "EASY", exact: true }).waitFor();
+    await cpu.page
+      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .waitFor();
     assert.deepEqual(cpu.errors, []);
     await cpu.ctx.close();
     console.log(

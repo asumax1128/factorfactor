@@ -100,3 +100,6 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 第3階の原本ZIPは受領済み。`36e0123` で1672×941のPNGを無加工で参照し、中心cover表示、マイナス左／プラス右を検証した。原本SHA256は `d81d75734c057c802bcd80e85e5d6f3a65dff8a0716aced5bbbb63d00514f77c`。旧画像はgit履歴とリポジトリ外の確認用控えに残す。新test:tower:backgroundは他素材・原稿の完全保持、5画面サイズ、色の左右、切れ・会話重複を検証する。
 
 - 2026-10-13: Sparkオンライン入口の初回設定通知遅延による旧qm誤遷移を再現・修正。FB.db専用監視とエラー/再試行、protocol検証を追加。塔・Firebase設定・記録は変更なし。詳細 reports/2026-10-13_online-entry-config-fix.md。
+
+- 正式バージョンはversion.jsonへ統一。所有者承認で5.9→5.10。通常公開ごとminor+1、majorは事前確認。docs/game-version-policy.md参照。
+- オンライン検索とレーティングを分離、EASY掲載1501以上、NORMAL3戦を維持。旧データ保持。ゴースト等6項目は reports/2026-10-13_ghost-learning-host-design.md の調査設計のみ、承認前に実装しない。

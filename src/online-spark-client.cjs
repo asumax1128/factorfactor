@@ -114,13 +114,57 @@ function create({ db, uid, account, now = Date.now }) {
       return p;
     });
   }
-  async function response(m = null) {
+  async function response(m = null, withLegacy = false) {
     if (m) await apply(m);
-    const p = (await profileRef.get()).val();
+    let p = (await profileRef.get()).val();
     profiles[key] = p;
+    const players = { ...profiles };
+    if (withLegacy) {
+      const [profileSnapshot, legacySnapshot] = await Promise.all([
+        pr.get(),
+        db.ref("games/factor/accounts").get(),
+      ]);
+      Object.assign(players, profileSnapshot.val() || {});
+      p = players[key];
+      const legacy = legacySnapshot.val() || {};
+      for (const [k, a] of Object.entries(legacy)) {
+        if (
+          players[k] ||
+          !a?.name ||
+          typeof a.stats?.rating !== "number" ||
+          !Number.isFinite(a.stats.rating)
+        )
+          continue;
+        // Read-only preview for accounts that have not opened the new mode.
+        // No bulk migration or write to old accounts; a real profile always wins.
+        players[k] = {
+          name: a.name,
+          easy: {
+            rating: a.stats.rating,
+            games: 0,
+            w: 0,
+            l: 0,
+            d: 0,
+            season: new Date(now() + 9 * 3600e3).toISOString().slice(0, 7),
+            maxRating: a.stats.rating,
+            seasonMax: a.stats.rating,
+          },
+          normal: {
+            rating: 1500,
+            games: 0,
+            w: 0,
+            l: 0,
+            d: 0,
+            season: new Date(now() + 9 * 3600e3).toISOString().slice(0, 7),
+            maxRating: 1500,
+            seasonMax: 1500,
+          },
+        };
+      }
+    }
     const ranks = {
-      easy: C.rankings({ players: profiles }, "easy", now()),
-      normal: C.rankings({ players: profiles }, "normal", now()),
+      easy: C.rankings({ players }, "easy", now()),
+      normal: C.rankings({ players }, "normal", now()),
     };
     return {
       ticket: m ? null : ticket,
@@ -283,13 +327,14 @@ function create({ db, uid, account, now = Date.now }) {
     if (command.protocol !== undefined && command.protocol !== 2)
       throw Error("UPDATE_REQUIRED");
     await ensure();
+    if (command.type === "ratings") return response(null, true);
     if (command.type === "enqueue") return enqueue(command.difficulty);
     if (command.type === "equipTitle") {
       await tx(profileRef, (p) => {
         if (!p.badges?.[command.title]) throw Error("TITLE_NOT_EARNED");
         return { ...p, title: command.title };
       });
-      return response(await find());
+      return response(await find(), true);
     }
     if (command.type === "ackReceipt") {
       await tx(profileRef, (p) => {

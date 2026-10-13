@@ -305,17 +305,17 @@ function transition(state, actor, cmd, now, entropy) {
 function rankings(state, d, now) {
   if (!["easy", "normal"].includes(d)) throw Error("INVALID_DIFFICULTY");
   const rows = Object.entries(state.players || {})
-    .filter(([, p]) => p[d].games >= 3)
     .map(([key, p]) => ({
       key,
       name: p.name,
       title: p.title || null,
       ...normalize(copy(p[d]), season(now)),
-    }));
+    }))
+    .filter((r) => (d === "easy" ? r.rating >= 1501 : r.games >= 3));
   rows.sort(
     (a, b) =>
       b.rating - a.rating ||
-      b.w / b.games - a.w / a.games ||
+      (b.games ? b.w / b.games : 0) - (a.games ? a.w / a.games : 0) ||
       a.key.localeCompare(b.key),
   );
   let rank = 0;
@@ -323,7 +323,8 @@ function rankings(state, d, now) {
     if (
       !i ||
       r.rating !== rows[i - 1].rating ||
-      r.w / r.games !== rows[i - 1].w / rows[i - 1].games
+      (r.games ? r.w / r.games : 0) !==
+        (rows[i - 1].games ? rows[i - 1].w / rows[i - 1].games : 0)
     )
       rank = i + 1;
     return { ...r, rank };

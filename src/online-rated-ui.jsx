@@ -9,10 +9,12 @@
       normal_master: "NORMALマスター",
       dual_master: "双璧のマスター",
     };
-    function App({ acct, onExit }) {
+    function App({ acct, onExit, view = "match" }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
-        [screen, setScreen] = useState("select"),
+        [screen, setScreen] = useState(
+          view === "ratings" ? "ratings" : "select",
+        ),
         [tab, setTab] = useState("easy"),
         [busy, setBusy] = useState(false),
         [muted, setMuted] = H.useGameMute();
@@ -68,7 +70,8 @@
           setState(v);
           current.current = v;
           if (v.match?.game) seq.current = v.match.game.acceptedSeq;
-          if (v.match?.phase === "settled") setScreen("result");
+          if (view === "ratings") setScreen("ratings");
+          else if (v.match?.phase === "settled") setScreen("result");
           else if (v.match?.phase === "cancelled") {
             setScreen("select");
             setError("対戦開始前に相手が退出しました");
@@ -103,7 +106,8 @@
       }
       requestRef.current = send;
       useEffect(() => {
-        if (acct?.key) send({ type: "status" });
+        if (acct?.key)
+          send({ type: view === "ratings" ? "ratings" : "status" });
         else setError("登録アカウントでログインしてから検索してください");
       }, []);
       useEffect(() => {
@@ -140,7 +144,9 @@
         seq.current = 0;
       }, [m?.id]);
       return (
-        <main className="or-app">
+        <main
+          className={`or-app ${screen === "play" ? "or-playing" : "or-menu"}`}
+        >
           <header>
             <button
               onClick={() => {
@@ -156,7 +162,10 @@
             >
               オンラインへ戻る
             </button>
-            <h2>難易度別ランダム対戦</h2>
+            <h2>
+              {view === "ratings" ? "オンラインレーティング" : "すぐ遊ぶ"}
+            </h2>
+            <small className="or-version">{root.FactorVersion?.label}</small>
             <button
               aria-label={muted ? "音を出す" : "消音"}
               onClick={() => setMuted(!muted)}
@@ -170,7 +179,12 @@
               <button
                 disabled={busy}
                 onClick={() =>
-                  send(retry.current || { type: "heartbeat", matchId: m?.id })
+                  send(
+                    retry.current || {
+                      type: view === "ratings" ? "ratings" : "heartbeat",
+                      matchId: m?.id,
+                    },
+                  )
                 }
               >
                 再試行・最新結果を確認
@@ -179,9 +193,7 @@
           )}
           {screen === "select" && (
             <section>
-              <p>
-                難易度を選んで相手を探します。部屋番号対戦・CPUは別メニューです。
-              </p>
+              <h3>難易度を選んで対戦</h3>
               {["easy", "normal"].map((d) => (
                 <button
                   key={d}
@@ -321,55 +333,86 @@
               </button>
             </section>
           )}
-          <section>
-            <h3>自分のレーティング</h3>
-            {["easy", "normal"].map((d) => (
-              <p key={d}>
-                {d.toUpperCase()}：{state?.ratings?.[d]?.rating ?? "読込前"} ・{" "}
-                {state?.ratings?.[d]?.games ?? 0}戦
-                {state?.ranks?.[d]
-                  ? " ・ " + state.ranks[d] + "位"
-                  : " ・ 掲載は3戦から"}
-              </p>
-            ))}
-            <p>
-              {Object.keys(state?.badges || {})
-                .filter((k) => state.badges[k])
-                .map((k) => (
+          {view === "ratings" && (
+            <>
+              <nav className="or-tabs" aria-label="ランキングの難易度">
+                {["easy", "normal"].map((d) => (
                   <button
-                    key={k}
-                    disabled={busy}
-                    onClick={() =>
-                      send({
-                        type: "equipTitle",
-                        title: k,
-                        ...(m ? { matchId: m.id } : {}),
-                      })
-                    }
+                    key={d}
+                    aria-pressed={tab === d}
+                    onClick={() => setTab(d)}
                   >
-                    {titles[k]}を装備
+                    {d.toUpperCase()}
                   </button>
                 ))}
-            </p>
-          </section>
-          <section>
-            <h3>レーティングランキング</h3>
-            {["easy", "normal"].map((d) => (
-              <button
-                key={d}
-                aria-pressed={tab === d}
-                onClick={() => setTab(d)}
-              >
-                {d.toUpperCase()}
-              </button>
-            ))}
-            <p>この難易度で有効対戦3戦以上</p>
-            {(state?.rankings?.[tab] || []).map((r) => (
-              <p key={r.key}>
-                {r.rank}位 {r.name} {titles[r.title] || ""}：{r.rating}
-              </p>
-            ))}
-          </section>
+              </nav>
+              <section className="or-self" aria-label="自分のレーティング">
+                <h3>{tab.toUpperCase()} レーティング</h3>
+                <strong className="or-rating">
+                  {state?.ratings?.[tab]?.rating == null
+                    ? "読込中"
+                    : Number(state.ratings[tab].rating).toLocaleString(
+                        "ja-JP",
+                        { maximumFractionDigits: 1 },
+                      )}
+                </strong>
+                <p>有効対戦 {state?.ratings?.[tab]?.games ?? 0}戦</p>
+                <p>
+                  {state?.ranks?.[tab]
+                    ? `自分の順位：${state.ranks[tab]}位`
+                    : "自分の順位：未掲載"}
+                </p>
+              </section>
+              <section>
+                <h3>{tab.toUpperCase()}ランキング</h3>
+                <p className="or-rule">
+                  {tab === "easy"
+                    ? "掲載条件：EASYレーティング1501以上（対戦数不問）"
+                    : "掲載条件：NORMALの有効対戦3戦以上"}
+                </p>
+                {!state ? (
+                  <p>読み込み中…</p>
+                ) : !state.rankings?.[tab]?.length ? (
+                  <p>掲載条件を満たすプレイヤーはまだいません</p>
+                ) : (
+                  <ol className="or-ranking">
+                    {state.rankings[tab].map((r) => (
+                      <li key={r.key}>
+                        <span>{r.rank}位</span>
+                        <span className="or-player">
+                          {r.name}
+                          {titles[r.title] && <small>{titles[r.title]}</small>}
+                        </span>
+                        <strong>
+                          {Number(r.rating).toLocaleString("ja-JP", {
+                            maximumFractionDigits: 1,
+                          })}
+                        </strong>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </section>
+              {!!Object.keys(state?.badges || {}).length && (
+                <section>
+                  <h3>獲得した称号</h3>
+                  <div className="or-titles">
+                    {Object.keys(state.badges)
+                      .filter((k) => state.badges[k])
+                      .map((k) => (
+                        <button
+                          key={k}
+                          disabled={busy}
+                          onClick={() => send({ type: "equipTitle", title: k })}
+                        >
+                          {titles[k]}を装備
+                        </button>
+                      ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
         </main>
       );
     }
