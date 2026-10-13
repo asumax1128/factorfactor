@@ -32,7 +32,16 @@
       .replaceAll("数理の塔", "数学の塔");
     let bg = ev.bg || (ev.floor > 0 ? "f0" + ev.floor : null);
     for (let j = 0; j <= li; j++) if (lines[j].bg) bg = lines[j].bg;
-    const active = l.who;
+    // Unit artwork belongs to battle/bestiary. Resolve dialogue speakers and
+    // accumulated entrances to individual portraits, including future units.
+    const portraits = (id) => {
+      const unit = content.characters[id]?.unit;
+      return Array.isArray(unit) ? unit.flatMap(portraits) : [id];
+    };
+    const active =
+      portraits(l.who).find(
+        (id) => !l.name || name(content, id, reveal) === l.name,
+      ) || portraits(l.who)[0];
     const paperLines = lines
       .slice(0, li + 1)
       .filter((x) => ["math", "note"].includes(x.kind));
@@ -50,9 +59,17 @@
       .filter(
         (x) => content.characters[x.who] && content.characters[x.who].image,
       )
-      .map((x) => x.who);
+      .flatMap((x) => portraits(x.who));
     if (["plus", "minus"].includes(active)) visible.push("plus", "minus");
     const ids = [...new Set(visible)].slice(-3);
+    // Preserve established left/right entrances; speaking order cannot swap them.
+    if (ids.includes("plus") && ids.includes("minus")) {
+      ids.sort(
+        (a, b) =>
+          (({ plus: -2, minus: -1 })[a] ?? 0) -
+          ({ plus: -2, minus: -1 }[b] ?? 0),
+      );
+    }
     const next = () => {
       if (ending.current) return;
       const rev = l.reveal ? { ...reveal, [l.reveal]: true } : reveal;
@@ -111,10 +128,16 @@
           {ids.map((id) => (
             <img
               key={id}
+              data-math-character={id}
+              data-speaking={active === id ? "true" : "false"}
               alt={name(content, id, reveal)}
               src={content.characters[id].image}
               style={{
-                filter: active === id ? "none" : "brightness(.65)",
+                filter: ["plus", "minus"].includes(id)
+                  ? `brightness(${active === id ? 1 : 0.65}) drop-shadow(0 0 2px #fff9) drop-shadow(0 3px 7px #071127)`
+                  : active === id
+                    ? "none"
+                    : "brightness(.65)",
                 maxWidth: ids.length > 1 ? "42%" : "75%",
               }}
             />
@@ -761,6 +784,8 @@
         pausedRef = useRef(false),
         pending = useRef(null),
         afterStory = useRef(null),
+        storyBusy = useRef(false),
+        actionBusy = useRef(false),
         seen = useRef(new Set()),
         clock = useRef(Date.now()),
         runId = useRef(""),
@@ -983,13 +1008,16 @@
         setData({ ...data.current, progress: p });
       };
       const storyDone = async () => {
-        if (writer.current.isBusy()) return;
+        if (writer.current.isBusy() || storyBusy.current) return;
+        storyBusy.current = true;
         try {
           setError("");
           await persist((p) => p);
-          afterStory.current();
+          await afterStory.current();
         } catch (e) {
           setError(e.message);
+        } finally {
+          storyBusy.current = false;
         }
       };
       const prepare = (f) => {
@@ -1287,7 +1315,7 @@
               if (mode === "adventure")
                 await persist((p) => R.finishStory(p, chosen));
               setScreen(
-                mode === "adventure" && f === 5 ? "chapterEnd" : "home",
+                mode === "adventure" && f === 5 ? "chapterEnd" : "afterFloor",
               );
             } catch (e) {
               setError(e.message);
@@ -1295,6 +1323,24 @@
           },
         );
       const post = () => showPost(floor);
+      const chooseAfterFloor = async (next) => {
+        if (
+          actionBusy.current ||
+          writer.current.isBusy() ||
+          screenRef.current !== "afterFloor"
+        )
+          return;
+        actionBusy.current = true;
+        try {
+          await persist((p) => p);
+          if (next === "next") continueAdventure(difficulty);
+          else setScreen(next);
+        } catch (e) {
+          setError(e.message);
+        } finally {
+          actionBusy.current = false;
+        }
+      };
       if (!loaded)
         return (
           <section className="mt-panel">
@@ -1716,6 +1762,43 @@
                 {playMode === "replay" ? "この階を再挑戦" : "第1章を再開始"}
               </Button>
               <Button onClick={() => setScreen("home")}>ホームへ</Button>
+            </section>
+          )}
+          {screen === "afterFloor" && (
+            <section className="mt-panel" data-math-after-floor>
+              <h2>第{floor}階クリア</h2>
+              <p>記録を保存しました。</p>
+              {playMode === "adventure" ? (
+                <>
+                  <p>
+                    {difficulty.toUpperCase()} ・ HP {d.hp} ・ 次は第{d.floor}階
+                  </p>
+                  <Button
+                    disabled={saving || recovering}
+                    onClick={() => chooseAfterFloor("next")}
+                  >
+                    次の階へ進む
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p>
+                    再挑戦の戦績を記録しました。本編の冒険は保持されています。
+                  </p>
+                  <Button
+                    disabled={saving || recovering}
+                    onClick={() => chooseAfterFloor("floorSelect")}
+                  >
+                    クリアした階を選ぶ
+                  </Button>
+                </>
+              )}
+              <Button
+                disabled={saving || recovering}
+                onClick={() => chooseAfterFloor("home")}
+              >
+                数学の塔メニューへ戻る
+              </Button>
             </section>
           )}
           {screen === "chapterEnd" && (

@@ -104,6 +104,8 @@ const content = require("../math-tower/chapter1.json");
       .getByRole("button", { name: "物語の続きを見る", exact: true })
       .click();
     await story(p);
+    await p.locator("[data-math-screen=afterFloor]").waitFor();
+    await p.getByRole("button", { name: "数学の塔メニューへ戻る", exact: true }).click();
     await p.locator("[data-math-screen=home]").waitFor();
     console.log(
       "PASS rapid story skip, battle completion and immediate story transition; one result",

@@ -265,6 +265,22 @@ async function rawDrag(p, ids) {
       .getByRole("button", { name: "物語の続きを見る", exact: true })
       .click();
     await story(p);
+    await p.locator("[data-math-screen=afterFloor]").waitFor();
+    assert.equal(
+      await p
+        .getByRole("button", { name: "次の階へ進む", exact: true })
+        .count(),
+      0,
+    );
+    await p
+      .getByRole("button", { name: "クリアした階を選ぶ", exact: true })
+      .click();
+    await p.locator("[data-math-screen=floorSelect]").waitFor();
+    assert.deepEqual(
+      tree.games.factor.mathTowerV2.trialProgress.ateacher.adventures,
+      before,
+    );
+    await p.getByRole("button", { name: "戻る", exact: true }).click();
     await p.locator("[data-math-screen=home]").waitFor();
     await p.getByRole("button", { name: "はじめから", exact: true }).click();
     await p.getByRole("button", { name: "EASYを選ぶ", exact: true }).click();

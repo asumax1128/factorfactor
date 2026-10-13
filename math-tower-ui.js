@@ -16,7 +16,13 @@
       const text = String(l.text || "").replaceAll("{playerName}", hero).replaceAll("\u6570\u7406\u306E\u5854", "\u6570\u5B66\u306E\u5854");
       let bg = ev.bg || (ev.floor > 0 ? "f0" + ev.floor : null);
       for (let j = 0; j <= li; j++) if (lines[j].bg) bg = lines[j].bg;
-      const active = l.who;
+      const portraits = (id) => {
+        const unit = content.characters[id]?.unit;
+        return Array.isArray(unit) ? unit.flatMap(portraits) : [id];
+      };
+      const active = portraits(l.who).find(
+        (id) => !l.name || name(content, id, reveal) === l.name
+      ) || portraits(l.who)[0];
       const paperLines = lines.slice(0, li + 1).filter((x) => ["math", "note"].includes(x.kind));
       const bookSeen = lines.slice(0, li + 1).some((x) => ["book", "bookopen"].includes(x.fx));
       const notebook = ev.id === "prologue" && bg === "classroom" && !bookSeen;
@@ -25,9 +31,14 @@
       for (let j = 0; j <= li; j++) if (lines[j].bg) sceneStart = j;
       const visible = lines.slice(sceneStart, li + 1).filter(
         (x) => content.characters[x.who] && content.characters[x.who].image
-      ).map((x) => x.who);
+      ).flatMap((x) => portraits(x.who));
       if (["plus", "minus"].includes(active)) visible.push("plus", "minus");
       const ids = [...new Set(visible)].slice(-3);
+      if (ids.includes("plus") && ids.includes("minus")) {
+        ids.sort(
+          (a, b) => ({ plus: -2, minus: -1 }[a] ?? 0) - ({ plus: -2, minus: -1 }[b] ?? 0)
+        );
+      }
       const next = () => {
         if (ending.current) return;
         const rev = l.reveal ? { ...reveal, [l.reveal]: true } : reveal;
@@ -77,10 +88,12 @@
           "img",
           {
             key: id,
+            "data-math-character": id,
+            "data-speaking": active === id ? "true" : "false",
             alt: name(content, id, reveal),
             src: content.characters[id].image,
             style: {
-              filter: active === id ? "none" : "brightness(.65)",
+              filter: ["plus", "minus"].includes(id) ? `brightness(${active === id ? 1 : 0.65}) drop-shadow(0 0 2px #fff9) drop-shadow(0 3px 7px #071127)` : active === id ? "none" : "brightness(.65)",
               maxWidth: ids.length > 1 ? "42%" : "75%"
             }
           }
@@ -466,7 +479,7 @@
       }
       function App({ acct, onExit }) {
         const fb = H.useFbReady(), [loaded, setLoaded] = useState(null), [error, setError] = useState(""), [screen, setScreen] = useState("loading"), [difficulty, setDifficulty] = useState("normal"), [floor, setFloor] = useState(1), [events, setEvents] = useState([]), [battle, setBattle] = useState(null), [prob, setProb] = useState(null), [paused, setPaused] = useState(false), [flash, setFlash] = useState({}), [notice, setNotice] = useState(""), [seconds, setSeconds] = useState(0), [muted, setMuted] = H.useGameMute(), [outcome, setOutcome] = useState(null), [saving, setSaving] = useState(false), [recovering, setRecovering] = useState(false), [playMode, setPlayMode] = useState("adventure"), [attack, setAttack] = useState(null), [impact, setImpact] = useState(null), [cutin, setCutin] = useState(null);
-        const data = useRef(null), bref = useRef(null), screenRef = useRef(screen), pausedRef = useRef(false), pending = useRef(null), afterStory = useRef(null), seen = useRef(/* @__PURE__ */ new Set()), clock = useRef(Date.now()), runId = useRef(""), guard = useRef(false), sound = H.useBattleSound(muted), life = useRef(true), writer = useRef(null), recoveryBusy = useRef(false), acctRef = useRef(acct), attackRef = useRef(null), cutinRef = useRef(null), explained = useRef(/* @__PURE__ */ new Set()), animationTimer = useRef(null);
+        const data = useRef(null), bref = useRef(null), screenRef = useRef(screen), pausedRef = useRef(false), pending = useRef(null), afterStory = useRef(null), storyBusy = useRef(false), actionBusy = useRef(false), seen = useRef(/* @__PURE__ */ new Set()), clock = useRef(Date.now()), runId = useRef(""), guard = useRef(false), sound = H.useBattleSound(muted), life = useRef(true), writer = useRef(null), recoveryBusy = useRef(false), acctRef = useRef(acct), attackRef = useRef(null), cutinRef = useRef(null), explained = useRef(/* @__PURE__ */ new Set()), animationTimer = useRef(null);
         acctRef.current = acct;
         screenRef.current = screen;
         pausedRef.current = paused;
@@ -654,13 +667,16 @@
           setData({ ...data.current, progress: p });
         };
         const storyDone = async () => {
-          if (writer.current.isBusy()) return;
+          if (writer.current.isBusy() || storyBusy.current) return;
+          storyBusy.current = true;
           try {
             setError("");
             await persist((p) => p);
-            afterStory.current();
+            await afterStory.current();
           } catch (e) {
             setError(e.message);
+          } finally {
+            storyBusy.current = false;
           }
         };
         const prepare = (f) => {
@@ -937,7 +953,7 @@
               if (mode === "adventure")
                 await persist((p) => R.finishStory(p, chosen));
               setScreen(
-                mode === "adventure" && f === 5 ? "chapterEnd" : "home"
+                mode === "adventure" && f === 5 ? "chapterEnd" : "afterFloor"
               );
             } catch (e) {
               setError(e.message);
@@ -945,6 +961,20 @@
           }
         );
         const post = () => showPost(floor);
+        const chooseAfterFloor = async (next) => {
+          if (actionBusy.current || writer.current.isBusy() || screenRef.current !== "afterFloor")
+            return;
+          actionBusy.current = true;
+          try {
+            await persist((p) => p);
+            if (next === "next") continueAdventure(difficulty);
+            else setScreen(next);
+          } catch (e) {
+            setError(e.message);
+          } finally {
+            actionBusy.current = false;
+          }
+        };
         if (!loaded)
           return /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u5B66\u306E\u5854"), /* @__PURE__ */ React.createElement("p", { role: "alert" }, error || "\u6A29\u9650\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026"), /* @__PURE__ */ React.createElement(Button, { onClick: exit }, "\u30BF\u30A4\u30C8\u30EB\u3078"));
         if (screen === "story")
@@ -1188,6 +1218,28 @@
             }
           ) : /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u6557\u5317"), /* @__PURE__ */ React.createElement("p", null, "\u6B63\u7B54\u7387 ", Math.round(outcome.accuracy * 100), "% \u30FB \u30DF\u30B9", " ", outcome.misses, " \u30FB \u6642\u9593\u5207\u308C ", outcome.timeouts), /* @__PURE__ */ React.createElement("p", null, "\u6700\u5927\u30B3\u30F3\u30DC ", outcome.bestCombo, " \u30FB HP ", outcome.hp, " \u30FB \u6575\u6B8BHP", " ", outcome.enemyRemaining.toFixed(1)), /* @__PURE__ */ React.createElement(Button, { onClick: () => setScreen("restart") }, "\u518D\u6311\u6226"))),
           screen === "restart" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, playMode === "replay" ? "\u540C\u3058\u968E\u306E\u518D\u6311\u6226" : "\u7AE0\u306E\u518D\u6311\u6226"), /* @__PURE__ */ React.createElement("p", null, playMode === "replay" ? "\u672C\u7DE8\u306E\u4FDD\u5B58\u306F\u305D\u306E\u307E\u307E\u3001\u3053\u306E\u968E\u3092HP100\u3067\u518D\u6311\u6226\u3057\u307E\u3059\u3002" : "\u3053\u306E\u96E3\u6613\u5EA6\u306E\u5192\u967A\u3060\u3051\u30921\u968E\u30FBHP100\u3067\u518D\u958B\u3057\u307E\u3059\u3002\u904E\u53BB\u306E\u30E9\u30F3\u30AF\u3068\u65E2\u8AAD\u306F\u6B8B\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: restart }, playMode === "replay" ? "\u3053\u306E\u968E\u3092\u518D\u6311\u6226" : "\u7B2C1\u7AE0\u3092\u518D\u958B\u59CB"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setScreen("home") }, "\u30DB\u30FC\u30E0\u3078")),
+          screen === "afterFloor" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-after-floor": true }, /* @__PURE__ */ React.createElement("h2", null, "\u7B2C", floor, "\u968E\u30AF\u30EA\u30A2"), /* @__PURE__ */ React.createElement("p", null, "\u8A18\u9332\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002"), playMode === "adventure" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", null, difficulty.toUpperCase(), " \u30FB HP ", d.hp, " \u30FB \u6B21\u306F\u7B2C", d.floor, "\u968E"), /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              disabled: saving || recovering,
+              onClick: () => chooseAfterFloor("next")
+            },
+            "\u6B21\u306E\u968E\u3078\u9032\u3080"
+          )) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", null, "\u518D\u6311\u6226\u306E\u6226\u7E3E\u3092\u8A18\u9332\u3057\u307E\u3057\u305F\u3002\u672C\u7DE8\u306E\u5192\u967A\u306F\u4FDD\u6301\u3055\u308C\u3066\u3044\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              disabled: saving || recovering,
+              onClick: () => chooseAfterFloor("floorSelect")
+            },
+            "\u30AF\u30EA\u30A2\u3057\u305F\u968E\u3092\u9078\u3076"
+          )), /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              disabled: saving || recovering,
+              onClick: () => chooseAfterFloor("home")
+            },
+            "\u6570\u5B66\u306E\u5854\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"
+          )),
           screen === "chapterEnd" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u7B2C1\u7AE0\u30AF\u30EA\u30A2"), /* @__PURE__ */ React.createElement("p", null, "\u7B2C\u4E00\u306E\u65AD\u7247\u3092\u6570\u7406\u306E\u66F8\u306B\u8A18\u9332\u3057\u307E\u3057\u305F\u3002"), /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u8A66\u904A\u8A18\u9332\u30FB\u516C\u5F0F\u79F0\u53F7\u306B\u306F\u672A\u53CD\u6620\uFF09"), /* @__PURE__ */ React.createElement("p", null, "\u7D9A\u304D\u306F\u5236\u4F5C\u4E2D\u3067\u3059\u3002"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setScreen("home") }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement(Button, { disabled: saving, onClick: restart }, "\u7B2C1\u7AE0\u3092\u518D\u6311\u6226")),
           screen === "book" && /* @__PURE__ */ React.createElement(
             Book,

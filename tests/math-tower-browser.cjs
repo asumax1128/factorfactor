@@ -74,7 +74,25 @@ const seed = () => ({
         .click();
       await newTower(page, difficulty);
       for (let floor = 1; floor <= 5; floor++) {
-        if (floor > 1) await continueTower(page, difficulty);
+        if (floor > 1) {
+          await page
+            .getByRole("button", { name: "次の階へ進む", exact: true })
+            .evaluate((e) => {
+              e.click();
+              e.click();
+            });
+          await page.locator("[data-math-screen=prepare]").waitFor();
+          const a =
+            t.tree.games.factor.mathTowerV2.trialProgress.ateacher.adventures[
+              difficulty
+            ];
+          assert.equal(a.floor, floor);
+          assert.equal(a.difficulty, difficulty);
+          assert.match(
+            await page.locator(".mt-panel").innerText(),
+            new RegExp("HP " + a.hp),
+          );
+        }
         await page
           .getByRole("button", { name: "試練を開始", exact: true })
           .click();
@@ -117,7 +135,7 @@ const seed = () => ({
         await story(page);
         await page
           .locator(
-            `[data-math-screen="${floor === 5 ? "chapterEnd" : "home"}"]`,
+            `[data-math-screen="${floor === 5 ? "chapterEnd" : "afterFloor"}"]`,
           )
           .waitFor();
         console.log("PASS", difficulty, "floor", floor);

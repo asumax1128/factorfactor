@@ -82,3 +82,9 @@ MagicAttackは正解判定後に表示し、HP更新は命中時。guard・attac
 詳細は[追加UI改善記録](../../reports/2026-10-13_math-tower-ui-polish.md)。数式はTowerTargetの3段レイアウトと縦横の字体計測を維持する。共有v7-polyの行高をそのまま固定高のflex枠へ流し込むと再び文字が切れる。新しい章でもフォント読込・指数・高さ変更をテストする。MathTextと同じKaTeXフォントを使用し、同梱ライセンスを削除しない。
 
 Victoryは保存済み結果の表示専用。保存やR.completeを演出部品へ移さない。画像ボタンは遭遇・解放・読込成功を確認し、未知のキャラクターを表示しない。保存・戦闘・音声のエンジンは変更していない。test:tower:polishが旧c426284の切れを再現するため、CIの履歴取得を浅くしない。
+
+## 階クリア後の導線と会話用立ち絵
+
+[導線・会話表示の変更記録](../../reports/2026-10-13_math-tower-adventure-flow.md)。戦闘後のStoryを保存し、R.finishStoryの確定後にafterFloorを表示する。次の階は保存済みadventuresのready状態から再開し、UI遷移で階を加算しない。第5階はchapterEnd、再挑戦は本編と独立したfloorSelectへ戻れる。storyBusy/actionBusyとWriterの直列化を維持する。
+
+会話のunit画像は単体へ展開する。3-preのtwin_fox＋name:プラスを、単体プラスの発言として解釈する。セット画像は戦闘・図鑑に残す。プラス左/マイナス右の位置固定と話者強調を維持。原稿と素材をこの不具合のために削除しない。test:tower:flowは直接進行・全31行・保存失敗/競合も検証する。
