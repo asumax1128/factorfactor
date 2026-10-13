@@ -157,7 +157,6 @@
             H2.BattleBoard,
             {
               flash: feedback == null ? void 0 : feedback.flash,
-              tapSelect: true,
               tiles,
               onMatch,
               disabled: disabled || ready || !!g.result,

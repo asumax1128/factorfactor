@@ -225,7 +225,6 @@
               </div>
               <H.BattleBoard
                 flash={feedback?.flash}
-                tapSelect
                 tiles={tiles}
                 onMatch={onMatch}
                 disabled={disabled || ready || !!g.result}

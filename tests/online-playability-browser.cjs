@@ -78,24 +78,25 @@ async function touchPair(page, long = false, correct = true) {
   const a = await page.locator(`[data-btile="${ids[0]}"]`).boundingBox(),
     b = await page.locator(`[data-btile="${ids[1]}"]`).boundingBox();
   const cdp = await page.context().newCDPSession(page);
-  if (long) {
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchStart",
-      touchPoints: [{ x: a.x + a.width / 2, y: a.y + a.height / 2 }],
-    });
-    await sleep(1200); // Cross a full delayed heartbeat while the finger is held down.
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }],
-    });
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
-  } else {
-    await page.touchscreen.tap(a.x + a.width / 2, a.y + a.height / 2);
-    await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
-  }
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: a.x + a.width / 2, y: a.y + a.height / 2 }],
+  });
+  await sleep(long ? 1200 : 60); // Preserve the finger across polling, or use a quick swipe.
+  assert.equal(
+    await page.locator(".or-battle svg line").count(),
+    1,
+    "shared CPU drag feedback must be visible",
+  );
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }],
+  });
+  await sleep(30);
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
   await cdp.detach();
 }
 async function play(browser, difficulty, mode, kind, origin = "quick") {
@@ -183,6 +184,66 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
   });
   const initialQuestion = await p.evaluate(
     () => window.__onlineState.match.game.question,
+  );
+  // A contact ending on the same card, separate taps, or empty space is not an answer.
+  const seqBeforeTaps = await p.evaluate(
+    () => window.__onlineState.match.game.acceptedSeq,
+  );
+  const tapIds = await pair(p);
+  const tapBoxes = await Promise.all(
+    tapIds.map((id) => p.locator(`[data-btile="${id}"]`).boundingBox()),
+  );
+  const clear = async () => {
+    await p.waitForFunction(
+      () =>
+        [...document.querySelectorAll("[data-btile]")].every(
+          (e) => e.style.transform === "none",
+        ) && !document.querySelector(".or-battle svg line"),
+    );
+    assert.equal(
+      await p.evaluate(() => window.__onlineState.match.game.acceptedSeq),
+      seqBeforeTaps,
+      "tap/invalid release must not submit an answer",
+    );
+    assert.equal(
+      await p.evaluate(() => window.__onlineState.match.game.question),
+      initialQuestion,
+    );
+  };
+  await p.touchscreen.tap(
+    tapBoxes[0].x + tapBoxes[0].width / 2,
+    tapBoxes[0].y + tapBoxes[0].height / 2,
+  );
+  await clear();
+  await p.touchscreen.tap(
+    tapBoxes[1].x + tapBoxes[1].width / 2,
+    tapBoxes[1].y + tapBoxes[1].height / 2,
+  );
+  await clear();
+  const invalid = await p.context().newCDPSession(p);
+  await invalid.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      {
+        x: tapBoxes[0].x + tapBoxes[0].width / 2,
+        y: tapBoxes[0].y + tapBoxes[0].height / 2,
+      },
+    ],
+  });
+  await sleep(60);
+  await invalid.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: 2, y: 2 }],
+  });
+  await sleep(30);
+  await invalid.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await invalid.detach();
+  await clear();
+  console.log(
+    `PASS single/separate taps and outside release clear without answering: ${difficulty}/${mode}/${kind}/${origin}`,
   );
   const mergeBefore = await p.evaluate(() => window.__mergeCalls || 0);
   const initial = await p.evaluate(

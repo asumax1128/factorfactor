@@ -18,3 +18,8 @@
 ## Ver.5.15 日本語UIフォント基準
 
 正式なデザイン基準は [UIデザイン基準](ui-reference/design-standard.md)および `docs/ui-reference/design-standard.md`。比較画像原本は `docs/ui-reference/factorfactor_font_ui_comparison.jpg`。旧42011a6の画面Ver.5.9、Zen Maru Gothic 500/700/900、共有FontImportを確認した。新オンラインのFontImport欠落を補い、見出し/ボタン900へ統一。数式/KaTeX/MathText、ソロ/CPU/塔のルール、Firebaseの記録・認可は変更なし。次の通常公開はVer.5.16。新機能にも共通フォントを必ず読み込み、数式へUIフォントを上書きしない。
+
+
+## Ver.5.16 緊急・カード操作の正式仕様
+
+オンラインの因数カードはCPU練習と同じ既存BattleBoardの既定操作を利用する。1枚目から2枚目へのドラッグ/スワイプで解答し、単独タップ/別々の2タップでは選択を保持せず解答しない。無効な位置で指を離したら解除。Ver.5.13でオンラインだけtapSelectを有効にしたことが原因だったため、呼び出し側の指定だけを削除。共有入力処理、CPU/ソロ/数学の塔の操作は変更しない。今後tapSelectを再び有効化しない。同期中にdisabledへ戻す、同じ問題のタイルを毎回作り直す修正も禁止。6経路の実タッチ連続スワイプと人間A/Bの実SDKで検証し、公式記録・レート・EXP・Firebaseは保持する。次の通常公開はVer.5.17。

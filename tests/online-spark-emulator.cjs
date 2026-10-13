@@ -260,7 +260,41 @@ assert.deepEqual(restored, original);
       [d, mb.id],
     ])
       await u.client.request({ type: "ackReceipt", matchId: mid });
-    const { chromium, context, sleep, drag } = require("./browser-harness.cjs");
+    const { chromium, context, sleep } = require("./browser-harness.cjs");
+    async function noTapAnswers(p) {
+      const ids = await require("./browser-harness.cjs").pair(p);
+      for (const id of ids) {
+        const b = await p.locator(`[data-btile="${id}"]`).boundingBox();
+        await p.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+        await p.waitForFunction(
+          () =>
+            [...document.querySelectorAll("[data-btile]")].every(
+              (e) => e.style.transform === "none",
+            ) && !document.querySelector(".or-battle svg line"),
+        );
+      }
+    }
+    async function touchSwipe(p) {
+      const ids = await require("./browser-harness.cjs").pair(p);
+      const x = await p.locator(`[data-btile="${ids[0]}"]`).boundingBox(),
+        y = await p.locator(`[data-btile="${ids[1]}"]`).boundingBox();
+      const t = await p.context().newCDPSession(p);
+      await t.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: x.x + x.width / 2, y: x.y + x.height / 2 }],
+      });
+      await sleep(60);
+      await t.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: y.x + y.width / 2, y: y.y + y.height / 2 }],
+      });
+      await sleep(30);
+      await t.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      await t.detach();
+    }
     const browser = await chromium.launch({
       executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
     });
@@ -351,7 +385,23 @@ assert.deepEqual(restored, original);
       }
       for (const t of screens) await t.page.locator(".or-battle").waitFor();
       await sleep(4300);
-      await drag(aa.page);
+      await noTapAnswers(aa.page);
+      assert.equal(
+        (
+          await a.db
+            .ref(`games/factor/onlineSparkV1/matches/${a.last.match.id}/game`)
+            .get()
+        ).val().claims?.length || 0,
+        0,
+        "human A separate taps are not answers",
+      );
+      await touchSwipe(aa.page);
+      await aa.page.waitForFunction(
+        () =>
+          Number(
+            document.querySelector(".or-stat-grid .v7-st b")?.textContent,
+          ) > 0,
+      );
       const resultGame = (
         await a.db
           .ref(`games/factor/onlineSparkV1/matches/${a.last.match.id}/game`)
@@ -438,6 +488,16 @@ assert.deepEqual(restored, original);
             () =>
               document.querySelector(".or-battle")?.dataset.onlineReady ===
               "true",
+          );
+          await noTapAnswers(p);
+          assert.equal(
+            (
+              await a.db
+                .ref(`games/factor/onlineSparkV1/matches/${mid}/game`)
+                .get()
+            ).val().states[a.uid].c,
+            0,
+            "human B separate taps are not answers",
           );
           const ids = await require("./browser-harness.cjs").pair(p),
             x = await p.locator(`[data-btile="${ids[0]}"]`).boundingBox(),
