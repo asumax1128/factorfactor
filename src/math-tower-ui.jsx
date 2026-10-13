@@ -66,8 +66,8 @@
     if (ids.includes("plus") && ids.includes("minus")) {
       ids.sort(
         (a, b) =>
-          (({ plus: -2, minus: -1 })[a] ?? 0) -
-          ({ plus: -2, minus: -1 }[b] ?? 0),
+          (({ minus: -2, plus: -1 })[a] ?? 0) -
+          ({ minus: -2, plus: -1 }[b] ?? 0),
       );
     }
     const next = () => {
@@ -98,6 +98,7 @@
       <div
         className="mt-story"
         data-math-story={ev.id}
+        data-story-floor={ev.floor || 0}
         style={{
           backgroundImage: background.image
             ? `linear-gradient(#09133344,#09133388),url("${background.image}")`

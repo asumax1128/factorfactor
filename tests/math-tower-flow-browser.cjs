@@ -121,7 +121,7 @@ async function open(t) {
       const imgs = p.locator("[data-math-character]");
       assert.deepEqual(
         await imgs.evaluateAll((es) => es.map((e) => e.dataset.mathCharacter)),
-        ["plus", "minus"],
+        ["minus", "plus"],
       );
       for (const id of ["plus", "minus"]) {
         const img = p.locator(`[data-math-character=${id}]`);
