@@ -4,6 +4,7 @@ const targets = {
   tower: "math-tower-rules.cjs",
   save: "math-tower-live-save.cjs",
   "production-audit": "math-tower-production-audit.cjs",
+  "rating-audit": "online-rating-audit.cjs",
 };
 const target = targets[process.argv[2] || "tower"];
 if (!target) throw Error("Unknown loopback test target");
