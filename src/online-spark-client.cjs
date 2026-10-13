@@ -267,6 +267,14 @@ function create({
             opponent: m.opponent || null,
             origin: m.origin || "human",
             exp: m.exp || 0,
+            lastAnswer:
+              m.mode === "B"
+                ? m.game?.states?.[
+                    m.members.find((u) => u.key === key)?.uid
+                  ]?.hist?.slice(-1)[0] || null
+                : m.learning?.[
+                    m.members.find((u) => u.key === key)?.uid
+                  ]?.slice(-1)[0] || null,
             game:
               m.phase === "play"
                 ? E.view(

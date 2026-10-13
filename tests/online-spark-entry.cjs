@@ -53,10 +53,10 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     await p.waitForTimeout(100);
     await quick.click();
     await p
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .waitFor();
     await p
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(t.errors, []);
     console.log(
@@ -110,7 +110,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await denied.page
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(denied.errors, []);
     console.log(
@@ -137,7 +137,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await timeout.page
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(timeout.errors, []);
     await timeout.ctx.close();
@@ -202,16 +202,16 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await publicPage.page
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .waitFor();
     await publicPage.page
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .waitFor();
     await publicPage.page
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .waitFor();
     await publicPage.page
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .waitFor();
     for (const file of ["online-spark.js", "online-rated-ui.js"]) {
       const entry = JSON.parse(
@@ -252,7 +252,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
     await cpu.page
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .waitFor();
     assert.deepEqual(cpu.errors, []);
     await cpu.ctx.close();

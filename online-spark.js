@@ -54,6 +54,7 @@
         );
         const conf = api.DIFFICULTY_CONFIG[match.difficulty], bank = api.makeBank(match.seed, conf.tileCount);
         let winner = null;
+        let visualReady = false;
         for (const uid of match.ids) {
           engines[uid] = api.createBEngine({
             code: match.id,
@@ -76,6 +77,21 @@
               ),
               ko
             }),
+            fx: (type, payload) => {
+              if (!visualReady || !["incoming", "hit", "blocked", "special"].includes(type))
+                return;
+              match.visualSequence = (match.visualSequence || 0) + 1;
+              match.visualEvents = [
+                ...match.visualEvents || [],
+                {
+                  id: match.visualSequence,
+                  uid,
+                  type,
+                  at: time,
+                  payload: payload != null ? payload : null
+                }
+              ].slice(-24);
+            },
             onClear: (u) => {
               winner = u;
             }
@@ -84,6 +100,7 @@
             Object.assign(engines[uid].s, clone(match.states[uid]));
           if (engines[uid].s.ko) ko[uid] = { at: time };
         }
+        visualReady = true;
         const receive = () => {
           for (const u of match.ids) {
             engines[u].receive(events[u]);
@@ -207,6 +224,9 @@
         }
         return m;
       }
+      function nowShield(s, time) {
+        return time < (s.shieldUntil || 0);
+      }
       function view(match, uid) {
         const rt = runtime(match), { api } = rt;
         const problem = match.mode === "A" ? api.problemForA(rt.bank, match.claims.length) : match.states[uid].cur;
@@ -222,6 +242,7 @@
           startAt: match.mode === "A" ? api.qStartA(match.claims, match.claims.length, match.startAt) : match.states[uid].qStart,
           timeoutMs: api.QUESTION_TIMEOUT_MS,
           acceptedSeq: match.seq[uid] || 0,
+          visualEvents: match.visualEvents || [],
           resolving: match.mode === "B" && match.states[uid].resolving,
           combo: match.mode === "A" ? api.scoreA(
             rt.bank,
@@ -242,7 +263,8 @@
                 score: match.states[u].score,
                 c: match.states[u].c,
                 combo: match.states[u].combo,
-                sp: match.states[u].sp
+                sp: match.states[u].sp,
+                shield: nowShield(match.states[u], match.time)
               } : api.scoreA(
                 rt.bank,
                 match.claims,
@@ -953,7 +975,7 @@
           });
         }
         async function response(m = null, withLegacy = false) {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
           if (m && (!m.opponent || m.origin === "quick")) await apply(m);
           if ((m == null ? void 0 : m.opponent) && m.phase === "settled") await saveGhostResult(m);
           if ((m == null ? void 0 : m.phase) === "settled") {
@@ -1032,13 +1054,14 @@
               opponent: m.opponent || null,
               origin: m.origin || "human",
               exp: m.exp || 0,
+              lastAnswer: m.mode === "B" ? ((_m = (_l = (_k = (_i = m.game) == null ? void 0 : _i.states) == null ? void 0 : _k[(_j = m.members.find((u) => u.key === key)) == null ? void 0 : _j.uid]) == null ? void 0 : _l.hist) == null ? void 0 : _m.slice(-1)[0]) || null : ((_p = (_o = m.learning) == null ? void 0 : _o[(_n = m.members.find((u) => u.key === key)) == null ? void 0 : _n.uid]) == null ? void 0 : _p.slice(-1)[0]) || null,
               game: m.phase === "play" ? E.view(
                 m.game,
-                ((_i = m.members.find((u) => u.key === key)) == null ? void 0 : _i.uid) || uid
+                ((_q = m.members.find((u) => u.key === key)) == null ? void 0 : _q.uid) || uid
               ) : null,
-              result: ((_j = m.receipt) == null ? void 0 : _j.result) || null,
+              result: ((_r = m.receipt) == null ? void 0 : _r.result) || null,
               receipt: m.receipt || null,
-              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_k = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _k.key) === key ? "win" : "lose" : null
+              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_s = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _s.key) === key ? "win" : "lose" : null
             } : null,
             ratings: {
               easy: C.ratingView(p.easy, now()),
@@ -1051,8 +1074,8 @@
               normal: ranks.normal.slice(0, 10)
             },
             ranks: {
-              easy: ((_l = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _l.rank) || null,
-              normal: ((_m = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _m.rank) || null
+              easy: ((_t = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _t.rank) || null,
+              normal: ((_u = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _u.rank) || null
             }
           };
         }

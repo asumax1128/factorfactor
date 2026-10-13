@@ -59,7 +59,7 @@ const { chromium, context } = require("./browser-harness.cjs");
         .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
         .click();
       await p
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .waitFor();
       assert.equal(
         await p.getByRole("heading", { name: "すぐ遊ぶ", exact: true }).count(),
@@ -108,7 +108,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       assert.ok(rows.includes("Legacy"));
       assert.ok(!rows.includes("New"));
       assert.ok(rows.includes("Teacher"));
-      await p.getByRole("button", { name: "NORMAL", exact: true }).click();
+      await p.getByRole("button", { name: "ノーマル", exact: true }).click();
       assert.equal(await p.locator(".or-rating").innerText(), "1,500");
       assert.match(await p.locator(".or-rule").innerText(), /3戦以上/);
       assert.match(await p.locator(".or-ranking").innerText(), /New/);

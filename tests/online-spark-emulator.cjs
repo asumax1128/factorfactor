@@ -312,16 +312,16 @@ assert.deepEqual(restored, original);
           })
           .click();
         await t.page
-          .getByRole("button", { name: "EASYで相手を探す", exact: true })
+          .getByRole("button", { name: "イージーで相手を探す", exact: true })
           .waitFor();
       }
       const [aa, bb] = screens;
       // Rating details intentionally live on the separate ratings screen.
       await aa.page
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .click();
       await bb.page
-        .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+        .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
         .click();
       for (const t of screens)
         await t.page
@@ -333,7 +333,7 @@ assert.deepEqual(restored, original);
         .getByRole("button", { name: "検索をキャンセル", exact: true })
         .click();
       await bb.page
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .click();
       for (const t of screens) {
         await t.page
@@ -341,7 +341,7 @@ assert.deepEqual(restored, original);
           .waitFor();
         assert.equal(
           await t.page
-            .getByRole("button", { name: "NORMALを選ぶ", exact: true })
+            .getByRole("button", { name: "ノーマルを選ぶ", exact: true })
             .count(),
           0,
         );

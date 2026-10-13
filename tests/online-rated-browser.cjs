@@ -106,23 +106,23 @@ const { chromium, context, sleep, drag } = require("./browser-harness.cjs");
         .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
         .click();
       await t.page
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .waitFor();
     }
     await aa.page.getByText("EASY：1800", { exact: false }).waitFor();
     await aa.page.getByText("NORMAL：1500", { exact: false }).waitFor();
     await aa.page
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .click();
     await bb.page
-      .getByRole("button", { name: "NORMALで相手を探す", exact: true })
+      .getByRole("button", { name: "ノーマルで相手を探す", exact: true })
       .click();
     assert.equal(Object.keys(state.matches).length, 0);
     await bb.page
       .getByRole("button", { name: "検索をキャンセル", exact: true })
       .click();
     await bb.page
-      .getByRole("button", { name: "EASYで相手を探す", exact: true })
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .click();
     for (const t of [aa, bb]) {
       await t.page
@@ -130,7 +130,7 @@ const { chromium, context, sleep, drag } = require("./browser-harness.cjs");
         .waitFor();
       assert.equal(
         await t.page
-          .getByRole("button", { name: "NORMALを選ぶ", exact: true })
+          .getByRole("button", { name: "ノーマルを選ぶ", exact: true })
           .count(),
         0,
       );

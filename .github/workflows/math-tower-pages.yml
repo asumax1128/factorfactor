@@ -87,6 +87,7 @@ jobs:
       - run: npm run test:online-rated
       - run: npm run test:online-entry
       - run: npm run test:online-menu
+      - run: npm run test:online-presentation
       - run: npm run test:online-playability
       - run: npm run test:ghost
       - name: Spark Auth, matching and ratings in demo emulators only

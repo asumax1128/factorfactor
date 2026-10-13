@@ -183,3 +183,53 @@
 .or-result h3 {font-size:36px;color:#FFD54A;}
 @media (max-height:660px) {.or-playing .v7-zone,.or-playing .v7-main,.or-playing .v7-play {gap:5px;}.or-playing .v7-target {padding:7px 8px 12px;}.or-playing .v7-st b {font-size:19px;}.or-playing .or-opponent {font-size:10px;}}
 .or-app .or-result {background:linear-gradient(150deg,#24336E,#0B1430);color:#fff;border:2px solid #FFD54A;}
+/* Ver.5.9 menu palette: paper, white cards, coral primary and difficulty colors. */
+.or-menu {background:var(--v7-paper,#f5f2ec);color:var(--v7-ink,#1d2633);max-width:680px;}
+.or-menu header h2 {font-weight:900;font-size:24px;color:#1d2633;}
+.or-menu section:not(.or-playing section) {background:#fff;border:1px solid #e4dfd5;border-radius:18px;box-shadow:0 2px 0 #00000008;}
+.or-menu button:not(.or-playing button) {background:#fff;color:#1d2633;border:1px solid #ded8ca;border-radius:14px;box-shadow:0 2px 0 #ded8ca;font-family:var(--v7-f-ui);font-size:15px;min-height:44px;}
+.or-menu header button {border-radius:99px;padding:8px 13px;}
+.or-menu section>.or-difficulty {border:2px solid var(--difficulty-color);border-top-width:6px;text-align:left;padding:14px 16px;margin:12px 0;color:#1d2633;background:#fff;font-size:18px;}
+.or-menu .or-primary {background:#E4572E;color:#fff;border-color:#E4572E;box-shadow:inset 0 -3px 0 #b84122;}
+.or-menu button[aria-pressed="true"] {background:#1d2633;color:white;border-color:#1d2633;}
+.or-menu .or-rating {color:#E4572E;}
+.or-menu .or-version {font-size:11px;}
+.or-search-icon {margin:8px auto 16px;font-size:50px;width:72px;text-align:center;animation:or-search 1.8s ease-in-out infinite alternate;}
+@keyframes or-search {from{transform:translateX(-28px) rotate(-10deg)}to{transform:translateX(28px) rotate(10deg)}}
+.or-elapsed {font-size:22px;font-weight:900;color:#E4572E;}
+.or-feedback {height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:16px;position:relative;}
+.or-feedback .or-timing {position:static;transform:none;font-size:clamp(22px,6vw,32px);animation:or-judge .7s ease-out;}
+.or-feedback .combat-combo {position:static;font-size:18px!important;}
+@keyframes or-judge {from{transform:scale(.7)}30%{transform:scale(1.12)}to{transform:scale(1)}}
+.or-playing .v7-poly {font-size:clamp(1.4rem,5.5vh,3rem);}
+.or-result {text-align:center;position:relative;isolation:isolate;overflow:hidden;}
+.or-menu .or-result {background:#fff;color:#1d2633;border:2px solid #E8A33D;}
+.or-menu .or-result h3 {font-size:clamp(42px,12vw,72px);color:#cf9611;margin:8px 0;position:relative;}
+.or-victory h3 {animation:or-victory .65s cubic-bezier(.2,.8,.3,1.3);text-shadow:0 3px 0 #fff1a9,0 0 22px #ffd54a;}
+@keyframes or-victory {from{transform:scale(1.5) translateY(-12px)}60%{transform:scale(.95)}to{transform:scale(1)}}
+.or-victory-rays {position:absolute;inset:0;background:radial-gradient(circle at 50% 25%,#ffe69f88,transparent 65%);z-index:-1;animation:or-rays .8s ease-out;pointer-events:none;}
+@keyframes or-rays {from{transform:scale(.6)}to{transform:scale(1.2)}}
+.or-result-sub {font-size:12px;letter-spacing:.12em;font-weight:900;color:#9d752d;}
+.or-delta {display:block;font-size:28px;color:#E4572E;margin:12px 0 4px;}
+.or-exp {padding:14px;border-radius:12px;background:#fff1df;margin:14px 0;font-size:18px;}
+.or-exp b {font-size:28px;color:#E4572E;}
+.or-new-title {border:2px solid #E8A33D;background:#fff8df;border-radius:12px;padding:12px;font-weight:900;}
+.or-menu .or-defeat {border-color:#d4d6dc;}
+.or-menu .or-defeat h3 {color:#5b6570;text-shadow:none;animation:none;}
+@media(prefers-reduced-motion:reduce){.or-search-icon,.or-victory h3,.or-victory-rays,.or-feedback .or-timing{animation:none!important;}.or-playing .v7-hpb i{transition:none;}}
+@media(max-height:660px){.or-feedback{height:24px;gap:10px;}.or-feedback .or-timing{font-size:22px;}.or-playing .v7-poly{font-size:clamp(1.4rem,4.5vh,2.4rem);}.or-playing .or-opponent{padding:4px 6px;}.or-playing .v7-target{padding:5px 8px 10px;}}
+.or-new-title{animation:or-victory .6s ease-out;}
+@media(prefers-reduced-motion:reduce){.or-new-title{animation:none;}}
+@media(max-height:660px){.or-special button{min-height:28px;}.or-feedback{height:22px;}.or-playing .v7-st{padding:2px 4px;}.or-playing .v7-main .v7-hint{font-size:9px;line-height:1;}.or-playing .or-connection{font-size:9px;line-height:1;}}
+.or-menu h3:not(.or-playing h3){font-weight:900;font-size:18px;}
+.or-menu .or-name{color:#1d2633!important;}
+.or-app.or-playing button{font-size:12px;}
+.or-app.or-playing .or-special button{font-size:10px;white-space:nowrap;padding:2px 3px;min-height:28px;}
+.or-app.or-playing .v7-bar-btn{background:#0B1430;color:#C9D3F5;}
+.or-shield-status{position:absolute;right:6px;top:-7px;color:white;background:#457b9d;border-radius:8px;padding:1px 5px;font-size:10px;}
+.or-feedback .combat-combo-high{font-size:20px!important;}
+.or-feedback .combat-combo-fever{font-size:22px!important;}
+.or-app.or-menu section>.or-difficulty{border:2px solid var(--difficulty-color);border-top-width:6px;background:white;color:#1d2633;text-align:left;padding:14px 16px;font-size:18px;}
+.or-app.or-menu .or-primary{background:#E4572E;color:#fff;border-color:#E4572E;box-shadow:inset 0 -3px 0 #b84122;}
+.or-app.or-menu header button{border-radius:99px;}
+.or-app.or-menu button[aria-pressed="true"]{background:#1d2633;color:white;border-color:#1d2633;}

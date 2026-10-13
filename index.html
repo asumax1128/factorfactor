@@ -337,6 +337,12 @@
     padding: 16px; background: #fff3f0; color: #7a1f10; border: 2px solid #e76f51;
     margin: 16px; border-radius: 12px; font-size: 12px; line-height: 1.6;
   }
+
+  .combat-judge {pointer-events:none;}
+  .combat-combo {position:absolute;right:12px;top:74px;z-index:32;pointer-events:none;font-family:var(--v7-f-fx);color:#FFD54A;text-shadow:0 0 12px #FFD54A88;font-weight:900;animation:combatCombo .55s ease-out;white-space:nowrap;text-align:center;}
+  .combat-combo-high {color:#FFE48F;text-shadow:0 0 16px #ff9f1c;}
+  @keyframes combatCombo {from{transform:scale(.75)}45%{transform:scale(1.12)}to{transform:scale(1)}}
+  @media(prefers-reduced-motion:reduce){.combat-judge,.combat-combo{animation:none!important;}.combat-judge{transform:translate(-50%,-50%);}}
 </style>
 </head>
 <body>
@@ -1425,6 +1431,7 @@ async function decodeDataUriToAudioBuffer(dataUri) {
    メインコンポーネント
    ============================================================ */
 function FactorHunt({ onBattle, onMode, acct, onLogout }) {
+  useEffect(()=>()=>CombatFX.cancel(),[]);
   const [screen, setScreen] = useState('menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
   const [questionLevel, setQuestionLevel] = useState(1); // 今出ている問題のレベル
@@ -2179,7 +2186,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
       // 音ゲー風6段階判定: 出題からの経過時間で判定し、体力を回復する
       const elapsedMs = Date.now() - questionStartTimeRef.current;
       const judge = getJudgment(elapsedMs);
-      fxMerge([tileRefs.current[id1], tileRefs.current[id2]], judge.color); // タイルがお題に吸いこまれて弾ける
+      CombatFX.merge(CombatFX.capture([tileRefs.current[id1],tileRefs.current[id2]]),timingVisual(judge).color); // タイルがお題に吸いこまれて弾ける
       learnRef.current.push({ lv: questionLevel, pid: patternOf(questionLevel, [t1.factor, t2.factor]), ok: true, ms: elapsedMs, j: judge.label });
       splitsRef.current.push(Math.round(elapsedSeconds * 1000));
       if (judge.label === 'Perfect') FX.flash('#fff', 0.3, 160);
@@ -2821,9 +2828,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
      ============================================================ */
   const diffCfgP = DIFFICULTY_CONFIG[difficulty];
   const lvInfo = LEVEL_INFO[questionLevel];
-  const judgeEl = cls => judgePopup && (
-    <div key={`${cls}-${caught}-${judgePopup.label}`} className={`v7-judge ${cls}`} style={{ color: judgePopup.color, textShadow: `0 0 18px ${judgePopup.color}, 0 3px 0 rgba(0,0,0,.35)` }}>{judgePopup.label}</div>
-  );
+  const judgeEl = cls => <TimingJudgment judge={judgePopup} className={cls} />;
   const hpColor = life <= 10 ? 'linear-gradient(90deg,#E53935,#FF8A65)' : life <= 30 ? 'linear-gradient(90deg,#F2A516,#FFD54A)' : 'linear-gradient(90deg,#3FBF73,#8BE38F)';
   return (
     <div
@@ -2898,7 +2903,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
           {/* タブレット横：判定の文字とカットインはこの欄に出す */}
           <div className="v7-fxbox" data-fxband="1">
             {combo >= 2 && <div className="v7-fxcombo" key={combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{combo}</b><small>COMBO</small></div>}
-            {judgeEl('v7-judge-tb')}
+            {judgeEl('v7-judge-tb')}<ComboDisplay combo={combo} />
           </div>
         </div>
 
@@ -3091,13 +3096,52 @@ function fxMerge(els, color) {
   });
   setTimeout(() => { if (tc) { FX.burst(tc.x, tc.y, { color, colors: [color, '#ffffff', '#FFD54A'], n: 18, r: 90 }); FX.punch(tg, 1.05); } }, 320);
 }
+// Shared presentation only: battle rules, timing thresholds and recorded labels stay unchanged.
+const TIMING_VISUAL = {Perfect:'#FFD54A',Excellent:'#8BE38F',Great:'#6BD4E8',Good:'#8FB8FF',OK:'#C9C9C9',Bad:'#FF5C5C'};
+function timingVisual(judge) {
+  if (!judge) return null;
+  const label=judge.label==='Fair'?'OK':judge.label;
+  return {...judge,label,color:TIMING_VISUAL[label] || judge.color};
+}
+let TIMING_VISUAL_ID=0;
+function TimingJudgment({judge,at,className=''}) {
+  const j=timingVisual(judge),popId=useMemo(()=>++TIMING_VISUAL_ID,[judge]);if(!j)return null;
+  return <div key={popId} className={`v7-judge ${className || 'v7-judge-'+(at||'ph')} combat-judge`} data-timing-judge={TIMING_VISUAL[j.label]?j.label:undefined} style={{color:j.color,textShadow:`0 0 8px ${j.color},0 0 22px ${j.color},0 3px 0 #0B1430`,...(j.small?{fontSize:24}:null)}}>{j.label}</div>;
+}
+function ComboDisplay({combo}) {
+  const previous=useRef(combo),[broken,setBroken]=useState(false);
+  useEffect(()=>{const ended=previous.current>=2 && combo===0;previous.current=combo;setBroken(ended);if(ended){const t=setTimeout(()=>setBroken(false),650);return()=>clearTimeout(t);}},[combo]);
+  if(combo<2 && !broken)return null;
+  return <div className={`combat-combo ${combo>=10?'combat-combo-high combat-combo-fever':combo>=5?'combat-combo-high':''}`} key={combo} data-combat-combo={combo} style={{fontSize:Math.min(30,18+combo*1.2)}}>{broken?'COMBO BREAK':`${combo} COMBO${combo>=5?'！':''}`}</div>;
+}
+const CombatFX=(()=>{
+  const nodes=new Set(),timers=new Set(),fxIds=new Set();
+  const scopedFX=Object.fromEntries(['burst','ring','text','fly','flash','confetti'].map(k=>[k,(...args)=>{const first=FXBUS.id;FX[k](...args);for(let id=first+1;id<=FXBUS.id;id++)fxIds.add(id);} ]));
+  const later=(fn,ms)=>{const id=setTimeout(()=>{timers.delete(id);fn();},ms);timers.add(id);};
+  const remove=n=>{n?.remove();nodes.delete(n);};
+  const reduced=()=>Device.reduceMotion();
+  function capture(els,to) {return {cards:els.filter(Boolean).map(el=>({node:el.cloneNode(true),r:el.getBoundingClientRect(),font:getComputedStyle(el).fontSize})),target:rectC(qs('[data-fxtarget]')),to:rectC(to || qs('.or-opponent') || qs('[data-opp]') || qs('.v7-st'))};}
+  function merge(snapshot,color) {
+    const {cards,target,to}=snapshot||{};if(!cards?.length||!target)return;
+    if(reduced())return;
+    const mid={x:cards.reduce((s,c)=>s+c.r.left+c.r.width/2,0)/cards.length,y:cards.reduce((s,c)=>s+c.r.top+c.r.height/2,0)/cards.length};
+    cards.forEach((c,i)=>{const n=c.node;n.removeAttribute('data-btile');n.removeAttribute('data-f');n.removeAttribute('id');n.dataset.combatCard='merge';n.style.cssText=`position:fixed;pointer-events:none;z-index:110;left:${c.r.left}px;top:${c.r.top}px;width:${c.r.width}px;height:${c.r.height}px;display:flex;align-items:center;justify-content:center;font-size:${c.font};border:2px solid ${color};border-radius:12px;background:#eef4ff;color:#1d2633;box-shadow:0 0 16px ${color};`;document.body.appendChild(n);nodes.add(n);const cx=c.r.left+c.r.width/2,cy=c.r.top+c.r.height/2;n.animate?.([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${mid.x-cx+(i?9:-9)}px,${mid.y-cy}px) scale(.5)`,opacity:1,offset:.38},{transform:`translate(${target.x-cx}px,${target.y-cy}px) scale(.12)`,opacity:.1}],{duration:390,easing:'cubic-bezier(.2,.8,.3,1)',fill:'forwards'});later(()=>remove(n),410);});
+    later(()=>{scopedFX.burst(target.x,target.y,{color,colors:[color,'#fff','#FFD54A'],n:16,r:65});scopedFX.ring(target.x,target.y,color);if(to)scopedFX.fly(target,to,{color,big:true,dur:240});},360);
+    later(()=>{if(to)scopedFX.burst(to.x,to.y,{color,n:12,r:38});},620);
+  }
+  function hit(el,dmg) {const p=rectC(el);if(!p || reduced())return;scopedFX.burst(p.x,p.y,{color:'#FF5C5C',n:10,r:35});if(dmg)scopedFX.text(p.x,p.y,`−${dmg}`, '#FF5C5C',22);if(!reduced()){scopedFX.flash('#ff3030',.12,170);el?.animate?.([{transform:'translateX(0)'},{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],{duration:190});}}
+  function cancel(){for(const t of timers)clearTimeout(t);timers.clear();for(const n of nodes)n.remove();nodes.clear();FXBUS.list=FXBUS.list.filter(x=>!fxIds.has(x.id));fxIds.clear();FXBUS.subs.forEach(f=>f());}
+  window.addEventListener('resize',cancel);window.addEventListener('pagehide',cancel);
+  return {capture,merge,hit,cancel,fly:(a,b,color)=>{const from=rectC(a),to=rectC(b);if(from&&to&&!reduced())scopedFX.fly(from,to,{color,big:true});},ring:(el,color)=>{const p=rectC(el);if(p&&!reduced())scopedFX.ring(p.x,p.y,color);},victory:()=>{if(!reduced()){scopedFX.confetti(45);scopedFX.flash('#FFD54A',.14,260);const p=rectC(qs('.or-result'));if(p)scopedFX.burst(p.x,p.y,{color:'#FFD54A',colors:['#FFD54A','#fff1a9'],n:20,r:110});}}};
+})();
 /* タブレット横の新UI：カットインの帯は左の欄（data-fxband）の中に出す。見えていなければ従来どおり画面の上 */
 function bandBox() { const el = qs('[data-fxband]'); if (!el) return null; const r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 40) return null; return { l: r.left, t: r.top, w: r.width, h: r.height }; }
-function FxLayer() {
+function FxLayer({level=95,combat=false} = {}) {
   const [, set] = useState(0);
   useEffect(() => { const f = () => set(x => x + 1); FXBUS.subs.add(f); return () => FXBUS.subs.delete(f); }, []);
+  if(!combat && document.querySelector('[data-combat-local-fx]')) return null;
   return (
-    <div className="pointer-events-none" style={{ position: 'fixed', inset: 0, zIndex: 95, overflow: 'hidden' }}>
+    <div data-combat-local-fx={combat?'1':undefined} className="pointer-events-none" style={{ position: 'fixed', inset: 0, zIndex: level, overflow: 'hidden' }}>
       {FXBUS.list.map(it => {
         if (it.t === 'burst') return <React.Fragment key={it.id}>{it.parts.map((p, i) => <span key={i} style={{ position: 'absolute', left: it.x, top: it.y, width: p.s, height: p.s, borderRadius: i % 3 ? '50%' : '2px', background: p.c, boxShadow: `0 0 6px ${p.c}`, '--dx': `${p.dx}px`, '--dy': `${p.dy}px`, animation: 'fxBurst 680ms cubic-bezier(.15,.8,.3,1) forwards' }} />)}</React.Fragment>;
         if (it.t === 'ring') return <span key={it.id} style={{ position: 'absolute', left: it.x, top: it.y, width: 80, height: 80, borderRadius: '50%', border: `5px solid ${it.color}`, animation: 'fxRing 580ms ease-out forwards' }} />;
@@ -9355,9 +9399,8 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
         </div>
         {!me && acctKey && isReal(self) && <div className="my-3">
           <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
-          <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{d.toUpperCase()}でゴースト対戦</BigBtn>)}</div>
+          <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}でゴースト対戦</BigBtn>)}</div>
         </div>}
-        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} stats={st} />}
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
             {!hideLegacyRating && box(<>レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
@@ -9397,6 +9440,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           <div className="text-xs font-black mt-3" style={{ color: COLORS.inkSoft }}>相手ごとの成績</div>
           {st.vs && Object.keys(st.vs).length ? <VsTable vs={st.vs} nameOf={nameOf} /> : <p className="text-xs" style={{ color: COLORS.inkSoft }}>記録のある相手がいません</p>}
         </>)}
+        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} stats={st} />}
       </div>
     </div>
   );
@@ -9884,7 +9928,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
     const els = [id1, id2].map(id => qs(`[data-btile="${id}"]`));
     if (r.ok) {
       setFlash({ [id1]: 'correct', [id2]: 'correct' }); setGain(r.gain); pop(r.judge.label, r.judge.color);
-      fxMerge(els, r.judge.color);
+      CombatFX.merge(CombatFX.capture(els,oppEl(eng.target())),timingVisual(r.judge).color);
       if (r.judge.label === 'Perfect') FX.flash('#fff', 0.3, 160);
     } else {
       setFlash({ [id1]: 'wrong', [id2]: 'wrong' }); if (!s.over) pop(JUDGE_BAD.label, JUDGE_BAD.color);
@@ -9909,7 +9953,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   const shieldLeft = Math.max(0, s.shieldUntil - Date.now());
   return (<>
     {qe >= QUESTION_TIMEOUT_MS - 5000 && qe < QUESTION_TIMEOUT_MS && !s.resolving && !s.over && <div className="pointer-events-none absolute inset-0" style={{ background: '#FF1E1E', animation: 'fxfTimeWarningFlash 500ms ease-in-out infinite', zIndex: 40 }} />}
-    <ComboAura combo={s.combo} />
+    <ComboAura combo={s.combo} /><ComboDisplay combo={s.combo} />
     <PinchVignette on={pinchNow} muted={muted} />
     {s.ko && <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 45, background: 'rgba(5,8,20,.55)' }}>
       <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(3rem,16vw,6rem)', color: '#FF8A75', WebkitTextStroke: '2px #fff', textShadow: '0 4px 0 rgba(0,0,0,.3)' }}>KO…</div>
@@ -9949,12 +9993,12 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
         {/* タブレット横：判定の文字とカットインはこの欄に出す */}
         <div className="v7-fxbox" data-fxband="1">
           {s.combo >= 2 && <div className="v7-fxcombo" key={s.combo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{s.combo}</b><small>COMBO</small></div>}
-          <JudgePop judge={judge} at="tb" />
+          <TimingJudgment judge={judge} at="tb" />
         </div>
       </div>
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
-          <JudgePop judge={judge} at="ph" />
+          <TimingJudgment judge={judge} at="ph" />
           {cur && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
         </div>
         {cur && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
@@ -10024,7 +10068,7 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       fref(`rooms/${code}/claims/${gid}/${q}`).transaction(cur => cur ? undefined : { uid: me, at: TSV(), j: j.label }).then(r => {
         if (r && r.committed) {
           if (mine.current.aFast == null || ms0 < mine.current.aFast) mine.current.aFast = ms0;
-          fxMerge([qs(`[data-btile="${id1}"]`), qs(`[data-btile="${id2}"]`)], j.color);
+          CombatFX.merge(CombatFX.capture([qs(`[data-btile="${id1}"]`),qs(`[data-btile="${id2}"]`)]),timingVisual(j).color);
           if (j.label === 'Perfect') FX.flash('#fff', 0.3, 160);
           sound.play('ok', 1 + Math.min(sc.cb[me] || 0, 15) * 0.035);
           if (j.label === 'Perfect' || j.label === 'Excellent') sound.play('speed');
@@ -10051,7 +10095,7 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
   const myPos = 1 + others.filter(u => (sc.sc[u] || 0) > (sc.sc[me] || 0)).length;
   const lead = Math.max(0, ...others.map(u => sc.sc[u] || 0));
   return (<>
-    <ComboAura combo={myCombo} />
+    <ComboAura combo={myCombo} /><ComboDisplay combo={myCombo} />
     <div className="v7-play">
       <div className="v7-zone">
         {header(<OppList ids={ids} others={others} names={names} nicks={nicks} mode="A" live={live} ko={ko} players={players} N={N} scores={sc.sc} combos={sc.cb} />)}
@@ -10075,12 +10119,12 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
         </div>
         <div className="v7-fxbox" data-fxband="1">
           {myCombo >= 2 && <div className="v7-fxcombo" key={myCombo} style={{ animation: 'fxEnter 260ms ease both' }}><b>{myCombo}</b><small>COMBO</small></div>}
-          <JudgePop judge={judge} at="tb" />
+          <TimingJudgment judge={judge} at="tb" />
         </div>
       </div>
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
-          <JudgePop judge={judge} at="ph" />
+          <TimingJudgment judge={judge} at="ph" />
           {prob && <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
         </div>
         {prob && <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
@@ -10696,7 +10740,7 @@ async function flushOnlineLearn(acct,matchId,rows) {
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
+const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');

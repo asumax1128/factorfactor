@@ -90,6 +90,9 @@ for (const [name, value] of Object.entries(before)) {
       "LearnApp", // Displays fastest per level; responsive browser tested.
       "TeacherArea", // Adds scoped grant manager; teacher authentication unchanged.
       "GhostNews", // Makes old passive rewards atomic with receipt/counters, fixing duplicate XP.
+      "FxLayer", // Optional online-local layer above profile overlays; default tower layer unchanged.
+      "GameA", // Shared timing/merge presentation only; math engine/source unchanged.
+      "GameB", // Shared timing/merge presentation only; rules verified by full E2E.
       "BattleBoard", // Opt-in tap pair and touch-cancel; original drag path retained and all modes E2E tested.
       "BattleGame", // Shared presentation-only BattleSurface; existing math, CPU and synchronization unchanged and E2E tested.
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.

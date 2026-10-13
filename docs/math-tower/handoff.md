@@ -126,3 +126,13 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 - tests/online-playability-browser.cjsは650ms遅延と1200msの実タッチ、A/B・E/N・乱入3種類・指名戦・誤答・必殺技・通信復帰・初期化失敗を通して検証。Native Emulatorでも人間Bの遅延タッチと安全中断を追加。
 - 既存の配信ビルドはJS/CSSへ内容ハッシュのクエリを付ける。この仕組みを手動バージョンクエリで妨げない。version.jsonが正式元、次回ゲーム公開は5.14。
 - 本番ルール追加や既存試合の推測による補正は行っていない。iPhone Safari実機は未検証。詳細 reports/2026-10-13_online-playability-v513.md。
+
+## 2026-10-13 Ver.5.14 UI・共通戦闘演出
+
+- 正式版はversion.jsonの5.14、次回は5.15。数学の塔フォルダ/UI/CSS/ルール/素材は変更なし。FxLayerの既存デフォルト95も維持し、新オンラインのローカルレイヤーがある間だけ重複表示を抑制する。
+- 新オンラインの表示名はイージー/ノーマル。内部easy/normal・公式称号名・保存値は変更しない。白いカード/橙色と既存難易度色を再利用。
+- TimingJudgment/timingVisual、ComboDisplay、CombatFXをソロ/CPU/オンラインで共有。内部Fairは数学・HP回復量を変更せず表示のみOK。getJudgment/JUDGE_TIERS/attackFor/createBEngineと抽出engine-source.jsは保持。
+- engine.cjsのfx callbackは実イベントに連番を付け、上限24件の表示用ログを渡す。viewの復元中はイベントを発火しない。原子的な勝敗/レート/EXPの計算には使わない。
+- CombatFXはDOMクローンと既存FXを使い、入力カードを変形/消去しない。独自FXのIDとタイマーだけを退出時に解除。他モード・塔のエフェクトを巻き込まない。
+- 新規のすぐ遊ぶは終了済み結果を確認済みにして選択画面へ。進行中試合の復帰は残す。結果のメニュー戻りにもackReceiptを必ず通す。
+- 詳細と未検証は reports/2026-10-13_online-ui-combat-v514.md。Safari実機と本番HTTPアクセスは環境制約により未確認。

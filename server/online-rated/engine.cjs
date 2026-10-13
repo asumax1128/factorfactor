@@ -50,6 +50,7 @@ function runtime(match) {
   const conf = api.DIFFICULTY_CONFIG[match.difficulty],
     bank = api.makeBank(match.seed, conf.tileCount);
   let winner = null;
+  let visualReady = false;
   for (const uid of match.ids) {
     engines[uid] = api.createBEngine({
       code: match.id,
@@ -69,6 +70,24 @@ function runtime(match) {
         ),
         ko,
       }),
+      fx: (type, payload) => {
+        if (
+          !visualReady ||
+          !["incoming", "hit", "blocked", "special"].includes(type)
+        )
+          return;
+        match.visualSequence = (match.visualSequence || 0) + 1;
+        match.visualEvents = [
+          ...(match.visualEvents || []),
+          {
+            id: match.visualSequence,
+            uid,
+            type,
+            at: time,
+            payload: payload ?? null,
+          },
+        ].slice(-24);
+      },
       onClear: (u) => {
         winner = u;
       },
@@ -77,6 +96,7 @@ function runtime(match) {
       Object.assign(engines[uid].s, clone(match.states[uid]));
     if (engines[uid].s.ko) ko[uid] = { at: time };
   }
+  visualReady = true;
   const receive = () => {
     for (const u of match.ids) {
       engines[u].receive(events[u]);
@@ -213,6 +233,9 @@ function step(match, uid, command, now) {
   }
   return m;
 }
+function nowShield(s, time) {
+  return time < (s.shieldUntil || 0);
+}
 function view(match, uid) {
   const rt = runtime(match),
     { api } = rt;
@@ -238,6 +261,7 @@ function view(match, uid) {
         : match.states[uid].qStart,
     timeoutMs: api.QUESTION_TIMEOUT_MS,
     acceptedSeq: match.seq[uid] || 0,
+    visualEvents: match.visualEvents || [],
     resolving: match.mode === "B" && match.states[uid].resolving,
     combo:
       match.mode === "A"
@@ -266,6 +290,7 @@ function view(match, uid) {
               c: match.states[u].c,
               combo: match.states[u].combo,
               sp: match.states[u].sp,
+              shield: nowShield(match.states[u], match.time),
             }
           : api.scoreA(
               rt.bank,

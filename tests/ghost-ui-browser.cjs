@@ -108,7 +108,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       await p.locator(".or-ranking").waitFor();
       await p.getByRole("button", { name: "Target", exact: true }).click();
       await p
-        .getByRole("button", { name: "EASYでゴースト対戦", exact: true })
+        .getByRole("button", { name: "イージーでゴースト対戦", exact: true })
         .click();
       await p.getByText("GHOST 乱入！", { exact: true }).waitFor();
       await p.getByRole('heading',{name:'指名ゴースト対戦',exact:true}).waitFor();

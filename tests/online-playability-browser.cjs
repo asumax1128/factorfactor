@@ -5,7 +5,7 @@ const ui =
   (process.env.PLAYABILITY_UI_FILE
     ? fs.readFileSync(process.env.PLAYABILITY_UI_FILE, "utf8")
     : fs.readFileSync("online-rated-ui.js", "utf8")) +
-  `\n(function(){const factory=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{window.__onlineHelpers=H;const create=H.createTransport;H.createTransport=acct=>{const client=create(acct);window.__onlineClient=client;return {close:()=>client.close(),request:async cmd=>{window.__lastCommand=cmd;if(cmd.type==='heartbeat'){if(window.__failHeartbeat){window.__failHeartbeat=false;throw Error('通信断テスト');}window.__polling=true;await new Promise(r=>setTimeout(r,650));}try{const v=await client.request(cmd);window.__onlineState=v;return v;}finally{window.__polling=false;}}};};return factory(H);};})();`;
+  `\n(function(){const factory=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{window.__onlineHelpers=H;const merge=H.CombatFX.merge;H.CombatFX.merge=(...args)=>{window.__mergeCalls=(window.__mergeCalls||0)+1;return merge(...args);};const create=H.createTransport;H.createTransport=acct=>{const client=create(acct);window.__onlineClient=client;return {close:()=>client.close(),request:async cmd=>{window.__lastCommand=cmd;if(cmd.type==='heartbeat'){if(window.__failHeartbeat){window.__failHeartbeat=false;throw Error('通信断テスト');}window.__polling=true;await new Promise(r=>setTimeout(r,650));}try{const v=await client.request(cmd);window.__onlineState=v;return v;}finally{window.__polling=false;}}};};return factory(H);};})();`;
 async function open(
   browser,
   difficulty = "easy",
@@ -52,7 +52,9 @@ async function open(
     await t.page.getByRole("button", { name: "Target", exact: true }).click();
     await t.page
       .getByRole("button", {
-        name: difficulty.toUpperCase() + "でゴースト対戦",
+        name:
+          { easy: "イージー", normal: "ノーマル" }[difficulty] +
+          "でゴースト対戦",
         exact: true,
       })
       .click();
@@ -63,7 +65,8 @@ async function open(
     .click();
   await t.page
     .getByRole("button", {
-      name: difficulty.toUpperCase() + "で相手を探す",
+      name:
+        { easy: "イージー", normal: "ノーマル" }[difficulty] + "で相手を探す",
       exact: true,
     })
     .click();
@@ -157,9 +160,12 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
         return { bottom: b.bottom, top: b.top, height: b.height };
       }),
     );
+    if (!bounds.every((b) => b.height >= 60))
+      await p.screenshot({ path: "/tmp/v514-small-debug.png" });
     assert(
       bounds.every((b) => b.top >= 0 && b.bottom <= height && b.height >= 60),
-      "all actual tiles must fit without scrolling",
+      "all actual tiles must fit without scrolling: " +
+        JSON.stringify({ width, height, bounds }),
     );
     assert(
       await p.evaluate(
@@ -178,6 +184,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
   const initialQuestion = await p.evaluate(
     () => window.__onlineState.match.game.question,
   );
+  const mergeBefore = await p.evaluate(() => window.__mergeCalls || 0);
   const initial = await p.evaluate(
     () => window.__onlineState.match.game.acceptedSeq,
   );
@@ -204,6 +211,10 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
       .click();
     await p.waitForFunction(() => !document.querySelector('[role="alert"]'));
   }
+  assert(
+    (await p.evaluate(() => window.__mergeCalls || 0)) > mergeBefore,
+    "accepted touch answer must trigger the actual shared merge effect",
+  );
   const firstQuestion = initialQuestion;
   await p.waitForFunction(
     (q) => window.__onlineState.match.game?.question !== q,
@@ -327,6 +338,27 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
     saved,
     "replayed result must not award XP twice",
   );
+  if (origin === "quick") {
+    await p
+      .getByRole("button", {
+        name:
+          kind === "hyper" ? "オンラインへ戻る" : "オンラインメニューへ戻る",
+        exact: true,
+      })
+      .click();
+    await p
+      .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
+      .click();
+    await p
+      .getByRole("button", { name: "イージーで相手を探す", exact: true })
+      .waitFor();
+    assert.equal(
+      await p.locator("[data-result-kind]").count(),
+      0,
+      "fresh quick entry must not replay the previous result",
+    );
+    assert.equal(await p.locator(".or-search-icon").count(), 0);
+  }
   assert.deepEqual(t.errors, []);
   await p.screenshot({
     path: `/tmp/online-v513-${difficulty}-${mode}-${kind}-${origin}.png`,
@@ -341,7 +373,10 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
     executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
   });
   try {
-    if (!process.env.PLAYABILITY_DRAG_ONLY) {
+    if (
+      !process.env.PLAYABILITY_DRAG_ONLY &&
+      !process.env.PLAYABILITY_NORMAL_ONLY
+    ) {
       const t = await open(b),
         p = t.page;
       await p.waitForFunction(() => window.__polling === true);
@@ -355,7 +390,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
         .getByRole("button", { name: "検索をキャンセル", exact: true })
         .click();
       await p
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .waitFor();
       await sleep(11000);
       assert.equal(
@@ -371,7 +406,10 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
         "PASS delayed heartbeat: cancel remains available, no intrusion/loss",
       );
     }
-    if (!process.env.PLAYABILITY_DRAG_ONLY) {
+    if (
+      !process.env.PLAYABILITY_DRAG_ONLY &&
+      !process.env.PLAYABILITY_NORMAL_ONLY
+    ) {
       const edge = await open(b),
         ep = edge.page;
       await ep.waitForFunction(
@@ -386,7 +424,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
         .getByRole("button", { name: "検索をキャンセル", exact: true })
         .click();
       await ep
-        .getByRole("button", { name: "EASYで相手を探す", exact: true })
+        .getByRole("button", { name: "イージーで相手を探す", exact: true })
         .waitFor();
       assert.equal(
         edge.tree.games.factor.onlineSparkV1.profiles.ateacher.easy.rating,
@@ -465,16 +503,18 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
       );
     }
     if (process.env.PLAYABILITY_SAFETY_ONLY) return;
-    for (const args of process.env.PLAYABILITY_DRAG_ONLY
-      ? [["easy", "B", "ghost"]]
-      : [
-          ["easy", "A", "ghost"],
-          ["easy", "B", "hyper"],
-          ["normal", "A", "bot"],
-          ["normal", "B", "ghost"],
-          ["easy", "A", "ghost", "profile"],
-          ["normal", "B", "ghost", "profile"],
-        ])
+    for (const args of process.env.PLAYABILITY_NORMAL_ONLY
+      ? [["normal", "B", "ghost", "profile"]]
+      : process.env.PLAYABILITY_DRAG_ONLY
+        ? [["easy", "B", "ghost"]]
+        : [
+            ["easy", "A", "ghost"],
+            ["easy", "B", "hyper"],
+            ["normal", "A", "bot"],
+            ["normal", "B", "ghost"],
+            ["easy", "A", "ghost", "profile"],
+            ["normal", "B", "ghost", "profile"],
+          ])
       await play(b, ...args);
   } finally {
     await b.close();
