@@ -58,6 +58,28 @@ function functions(html) {
 }
 const before = functions(baseline),
   after = functions(source);
+// The only new BattleGame change is the shared presentation wrapper. Audit every
+// other statement against the immediately preceding production commit.
+const previous = functions(
+  cp.execFileSync("git", ["show", "1d5b2a1:index.html"], {
+    encoding: "utf8",
+    maxBuffer: 10e6,
+  }),
+);
+const withoutFrame = (s) => {
+  const n = JSON.parse(s);
+  for (const statement of n.body.body) {
+    for (const d of statement.declarations || [])
+      if (d.id?.name === "wrap")
+        d.init = { type: "StringLiteral", value: "shared-BattleSurface" };
+  }
+  return JSON.stringify(n);
+};
+assert.equal(
+  withoutFrame(after.BattleGame),
+  withoutFrame(previous.BattleGame),
+  "CPU/legacy battle logic changed beyond the shared frame",
+);
 let unchanged = 0;
 for (const [name, value] of Object.entries(before)) {
   if (
@@ -68,6 +90,8 @@ for (const [name, value] of Object.entries(before)) {
       "LearnApp", // Displays fastest per level; responsive browser tested.
       "TeacherArea", // Adds scoped grant manager; teacher authentication unchanged.
       "GhostNews", // Makes old passive rewards atomic with receipt/counters, fixing duplicate XP.
+      "BattleBoard", // Opt-in tap pair and touch-cancel; original drag path retained and all modes E2E tested.
+      "BattleGame", // Shared presentation-only BattleSurface; existing math, CPU and synchronization unchanged and E2E tested.
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
       "PlayerProfile", // Only optional online-context hiding of legacy rating; default profile unchanged.
       "BattleHome", // Routes new ranking only when the protected feature flag is enabled.
@@ -86,7 +110,7 @@ for (const [name, value] of Object.entries(before)) {
 console.log(
   "PASS " +
     unchanged +
-    " existing functions unchanged (AST), including all shared battle/game/auth functions",
+    " existing functions unchanged (AST), including math/game/auth logic; presentation refactor E2E tested",
 );
 (async () => {
   let b = await chromium.launch({

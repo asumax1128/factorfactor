@@ -23,7 +23,8 @@
     "test:online-entry": "node tests/online-spark-entry.cjs",
     "test:online-menu": "node tests/online-menu-browser.cjs",
     "test:version": "node --test tests/game-version.test.cjs",
-    "test:ghost": "node --test tests/ghost-learning.test.cjs && node tests/ghost-ui-browser.cjs"
+    "test:ghost": "node --test tests/ghost-learning.test.cjs && node tests/ghost-ui-browser.cjs",
+    "test:online-playability": "node tests/online-playability-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

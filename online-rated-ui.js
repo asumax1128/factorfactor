@@ -1,7 +1,10 @@
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   (function(root) {
     root.OnlineRatedFactory = function(H) {
-      const { useState, useRef, useEffect } = React;
+      const { useState, useRef, useEffect, useMemo, useCallback } = React;
       const titles = {
         easy_adept: "EASY\u306E\u9054\u4EBA",
         easy_master: "EASY\u30DE\u30B9\u30BF\u30FC",
@@ -12,12 +15,141 @@
         ghost_up1: "\u683C\u4E0A\u306E\u5F71\u3092\u7834\u308B\u8005",
         ghost_up2: "\u4E8C\u968E\u7D1A\u306E\u5F71\u3092\u8D85\u3048\u308B\u8005"
       };
+      class PlayBoundary extends React.Component {
+        constructor() {
+          super(...arguments);
+          __publicField(this, "state", { failed: false });
+        }
+        static getDerivedStateFromError() {
+          return { failed: true };
+        }
+        componentDidCatch() {
+          this.props.onFailure();
+        }
+        render() {
+          return this.state.failed ? /* @__PURE__ */ React.createElement("section", { role: "alert" }, /* @__PURE__ */ React.createElement("p", null, "\u5BFE\u6226\u753B\u9762\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u9000\u51FA\u306B\u3088\u308B\u6557\u5317\u3092\u78BA\u5B9A\u305B\u305A\u3001\u5FA9\u5E30\u307E\u305F\u306F\u5B89\u5168\u306A\u4E2D\u65AD\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              onClick: () => {
+                this.setState({ failed: false });
+                this.props.onRecover();
+              }
+            },
+            "\u753B\u9762\u3092\u518D\u8A66\u884C"
+          ), /* @__PURE__ */ React.createElement("button", { onClick: this.props.onAbort }, "\u521D\u671F\u5316\u5931\u6557\u306E\u5BFE\u6226\u3092\u5B89\u5168\u306B\u4E2D\u65AD")) : this.props.children;
+        }
+      }
+      function BattleView({
+        H: H2,
+        m,
+        g,
+        time,
+        muted,
+        setMuted,
+        disabled,
+        onMatch,
+        onSpecial,
+        onLeave,
+        feedback
+      }) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const tiles = useMemo(
+          () => g.tiles,
+          [g.question, JSON.stringify(g.tiles)]
+        );
+        if (!H2.BattleSurface || !H2.HpBar || !Array.isArray(tiles) || !g.poly)
+          throw Error("BATTLE_INITIALIZATION_FAILED");
+        const self = g.live[m.selfUid], opponent = (_a = Object.entries(g.live).find(
+          ([uid]) => uid !== m.selfUid
+        )) == null ? void 0 : _a[1];
+        const counting = time < (m.gameStartAt || g.startAt), ready = !!g.resolving || time < Math.max(g.startAt, g.readyAt || 0);
+        const score = typeof self === "number" ? self : (self == null ? void 0 : self.score) || 0, combo = typeof self === "object" ? self.combo : g.combo || 0;
+        const N = H2.DIFFICULTY_CONFIG[m.difficulty].clearCount;
+        return /* @__PURE__ */ React.createElement(H2.BattleSurface, null, /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            className: "v7-play or-battle",
+            "data-online-mode": m.mode,
+            "data-online-ready": !disabled && !ready && !g.result
+          },
+          /* @__PURE__ */ React.createElement("div", { className: "v7-zone" }, /* @__PURE__ */ React.createElement("div", { className: "or-game-header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "or-game-controls" }, /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              className: "v7-bar-btn",
+              onClick: onLeave,
+              disabled
+            },
+            "\u2715 \u9000\u51FA"
+          ), /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              className: "v7-bar-btn",
+              "aria-label": muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3",
+              onClick: () => setMuted(!muted)
+            },
+            muted ? "\u{1F507}" : "\u{1F50A}"
+          )), /* @__PURE__ */ React.createElement("span", { className: "v7-chip" }, m.mode === "A" ? "\u65E9\u3044\u8005\u52DD\u3061" : "\u30EC\u30FC\u30B9\uFF0B\u653B\u6483", " \u30FB", " ", m.difficulty.toUpperCase())), /* @__PURE__ */ React.createElement("div", { className: "v7-wnd or-opponent" }, /* @__PURE__ */ React.createElement("b", null, ((_b = m.opponent) == null ? void 0 : _b.name) || ((_d = (_c = m.members) == null ? void 0 : _c.find((x) => x.uid !== m.selfUid)) == null ? void 0 : _d.name) || "\u76F8\u624B"), /* @__PURE__ */ React.createElement("small", null, typeof opponent === "number" ? opponent + "\u70B9" : `HP ${(_f = (_e = opponent == null ? void 0 : opponent.hp) == null ? void 0 : _e.toFixed(1)) != null ? _f : 100}% \u30FB ${(opponent == null ? void 0 : opponent.c) || 0}\u6B63\u89E3`))), /* @__PURE__ */ React.createElement("div", { className: "or-stat-grid" }, H2.v7Stat(
+            m.mode === "A" ? "\u3042\u306A\u305F" : "SCORE",
+            score,
+            "#7FD8FF"
+          ), H2.v7Stat(
+            m.mode === "A" ? "\u76F8\u624B" : "SOLVED",
+            m.mode === "A" ? opponent || 0 : `${(self == null ? void 0 : self.c) || 0}/${N}`,
+            "#FFB59C"
+          ), H2.v7Stat("COMBO", combo)), m.mode === "B" && /* @__PURE__ */ React.createElement(H2.HpBar, { v7: true, hp: (_g = self == null ? void 0 : self.hp) != null ? _g : 100, height: 22 }), /* @__PURE__ */ React.createElement("div", { className: "or-progress", "aria-label": "\u5BFE\u6226\u306E\u9032\u884C" }, Array.from({ length: N }, (_, i) => /* @__PURE__ */ React.createElement(
+            "i",
+            {
+              key: i,
+              style: {
+                background: i < (m.mode === "A" ? Number(g.question) : (self == null ? void 0 : self.c) || 0) ? "#7FD8FF" : i === (m.mode === "A" ? Number(g.question) : (self == null ? void 0 : self.c) || 0) ? "#FFD54A" : "#24336E"
+              }
+            }
+          ))), m.mode === "B" && /* @__PURE__ */ React.createElement("div", { className: "or-special" }, /* @__PURE__ */ React.createElement("span", null, "\u5FC5\u6BBA ", (self == null ? void 0 : self.sp) || 0, "/", H2.SP_MAX), Object.entries(H2.SP_INFO).map(([kind, info]) => /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              key: kind,
+              "data-sp": kind,
+              disabled: disabled || ready || ((self == null ? void 0 : self.sp) || 0) < H2.SP_MAX,
+              onClick: () => onSpecial(kind)
+            },
+            info.label
+          ))), /* @__PURE__ */ React.createElement("p", { className: "or-connection", role: "status" }, counting ? "\u307E\u3082\u306A\u304F\u958B\u59CB" : ready ? "\u6B21\u306E\u554F\u984C\u3092\u6E96\u5099\u4E2D" : "\u5BFE\u6226\u4E2D", " ", "\u30FB \u6B8B\u308A", " ", Math.max(0, (g.timeoutMs - (time - g.startAt)) / 1e3).toFixed(
+            1
+          ), "\u79D2")),
+          /* @__PURE__ */ React.createElement("div", { className: "v7-main" }, /* @__PURE__ */ React.createElement("div", { className: "relative", style: { flexShrink: 0 } }, /* @__PURE__ */ React.createElement(H2.JudgePop, { judge: feedback == null ? void 0 : feedback.judge, at: "ph" }), /* @__PURE__ */ React.createElement(
+            H2.TargetCard,
+            {
+              poly: g.poly,
+              level: g.level,
+              qLabel: `\u554F${m.mode === "A" ? Number(g.question) + 1 : ((self == null ? void 0 : self.c) || 0) + 1}/${N}`,
+              gaugeKey: g.question + ":" + g.startAt,
+              gaugeMs: Math.max(1, g.timeoutMs - (time - g.startAt)),
+              v7: true
+            }
+          )), /* @__PURE__ */ React.createElement(
+            H2.BattleBoard,
+            {
+              flash: feedback == null ? void 0 : feedback.flash,
+              tapSelect: true,
+              tiles,
+              onMatch,
+              disabled: disabled || ready || !!g.result,
+              dim: ready,
+              v7: true
+            }
+          ), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
+          counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, Math.max(
+            1,
+            Math.ceil(((m.gameStartAt || g.startAt) - time) / 1e3)
+          ))
+        ));
+      }
       function App({ acct, onExit, view = "match", initialGhost = null }) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s;
-        const [state, setState] = useState(null), [error, setError] = useState(""), [screen, setScreen] = useState(
+        const [state, setState] = useState(null), [error, setError] = useState(""), [feedback, setFeedback] = useState(null), [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select"
         ), [tab, setTab] = useState("easy"), [busy, setBusy] = useState(false), [selectedPlayer, setSelectedPlayer] = useState(null), [muted, setMuted] = H.useGameMute();
-        const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null);
+        const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null), requests = useRef(Promise.resolve()), actionPending = useRef(false), pollingPaused = useRef(false), feedbackTimer = useRef(null);
         const sound = H.useBattleSound(muted);
         const [spark] = useState(
           () => H.createTransport && (acct == null ? void 0 : acct.key) ? H.createTransport(acct) : null
@@ -26,17 +158,35 @@
         useEffect(
           () => () => {
             life.current = false;
+            clearTimeout(feedbackTimer.current);
             spark == null ? void 0 : spark.close();
             sound.bgm(false);
           },
           []
         );
-        async function send(command) {
+        function send(command) {
+          if (!command) return Promise.resolve();
+          const background = command.type === "heartbeat";
+          if (background && (inFlight.current || actionPending.current || pollingPaused.current))
+            return Promise.resolve();
+          if (!background && actionPending.current) return Promise.resolve();
+          if (!background) {
+            actionPending.current = true;
+            setBusy(true);
+            if (["cancel", "leave", "abortInitialization"].includes(command.type))
+              pollingPaused.current = true;
+            else pollingPaused.current = false;
+          }
+          const task = requests.current.then(() => perform(command, background));
+          requests.current = task.catch(() => {
+          });
+          return task;
+        }
+        async function perform(command, background) {
           var _a2, _b2, _c2, _d2, _e2;
-          if (inFlight.current) return;
+          if (!life.current) return;
           inFlight.current = true;
-          setBusy(true);
-          setError("");
+          if (!background) setError("");
           try {
             if (!spark)
               throw Error(
@@ -60,6 +210,7 @@
               clearTimeout(timeout);
             }
             if (!life.current) return;
+            setError("");
             retry.current = null;
             setState(v);
             current.current = v;
@@ -93,7 +244,10 @@
             }
           } finally {
             inFlight.current = false;
-            if (life.current) setBusy(false);
+            if (!background) {
+              actionPending.current = false;
+              if (life.current) setBusy(false);
+            }
           }
         }
         requestRef.current = send;
@@ -107,7 +261,7 @@
         useEffect(() => {
           if (!["wait", "vote", "play"].includes(screen)) return;
           const id = setInterval(() => {
-            if (retry.current) return;
+            if (retry.current || pollingPaused.current) return;
             const s = current.current, m2 = s == null ? void 0 : s.match;
             requestRef.current({
               type: "heartbeat",
@@ -120,18 +274,48 @@
           sound.bgm(screen === "play" && !error);
         }, [screen, error, muted]);
         const m = state == null ? void 0 : state.match, g = m == null ? void 0 : m.game;
-        const time = Date.now() + (H.FB.off || 0);
-        const answer = (a, b) => {
-          if (inFlight.current || retry.current || !g) return;
+        const [localTime, setLocalTime] = useState(Date.now());
+        useEffect(() => {
+          if (screen !== "play") return;
+          const timer = setInterval(() => setLocalTime(Date.now()), 100);
+          return () => clearInterval(timer);
+        }, [screen]);
+        const time = localTime + (H.FB.off || 0);
+        const answer = useCallback((a, b) => {
+          var _a2;
+          const m2 = (_a2 = current.current) == null ? void 0 : _a2.match, g2 = m2 == null ? void 0 : m2.game;
+          if (actionPending.current || retry.current || !g2) return;
           const command = {
             type: "answer",
-            matchId: m.id,
-            question: g.question,
+            matchId: m2.id,
+            question: g2.question,
             tiles: [a, b],
             seq: ++seq.current
           };
-          send(command);
-        };
+          const prior = g2.live[m2.selfUid];
+          send(command).then((v) => {
+            var _a3, _b2;
+            if (!(v == null ? void 0 : v.match) || !life.current) return;
+            const next = (_a3 = v.match.game) == null ? void 0 : _a3.live[m2.selfUid];
+            const won = v.match.outcome === "win" || (typeof prior === "number" ? next > prior : (next == null ? void 0 : next.c) > (prior == null ? void 0 : prior.c));
+            const moved = v.match.phase === "settled" || ((_b2 = v.match.game) == null ? void 0 : _b2.question) !== g2.question;
+            const judge = {
+              label: won ? "\u6B63\u89E3\uFF01" : moved ? "\u6B21\u306E\u554F\u984C\u3078" : "\u304A\u624B\u3064\u304D\uFF01",
+              color: won ? "#7FD8FF" : "#FF8A75",
+              small: !won
+            };
+            if (!moved || won) sound.play(won ? "correct" : "buzz");
+            setFeedback({
+              judge,
+              flash: {
+                [a]: won ? "correct" : "wrong",
+                [b]: won ? "correct" : "wrong"
+              }
+            });
+            clearTimeout(feedbackTimer.current);
+            feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+          });
+        }, []);
         useEffect(() => {
           seq.current = (g == null ? void 0 : g.acceptedSeq) || 0;
         }, [m == null ? void 0 : m.id]);
@@ -140,7 +324,7 @@
           {
             className: `or-app ${screen === "play" ? "or-playing" : "or-menu"}`
           },
-          /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
+          screen !== "play" && /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
             "button",
             {
               onClick: () => {
@@ -234,47 +418,45 @@
             },
             "\u958B\u59CB\u524D\u306B\u9000\u51FA"
           )),
-          screen === "play" && g && /* @__PURE__ */ React.createElement("section", { className: "or-battle" }, /* @__PURE__ */ React.createElement("h3", null, m.difficulty.toUpperCase(), " \u30FB ", m.mode, "\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "Lv.", g.level, " \u30FB ", time < g.startAt ? "\u307E\u3082\u306A\u304F\u958B\u59CB" : "\u5BFE\u6226\u4E2D"), /* @__PURE__ */ React.createElement("div", { className: "or-live" }, Object.entries(g.live).map(([uid, v]) => /* @__PURE__ */ React.createElement("p", { key: uid }, uid === m.selfUid ? "\u81EA\u5206" : "\u76F8\u624B", "\uFF1A", typeof v === "number" ? `${v}\u70B9` : `HP ${v.hp.toFixed(1)} \u30FB ${v.c}\u6B63\u89E3 \u30FB \u30B3\u30F3\u30DC${v.combo}`))), /* @__PURE__ */ React.createElement(
-            H.TargetCard,
+          screen === "play" && g && /* @__PURE__ */ React.createElement(
+            PlayBoundary,
             {
-              poly: g.poly,
-              level: g.level,
-              gaugeMs: g.timeoutMs,
-              v7: true
-            }
-          ), /* @__PURE__ */ React.createElement(
-            H.BattleBoard,
-            {
-              tiles: g.tiles,
-              onMatch: answer,
-              disabled: busy || !!error || time < Math.max(g.startAt, g.readyAt || 0) || !!g.result,
-              v7: true
-            }
-          ), m.mode === "B" && /* @__PURE__ */ React.createElement("div", null, ["big", "heal", "shield"].map((kind) => /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              key: kind,
-              disabled: busy,
-              onClick: () => send({
-                type: "special",
-                matchId: m.id,
-                kind,
-                seq: ++seq.current
-              })
+              key: m.id,
+              onFailure: () => {
+                pollingPaused.current = true;
+              },
+              onRecover: () => {
+                pollingPaused.current = false;
+                send({ type: "status", matchId: m.id });
+              },
+              onAbort: () => send({ type: "abortInitialization", matchId: m.id })
             },
-            { big: "\u5927\u653B\u6483", heal: "\u56DE\u5FA9", shield: "\u30B7\u30FC\u30EB\u30C9" }[kind]
-          ))), /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              disabled: busy,
-              onClick: () => {
-                if (confirm("\u9000\u51FA\u3059\u308B\u3068\u6557\u5317\u6271\u3044\u306B\u306A\u308A\u307E\u3059\u3002\u9000\u51FA\u3057\u307E\u3059\u304B\uFF1F"))
-                  send({ type: "leave", matchId: m.id });
+            /* @__PURE__ */ React.createElement(
+              BattleView,
+              {
+                H,
+                feedback,
+                m,
+                g,
+                time,
+                muted,
+                setMuted,
+                disabled: busy || !!error,
+                onMatch: answer,
+                onSpecial: (kind) => send({
+                  type: "special",
+                  matchId: m.id,
+                  kind,
+                  seq: ++seq.current
+                }),
+                onLeave: () => {
+                  if (time < m.gameStartAt || confirm("\u9000\u51FA\u3059\u308B\u3068\u6557\u5317\u6271\u3044\u306B\u306A\u308A\u307E\u3059\u3002\u9000\u51FA\u3057\u307E\u3059\u304B\uFF1F"))
+                    send({ type: "leave", matchId: m.id });
+                }
               }
-            },
-            "\u5BFE\u6226\u304B\u3089\u9000\u51FA"
-          )),
-          screen === "result" && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, m.outcome === "draw" ? "\u5F15\u304D\u5206\u3051" : m.outcome === "win" ? "\u52DD\u5229\uFF01" : "\u6557\u5317"), /* @__PURE__ */ React.createElement("p", null, "\u30EC\u30FC\u30C8 ", (_d = (_c = (_b = m.receipt) == null ? void 0 : _b.players) == null ? void 0 : _c[acct.key]) == null ? void 0 : _d.before, " \u2192", " ", (_g = (_f = (_e = m.receipt) == null ? void 0 : _e.players) == null ? void 0 : _f[acct.key]) == null ? void 0 : _g.after), /* @__PURE__ */ React.createElement("p", null, m.origin === "bounty" || m.origin === "profile" ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002" : `${m.difficulty.toUpperCase()}\u306E\u30EC\u30FC\u30C8\u306E\u307F\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002${m.opponent ? "\u5909\u52D5\u5E45\u306F\u4EBA\u9593\u5BFE\u6226\u306E1/3\u3002\u4EBA\u9593\u3068\u306E\u6709\u52B9\u5BFE\u6226\u6570\u306B\u306F\u542B\u307F\u307E\u305B\u3093\u3002" : ""}`), m.opponent && /* @__PURE__ */ React.createElement("p", null, "\u7372\u5F97EXP\uFF1A", m.exp), /* @__PURE__ */ React.createElement(
+            )
+          ),
+          screen === "result" && /* @__PURE__ */ React.createElement("section", { className: "v7-wnd v7-result or-result" }, /* @__PURE__ */ React.createElement("h3", null, m.outcome === "draw" ? "\u5F15\u304D\u5206\u3051" : m.outcome === "win" ? "\u52DD\u5229\uFF01" : "\u6557\u5317"), /* @__PURE__ */ React.createElement("p", null, "\u30EC\u30FC\u30C8 ", (_d = (_c = (_b = m.receipt) == null ? void 0 : _b.players) == null ? void 0 : _c[acct.key]) == null ? void 0 : _d.before, " \u2192", " ", (_g = (_f = (_e = m.receipt) == null ? void 0 : _e.players) == null ? void 0 : _f[acct.key]) == null ? void 0 : _g.after), /* @__PURE__ */ React.createElement("p", null, m.origin === "bounty" || m.origin === "profile" ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002" : `${m.difficulty.toUpperCase()}\u306E\u30EC\u30FC\u30C8\u306E\u307F\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002${m.opponent ? "\u5909\u52D5\u5E45\u306F\u4EBA\u9593\u5BFE\u6226\u306E1/3\u3002\u4EBA\u9593\u3068\u306E\u6709\u52B9\u5BFE\u6226\u6570\u306B\u306F\u542B\u307F\u307E\u305B\u3093\u3002" : ""}`), m.opponent && /* @__PURE__ */ React.createElement("p", null, "\u7372\u5F97EXP\uFF1A", m.exp), /* @__PURE__ */ React.createElement(
             "button",
             {
               disabled: busy,

@@ -222,6 +222,14 @@
           startAt: match.mode === "A" ? api.qStartA(match.claims, match.claims.length, match.startAt) : match.states[uid].qStart,
           timeoutMs: api.QUESTION_TIMEOUT_MS,
           acceptedSeq: match.seq[uid] || 0,
+          resolving: match.mode === "B" && match.states[uid].resolving,
+          combo: match.mode === "A" ? api.scoreA(
+            rt.bank,
+            match.claims,
+            match.ids,
+            api.DIFFICULTY_CONFIG[match.difficulty].clearCount,
+            {}
+          ).cb[uid] || 0 : match.states[uid].combo,
           readyAt: match.mode === "A" ? Math.max(
             api.qStartA(match.claims, match.claims.length, match.startAt),
             match.locks[uid] || 0
@@ -231,6 +239,7 @@
               u,
               match.mode === "B" ? {
                 hp: match.states[u].hp,
+                score: match.states[u].score,
                 c: match.states[u].c,
                 combo: match.states[u].combo,
                 sp: match.states[u].sp
@@ -944,7 +953,7 @@
           });
         }
         async function response(m = null, withLegacy = false) {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
           if (m && (!m.opponent || m.origin === "quick")) await apply(m);
           if ((m == null ? void 0 : m.opponent) && m.phase === "settled") await saveGhostResult(m);
           if ((m == null ? void 0 : m.phase) === "settled") {
@@ -1013,6 +1022,8 @@
             match: m ? {
               id: m.id,
               selfUid: ((_g = m.members.find((u) => u.key === key)) == null ? void 0 : _g.uid) || uid,
+              gameStartAt: (_h = m.game) == null ? void 0 : _h.startAt,
+              members: m.members.map((x) => ({ uid: x.uid, name: x.name })),
               phase: m.phase,
               difficulty: m.difficulty,
               mode: m.mode || null,
@@ -1023,11 +1034,11 @@
               exp: m.exp || 0,
               game: m.phase === "play" ? E.view(
                 m.game,
-                ((_h = m.members.find((u) => u.key === key)) == null ? void 0 : _h.uid) || uid
+                ((_i = m.members.find((u) => u.key === key)) == null ? void 0 : _i.uid) || uid
               ) : null,
-              result: ((_i = m.receipt) == null ? void 0 : _i.result) || null,
+              result: ((_j = m.receipt) == null ? void 0 : _j.result) || null,
               receipt: m.receipt || null,
-              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_j = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _j.key) === key ? "win" : "lose" : null
+              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_k = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _k.key) === key ? "win" : "lose" : null
             } : null,
             ratings: {
               easy: C.ratingView(p.easy, now()),
@@ -1040,8 +1051,8 @@
               normal: ranks.normal.slice(0, 10)
             },
             ranks: {
-              easy: ((_k = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _k.rank) || null,
-              normal: ((_l = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _l.rank) || null
+              easy: ((_l = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _l.rank) || null,
+              normal: ((_m = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _m.rank) || null
             }
           };
         }
@@ -1314,12 +1325,18 @@
         async function ghostRequest(m, command) {
           const ref = db.ref(`${ghostRoot}/matches/${m.id}`), playUid = m.members[0].uid;
           m = await tx(ref, (raw) => {
-            var _a, _b, _c;
+            var _a, _b, _c, _d, _e;
             if (!raw) throw Error("MATCH_NOT_FOUND");
             if (["settled", "cancelled"].includes(raw.phase)) return raw;
             let n = copy(raw), ts = Math.max(now(), ((_a = n.game) == null ? void 0 : _a.time) || 0);
             n.votes || (n.votes = {});
             const beforeStart = n.phase === "play" && now() < n.game.startAt;
+            if (command.type === "abortInitialization") {
+              if ((_c = (_b = n.game) == null ? void 0 : _b.seq) == null ? void 0 : _c[m.members.find((x) => x.key === key).uid])
+                throw Error("\u5BFE\u6226\u304C\u9032\u884C\u3057\u3066\u3044\u307E\u3059\u3002\u6700\u65B0\u306E\u72B6\u614B\u304B\u3089\u518D\u958B\u3057\u3066\u304F\u3060\u3055\u3044");
+              n.phase = "cancelled";
+              return n;
+            }
             if (command.type === "leave") {
               if (n.phase === "vote" || beforeStart) {
                 n.phase = "cancelled";
@@ -1355,14 +1372,14 @@
                   n.game = E.step(n.game, playUid, command, ts);
                   if (rec) {
                     n.learning || (n.learning = {});
-                    (_b = n.learning)[playUid] || (_b[playUid] = []);
+                    (_d = n.learning)[playUid] || (_d[playUid] = []);
                     n.learning[playUid].push(rec);
                   }
                   n.game.seq[playUid] = command.seq;
                 }
               }
             }
-            if ((_c = n.game) == null ? void 0 : _c.result) {
+            if ((_e = n.game) == null ? void 0 : _e.result) {
               const r = C.ratingView(n.snapshots[key][n.difficulty], ts), o = n.game.result.draw ? "draw" : n.game.result.winner === playUid ? "win" : "lose";
               const after = G.ratingAfter(
                 r.rating,
@@ -1483,7 +1500,10 @@
               });
             ticket = null;
             difficulty = null;
-            return response(await find());
+            const active = await find();
+            if (active && !["settled", "cancelled"].includes(active.phase))
+              return request({ type: "abortInitialization", matchId: active.id });
+            return response(active);
           }
           let m = command.matchId ? await getMatch(command.matchId) : await find();
           if (!m) m = await intrusion();
@@ -1500,8 +1520,13 @@
             throw Error("\u3053\u306E\u8A66\u5408\u3092\u5225\u306E\u30ED\u30B0\u30A4\u30F3\u72B6\u614B\u3067\u9032\u884C\u4E2D\u3067\u3059");
           if (["settled", "cancelled"].includes(m.phase)) return response(m);
           m = await tx(db.ref(`${ROOT}/matches/${m.id}`), (raw) => {
-            var _a2, _b2, _c2;
+            var _a2, _b2, _c2, _d2, _e, _f;
             if (!raw) throw Error("MATCH_NOT_FOUND");
+            if (command.type === "abortInitialization") {
+              if (raw.receipt || Object.values(((_a2 = raw.game) == null ? void 0 : _a2.seq) || {}).some((n) => n > 0) || ((_c2 = (_b2 = raw.game) == null ? void 0 : _b2.claims) == null ? void 0 : _c2.length))
+                throw Error("\u5BFE\u6226\u304C\u9032\u884C\u3057\u3066\u3044\u307E\u3059\u3002\u6700\u65B0\u306E\u72B6\u614B\u304B\u3089\u518D\u958B\u3057\u3066\u304F\u3060\u3055\u3044");
+              return { ...raw, phase: "cancelled" };
+            }
             const model = {
               enabled: true,
               players: copy(raw.snapshots),
@@ -1509,7 +1534,7 @@
               matches: { [raw.id]: copy(raw) },
               settlements: {}
             };
-            const ts = raw.phase === "play" && now() < raw.game.startAt ? now() : Math.max(now(), ((_a2 = raw.game) == null ? void 0 : _a2.time) || 0);
+            const ts = raw.phase === "play" && now() < raw.game.startAt ? now() : Math.max(now(), ((_d2 = raw.game) == null ? void 0 : _d2.time) || 0);
             const next = C.transition(
               model,
               { uid, key },
@@ -1518,9 +1543,9 @@
               { mode: Math.random() < 0.5 ? "A" : "B" }
             ).state.matches[raw.id];
             const rec = aRecord(raw.game, uid, command, ts);
-            if (rec && ((_b2 = next.game.seq) == null ? void 0 : _b2[uid]) === command.seq) {
+            if (rec && ((_e = next.game.seq) == null ? void 0 : _e[uid]) === command.seq) {
               next.learning || (next.learning = {});
-              (_c2 = next.learning)[uid] || (_c2[uid] = []);
+              (_f = next.learning)[uid] || (_f[uid] = []);
               next.learning[uid].push(rec);
             }
             return clean(next);

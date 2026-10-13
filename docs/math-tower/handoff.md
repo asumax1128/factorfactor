@@ -117,3 +117,12 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 - Ver.5.12は指名ゴースト戦の復帰/UI、読み取り軽量化、開始前退出、遅いゴーストの時間切れ後の古い問題への回答を修正。src/ghost-model.cjsは時間切れheartbeat後に次問のCPU予定を作り直す。数学の判定・タイマーの期限は変更しない。
 - 正式な次回公開は5.13。CHANGELOG/version.json/表示を同時更新。現行方針は所有者の最新版依頼を優先し、上記の旧未承認設計やFunctions必須案を採用しない。Sparkを維持。
 - Safari実機と実PagesへのHTTPは未確認。Actions/配信アーティファクトの版・SHA確認を実機検証と混同しない。
+
+## 2026-10-13 Ver.5.13 緊急オンライン復旧
+
+- Ver.5.12の新UIで、heartbeatがbusyを切り替え、再取得したtiles配列がBattleBoardの選択解除effectを発火していた。旧テストは通信のない瞬間の短いマウス操作だけを検証していたため見逃した。
+- src/online-rated-ui.jsxは操作とバックグラウンド同期を分離し、要求を直列化。同一問題のtiles/onMatchを保持する。Bの判定待ちはview.resolvingに従う。通信失敗の再試行成功時にはエラーを解除する。
+- BattleSurfaceをCPU練習と新オンラインで共有。BattleBoardのtapSelectは新オンラインだけで有効。既存のドラッグ・数学エンジン・CPU進行・セーブ・音量OFFは維持。
+- tests/online-playability-browser.cjsは650ms遅延と1200msの実タッチ、A/B・E/N・乱入3種類・指名戦・誤答・必殺技・通信復帰・初期化失敗を通して検証。Native Emulatorでも人間Bの遅延タッチと安全中断を追加。
+- 既存の配信ビルドはJS/CSSへ内容ハッシュのクエリを付ける。この仕組みを手動バージョンクエリで妨げない。version.jsonが正式元、次回ゲーム公開は5.14。
+- 本番ルール追加や既存試合の推測による補正は行っていない。iPhone Safari実機は未検証。詳細 reports/2026-10-13_online-playability-v513.md。

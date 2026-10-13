@@ -381,9 +381,101 @@ assert.deepEqual(restored, original);
         await a.client.request({ type: "heartbeat" });
         await Promise.all(
           [a, b].map((u) =>
-            u.client.request({ type: "vote", matchId: mid, mode: "A" }),
+            u.client.request({
+              type: "vote",
+              matchId: mid,
+              mode: round === 0 ? "B" : "A",
+            }),
           ),
         );
+        if (round === 0) {
+          // Exercise the B presenter with real Auth/RTDB, rather than only calling answer directly.
+          const humanScreens = [];
+          for (const u of [a, b]) {
+            const t = await context(browser, {
+              uid: u.uid,
+              account: { key: u.key, name: accounts[u.key].name },
+              tree: {
+                games: {
+                  factor: {
+                    accounts,
+                    onlineSparkV1: {
+                      config: { enabled: true, protocol: "spark-v1" },
+                    },
+                  },
+                },
+              },
+            });
+            await t.ctx.exposeBinding("__sparkRequest", async (_, cmd) => {
+              if (cmd.type === "heartbeat")
+                await new Promise((r) => setTimeout(r, 650));
+              u.last = await u.client.request(cmd);
+              return u.last;
+            });
+            await t.page.evaluate(() => {
+              window.OnlineSpark.create = () => ({
+                request: (cmd) => window.__sparkRequest(cmd),
+                close() {},
+              });
+            });
+            await t.page
+              .getByRole("button", {
+                name: "オンライン対戦・CPU練習",
+                exact: true,
+              })
+              .click();
+            await t.page
+              .getByRole("button", {
+                name: "すぐ遊ぶ（ランダム対戦）",
+                exact: true,
+              })
+              .click();
+            await t.page.locator('[data-online-mode="B"]').waitFor();
+            humanScreens.push(t);
+          }
+          const p = humanScreens[0].page;
+          await p.waitForFunction(
+            () =>
+              document.querySelector(".or-battle")?.dataset.onlineReady ===
+              "true",
+          );
+          const ids = await require("./browser-harness.cjs").pair(p),
+            x = await p.locator(`[data-btile="${ids[0]}"]`).boundingBox(),
+            y = await p.locator(`[data-btile="${ids[1]}"]`).boundingBox();
+          const touch = await p.context().newCDPSession(p);
+          await touch.send("Input.dispatchTouchEvent", {
+            type: "touchStart",
+            touchPoints: [{ x: x.x + x.width / 2, y: x.y + x.height / 2 }],
+          });
+          await new Promise((r) => setTimeout(r, 1200));
+          await touch.send("Input.dispatchTouchEvent", {
+            type: "touchMove",
+            touchPoints: [{ x: y.x + y.width / 2, y: y.y + y.height / 2 }],
+          });
+          await touch.send("Input.dispatchTouchEvent", {
+            type: "touchEnd",
+            touchPoints: [],
+          });
+          await touch.detach();
+          await p.waitForFunction(() =>
+            document
+              .querySelector(".or-stat-grid")
+              ?.textContent.includes("1/15"),
+          );
+          const real = (
+            await a.db
+              .ref(`games/factor/onlineSparkV1/matches/${mid}/game`)
+              .get()
+          ).val();
+          assert.equal(real.states[a.uid].c, 1);
+          for (const t of humanScreens) {
+            assert.deepEqual(t.errors, []);
+            await t.ctx.close();
+          }
+          console.log(
+            "PASS human B: touch drag across delayed heartbeat solves actual synchronized Firebase problem",
+          );
+        }
         await new Promise((r) => setTimeout(r, 3900));
         await a.client.request({ type: "leave", matchId: mid });
         await b.client.request({ type: "heartbeat", matchId: mid });

@@ -158,3 +158,28 @@
 .or-hyper {background:linear-gradient(130deg,#1a174e,#602169);color:#ffe68c;box-shadow:0 0 20px #9d5bc955;}
 @keyframes or-arrival { from {transform:scale(.93);opacity:.2} to {transform:scale(1);opacity:1} }
 @media (prefers-reduced-motion:reduce) {.or-intrusion {animation:none}}
+/* Play uses the same BattleSurface/v7-play/TargetCard/BattleBoard as CPU practice. */
+.or-app.or-playing {padding:0;max-width:none;height:100dvh;min-height:0;overflow:hidden;}
+.or-playing .game-lock {box-sizing:border-box;}
+.or-playing .or-battle {margin:0;padding:0;border:0;background:transparent;position:relative;}
+.or-playing button {min-height:44px;padding:4px 8px;font-size:12px;}
+.or-game-header {display:flex;gap:8px;justify-content:space-between;align-items:flex-start;}
+.or-game-controls {display:flex;gap:4px;margin-bottom:4px;}
+.or-opponent {max-width:52%;padding:6px 9px;min-width:0;font-size:12px;}
+.or-opponent b {display:block;overflow-wrap:anywhere;line-height:1.2;}
+.or-opponent small {display:block;}
+.or-stat-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.or-progress {display:flex;gap:3px;}
+.or-progress i {flex:1;height:8px;border-radius:2px;}
+.or-special {display:flex;gap:4px;align-items:center;}
+.or-special span {font-size:10px;color:#AAB6E0;white-space:nowrap;}
+.or-special button {flex:1;padding:4px 2px;min-width:0;min-height:36px;font-size:11px;}
+.or-playing .or-connection {margin:0;font-size:10px;line-height:1.2;color:#AAB6E0;}
+.or-countdown {position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font:900 100px var(--v7-f-fx);color:#FFD54A;text-shadow:0 4px 0 #0B1430;background:#111e4388;z-index:20;}
+.or-playing .v7-target {min-height:0;flex-shrink:0;}
+.or-playing .v7-poly {line-height:1.25;overflow:visible;font-size:clamp(1.7rem,7vmin,3rem);}
+.or-playing [data-btile] {min-height:0;}
+.or-playing .v7-hint {margin:0;line-height:1.2;}
+.or-result h3 {font-size:36px;color:#FFD54A;}
+@media (max-height:660px) {.or-playing .v7-zone,.or-playing .v7-main,.or-playing .v7-play {gap:5px;}.or-playing .v7-target {padding:7px 8px 12px;}.or-playing .v7-st b {font-size:19px;}.or-playing .or-opponent {font-size:10px;}}
+.or-app .or-result {background:linear-gradient(150deg,#24336E,#0B1430);color:#fff;border:2px solid #FFD54A;}

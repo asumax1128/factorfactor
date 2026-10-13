@@ -257,6 +257,8 @@ function create({
         ? {
             id: m.id,
             selfUid: m.members.find((u) => u.key === key)?.uid || uid,
+            gameStartAt: m.game?.startAt,
+            members: m.members.map((x) => ({ uid: x.uid, name: x.name })),
             phase: m.phase,
             difficulty: m.difficulty,
             mode: m.mode || null,
@@ -602,6 +604,12 @@ function create({
         ts = Math.max(now(), n.game?.time || 0);
       n.votes ||= {};
       const beforeStart = n.phase === "play" && now() < n.game.startAt;
+      if (command.type === "abortInitialization") {
+        if (n.game?.seq?.[m.members.find((x) => x.key === key).uid])
+          throw Error("対戦が進行しています。最新の状態から再開してください");
+        n.phase = "cancelled";
+        return n;
+      }
       if (command.type === "leave") {
         if (n.phase === "vote" || beforeStart) {
           n.phase = "cancelled";
@@ -790,7 +798,10 @@ function create({
         });
       ticket = null;
       difficulty = null;
-      return response(await find());
+      const active = await find();
+      if (active && !["settled", "cancelled"].includes(active.phase))
+        return request({ type: "abortInitialization", matchId: active.id });
+      return response(active);
     }
     let m = command.matchId ? await getMatch(command.matchId) : await find();
     if (!m) m = await intrusion();
@@ -812,6 +823,15 @@ function create({
     if (["settled", "cancelled"].includes(m.phase)) return response(m);
     m = await tx(db.ref(`${ROOT}/matches/${m.id}`), (raw) => {
       if (!raw) throw Error("MATCH_NOT_FOUND");
+      if (command.type === "abortInitialization") {
+        if (
+          raw.receipt ||
+          Object.values(raw.game?.seq || {}).some((n) => n > 0) ||
+          raw.game?.claims?.length
+        )
+          throw Error("対戦が進行しています。最新の状態から再開してください");
+        return { ...raw, phase: "cancelled" };
+      }
       const model = {
         enabled: true,
         players: copy(raw.snapshots),

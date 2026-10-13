@@ -21,7 +21,13 @@ Object.assign(
   require("../firebase/ghost-rules.cjs"),
 );
 require("../firebase/event-host-rules.cjs").patch(rules);
-assert.deepEqual(rules,JSON.parse(fs.readFileSync("firebase/ghost-host.candidate.rules.json","utf8")), "Emulator must exercise the exact owner-published candidate");
+assert.deepEqual(
+  rules,
+  JSON.parse(
+    fs.readFileSync("firebase/ghost-host.candidate.rules.json", "utf8"),
+  ),
+  "Emulator must exercise the exact owner-published candidate",
+);
 (async () => {
   if (process.env.GCLOUD_PROJECT !== "demo-factorfactor-tower")
     throw Error("DEMO_ONLY");
@@ -191,8 +197,17 @@ assert.deepEqual(rules,JSON.parse(fs.readFileSync("firebase/ghost-host.candidate
       origin: "bounty",
     });
     const bid = directed.match.id;
-    const repeated=await c.client.request({type:'directGhost',target:'ab',difficulty:'easy',origin:'bounty'});
-    assert.equal(repeated.match.id,bid,'lost response must resume the same directed match');
+    const repeated = await c.client.request({
+      type: "directGhost",
+      target: "ab",
+      difficulty: "easy",
+      origin: "bounty",
+    });
+    assert.equal(
+      repeated.match.id,
+      bid,
+      "lost response must resume the same directed match",
+    );
     await c.client.request({ type: "vote", matchId: bid, mode: "A" });
     const br = c.db.ref(`games/factor/ghostV1/users/ac/matches/${bid}`);
     let bm = (await br.get()).val();
@@ -256,25 +271,67 @@ assert.deepEqual(rules,JSON.parse(fs.readFileSync("firebase/ghost-host.candidate
     console.log(
       "PASS bounty exact 8EXP once, shared seven-day cross-difficulty cooldown, direct unrated/human counts unchanged, passive recipient history",
     );
-    clock=Date.now();
-    let before=await c.client.request({type:'directGhost',target:'ab',difficulty:'normal',origin:'profile'});
-    const cancelledId=before.match.id;
-    await c.client.request({type:'vote',matchId:cancelledId,mode:'B'});
-    before=await c.client.request({type:'leave',matchId:cancelledId});assert.equal(before.match,null);assert.equal(before.ratings.normal.games,0);assert.equal(before.ratings.normal.rating,1500);
-    console.log('PASS countdown cancellation remains unrated and does not create a defeat');
+    clock = Date.now();
+    let before = await c.client.request({
+      type: "directGhost",
+      target: "ab",
+      difficulty: "normal",
+      origin: "profile",
+    });
+    const cancelledId = before.match.id;
+    await c.client.request({ type: "vote", matchId: cancelledId, mode: "B" });
+    before = await c.client.request({ type: "leave", matchId: cancelledId });
+    assert.equal(before.match, null);
+    assert.equal(before.ratings.normal.games, 0);
+    assert.equal(before.ratings.normal.rating, 1500);
+    console.log(
+      "PASS countdown cancellation remains unrated and does not create a defeat",
+    );
 
+    before = await c.client.request({
+      type: "directGhost",
+      target: "ab",
+      difficulty: "normal",
+      origin: "profile",
+    });
+    const brokenId = before.match.id;
+    await c.client.request({ type: "vote", matchId: brokenId, mode: "B" });
+    clock += 4200;
+    await c.client.request({ type: "heartbeat", matchId: brokenId });
+    const safelyAborted = await c.client.request({
+      type: "abortInitialization",
+      matchId: brokenId,
+    });
+    assert.equal(safelyAborted.match, null);
+    assert.equal(safelyAborted.ratings.normal.rating, 1500);
+    assert.equal(safelyAborted.ratings.normal.games, 0);
+    assert.equal(
+      (await c.db.ref("games/factor/accounts/ac/stats/exp").get()).val(),
+      108,
+    );
+    console.log(
+      "PASS post-countdown initialization failure aborts before own answers without defeat/rating/XP",
+    );
     const waiting = await a.client.request({
       type: "enqueue",
       difficulty: "easy",
     });
-    clock=Date.now();
-    await env.withSecurityRulesDisabled(ctx=>set(ref(ctx.database(),'games/factor/onlineSparkV1/slots/easy/startedAt'),clock-10000));
-    await a.client.request({type:'enqueue',difficulty:'easy'});
+    clock = Date.now();
+    await env.withSecurityRulesDisabled((ctx) =>
+      set(
+        ref(ctx.database(), "games/factor/onlineSparkV1/slots/easy/startedAt"),
+        clock - 10000,
+      ),
+    );
+    await a.client.request({ type: "enqueue", difficulty: "easy" });
     const race = await Promise.allSettled([
       a.client.request({ type: "heartbeat" }),
       b.client.request({ type: "enqueue", difficulty: "easy" }),
     ]);
-    assert(race.every(r=>r.status==='fulfilled'), 'transition retries must avoid a permission error in normal matching');
+    assert(
+      race.every((r) => r.status === "fulfilled"),
+      "transition retries must avoid a permission error in normal matching",
+    );
     await env.withSecurityRulesDisabled(async (ctx) => {
       const all = (await get(ref(ctx.database(), "games/factor"))).val();
       const human = !!all.onlineSparkV1.matches?.[waiting.ticket],

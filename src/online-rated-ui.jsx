@@ -1,7 +1,7 @@
 /* Spark RTDB transport only. No external server or admin credentials. */
 (function (root) {
   root.OnlineRatedFactory = function (H) {
-    const { useState, useRef, useEffect } = React;
+    const { useState, useRef, useEffect, useMemo, useCallback } = React;
     const titles = {
       easy_adept: "EASYの達人",
       easy_master: "EASYマスター",
@@ -12,9 +12,216 @@
       ghost_up1: "格上の影を破る者",
       ghost_up2: "二階級の影を超える者",
     };
+    class PlayBoundary extends React.Component {
+      state = { failed: false };
+      static getDerivedStateFromError() {
+        return { failed: true };
+      }
+      componentDidCatch() {
+        this.props.onFailure();
+      }
+      render() {
+        return this.state.failed ? (
+          <section role="alert">
+            <p>
+              対戦画面を読み込めませんでした。退出による敗北を確定せず、復帰または安全な中断を確認してください。
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ failed: false });
+                this.props.onRecover();
+              }}
+            >
+              画面を再試行
+            </button>
+            <button onClick={this.props.onAbort}>
+              初期化失敗の対戦を安全に中断
+            </button>
+          </section>
+        ) : (
+          this.props.children
+        );
+      }
+    }
+    function BattleView({
+      H,
+      m,
+      g,
+      time,
+      muted,
+      setMuted,
+      disabled,
+      onMatch,
+      onSpecial,
+      onLeave,
+      feedback,
+    }) {
+      const tiles = useMemo(
+        () => g.tiles,
+        [g.question, JSON.stringify(g.tiles)],
+      );
+      if (!H.BattleSurface || !H.HpBar || !Array.isArray(tiles) || !g.poly)
+        throw Error("BATTLE_INITIALIZATION_FAILED");
+      const self = g.live[m.selfUid],
+        opponent = Object.entries(g.live).find(
+          ([uid]) => uid !== m.selfUid,
+        )?.[1];
+      const counting = time < (m.gameStartAt || g.startAt),
+        ready = !!g.resolving || time < Math.max(g.startAt, g.readyAt || 0);
+      const score = typeof self === "number" ? self : self?.score || 0,
+        combo = typeof self === "object" ? self.combo : g.combo || 0;
+      const N = H.DIFFICULTY_CONFIG[m.difficulty].clearCount;
+      return (
+        <H.BattleSurface>
+          <div
+            className="v7-play or-battle"
+            data-online-mode={m.mode}
+            data-online-ready={!disabled && !ready && !g.result}
+          >
+            <div className="v7-zone">
+              <div className="or-game-header">
+                <div>
+                  <div className="or-game-controls">
+                    <button
+                      className="v7-bar-btn"
+                      onClick={onLeave}
+                      disabled={disabled}
+                    >
+                      ✕ 退出
+                    </button>
+                    <button
+                      className="v7-bar-btn"
+                      aria-label={muted ? "音を出す" : "消音"}
+                      onClick={() => setMuted(!muted)}
+                    >
+                      {muted ? "🔇" : "🔊"}
+                    </button>
+                  </div>
+                  <span className="v7-chip">
+                    {m.mode === "A" ? "早い者勝ち" : "レース＋攻撃"} ・{" "}
+                    {m.difficulty.toUpperCase()}
+                  </span>
+                </div>
+                <div className="v7-wnd or-opponent">
+                  <b>
+                    {m.opponent?.name ||
+                      m.members?.find((x) => x.uid !== m.selfUid)?.name ||
+                      "相手"}
+                  </b>
+                  <small>
+                    {typeof opponent === "number"
+                      ? opponent + "点"
+                      : `HP ${opponent?.hp?.toFixed(1) ?? 100}% ・ ${opponent?.c || 0}正解`}
+                  </small>
+                </div>
+              </div>
+              <div className="or-stat-grid">
+                {H.v7Stat(
+                  m.mode === "A" ? "あなた" : "SCORE",
+                  score,
+                  "#7FD8FF",
+                )}
+                {H.v7Stat(
+                  m.mode === "A" ? "相手" : "SOLVED",
+                  m.mode === "A" ? opponent || 0 : `${self?.c || 0}/${N}`,
+                  "#FFB59C",
+                )}
+                {H.v7Stat("COMBO", combo)}
+              </div>
+              {m.mode === "B" && (
+                <H.HpBar v7 hp={self?.hp ?? 100} height={22} />
+              )}
+              <div className="or-progress" aria-label="対戦の進行">
+                {Array.from({ length: N }, (_, i) => (
+                  <i
+                    key={i}
+                    style={{
+                      background:
+                        i < (m.mode === "A" ? Number(g.question) : self?.c || 0)
+                          ? "#7FD8FF"
+                          : i ===
+                              (m.mode === "A"
+                                ? Number(g.question)
+                                : self?.c || 0)
+                            ? "#FFD54A"
+                            : "#24336E",
+                    }}
+                  />
+                ))}
+              </div>
+              {m.mode === "B" && (
+                <div className="or-special">
+                  <span>
+                    必殺 {self?.sp || 0}/{H.SP_MAX}
+                  </span>
+                  {Object.entries(H.SP_INFO).map(([kind, info]) => (
+                    <button
+                      key={kind}
+                      data-sp={kind}
+                      disabled={disabled || ready || (self?.sp || 0) < H.SP_MAX}
+                      onClick={() => onSpecial(kind)}
+                    >
+                      {info.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="or-connection" role="status">
+                {counting
+                  ? "まもなく開始"
+                  : ready
+                    ? "次の問題を準備中"
+                    : "対戦中"}{" "}
+                ・ 残り{" "}
+                {Math.max(0, (g.timeoutMs - (time - g.startAt)) / 1000).toFixed(
+                  1,
+                )}
+                秒
+              </p>
+            </div>
+            <div className="v7-main">
+              <div className="relative" style={{ flexShrink: 0 }}>
+                <H.JudgePop judge={feedback?.judge} at="ph" />
+                <H.TargetCard
+                  poly={g.poly}
+                  level={g.level}
+                  qLabel={`問${m.mode === "A" ? Number(g.question) + 1 : (self?.c || 0) + 1}/${N}`}
+                  gaugeKey={g.question + ":" + g.startAt}
+                  gaugeMs={Math.max(1, g.timeoutMs - (time - g.startAt))}
+                  v7
+                />
+              </div>
+              <H.BattleBoard
+                flash={feedback?.flash}
+                tapSelect
+                tiles={tiles}
+                onMatch={onMatch}
+                disabled={disabled || ready || !!g.result}
+                dim={ready}
+                v7
+              />
+              <p className="v7-hint">
+                {m.mode === "A"
+                  ? "先に正解した人だけ得点 ・ まちがえると2秒お手つき"
+                  : "コンボで攻撃 ・ ゲージ満タンで必殺技"}
+              </p>
+            </div>
+            {counting && (
+              <div className="or-countdown" aria-label="開始カウントダウン">
+                {Math.max(
+                  1,
+                  Math.ceil(((m.gameStartAt || g.startAt) - time) / 1000),
+                )}
+              </div>
+            )}
+          </div>
+        </H.BattleSurface>
+      );
+    }
     function App({ acct, onExit, view = "match", initialGhost = null }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
+        [feedback, setFeedback] = useState(null),
         [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select",
         ),
@@ -27,7 +234,11 @@
         seq = useRef(0),
         life = useRef(true),
         retry = useRef(null),
-        requestRef = useRef(null);
+        requestRef = useRef(null),
+        requests = useRef(Promise.resolve()),
+        actionPending = useRef(false),
+        pollingPaused = useRef(false),
+        feedbackTimer = useRef(null);
       const sound = H.useBattleSound(muted);
       const [spark] = useState(() =>
         H.createTransport && acct?.key ? H.createTransport(acct) : null,
@@ -36,16 +247,36 @@
       useEffect(
         () => () => {
           life.current = false;
+          clearTimeout(feedbackTimer.current);
           spark?.close();
           sound.bgm(false);
         },
         [],
       );
-      async function send(command) {
-        if (inFlight.current) return;
+      function send(command) {
+        if (!command) return Promise.resolve();
+        const background = command.type === "heartbeat";
+        if (
+          background &&
+          (inFlight.current || actionPending.current || pollingPaused.current)
+        )
+          return Promise.resolve();
+        if (!background && actionPending.current) return Promise.resolve();
+        if (!background) {
+          actionPending.current = true;
+          setBusy(true);
+          if (["cancel", "leave", "abortInitialization"].includes(command.type))
+            pollingPaused.current = true;
+          else pollingPaused.current = false;
+        }
+        const task = requests.current.then(() => perform(command, background));
+        requests.current = task.catch(() => {});
+        return task;
+      }
+      async function perform(command, background) {
+        if (!life.current) return;
         inFlight.current = true;
-        setBusy(true);
-        setError("");
+        if (!background) setError("");
         try {
           if (!spark)
             throw Error(
@@ -70,6 +301,7 @@
             clearTimeout(timeout);
           }
           if (!life.current) return;
+          setError("");
           retry.current = null;
           setState(v);
           current.current = v;
@@ -105,7 +337,10 @@
           }
         } finally {
           inFlight.current = false;
-          if (life.current) setBusy(false);
+          if (!background) {
+            actionPending.current = false;
+            if (life.current) setBusy(false);
+          }
         }
       }
       requestRef.current = send;
@@ -121,7 +356,7 @@
       useEffect(() => {
         if (!["wait", "vote", "play"].includes(screen)) return;
         const id = setInterval(() => {
-          if (retry.current) return;
+          if (retry.current || pollingPaused.current) return;
           const s = current.current,
             m = s?.match;
           requestRef.current({
@@ -136,9 +371,17 @@
       }, [screen, error, muted]);
       const m = state?.match,
         g = m?.game;
-      const time = Date.now() + (H.FB.off || 0);
-      const answer = (a, b) => {
-        if (inFlight.current || retry.current || !g) return;
+      const [localTime, setLocalTime] = useState(Date.now());
+      useEffect(() => {
+        if (screen !== "play") return;
+        const timer = setInterval(() => setLocalTime(Date.now()), 100);
+        return () => clearInterval(timer);
+      }, [screen]);
+      const time = localTime + (H.FB.off || 0);
+      const answer = useCallback((a, b) => {
+        const m = current.current?.match,
+          g = m?.game;
+        if (actionPending.current || retry.current || !g) return;
         const command = {
           type: "answer",
           matchId: m.id,
@@ -146,8 +389,33 @@
           tiles: [a, b],
           seq: ++seq.current,
         };
-        send(command);
-      };
+        const prior = g.live[m.selfUid];
+        send(command).then((v) => {
+          if (!v?.match || !life.current) return;
+          const next = v.match.game?.live[m.selfUid];
+          const won =
+            v.match.outcome === "win" ||
+            (typeof prior === "number" ? next > prior : next?.c > prior?.c);
+          const moved =
+            v.match.phase === "settled" ||
+            v.match.game?.question !== g.question;
+          const judge = {
+            label: won ? "正解！" : moved ? "次の問題へ" : "お手つき！",
+            color: won ? "#7FD8FF" : "#FF8A75",
+            small: !won,
+          };
+          if (!moved || won) sound.play(won ? "correct" : "buzz");
+          setFeedback({
+            judge,
+            flash: {
+              [a]: won ? "correct" : "wrong",
+              [b]: won ? "correct" : "wrong",
+            },
+          });
+          clearTimeout(feedbackTimer.current);
+          feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+        });
+      }, []);
       useEffect(() => {
         seq.current = g?.acceptedSeq || 0;
       }, [m?.id]);
@@ -155,36 +423,38 @@
         <main
           className={`or-app ${screen === "play" ? "or-playing" : "or-menu"}`}
         >
-          <header>
-            <button
-              onClick={() => {
-                if (["wait", "vote", "play"].includes(screen)) {
-                  setError(
-                    "検索をキャンセル、または対戦から退出してから戻ってください",
-                  );
-                  return;
-                }
-                onExit();
-              }}
-              disabled={busy}
-            >
-              {initialGhost ? '一覧へ戻る' : 'オンラインへ戻る'}
-            </button>
-            <h2>
-              {view === "ratings"
-                ? "オンラインレーティング"
-                : initialGhost || ['bounty','profile'].includes(m?.origin)
-                  ? "指名ゴースト対戦"
-                  : "すぐ遊ぶ"}
-            </h2>
-            <small className="or-version">{root.FactorVersion?.label}</small>
-            <button
-              aria-label={muted ? "音を出す" : "消音"}
-              onClick={() => setMuted(!muted)}
-            >
-              {muted ? "🔇" : "🔊"}
-            </button>
-          </header>
+          {screen !== "play" && (
+            <header>
+              <button
+                onClick={() => {
+                  if (["wait", "vote", "play"].includes(screen)) {
+                    setError(
+                      "検索をキャンセル、または対戦から退出してから戻ってください",
+                    );
+                    return;
+                  }
+                  onExit();
+                }}
+                disabled={busy}
+              >
+                {initialGhost ? "一覧へ戻る" : "オンラインへ戻る"}
+              </button>
+              <h2>
+                {view === "ratings"
+                  ? "オンラインレーティング"
+                  : initialGhost || ["bounty", "profile"].includes(m?.origin)
+                    ? "指名ゴースト対戦"
+                    : "すぐ遊ぶ"}
+              </h2>
+              <small className="or-version">{root.FactorVersion?.label}</small>
+              <button
+                aria-label={muted ? "音を出す" : "消音"}
+                onClick={() => setMuted(!muted)}
+              >
+                {muted ? "🔇" : "🔊"}
+              </button>
+            </header>
+          )}
           {error && (
             <section role="alert">
               <p>{error}</p>
@@ -299,77 +569,49 @@
             </section>
           )}
           {screen === "play" && g && (
-            <section className="or-battle">
-              <h3>
-                {m.difficulty.toUpperCase()} ・ {m.mode}方式
-              </h3>
-              <p>
-                Lv.{g.level} ・ {time < g.startAt ? "まもなく開始" : "対戦中"}
-              </p>
-              <div className="or-live">
-                {Object.entries(g.live).map(([uid, v]) => (
-                  <p key={uid}>
-                    {uid === m.selfUid ? "自分" : "相手"}：
-                    {typeof v === "number"
-                      ? `${v}点`
-                      : `HP ${v.hp.toFixed(1)} ・ ${v.c}正解 ・ コンボ${v.combo}`}
-                  </p>
-                ))}
-              </div>
-              <H.TargetCard
-                poly={g.poly}
-                level={g.level}
-                gaugeMs={g.timeoutMs}
-                v7
-              />
-              <H.BattleBoard
-                tiles={g.tiles}
+            <PlayBoundary
+              key={m.id}
+              onFailure={() => {
+                pollingPaused.current = true;
+              }}
+              onRecover={() => {
+                pollingPaused.current = false;
+                send({ type: "status", matchId: m.id });
+              }}
+              onAbort={() =>
+                send({ type: "abortInitialization", matchId: m.id })
+              }
+            >
+              <BattleView
+                H={H}
+                feedback={feedback}
+                m={m}
+                g={g}
+                time={time}
+                muted={muted}
+                setMuted={setMuted}
+                disabled={busy || !!error}
                 onMatch={answer}
-                disabled={
-                  busy ||
-                  !!error ||
-                  time < Math.max(g.startAt, g.readyAt || 0) ||
-                  !!g.result
+                onSpecial={(kind) =>
+                  send({
+                    type: "special",
+                    matchId: m.id,
+                    kind,
+                    seq: ++seq.current,
+                  })
                 }
-                v7
-              />
-              {m.mode === "B" && (
-                <div>
-                  {["big", "heal", "shield"].map((kind) => (
-                    <button
-                      key={kind}
-                      disabled={busy}
-                      onClick={() =>
-                        send({
-                          type: "special",
-                          matchId: m.id,
-                          kind,
-                          seq: ++seq.current,
-                        })
-                      }
-                    >
-                      {
-                        { big: "大攻撃", heal: "回復", shield: "シールド" }[
-                          kind
-                        ]
-                      }
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                disabled={busy}
-                onClick={() => {
-                  if (confirm("退出すると敗北扱いになります。退出しますか？"))
+                onLeave={() => {
+                  if (
+                    time < m.gameStartAt ||
+                    confirm("退出すると敗北扱いになります。退出しますか？")
+                  )
                     send({ type: "leave", matchId: m.id });
                 }}
-              >
-                対戦から退出
-              </button>
-            </section>
+              />
+            </PlayBoundary>
           )}
           {screen === "result" && (
-            <section>
+            <section className="v7-wnd v7-result or-result">
               <h3>
                 {m.outcome === "draw"
                   ? "引き分け"

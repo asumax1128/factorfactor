@@ -238,6 +238,17 @@ function view(match, uid) {
         : match.states[uid].qStart,
     timeoutMs: api.QUESTION_TIMEOUT_MS,
     acceptedSeq: match.seq[uid] || 0,
+    resolving: match.mode === "B" && match.states[uid].resolving,
+    combo:
+      match.mode === "A"
+        ? api.scoreA(
+            rt.bank,
+            match.claims,
+            match.ids,
+            api.DIFFICULTY_CONFIG[match.difficulty].clearCount,
+            {},
+          ).cb[uid] || 0
+        : match.states[uid].combo,
     readyAt:
       match.mode === "A"
         ? Math.max(
@@ -251,6 +262,7 @@ function view(match, uid) {
         match.mode === "B"
           ? {
               hp: match.states[u].hp,
+              score: match.states[u].score,
               c: match.states[u].c,
               combo: match.states[u].combo,
               sp: match.states[u].sp,

@@ -7732,7 +7732,7 @@ function useBattleSound(muted) {
 
 /* ---------- 盤面（ドラッグでつなぐ） ---------- */
 const BB_DRAG = { on: false };   // いまドラッグ中か（塔の「周期関数シード」がタイルを動かすのを止める）
-function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7, mirror }) {
+function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7, mirror, tapSelect = false }) {
   const gridRef = useRef(null), tileRefs = useRef({});
   const [sel, setSel] = useState(null);
   const [drag, setDragS] = useState(false);
@@ -7751,6 +7751,7 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7, mirror }) {
     if (disabled) return;
     e.preventDefault();
     try { if (Tone.getContext().state !== 'running') Tone.start().catch(() => {}); } catch (err) {}
+    if (tapSelect && sel && sel !== id && !drag) { const from=sel;setSel(null);setDrag(false);onMatch(from,id);return; }
     setSel(id); setDrag(true); setPos(center(id));
   };
   useEffect(() => {
@@ -7771,16 +7772,19 @@ function BattleBoard({ tiles, onMatch, disabled, flash, dim, v7, mirror }) {
       const t = el && el.closest ? el.closest('[data-btile]') : null;
       const from = sel;
       setDrag(false); setSel(null);
-      if (t) { const tid = t.getAttribute('data-btile'); if (tid && tid !== from) onMatch(from, tid); }
+      if (t) { const tid = t.getAttribute('data-btile'); if (tid && tid !== from) onMatch(from, tid); else if(tapSelect && tid === from) setSel(from); }
     };
+    const cancel=()=>{done=true;setSel(null);setDrag(false);};
+    window.addEventListener('pointercancel',cancel); window.addEventListener('touchcancel',cancel);
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
     window.addEventListener('touchmove', mv, { passive: false }); window.addEventListener('touchend', up);
     return () => {
       if (raf !== null) cancelAnimationFrame(raf);
+      window.removeEventListener('pointercancel',cancel); window.removeEventListener('touchcancel',cancel);
       window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up);
       window.removeEventListener('touchmove', mv); window.removeEventListener('touchend', up);
     };
-  }, [drag, sel, onMatch]);
+  }, [drag, sel, onMatch, tapSelect]);
   // おじゃまタイルで枚数が増えても画面に収まるように：10枚以上は4列、行は内容に関係なく等分
   const cols = tiles.length > 9 ? 4 : 3;
   const rows = Math.max(1, Math.ceil(tiles.length / cols));
@@ -9491,6 +9495,10 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
 /* =====================================================================
    対戦画面（A・B 共通の外枠）
    ===================================================================== */
+// CPU練習と新オンライン対戦で共有する表示枠。同期・判定・保存は呼出側が管理する。
+function BattleSurface({children}) {
+  return <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{height:'100dvh',maxHeight:'100dvh',overflow:'hidden',paddingTop:'max(0.5rem, env(safe-area-inset-top))',paddingBottom:'max(0.5rem, env(safe-area-inset-bottom))',background:skinBg(V7_NIGHT),fontFamily:"'Zen Kaku Gothic New', sans-serif",touchAction:'none',position:'relative'}}><FontImport /><V7Theme.Provider value={true}>{children}</V7Theme.Provider></div>;
+}
 function BattleGame({ code, state, players, isHost, acct, who, practice, sound, muted, setMuted, onLeave, onRematch, onLobby, onBack }) {
   const me = myUid();
   const ids = state.players || [];
@@ -9734,13 +9742,10 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
   );
   // ver.7：紺の夜空にFF風のウィンドウ。play=true のときは子どもが v7-play（スマホ縦／タブレット横の2列）を持つ
   const wrap = (children, play) => (
-    <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: 'max(0.5rem, env(safe-area-inset-top))', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", touchAction: 'none', position: 'relative' }}>
-      <FontImport />
-      <V7Theme.Provider value={true}>
-        {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{ height: '100%', minHeight: 0 }}>{children}</div>}
-      </V7Theme.Provider>
+    <BattleSurface>
+      {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{height:'100%',minHeight:0}}>{children}</div>}
       {state.cpu && !result && (isHost || practice || code === 'bot' || code === 'local') && <CpuBots code={code} state={state} bank={bank} N={N} viewRef={viewRef} claims={claims} onClear={u => writeResult(u, 'clear')} />}
-    </div>
+    </BattleSurface>
   );
 
   if (result) return wrap(<BattleResult result={result} rec={rec} me={me} ids={ids} names={names} mode={mode} N={N} live={live} ko={ko} bank={bank} claims={claims} state={state}
@@ -10691,7 +10696,7 @@ async function flushOnlineLearn(acct,matchId,rows) {
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleBoard, TargetCard, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
+const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');
