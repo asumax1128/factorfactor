@@ -3499,8 +3499,9 @@ function GhostNews({ acct, st }) {
     if (busy) return; setBusy(true);
     const now = Math.max(...rows.map(e => e.at));
     try {
-      await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; if ((s.ghostSeen || 0) >= now) return s; s.ghostSeen = now; s.ghostW = (s.ghostW || 0) + w; s.ghostL = (s.ghostL || 0) + l; s.ghostD = (s.ghostD || 0) + d; return s; });
-      if (w) { await addExp(acct, w * GHOST_WIN_EXP); FX.text(window.innerWidth / 2, window.innerHeight / 2, `+${w * GHOST_WIN_EXP} EXP`, '#5b3fd6', 28); fxSound('levelup'); }
+      let earned=0;const saved=await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { earned=0;s = s || {};if(s.ghostLegacyBaseline==null)s.ghostLegacyBaseline=s.ghostSeen||0;s.ghostLegacyAwards ||= {};for(const e of rows){if(s.ghostLegacyAwards[e.id]||e.at<=s.ghostLegacyBaseline||!['w','l','d'].includes(e.o))continue;s.ghostLegacyAwards[e.id]=true;const field='ghost'+({w:'W',l:'L',d:'D'}[e.o]);s[field]=(s[field]||0)+1;if(e.o==='w')earned+=GHOST_WIN_EXP;}s.ghostSeen=Math.max(s.ghostSeen||0,now);s.exp=(s.exp||0)+earned; return s; });
+      if (!saved.committed) throw Error('SAVE_NOT_COMMITTED');
+      if (earned) { FX.text(window.innerWidth / 2, window.innerHeight / 2, `+${earned} EXP`, '#5b3fd6', 28); fxSound('levelup'); }
       // 2週間より前の記録はかたづける
       const old = Object.entries(log || {}).filter(([id, e]) => !e || !e.at || e.at < Date.now() - 14 * 86400000);
       old.forEach(([id]) => FB.db.ref(`games/factor/ghostlog/${acct.key}/${id}`).remove().catch(() => {}));
@@ -3615,7 +3616,13 @@ function applyLearn(p, rec) {
   rec.forEach(r => {
     if (!r || !r.lv) return;
     const L = p.lv['L' + r.lv] = p.lv['L' + r.lv] || { n: 0, ok: 0, ms: 0 };
-    L.n++; if (r.ok) { L.ok++; L.ms += Math.round(r.ms || 0); }
+    L.n++; if (r.ok) { L.ok++; L.ms += Math.round(r.ms || 0);
+      // Keep legacy totals intact; minima use completed, first-attempt correct answers only.
+      if (r.ok === true && Number.isInteger(r.lv) && r.lv >= 1 && r.lv <= 9 && !r.late && !r.timeout && Number.isFinite(r.ms) && r.ms >= 100 && r.ms <= 20000) {
+        const ms = Math.round(r.ms);
+        L.bestMs = Number.isFinite(L.bestMs) && L.bestMs >= 100 ? Math.min(L.bestMs, ms) : ms;
+      }
+    }
     if (r.pid) { const P = p.pt[r.pid] = p.pt[r.pid] || { n: 0, ok: 0 }; P.n++; if (r.ok) P.ok++; }
   });
   return p;
@@ -3638,7 +3645,7 @@ async function migrateGuestExtra(acct) {
   try {
     await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p => {
       p = p || {}; p.lv = p.lv || {}; p.pt = p.pt || {};
-      Object.entries(g.lv || {}).forEach(([k, v]) => { const L = p.lv[k] = p.lv[k] || { n: 0, ok: 0, ms: 0 }; L.n += v.n || 0; L.ok += v.ok || 0; L.ms += v.ms || 0; });
+      Object.entries(g.lv || {}).forEach(([k, v]) => { const L = p.lv[k] = p.lv[k] || { n: 0, ok: 0, ms: 0 }; L.n += v.n || 0; L.ok += v.ok || 0; L.ms += v.ms || 0; if (Number.isFinite(v.bestMs) && v.bestMs >= 100 && v.bestMs <= 20000) L.bestMs = Number.isFinite(L.bestMs) && L.bestMs >= 100 ? Math.min(L.bestMs, v.bestMs) : v.bestMs; });
       Object.entries(g.pt || {}).forEach(([k, v]) => { const P = p.pt[k] = p.pt[k] || { n: 0, ok: 0 }; P.n += v.n || 0; P.ok += v.ok || 0; });
       return p;
     });
@@ -4177,16 +4184,18 @@ function LearnApp({ acct, onExit, init }) {
         {!prof ? <Card><p className="text-sm text-center" style={{ color: COLORS.inkSoft }}>読み込み中…</p></Card> : tab === 'weak' ? (<>
           <Card className="mb-3">
             <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>レベル別の正答率と平均時間</div>
+            <p className="text-xs mb-2" style={{ color: COLORS.inkSoft }}>最高速：今後の正解1問の最短時間（再回答・時間切れは除外）</p>
             {lvRows.map(({ lv, st }) => {
               const acc = st && st.n ? st.ok / st.n : null, avg = st && st.ok ? st.ms / st.ok / 1000 : null;
               const weak = weakLvs.some(w => w.lv === lv);
               return (
-                <div key={lv} className="flex items-center gap-2 py-1 text-xs" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
+                <div key={lv} className="flex flex-wrap items-center gap-2 py-1 text-xs" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
                   <span className="w-12 shrink-0 font-black rounded-full text-center py-0.5" style={{ background: LEVEL_INFO[lv].color, color: '#fff' }}>Lv.{lv}</span>
                   <span className="w-24 shrink-0 font-bold truncate" style={{ color: COLORS.ink }}>{LEVEL_INFO[lv].name}</span>
                   <div className="flex-1 rounded-full overflow-hidden" style={{ height: 10, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${acc == null ? 0 : acc * 100}%`, background: acc == null ? 'transparent' : acc >= 0.85 ? '#43C97B' : acc >= 0.6 ? '#FFB020' : '#FF4D4D' }} /></div>
                   <span className="w-10 text-right font-black" style={{ color: COLORS.ink }}>{acc == null ? '−' : `${Math.round(acc * 100)}%`}</span>
                   <span className="w-11 text-right font-bold" style={{ color: COLORS.inkSoft }}>{avg == null ? '' : `${avg.toFixed(1)}秒`}</span>
+                  <span className="w-full text-right font-bold" style={{ color: COLORS.inkSoft }}>最高速 {Number.isFinite(st?.bestMs) && st.bestMs >= 100 ? `${(st.bestMs / 1000).toFixed(2)}秒` : '―'}</span>
                   {weak && <span className="text-[9px] font-black rounded-full px-1.5 text-white" style={{ background: '#e63946' }}>苦手</span>}
                 </div>
               );
@@ -7319,6 +7328,9 @@ const BADGES = [
   { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: '数理の塔の50階で因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
   { id: 'tw70', g: 'tower', r: 5, icon: '📖', label: '数理の書の継承者', desc: '数理の塔の第一部をクリア', test: st => ((st.tower || {}).best || 0) >= 70 },
   { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '終わりなき探究者', desc: '数理の塔の第一部を3回クリア', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },
+  { id:'hyper_slayer',g:'hyper_slayer',r:5,icon:'🌌',label:'超影の征服者',desc:'乱入ハイパーゴーストに初勝利（永久）',test:st=>st.ghostTitles?.hyper_slayer===true },
+  { id:'ghost_up1',g:'ghost_up1',r:3,icon:'⚔️',label:'格上の影を破る者',desc:'1ランク上の乱入ゴーストに初勝利（永久）',test:st=>st.ghostTitles?.ghost_up1===true },
+  { id:'ghost_up2',g:'ghost_up2',r:4,icon:'🌠',label:'二階級の影を超える者',desc:'2ランク上の乱入ゴーストに初勝利（永久）',test:st=>st.ghostTitles?.ghost_up2===true },
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
@@ -8326,6 +8338,9 @@ function BattleApp({ acct: who, onExit }) {
 
   const players = useFbValue(code ? `rooms/${code}/players` : null) || {};
   const stateLive = useFbValue(code ? `rooms/${code}/state` : null);
+  useEffect(()=>{if(!code || code==='local' || code==='bot' || !FB.db)return;
+    const r=FB.db.ref(`games/factor/rooms/${code}/meta`),f=s=>{const m=s.val();if(m){setIsHost(m.host===FB.uid);if(m.host===FB.uid)setSpectator(false);}};
+    r.on('value',f,()=>{});return()=>r.off('value',f);},[code]);
   // ver.7：新しい試合が始まるときは、いまの画面（ロビー・結果）の上で暗転してから対戦画面に切りかえる。
   // 暗転が閉じきるまでは、ひとつ前の状態を表示に使う（カウントダウンと暗転がかさならない）
   const [shownGid, setShownGid] = useState(null);
@@ -8388,13 +8403,17 @@ function BattleApp({ acct: who, onExit }) {
 
   async function createRoom(kind) {
     setErr('');
+    if(kind?.takeover){await joinRoom(kind.takeover,false);return;}
     const tour = kind === true || kind === 'tour', raid = kind === 'raid', fraid = kind === 'fraid';
+    let delegated=false;
+    if((tour||raid)&&acct&&FB.db){try{delegated=!(await FB.db.ref(`games/factor/teachers/${acct.key}`).get()).exists();}catch(e){setErr('開催権限を確認できませんでした');return;}}
     for (let t = 0; t < 12; t++) {
       const c = String(randInt(1000, 9999));
       let res;
-      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid, ...(fraid ? { fraid: true } : {}), acct: acct ? acct.key : '' }; }); }
+      try { res = await fref(`rooms/${c}/meta`).transaction(cur => { if (cur && cur.host !== FB.uid && cur.createdAt > fbNow() - BATTLE_ROOM_TTL) return; return { host: FB.uid, createdAt: TSV(), tour: !!tour, raid, ...(delegated?{delegatedAccount:acct.key}:{}), ...(fraid ? { fraid: true } : {}), acct: acct ? acct.key : '' }; }); }
       catch (e) { setErr('部屋を作れませんでした（' + (e.code || e.message) + '）'); return; }
       if (res.committed) {
+        if(delegated){try{await FB.db.ref(`games/factor/eventHostRooms/${acct.key}/${c}`).set({at:fbNow()});}catch(e){setErr('開催登録を保存できませんでした。再試行してください');return;}}
         await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer', 'fx'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
         await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
@@ -9072,6 +9091,18 @@ function TeacherDash({ onBack, onWatch }) {
   );
 }
 
+function StudentHostArea({fb,acct,onCreate}) {
+  const [grant,setGrant]=useState(null);
+  useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/eventHosts/${acct.key}`),f=s=>setGrant(s.val());r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
+  if(!grant?.enabled)return null;
+  return <div className="my-3"><h3 className="text-sm font-black">開催係</h3>{grant.tournament&&<BigBtn small onClick={()=>onCreate(true)}>クラス大会を開催</BigBtn>}{grant.raid&&<div className="mt-2"><BigBtn small onClick={()=>onCreate('raid')}>クラス協力レイドを開催</BigBtn></div>}<p className="text-xs">開催権限のみ。先生モードの権限はありません。</p></div>;
+}
+function EventHostManager({acct,onJoin}) {
+ const [accounts,setAccounts]=useState({}),[teachers,setTeachers]=useState({}),[hosts,setHosts]=useState({}),[target,setTarget]=useState(''),[scope,setScope]=useState('both'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[transferred,setTransferred]=useState([]);
+ useEffect(()=>{if(!FB.db)return;let alive=true;FB.db.ref('games/factor/accounts').get().then(s=>{if(alive)setAccounts(s.val()||{});});FB.db.ref('games/factor/teachers').get().then(s=>{if(alive)setTeachers(s.val()||{});});const r=FB.db.ref('games/factor/eventHosts'),f=s=>setHosts(s.val()||{});r.on('value',f,()=>{});return()=>{alive=false;r.off('value',f);};},[]);
+ const change=async(remove)=>{if(busy||!target)return;setBusy(true);setMessage('');try{if(remove){const codes=await window.EventHost.revoke({db:FB.db,teacher:acct,uid:FB.uid,target,now:fbNow});setTransferred(codes);setMessage('取り消しました。開催中の部屋はあなたへ引き継ぎました。');}else{await window.EventHost.grant({db:FB.db,teacher:acct,target,tournament:scope!=='raid',raid:scope!=='tournament',now:fbNow});setMessage('限定開催権限を付与しました');}}catch(e){setMessage('保存できませんでした。進行データは保持されています。再試行して権限・引き継ぎ状況を確認してください。');}finally{setBusy(false);}};
+ return <div className="my-3 p-3 rounded-xl" style={{background:COLORS.paperDark}}><h3 className="text-sm font-black">生徒の開催係</h3><select className="w-full p-2 my-2" value={target} onChange={e=>setTarget(e.target.value)}><option value="">登録済み生徒を選ぶ</option>{Object.entries(accounts).filter(([k])=>k!==acct.key && !teachers[k]).map(([k,a])=><option key={k} value={k}>{a.name}{hosts[k]?.enabled?'（開催係）':''}</option>)}</select><select className="w-full p-2" value={scope} onChange={e=>setScope(e.target.value)}><option value="both">大会・レイド両方</option><option value="tournament">大会のみ</option><option value="raid">レイドのみ</option></select><div className="flex flex-col gap-2 mt-2"><BigBtn small disabled={!target||busy} onClick={()=>change(false)}>開催権限を付与</BigBtn><BigBtn small disabled={!target||busy} onClick={()=>change(true)}>取り消して開催中の部屋を引き継ぐ</BigBtn></div>{message&&<p className="text-xs mt-2" role="status">{message}</p>}{transferred.map(code=><button key={code} className="v7-pill v7-cur mt-2" onClick={()=>onJoin(code)}>部屋{code}の運営へ</button>)}</div>;
+}
 function TeacherArea({ fb, acct, onCreate, onDash }) {
   const [isT, setIsT] = useState(null);
   const [open, setOpen] = useState(false);
@@ -9083,6 +9114,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
     FB.db.ref(`games/factor/teachers/${acct.key}`).get().then(s => setIsT(!!s.val())).catch(() => setIsT(false));
   }, [fb.ready, acct && acct.key]);
   if (isT) return (<>
+    <EventHostManager acct={acct} onJoin={code=>onCreate({takeover:code})} />
     <div className="text-[10px] font-black mb-1" style={{ color: '#2a9d8f' }}>👩‍🏫 先生用</div>
     <BigBtn small color={COLORS.amber} disabled={!fb.ready} onClick={() => onCreate(true)}>🏆 クラス大会を開く（{TOUR_MAX}人まで）</BigBtn>
     <div className="mt-2"><BigBtn small color="#2a9d8f" disabled={!fb.ready} onClick={() => onCreate('raid')}>🐉 クラス協力レイドを開く（授業用）</BigBtn></div>
@@ -9111,6 +9143,8 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
   const [showVs, setShowVs] = useState(false);
   const [allAcc, setAllAcc] = useState(null);     // 登録している全員の成績（だれでも見られる）
   const [openKey, setOpenKey] = useState(null);   // 成績を開いている人
+  const [bountyCooldowns,setBountyCooldowns]=useState({});
+  useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/ghostV1/users/${acct.key}/bountyCooldowns`),f=s=>setBountyCooldowns(s.val()||{});r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState('games');
   const [pc, setPc] = useState(() => loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 }));
@@ -9132,7 +9166,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
   const lbl = t => <div className="text-[11px] font-black mt-2 mb-1" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>{t}</div>;
   const cap = (t, right) => <div className="v7-cap" style={{ marginBottom: 8 }}><span>{t}</span>{right}</div>;
   const [win, setWin] = useState(null);   // 'rank' | 'bounty' | 'all' | 'vs'
-  const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st)).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
+  const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st) && r.k!==acct?.key && (bountyCooldowns[r.k]||0)<=fbNow()).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
   return (<>
     <div className="v7-bhome">
       <div className="v7-bhome-head">
@@ -9164,6 +9198,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
           </div>
           <p className="text-[10px] font-bold mt-1" style={{ color: 'var(--v7-sub)' }}>クラス大会もここにコードを入れて「参加」</p>
           <div className="mt-2 pt-2" style={{ borderTop: '1px dashed var(--v7-line)' }}>
+            <StudentHostArea fb={fb} acct={acct} onCreate={onCreate} />
             <TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash} />
           </div>
         </div>
@@ -9251,14 +9286,33 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
       const r = (allAcc || []).find(x => x.k === openKey);
       const st = openKey === (acct && acct.key) ? (stats || (r && r.st) || {}) : r && r.st;
       if (!st) return null;
-      return <PlayerProfile hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={acct && acct.key === openKey ? acct.key : null} onClose={() => setOpenKey(null)} />;
+      return <PlayerProfile hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={openKey} ghostOrigin={win==='bounty'?'bounty':'profile'} onClose={() => setOpenKey(null)} />;
     })()}
   </>);
 }
 
+function GhostHistory({acct}) {
+  const [data,setData]=useState({own:{},inbox:{},old:{}}),[tab,setTab]=useState('own'),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+  useEffect(()=>{if(!FB.db||!acct?.key)return;const subs=[];
+    [['own',`ghostV1/users/${acct.key}/events`],['inbox',`ghostV1/inbox/${acct.key}`],['old',`ghostlog/${acct.key}`]].forEach(([k,path])=>{const r=FB.db.ref('games/factor/'+path),f=s=>setData(d=>({...d,[k]:s.val()||{}}));r.on('value',f,()=>{});subs.push([r,f]);});
+    return()=>subs.forEach(([r,f])=>r.off('value',f));},[acct?.key]);
+  const rows=(tab==='own'?Object.values(data.own):[...Object.values(data.inbox),...Object.entries(data.old).map(([id,e])=>({...e,id,outcome:e.o,difficulty:e.diff,type:'ghost',old:true}))]).sort((a,b)=>b.at-a.at);
+  const counts=rows.reduce((s,e)=>{s[e.outcome]=(s[e.outcome]||0)+1;return s;},{w:0,l:0,d:0});
+  const claim=async()=>{if(busy)return;setBusy(true);setMessage('');try{await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s=>{s ||= {};s.ghostPassiveAwards ||= {};for(const e of Object.values(data.inbox)){if(s.ghostPassiveAwards[e.id])continue;s.ghostPassiveAwards[e.id]=true;s['ghost'+({w:'W',l:'L',d:'D'}[e.outcome])]=(s['ghost'+({w:'W',l:'L',d:'D'}[e.outcome])]||0)+1;if(e.outcome==='w')s.exp=(s.exp||0)+5;}return s;});setMessage('新しい分身の結果を受け取りました（重複受取なし）');}catch(e){setMessage('保存できませんでした。再試行してください');}finally{setBusy(false);}};
+  return <div className="my-3 p-3 rounded-xl" style={{background:COLORS.paperDark}}><h3 className="font-black text-sm">ゴースト対戦履歴</h3><div className="flex gap-2 my-2"><button className="v7-pill v7-cur" onClick={()=>setTab('own')}>自分の挑戦</button><button className="v7-pill v7-cur" onClick={()=>setTab('inbox')}>自分の分身</button></div>
+    <p className="text-xs">保存された履歴：{rows.length}戦・{counts.w}勝 {counts.l}敗・勝率{rows.length?Math.round(counts.w/rows.length*100)+'%':'―'}</p>
+    {tab==='inbox' && Object.keys(data.inbox).length>0 && <button className="v7-pill v7-cur my-2" disabled={busy} onClick={claim}>分身の新しい結果・勝利EXPを受け取る</button>}{message && <p role="status" className="text-xs">{message}</p>}
+    {!rows.length && <p className="text-xs">履歴なし。未保存の過去試合は復元できません。</p>}
+    {rows.slice(0,50).map(e=><div key={e.id} className="text-xs py-2" style={{borderTop:'1px solid #d9d1c3'}}><strong>{tab==='own'?e.opponent:e.by} ・ {({w:'勝利',l:'敗北',d:'引き分け'})[e.outcome]}</strong><p>{e.at?new Date(e.at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'日時不明'}<br/>{e.difficulty?.toUpperCase()||'―'}・{e.mode||'―'}方式・{e.type==='hyper'?'ハイパーゴースト':e.type==='bot'?'BOT':'ゴースト'}<br/>獲得EXP {tab==='own'?e.exp??'―':e.old?'―':(e.outcome==='w'?'5（受取式）':'0')}・レート変動 {tab==='own'&&e.delta!=null?e.delta:'―'}{e.old&&'（従来の通知）'}</p></div>)}
+    {rows.length>50&&<p className="text-xs">最新50件を表示しています。</p>}</div>;
+}
+
 /* ---------- だれかの成績（みんなが見られる） ---------- */
-function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false }) {
+function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   const g = st.games || 0;
+  const [ghostEligible,setGhostEligible]=useState(null),[ghostFight,setGhostFight]=useState(null);
+  const self=loadLS(ACCT_LS,null);
+  useEffect(()=>{if(!acctKey || me || !FB.db)return;FB.db.ref(`games/factor/accounts/${acctKey}/prof`).get().then(s=>{const p=s.val();setGhostEligible(Object.values(p?.lv||{}).reduce((n,L)=>n+(L?.n||0),0)>=20);}).catch(()=>setGhostEligible(false));},[acctKey,me]);
   const [nick, setNick] = useState(st.nick || '');
   const canNick = !!(me && acctKey);
   const pickNick = id => {
@@ -9282,17 +9336,23 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
     </div>;
   };
   const got = new Set(badgesOf(st).map(b => b.id));
+  if(ghostFight && OnlineRatedApp) return <div className="fixed inset-0 overflow-y-auto" style={{zIndex:100,background:COLORS.paper}}><OnlineRatedApp acct={self} initialGhost={{target:acctKey,difficulty:ghostFight,origin:ghostOrigin}} onExit={()=>{setGhostFight(null);onClose();}} /></div>;
   return (
     <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 80 }}>
       <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '28rem', maxHeight: '85vh', overflowY: 'auto' }}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
-            <div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>📊 オンライン対戦の成績{me ? '（あなた）' : ''}</div>
+            <div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>📊 {hideLegacyRating?'従来の対戦記録':'オンライン対戦の成績'}{me ? '（あなた）' : ''}</div>
             {nick && <Nick id={nick} size={12} block />}
             <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>{name}</div>
           </div>
           <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
+        {!me && acctKey && isReal(self) && <div className="my-3">
+          <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
+          <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{d.toUpperCase()}でゴースト対戦</BigBtn>)}</div>
+        </div>}
+        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} />}
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
             {!hideLegacyRating && box(<>レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
@@ -10625,8 +10685,12 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
   </>);
 }
 
+async function flushOnlineLearn(acct,matchId,rows) {
+  const result=await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.onlineLearnSeen ||= {};if(p.onlineLearnSeen[matchId])return p;applyLearn(p,rows);p.onlineLearnSeen[matchId]=true;return p;});
+  if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
+}
 /* ソロとオンライン対戦の切り替え */
-const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleBoard, TargetCard, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow }) }).App : null;
+const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, BattleBoard, TargetCard, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');

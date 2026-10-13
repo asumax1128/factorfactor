@@ -12,7 +12,7 @@ esbuild
   .build({
     stdin: {
       contents:
-        'window.OnlineSpark = require("./src/online-spark-client.cjs");',
+        'window.OnlineSpark = require("./src/online-spark-client.cjs");window.EventHost = require("./src/event-host-client.cjs");',
       resolveDir: process.cwd(),
     },
     outfile: "online-spark.js",

@@ -14,7 +14,7 @@ const claimsEqual = ["uid", "key", "name"]
       `newData.child('claim/${k}').val() === data.child('claim/${k}').val()`,
   )
   .join(" && ");
-const slotWrite = `auth != null && (${cfg}) && ((!data.exists() || data.child('until').val() < now) && newData.exists() && newData.child('uid').val() === auth.uid && ${actorLinked} || data.child('uid').val() === auth.uid && (!newData.exists() || newData.child('uid').val() === data.child('uid').val() && newData.child('key').val() === data.child('key').val() && newData.child('id').val() === data.child('id').val() && (${claimsEqual})) || data.exists() && newData.exists() && (${unchanged}) && (!data.child('claim').exists() && newData.child('claim/uid').val() === auth.uid && root.child('games/factor/logins/' + newData.child('claim/key').val() + '/' + auth.uid).exists() || data.child('claim/uid').val() === auth.uid && !newData.child('claim').exists()))`;
+const slotWrite = `auth != null && (${cfg}) && ((!data.exists() || data.child('until').val() < now) && newData.exists() && newData.child('uid').val() === auth.uid && ${actorLinked} || data.child('uid').val() === auth.uid && (!newData.exists() || newData.child('uid').val() === data.child('uid').val() && newData.child('key').val() === data.child('key').val() && newData.child('id').val() === data.child('id').val() && (${claimsEqual})) || data.exists() && newData.exists() && (${unchanged}) && (!data.child('claim').exists() && !data.child('fallback').exists() && newData.child('claim/uid').val() === auth.uid && root.child('games/factor/logins/' + newData.child('claim/key').val() + '/' + auth.uid).exists() || data.child('claim/uid').val() === auth.uid && !newData.child('claim').exists()))`;
 const member = (snapshot) =>
   `((${snapshot}.child('members/0/uid').val() === auth.uid && root.child('games/factor/logins/' + ${snapshot}.child('members/0/key').val() + '/' + auth.uid).exists()) || (${snapshot}.child('members/1/uid').val() === auth.uid && root.child('games/factor/logins/' + ${snapshot}.child('members/1/key').val() + '/' + auth.uid).exists()))`;
 const slot =
@@ -46,12 +46,14 @@ const flags = {
   normal_adept: ["normal", 1730],
   normal_master: ["normal", 1820],
 };
-const held = Object.keys({ ...flags, dual_master: [] })
+const held = Object.keys({ ...flags, dual_master: [],hyper_slayer:[],ghost_up1:[],ghost_up2:[] })
   .map(
     (k) =>
       `(data.child('badges/${k}').val() !== true || newData.child('badges/${k}').val() === true)`,
   )
   .join(" && ");
+const ghostMatch = "root.child('games/factor/ghostV1/users/' + $account + '/matches/' + newData.parent().parent().child('lastMatchId').val())";
+const ghostWin = `${ghostMatch}.child('phase').val() === 'settled' && ${ghostMatch}.child('origin').val() === 'quick' && ${ghostMatch}.child('receipt/result/winner').val() === ${ghostMatch}.child('members/0/uid').val() && ${ghostMatch}.child('opponent/type').val() !== 'bot'`;
 const titleConditions = Object.entries(flags)
   .map(
     ([k, [d, value]]) =>
@@ -60,6 +62,7 @@ const titleConditions = Object.entries(flags)
   .concat(
     "($badge === 'dual_master' && newData.parent().parent().child('easy/maxRating').val() >= 1820 && newData.parent().parent().child('normal/maxRating').val() >= 1820)",
   )
+  .concat(`($badge === 'hyper_slayer' && ${ghostWin} && ${ghostMatch}.child('opponent/type').val() === 'hyper')`, `($badge === 'ghost_up1' && ${ghostWin} && ${ghostMatch}.child('opponent/rankDifference').val() === 1)`, `($badge === 'ghost_up2' && ${ghostWin} && ${ghostMatch}.child('opponent/rankDifference').val() === 2)`)
   .join(" || ");
 const bucket = {
   ".validate":
@@ -112,6 +115,7 @@ module.exports = {
         ".write": slotWrite,
         ".validate":
           "($difficulty === 'easy' || $difficulty === 'normal') && newData.hasChildren(['id','uid','key','name','until']) && newData.child('id').isString() && newData.child('uid').isString() && newData.child('key').isString() && newData.child('until').isNumber() && newData.child('until').val() <= now + 30000",
+        fallback: { ".validate": "newData.isString() && newData.val() === 'ghost-' + newData.parent().child('id').val() && !newData.parent().child('claim').exists() && (!data.exists() || newData.val() === data.val())" },
       },
     },
     matches: {

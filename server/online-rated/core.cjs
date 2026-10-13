@@ -309,6 +309,8 @@ function rankings(state, d, now) {
       key,
       name: p.name,
       title: p.title || null,
+      cosmetics: p.cosmetics || {},
+      statsKnown: p.statsKnown !== false,
       ...normalize(copy(p[d]), season(now)),
     }))
     .filter((r) => (d === "easy" ? r.rating >= 1501 : r.games >= 3));

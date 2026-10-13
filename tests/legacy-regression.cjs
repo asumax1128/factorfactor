@@ -63,6 +63,11 @@ for (const [name, value] of Object.entries(before)) {
   if (
     [
       "AppRoot",
+      "applyLearn", // Adds validated correct-answer minima; totals regression tested.
+      "migrateGuestExtra", // Min-merges guest level bests without changing totals.
+      "LearnApp", // Displays fastest per level; responsive browser tested.
+      "TeacherArea", // Adds scoped grant manager; teacher authentication unchanged.
+      "GhostNews", // Makes old passive rewards atomic with receipt/counters, fixing duplicate XP.
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
       "PlayerProfile", // Only optional online-context hiding of legacy rating; default profile unchanged.
       "BattleHome", // Routes new ranking only when the protected feature flag is enabled.

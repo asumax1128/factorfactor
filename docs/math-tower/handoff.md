@@ -103,3 +103,10 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 
 - 正式バージョンはversion.jsonへ統一。所有者承認で5.9→5.10。通常公開ごとminor+1、majorは事前確認。docs/game-version-policy.md参照。
 - オンライン検索とレーティングを分離、EASY掲載1501以上、NORMAL3戦を維持。旧データ保持。ゴースト等6項目は reports/2026-10-13_ghost-learning-host-design.md の調査設計のみ、承認前に実装しない。
+
+## 2026-10-13 Ver.5.11への引き継ぎ
+
+- version.json正式管理、通常公開はminor+1（次回5.12）、major変更のみ所有者確認。未公開候補と配信版を区別する。
+- ゴースト/限定開催の設計・認可・復旧は reports/2026-10-13_ghost-host-v511.md と firebase/ghost-host.candidate.rules.json を参照。
+- 本番ルール変更は安全確認後に事後報告で可。管理認証がない環境では所有者のConsole操作のみ依頼。現行ルールを取得せず全体を再構成しない。
+- Spark維持・Cloud Functions不要。数学の塔の物語/戦闘/難易度別保存/先生grantは変更していない。

@@ -8,8 +8,11 @@
       normal_adept: "NORMALの達人",
       normal_master: "NORMALマスター",
       dual_master: "双璧のマスター",
+      hyper_slayer: "超影の征服者",
+      ghost_up1: "格上の影を破る者",
+      ghost_up2: "二階級の影を超える者",
     };
-    function App({ acct, onExit, view = "match" }) {
+    function App({ acct, onExit, view = "match", initialGhost = null }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
         [screen, setScreen] = useState(
@@ -17,6 +20,7 @@
         ),
         [tab, setTab] = useState("easy"),
         [busy, setBusy] = useState(false),
+        [selectedPlayer, setSelectedPlayer] = useState(null),
         [muted, setMuted] = H.useGameMute();
       const current = useRef(null),
         inFlight = useRef(false),
@@ -107,7 +111,11 @@
       requestRef.current = send;
       useEffect(() => {
         if (acct?.key)
-          send({ type: view === "ratings" ? "ratings" : "status" });
+          send(
+            initialGhost
+              ? { type: "directGhost", ...initialGhost }
+              : { type: view === "ratings" ? "ratings" : "status" },
+          );
         else setError("登録アカウントでログインしてから検索してください");
       }, []);
       useEffect(() => {
@@ -141,7 +149,7 @@
         send(command);
       };
       useEffect(() => {
-        seq.current = 0;
+        seq.current = g?.acceptedSeq || 0;
       }, [m?.id]);
       return (
         <main
@@ -208,6 +216,11 @@
           {screen === "wait" && (
             <section>
               <h3>同じ難易度の相手を検索中</h3>
+              <p>
+                {state.ghostReady
+                  ? "10秒で人間が見つからなければゴースト・BOTが乱入します"
+                  : "人間の対戦相手を探しています"}
+              </p>
               <button
                 disabled={busy}
                 onClick={() => send({ type: "cancel", ticket: state.ticket })}
@@ -218,6 +231,34 @@
           )}
           {screen === "vote" && (
             <section>
+              {m.opponent && (
+                <div
+                  className={`or-intrusion ${m.opponent.type === "hyper" ? "or-hyper" : ""}`}
+                  role="status"
+                >
+                  <strong>
+                    {m.opponent.type === "hyper"
+                      ? "HYPER GHOST 乱入！"
+                      : m.opponent.type === "bot"
+                        ? "BOT 乱入！"
+                        : "GHOST 乱入！"}
+                  </strong>
+                  <p>{m.opponent.name}</p>
+                  <small>
+                    {
+                      [
+                        "ブロンズ",
+                        "シルバー",
+                        "ゴールド",
+                        "プラチナ",
+                        "ダイヤ",
+                        "マスター",
+                      ][m.opponent.rank]
+                    }{" "}
+                    ・ レート{m.opponent.rating}
+                  </small>
+                </div>
+              )}
               <h3>{m.difficulty.toUpperCase()} ・ 方式を選ぶ</h3>
               <p>
                 難易度は固定です。方式が分かれた場合・時間切れはランダムに決まります。
@@ -250,7 +291,7 @@
               <div className="or-live">
                 {Object.entries(g.live).map(([uid, v]) => (
                   <p key={uid}>
-                    {uid === H.FB.uid ? "自分" : "相手"}：
+                    {uid === m.selfUid ? "自分" : "相手"}：
                     {typeof v === "number"
                       ? `${v}点`
                       : `HP ${v.hp.toFixed(1)} ・ ${v.c}正解 ・ コンボ${v.combo}`}
@@ -322,14 +363,21 @@
                 レート {m.receipt?.players?.[acct.key]?.before} →{" "}
                 {m.receipt?.players?.[acct.key]?.after}
               </p>
-              <p>{m.difficulty.toUpperCase()}のレートのみ更新しました。</p>
+              <p>
+                {m.origin === "bounty" || m.origin === "profile"
+                  ? "指名ゴースト戦：公式レート・対戦数は変更しません。"
+                  : `${m.difficulty.toUpperCase()}のレートのみ更新しました。${m.opponent ? "変動幅は人間対戦の1/3。人間との有効対戦数には含みません。" : ""}`}
+              </p>
+              {m.opponent && <p>獲得EXP：{m.exp}</p>}
               <button
                 disabled={busy}
                 onClick={() => {
-                  send({ type: "ackReceipt", matchId: m.id });
+                  send({ type: "ackReceipt", matchId: m.id }).then((v) => {
+                    if (v && initialGhost) onExit();
+                  });
                 }}
               >
-                もう一度対戦する
+                {initialGhost ? "一覧へ戻る" : "もう一度対戦する"}
               </button>
             </section>
           )}
@@ -356,7 +404,10 @@
                         { maximumFractionDigits: 1 },
                       )}
                 </strong>
-                <p>有効対戦 {state?.ratings?.[tab]?.games ?? 0}戦</p>
+                <p>有効な人間対戦 {state?.ratings?.[tab]?.games ?? 0}戦</p>
+                {!!state?.ratings?.[tab]?.ghost?.games && (
+                  <p>ゴースト・BOT：{state.ratings[tab].ghost.games}戦</p>
+                )}
                 <p>
                   {state?.ranks?.[tab]
                     ? `自分の順位：${state.ranks[tab]}位`
@@ -368,7 +419,7 @@
                 <p className="or-rule">
                   {tab === "easy"
                     ? "掲載条件：EASYレーティング1501以上（対戦数不問）"
-                    : "掲載条件：NORMALの有効対戦3戦以上"}
+                    : "掲載条件：NORMALの有効な人間対戦3戦以上"}
                 </p>
                 {!state ? (
                   <p>読み込み中…</p>
@@ -379,15 +430,57 @@
                     {state.rankings[tab].map((r) => (
                       <li key={r.key}>
                         <span>{r.rank}位</span>
-                        <span className="or-player">
-                          {r.name}
-                          {titles[r.title] && <small>{titles[r.title]}</small>}
-                        </span>
+                        <div className="or-player">
+                          <button
+                            className="or-name"
+                            onClick={() => setSelectedPlayer(r)}
+                          >
+                            {r.name}
+                          </button>
+                          {titles[r.title] ? (
+                            <small>{titles[r.title]}</small>
+                          ) : (
+                            H.Nick && (
+                              <H.Nick id={r.cosmetics?.stats?.nick} block />
+                            )
+                          )}
+                          {H.BadgeIcons && (
+                            <H.BadgeIcons
+                              st={r.cosmetics?.stats || {}}
+                              max={4}
+                            />
+                          )}
+                        </div>
                         <strong>
                           {Number(r.rating).toLocaleString("ja-JP", {
                             maximumFractionDigits: 1,
                           })}
                         </strong>
+                        <div
+                          className="or-record"
+                          aria-label={`${r.name}の${tab.toUpperCase()}戦績`}
+                        >
+                          <span>人間対戦 {r.statsKnown ? r.games : "―"}戦</span>
+                          <span>勝利 {r.statsKnown ? r.w : "―"}</span>
+                          <span>敗北 {r.statsKnown ? r.l : "―"}</span>
+                          <span>
+                            勝率{" "}
+                            {r.statsKnown && r.games
+                              ? `${Math.round((r.w / r.games) * 100)}%`
+                              : "―"}
+                          </span>
+                          {!!r.ghost?.games && (
+                            <small>
+                              乱入対戦：{r.ghost.games}戦・{r.ghost.w}勝{" "}
+                              {r.ghost.l}敗（人間戦績とは別集計）
+                            </small>
+                          )}
+                          {!r.statsKnown && (
+                            <small>
+                              旧レートを引き継いだ記録です。難易度別の戦績は未記録。
+                            </small>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ol>
@@ -412,6 +505,17 @@
                 </section>
               )}
             </>
+          )}
+          {selectedPlayer && H.PlayerProfile && (
+            <H.PlayerProfile
+              name={selectedPlayer.name}
+              st={selectedPlayer.cosmetics?.stats || {}}
+              acctKey={selectedPlayer.key}
+              me={selectedPlayer.key === acct.key}
+              nameOf={() => ""}
+              hideLegacyRating
+              onClose={() => setSelectedPlayer(null)}
+            />
           )}
         </main>
       );

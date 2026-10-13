@@ -87,9 +87,13 @@ jobs:
       - run: npm run test:online-rated
       - run: npm run test:online-entry
       - run: npm run test:online-menu
+      - run: npm run test:ghost
       - name: Spark Auth, matching and ratings in demo emulators only
         run: |
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"
+      - name: Ghost history, rating isolation and limited-host authorization
+        run: |
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs"
       - run: npm run test:accounts
       - name: Recheck final public payload after tests
         run: node scripts/build-pages.cjs

@@ -33,11 +33,15 @@ async function context(
   await ctx.exposeBinding("__fbOp", async (_, op) => {
     if (onOperation) await onOperation(op, tree);
     writes.push(op);
-    const parts = op.path.split("/");
-    let node = tree;
-    for (const k of parts.slice(0, -1)) node = node[k] || (node[k] = {});
-    if (op.kind === "set") node[parts.at(-1)] = op.v;
-    else node[parts.at(-1)] = { ...node[parts.at(-1)], ...op.v };
+    const put = (path, value) => {
+      const parts = path.split("/");
+      let node = tree;
+      for (const k of parts.slice(0, -1)) node = node[k] || (node[k] = {});
+      if (value === null) delete node[parts.at(-1)];
+      else node[parts.at(-1)] = value;
+    };
+    if (op.kind === "set") put(op.path, op.v);
+    else for (const [k, v] of Object.entries(op.v)) put(op.path + "/" + k, v);
     for (const p of peers)
       await p
         .evaluate((o) => window.__fbApply && window.__fbApply(o), op)

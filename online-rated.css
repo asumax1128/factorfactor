@@ -148,3 +148,13 @@
 }
 
 .or-version { grid-column:1/-1; grid-row:3; text-align:center; color:#66717c; font-size:11px; }
+
+.or-name { background:transparent !important; color:#214f80 !important; border:0 !important; box-shadow:none !important; text-align:left; padding:0 !important; width:100%; overflow-wrap:anywhere; }
+.or-record { grid-column:2/-1; display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:12px; color:#5b6570; }
+.or-record small { grid-column:1/-1; }
+
+.or-intrusion { padding:20px 8px; text-align:center; color:#735524; border:2px solid #d4ab55; background:linear-gradient(120deg,#fff9dc,#e5eeff); border-radius:14px; animation:or-arrival .5s ease-out; }
+.or-intrusion strong {font-size:24px;}
+.or-hyper {background:linear-gradient(130deg,#1a174e,#602169);color:#ffe68c;box-shadow:0 0 20px #9d5bc955;}
+@keyframes or-arrival { from {transform:scale(.93);opacity:.2} to {transform:scale(1);opacity:1} }
+@media (prefers-reduced-motion:reduce) {.or-intrusion {animation:none}}

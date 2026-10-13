@@ -22,7 +22,8 @@
     "test:tower:background": "node tests/math-tower-floor3-background.cjs",
     "test:online-entry": "node tests/online-spark-entry.cjs",
     "test:online-menu": "node tests/online-menu-browser.cjs",
-    "test:version": "node --test tests/game-version.test.cjs"
+    "test:version": "node --test tests/game-version.test.cjs",
+    "test:ghost": "node --test tests/ghost-learning.test.cjs && node tests/ghost-ui-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
