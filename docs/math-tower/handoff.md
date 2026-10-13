@@ -76,3 +76,9 @@
 最新仕様と移行の詳細は[RPG改善記録](../../reports/2026-10-13_math-tower-rpg-improvements.md)。難易度共通の冒険には戻さない。共通のクリア階と各難易度の`adventures`を区別し、独立再挑戦は本編を更新しない。保存の外側schemaVersionはルール互換の1、アプリ形式progressVersionは2。migrationBackupを上書き・削除せず、復元でも永久記録やrevisionを巻き戻さない。旧pendingStoryは冒険ごとのphaseへ移した。旧hp/bestを再開地点に使わない。
 
 MagicAttackは正解判定後に表示し、HP更新は命中時。guard・attackRef・cutinRefによる二重入力／タイマー抑制を維持する。CutInはFactoryから再利用可能。ノートは背景とは別の描画部品で、原稿のmath/note行を紙面内へ表示する。共有BattleBoardやソロCSSを塔の変更のために変えない。最新のUI・保存テストはActionsで実行する。
+
+## 数式の切れ・図鑑・書体・勝利の改善
+
+詳細は[追加UI改善記録](../../reports/2026-10-13_math-tower-ui-polish.md)。数式はTowerTargetの3段レイアウトと縦横の字体計測を維持する。共有v7-polyの行高をそのまま固定高のflex枠へ流し込むと再び文字が切れる。新しい章でもフォント読込・指数・高さ変更をテストする。MathTextと同じKaTeXフォントを使用し、同梱ライセンスを削除しない。
+
+Victoryは保存済み結果の表示専用。保存やR.completeを演出部品へ移さない。画像ボタンは遭遇・解放・読込成功を確認し、未知のキャラクターを表示しない。保存・戦闘・音声のエンジンは変更していない。test:tower:polishが旧c426284の切れを再現するため、CIの履歴取得を浅くしない。

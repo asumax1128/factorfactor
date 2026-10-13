@@ -32,6 +32,14 @@ for (const f of [
   "math-tower.css",
 ])
   copy(path.join(root, f), f);
+fs.mkdirSync(path.join(site, "fonts/katex"), { recursive: true });
+for (const f of [
+  "KaTeX_Main-Regular.woff2",
+  "KaTeX_Math-Italic.woff2",
+  "LICENSE-MIT.txt",
+  "LICENSE-FONTS.txt",
+])
+  copy(path.join(root, "fonts/katex", f), "fonts/katex/" + f);
 copy(
   path.join(root, "tools/math-tower-local-play/bootstrap.js"),
   "bootstrap.js",

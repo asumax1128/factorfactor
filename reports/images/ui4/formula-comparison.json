@@ -1,0 +1,170 @@
+{
+  "before": {
+    "box": {
+      "left": 19,
+      "right": 371,
+      "top": 318,
+      "bottom": 359,
+      "height": 41
+    },
+    "math": {
+      "left": 135.265625,
+      "right": 254.734375,
+      "top": 335,
+      "bottom": 371
+    },
+    "font": "KaTeX_Main, \"Times New Roman\", \"Cambria Math\", serif",
+    "size": "31.2px",
+    "overflow": "hidden",
+    "cardHeight": 146,
+    "clippedBottom": 12,
+    "clippedTop": 0,
+    "clippedWidth": 0
+  },
+  "after": [
+    {
+      "width": 320,
+      "height": 568,
+      "box": {
+        "left": 19,
+        "right": 301,
+        "top": 263,
+        "bottom": 309,
+        "height": 46
+      },
+      "math": {
+        "left": 112.484375,
+        "right": 207.515625,
+        "top": 268.734375,
+        "bottom": 303.25
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "24.8221px",
+      "overflow": "visible",
+      "cardHeight": 104,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "box": {
+        "left": 19,
+        "right": 356,
+        "top": 305.046875,
+        "bottom": 351.046875,
+        "height": 46
+      },
+      "math": {
+        "left": 139.8125,
+        "right": 235.171875,
+        "top": 310.734375,
+        "bottom": 345.34375
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "24.9035px",
+      "overflow": "visible",
+      "cardHeight": 131.46875,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    },
+    {
+      "width": 390,
+      "height": 700,
+      "box": {
+        "left": 19,
+        "right": 371,
+        "top": 311,
+        "bottom": 357,
+        "height": 46
+      },
+      "math": {
+        "left": 148.28125,
+        "right": 241.71875,
+        "top": 317.03125,
+        "bottom": 350.96875
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "24.4015px",
+      "overflow": "visible",
+      "cardHeight": 145,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "box": {
+        "left": 19,
+        "right": 371,
+        "top": 336.90625,
+        "bottom": 401.0625,
+        "height": 64.15625
+      },
+      "math": {
+        "left": 135.265625,
+        "right": 254.734375,
+        "top": 346.421875,
+        "bottom": 391.53125
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "31.2px",
+      "overflow": "visible",
+      "cardHeight": 194.96875,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "box": {
+        "left": 19,
+        "right": 411,
+        "top": 352.75,
+        "bottom": 429.21875,
+        "height": 76.46875
+      },
+      "math": {
+        "left": 149.125,
+        "right": 280.875,
+        "top": 366.765625,
+        "bottom": 415.203125
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "34.4px",
+      "overflow": "visible",
+      "cardHeight": 224.890625,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "box": {
+        "left": 633.5625,
+        "right": 1222,
+        "top": 177,
+        "bottom": 230.515625,
+        "height": 53.515625
+      },
+      "math": {
+        "left": 870.09375,
+        "right": 985.46875,
+        "top": 182.40625,
+        "bottom": 225.09375
+      },
+      "font": "TowerMathMain, \"Times New Roman\", \"Cambria Math\", serif",
+      "size": "30.1363px",
+      "overflow": "visible",
+      "cardHeight": 240.234375,
+      "clippedBottom": 0,
+      "clippedTop": 0,
+      "clippedWidth": 0
+    }
+  ]
+}

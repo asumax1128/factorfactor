@@ -806,3 +806,367 @@
 .mt-notebook {
   height: min(80%, 300px);
 }
+
+/* Same licensed KaTeX faces as the host renderer, scoped to the tower. */
+@font-face {
+  font-family: TowerMathMain;
+  src: url("fonts/katex/KaTeX_Main-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: TowerMathItalic;
+  src: url("fonts/katex/KaTeX_Math-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+.mt-app .fxm,
+.mt-story .fxm,
+.mt-magic .fxm {
+  font-family: TowerMathMain, "Times New Roman", "Cambria Math", serif;
+}
+.mt-app .fxm-v,
+.mt-story .fxm-v,
+.mt-magic .fxm-v {
+  font-family: TowerMathItalic, "Times New Roman", "Cambria Math", serif;
+  font-style: italic;
+}
+.mt-paper-math .fxm {
+  display: inline-block;
+  font-size: inherit;
+  line-height: 1.3;
+}
+.mt-dialog p > .fxm {
+  display: inline-block;
+  font-size: clamp(22px, 6vw, 32px);
+  line-height: 1.4;
+  padding: 4px 0;
+}
+.mt-notebook p.mt-paper-math {
+  line-height: 40px;
+  padding: 2px 0 4px;
+}
+
+/* Three explicit rows: heading, measured formula, answer count. */
+.mt-target-wrap {
+  height: clamp(100px, 14dvh, 132px);
+  flex: none;
+  min-height: 0;
+}
+.mt-target-wrap .v7-target {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 8px;
+  display: grid;
+  grid-template-rows: 14px minmax(0, 1fr) 14px;
+  row-gap: 2px;
+}
+.mt-target-wrap .v7-target > div:nth-child(2) {
+  grid-row: 1;
+  margin: 0;
+  line-height: 14px;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mt-target-wrap .v7-target .v7-poly {
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  font-size: inherit;
+  line-height: 1.35;
+}
+.mt-target-wrap .v7-poly > .fxm {
+  display: inline-block;
+  flex: none;
+  font-size: clamp(28px, 8vw, 46px);
+  line-height: 1.35;
+}
+.mt-target-wrap .v7-target > div:nth-child(4) {
+  grid-row: 3;
+  position: static;
+  margin: 0;
+  text-align: right;
+  line-height: 14px;
+  font-size: 10px;
+}
+.mt-image-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 4px 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid #687b9f;
+  background: linear-gradient(#314969, #172c4c);
+  box-shadow: 0 2px 0 #09162a;
+}
+.mt-zoom > .mt-button {
+  min-height: 44px;
+  background: #e9c86d;
+  color: #17263f;
+  border: 2px solid #fff0b9;
+}
+
+.mt-result-app {
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background: #0c1735;
+  color: #fff4d7;
+}
+.mt-result-app > header {
+  flex: none;
+  width: 100%;
+  min-height: 44px;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.mt-result-app > header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+.mt-result-app > header span {
+  font-size: 11px;
+}
+.mt-result-app > header .mt-button {
+  margin-left: auto;
+  padding: 8px 10px;
+  font-size: 12px;
+  min-height: 40px;
+}
+.mt-victory {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #b89348;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 900px;
+  margin: 8px auto 0;
+  padding: 16px;
+  background-size: cover;
+  background-position: center;
+  box-shadow:
+    inset 0 0 30px #dfbe7144,
+    0 0 22px #f6d77f33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --victory-light: #ffe1a0;
+}
+.mt-victory[data-victory-rank="A"] {
+  --victory-light: #8cdfff;
+}
+.mt-victory[data-victory-rank="B"] {
+  --victory-light: #b6e5bc;
+}
+.mt-victory[data-victory-rank="C"] {
+  --victory-light: #cfdaeb;
+}
+.mt-victory-content {
+  width: 100%;
+  max-width: 520px;
+  max-height: 100%;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 4px;
+}
+.mt-victory-title {
+  font-family: Georgia, serif;
+  color: var(--victory-light);
+  font-size: clamp(28px, 7vw, 46px);
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  text-shadow: 0 0 20px var(--victory-light);
+  margin: 0;
+  animation: mt-victory-enter 0.45s ease both;
+}
+.mt-victory h2 {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #fff0c9;
+  margin: 6px 0 0;
+}
+.mt-victory-rank {
+  font-family: Georgia, serif;
+  font-weight: bold;
+  font-size: clamp(72px, 14dvh, 120px);
+  line-height: 1.15;
+  color: var(--victory-light);
+  text-shadow:
+    0 3px 0 #624325,
+    0 0 24px var(--victory-light);
+  animation: mt-rank-enter 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+.mt-victory[data-victory-rank="S"] .mt-victory-rank {
+  text-shadow:
+    0 3px 0 #865426,
+    0 0 25px #ffc451,
+    0 0 55px #ffedb4;
+}
+.mt-victory-burst {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse, #fff5cdaa, transparent 70%);
+  opacity: 0;
+  animation: mt-victory-flash 0.55s ease-out;
+  pointer-events: none;
+}
+.mt-victory[data-victory-rank="S"]:before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    #f1d27b22 0deg 8deg,
+    transparent 8deg 24deg
+  );
+  pointer-events: none;
+}
+.mt-victory-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mt-victory-stars i {
+  position: absolute;
+  font-style: normal;
+  font-size: 15px;
+  color: var(--victory-light);
+  text-shadow: 0 0 12px var(--victory-light);
+  animation: mt-victory-star 1.1s ease-out both;
+}
+.mt-victory-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+.mt-victory-stats > div {
+  padding: 6px;
+  border: 1px solid #cbb16e66;
+  border-radius: 10px;
+  background: #081126b8;
+  animation: mt-victory-enter 0.35s ease both;
+}
+.mt-victory-stats dt {
+  font-size: 11px;
+  color: #f1dba5;
+}
+.mt-victory-stats dd {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: bold;
+  color: #fff9e7;
+}
+.mt-victory-next {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  color: #172540;
+  background: linear-gradient(#fff1b6, #d6ac50);
+  border: 2px solid #fff0b4;
+  box-shadow: 0 4px 0 #765523;
+  font-size: 16px;
+}
+.mt-victory-skip-button {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  color: #c6d2e5;
+  font-size: 12px;
+  text-decoration: underline;
+  margin-top: 6px;
+}
+.mt-victory-skip * {
+  animation: none !important;
+}
+@keyframes mt-victory-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mt-rank-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes mt-victory-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes mt-victory-star {
+  from {
+    opacity: 0;
+    transform: translateY(25px) scale(0.4);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+    transform: translateY(-15px) scale(1);
+  }
+}
+@media (max-height: 650px) {
+  .mt-target-wrap {
+    height: 100px;
+  }
+  .mt-victory {
+    padding: 10px;
+  }
+  .mt-victory-rank {
+    font-size: 72px;
+  }
+  .mt-victory-stats {
+    gap: 4px;
+    margin: 4px 0 8px;
+  }
+  .mt-victory-stats dd {
+    font-size: 18px;
+  }
+  .mt-victory-stats > div {
+    padding: 4px;
+  }
+  .mt-victory-title {
+    font-size: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-victory *,
+  .mt-victory-burst {
+    animation: none !important;
+  }
+}

@@ -66,7 +66,9 @@ async function rawDrag(p, ids) {
       assert(paper && paper.width > 200);
       for (let i = 0; i < 4; i++) await p.locator("[data-math-dialog]").click();
       assert(
-        (await p.locator(".mt-notebook").innerText()).includes("x² + 5x + 6"),
+        (await p.locator(".mt-notebook").innerText())
+          .replace(/\s/g, "")
+          .includes("x2+5x+6"),
       );
       if (snapshots && width === 390) {
         await sleep(750);

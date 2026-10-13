@@ -3,6 +3,7 @@
   const { useState, useEffect, useRef } = React,
     R = root.MathTowerRules,
     Store = root.MathTowerStore;
+  let MathRenderer;
   function Button({ children, ...p }) {
     return (
       <button className="mt-button" {...p}>
@@ -133,7 +134,7 @@
                     x.kind === "note" ? "mt-paper-note" : "mt-paper-math"
                   }
                 >
-                  {x.text}
+                  {x.kind === "math" ? <MathRenderer text={x.text} /> : x.text}
                 </p>
               ))}
             </div>
@@ -158,7 +159,7 @@
         </div>
         <button className="mt-dialog" onClick={next} data-math-dialog>
           <strong>{speaker}</strong>
-          <p>{text}</p>
+          <p>{l.kind === "math" ? <MathRenderer text={text} /> : text}</p>
           <small>タップで次へ ▼</small>
         </button>
       </div>
@@ -218,7 +219,7 @@
           const r = node.getBoundingClientRect();
           return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
         };
-        const q = document.querySelector(".mt-controls [data-poly]"),
+        const q = document.querySelector(".mt-controls .v7-poly"),
           enemy = document.querySelector(".mt-enemy img");
         if (!q || !enemy) return;
         const target = center(q),
@@ -289,13 +290,218 @@
       />
     );
   }
+  function InlineMathFallback({ text }) {
+    const s = String(text),
+      sup = { "²": "2", "³": "3", "⁴": "4", "¹": "1", "⁰": "0" };
+    return (
+      <span className="fxm">
+        {Array.from(s).map((ch, i) =>
+          ch === "x" ? (
+            <span key={i} className="fxm-v">
+              x
+            </span>
+          ) : sup[ch] ? (
+            <sup key={i} className="fxm-sup">
+              {sup[ch]}
+            </sup>
+          ) : ["+", "-", "−"].includes(ch) ? (
+            <span
+              key={i}
+              className={
+                i > 0 && !s.slice(0, i).trim().endsWith("(")
+                  ? "fxm-op"
+                  : undefined
+              }
+            >
+              {ch === "-" ? "−" : ch}
+            </span>
+          ) : ch === " " ? null : (
+            <span key={i}>{ch}</span>
+          ),
+        )}
+      </span>
+    );
+  }
+  function mathBounds(text) {
+    const boxes = [text.getBoundingClientRect()];
+    const walker = document.createTreeWalker(text, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(walker.currentNode);
+      boxes.push(...range.getClientRects());
+    }
+    return {
+      left: Math.min(...boxes.map((r) => r.left)),
+      right: Math.max(...boxes.map((r) => r.right)),
+      top: Math.min(...boxes.map((r) => r.top)),
+      bottom: Math.max(...boxes.map((r) => r.bottom)),
+    };
+  }
+  function TowerTarget({ TargetCard, ...props }) {
+    const wrapper = useRef(null);
+    useEffect(() => {
+      let live = true,
+        raf;
+      const fit = () => {
+        if (!live) return;
+        const box = wrapper.current.querySelector(".v7-poly"),
+          text = box.querySelector(".fxm");
+        text.style.fontSize = "";
+        const base = parseFloat(getComputedStyle(text).fontSize),
+          available = box.getBoundingClientRect();
+        let scale = 1;
+        // Include superscript text ranges and loaded font metrics, not just width.
+        for (let i = 0; i < 4; i++) {
+          const b = mathBounds(text),
+            ratio = Math.min(
+              1,
+              (available.width - 12) / (b.right - b.left),
+              (available.height - 10) / (b.bottom - b.top),
+            );
+          if (ratio >= 0.999) break;
+          scale *= Math.max(0.01, ratio) * 0.98;
+          text.style.fontSize = base * scale + "px";
+        }
+      };
+      const schedule = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(fit);
+      };
+      const observer = new ResizeObserver(schedule);
+      observer.observe(wrapper.current);
+      observer.observe(wrapper.current.querySelector(".v7-poly"));
+      fit();
+      document.fonts.ready.then(schedule);
+      document.fonts.addEventListener("loadingdone", schedule);
+      window.visualViewport?.addEventListener("resize", schedule);
+      return () => {
+        live = false;
+        observer.disconnect();
+        cancelAnimationFrame(raf);
+        document.fonts.removeEventListener("loadingdone", schedule);
+        window.visualViewport?.removeEventListener("resize", schedule);
+      };
+    }, [props.poly, props.level]);
+    return (
+      <div ref={wrapper} className="mt-target-wrap">
+        <TargetCard {...props} />
+      </div>
+    );
+  }
+  // Presentation only: results have already been committed before mounting.
+  function Victory({ outcome, onNext, background }) {
+    const [skip, setSkip] = useState(false),
+      rank = outcome.rank;
+    const stats = [
+      ["正答率", Math.round(outcome.accuracy * 100) + "%"],
+      ["ミス", outcome.misses],
+      ["時間切れ", outcome.timeouts],
+      ["最大コンボ", outcome.bestCombo],
+      ["残りHP", outcome.hp],
+      ["敵残HP", outcome.enemyRemaining.toFixed(1)],
+    ];
+    return (
+      <section
+        className={"mt-victory" + (skip ? " mt-victory-skip" : "")}
+        data-victory-rank={rank}
+        style={{
+          backgroundImage: background
+            ? `linear-gradient(#081331b8,#081331ed),url("${background}")`
+            : undefined,
+        }}
+      >
+        <div className="mt-victory-burst" aria-hidden="true" />
+        <div className="mt-victory-stars" aria-hidden="true">
+          {Array.from(
+            { length: rank === "S" ? 24 : rank === "A" ? 16 : 8 },
+            (_, i) => (
+              <i
+                key={i}
+                style={{
+                  left: ((i * 37) % 100) + "%",
+                  top: ((i * 23) % 90) + "%",
+                  animationDelay: (i % 5) * 0.06 + "s",
+                }}
+              >
+                ✦
+              </i>
+            ),
+          )}
+        </div>
+        <div className="mt-victory-content">
+          <p className="mt-victory-title" aria-hidden="true">
+            VICTORY
+          </p>
+          <h2>勝利！ {rank}</h2>
+          <div className="mt-victory-rank" aria-hidden="true">
+            {rank}
+          </div>
+          <dl className="mt-victory-stats">
+            {stats.map(([label, value], i) => (
+              <div
+                key={label}
+                style={{ animationDelay: 0.15 + i * 0.06 + "s" }}
+              >
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <Button className="mt-button mt-victory-next" onClick={onNext}>
+            物語の続きを見る
+          </Button>
+          <button
+            className="mt-victory-skip-button"
+            onClick={() => setSkip(true)}
+          >
+            演出をスキップ
+          </button>
+        </div>
+      </section>
+    );
+  }
   function Book({ c, p, onClose, closing }) {
     const [tab, setTab] = useState("notes"),
       [sort, setSort] = useState("floor"),
       [filter, setFilter] = useState("all"),
       [zoom, setZoom] = useState(null),
+      [zoomError, setZoomError] = useState(false),
+      [imageStates, setImageStates] = useState({}),
       [scale, setScale] = useState(1),
       [pan, setPan] = useState({ x: 0, y: 0 });
+    useEffect(() => {
+      let live = true;
+      const images = [];
+      for (const [f, id] of Object.entries(c.floors)) {
+        const char = c.characters[id];
+        if (
+          !p.seen[f] ||
+          !char.image ||
+          (char.revealKey && !p.reveal[char.revealKey])
+        )
+          continue;
+        const image = new Image();
+        images.push(image);
+        let done = false;
+        const settle = (state) => {
+          if (live && !done) {
+            done = true;
+            setImageStates((prev) => ({ ...prev, [id]: state }));
+          }
+        };
+        image.onload = () => settle("ready");
+        image.onerror = () => settle("error");
+        image.src = char.image;
+        if (image.complete && image.naturalWidth > 0) settle("ready");
+      }
+      return () => {
+        live = false;
+        for (const image of images) {
+          image.onload = null;
+          image.onerror = null;
+        }
+      };
+    }, [c, p.seen, p.reveal]);
     const drag = useRef(null);
     let floors = Object.keys(c.floors)
       .map(Number)
@@ -409,15 +615,22 @@
                   <h3>
                     {f}階 {name(c, id, p.reveal)}
                   </h3>
-                  <Button
-                    onClick={() => {
-                      setZoom(char.image);
-                      setScale(1);
-                      setPan({ x: 0, y: 0 });
-                    }}
-                  >
-                    画像を拡大
-                  </Button>
+                  {imageStates[id] === "ready" && (
+                    <Button
+                      className="mt-button mt-image-button"
+                      onClick={() => {
+                        setZoomError(false);
+                        setZoom(char.image);
+                        setScale(1);
+                        setPan({ x: 0, y: 0 });
+                      }}
+                    >
+                      <span aria-hidden="true">▧ </span>画像を見る
+                    </Button>
+                  )}
+                  {imageStates[id] === "error" && (
+                    <p>画像は現在表示できません。</p>
+                  )}
                   <p>討伐 {p.kills[f] || 0}回</p>
                   {p.kills[f] > 0 && (
                     <>
@@ -431,8 +644,13 @@
           </>
         )}
         {zoom && (
-          <div className="mt-zoom">
-            <Button onClick={() => setZoom(null)}>とじる</Button>
+          <div
+            className="mt-zoom"
+            role="dialog"
+            aria-modal="true"
+            aria-label="モンスター画像"
+          >
+            <Button onClick={() => setZoom(null)}>✕ 画像を閉じる</Button>
             <label>
               拡大
               <input
@@ -445,6 +663,11 @@
                 onChange={(e) => setScale(Number(e.target.value))}
               />
             </label>
+            {zoomError && (
+              <p role="alert">
+                画像を読み込めませんでした。閉じてから再度お試しください。
+              </p>
+            )}
             <div
               onPointerDown={(e) => {
                 drag.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
@@ -460,7 +683,8 @@
               onPointerUp={() => (drag.current = null)}
             >
               <img
-                alt="拡大画像"
+                alt="モンスター画像"
+                onError={() => setZoomError(true)}
                 src={zoom}
                 draggable="false"
                 style={{
@@ -475,6 +699,7 @@
   }
   root.MathTowerFactory = function (H) {
     const { BattleBoard, TargetCard, HpBar } = H;
+    MathRenderer = H.MathText || InlineMathFallback;
     function Tile({ acct, onOpen }) {
       const fb = H.useFbReady(),
         [allowed, setAllowed] = useState(false);
@@ -712,9 +937,7 @@
         if (screen !== "battle") return;
         const fit = () =>
           document
-            .querySelectorAll(
-              ".mt-board [data-btile] > .fxm, .mt-controls .v7-poly > .fxm",
-            )
+            .querySelectorAll(".mt-board [data-btile] > .fxm")
             .forEach((text) => {
               text.style.fontSize = "";
               const base = parseFloat(getComputedStyle(text).fontSize),
@@ -726,7 +949,7 @@
             });
         const observer = new ResizeObserver(fit);
         document
-          .querySelectorAll(".mt-board [data-btile],.mt-controls .v7-poly")
+          .querySelectorAll(".mt-board [data-btile]")
           .forEach((x) => observer.observe(x));
         fit();
         document.fonts.ready.then(() => life.current && fit());
@@ -1107,7 +1330,14 @@
         enemy = content.characters[content.floors[floor]] || {};
       return (
         <main
-          className={"mt-app" + (screen === "battle" ? " mt-battle-app" : "")}
+          className={
+            "mt-app" +
+            (screen === "battle"
+              ? " mt-battle-app"
+              : screen === "result" && outcome?.rank
+                ? " mt-result-app"
+                : "")
+          }
           data-math-screen={screen}
           data-time-stopped={paused || !!attack || !!cutin || !!impact}
         >
@@ -1393,7 +1623,8 @@
                 <div className="mt-battle-notice" role="status">
                   {notice}
                 </div>
-                <TargetCard
+                <TowerTarget
+                  TargetCard={TargetCard}
                   poly={prob.poly}
                   level={prob.level}
                   qLabel={battle.correct + "正解"}
@@ -1451,24 +1682,28 @@
               )}
             </section>
           )}
-          {screen === "result" && outcome && (
-            <section className="mt-panel">
-              <h2>{outcome.rank ? "勝利！ " + outcome.rank : "敗北"}</h2>
-              <p>
-                正答率 {Math.round(outcome.accuracy * 100)}% ・ ミス{" "}
-                {outcome.misses} ・ 時間切れ {outcome.timeouts}
-              </p>
-              <p>
-                最大コンボ {outcome.bestCombo} ・ HP {outcome.hp} ・ 敵残HP{" "}
-                {outcome.enemyRemaining.toFixed(1)}
-              </p>
-              {outcome.rank ? (
-                <Button onClick={post}>物語の続きを見る</Button>
-              ) : (
+          {screen === "result" &&
+            outcome &&
+            (outcome.rank ? (
+              <Victory
+                outcome={outcome}
+                onNext={post}
+                background={content.backgrounds["f0" + floor].image}
+              />
+            ) : (
+              <section className="mt-panel">
+                <h2>敗北</h2>
+                <p>
+                  正答率 {Math.round(outcome.accuracy * 100)}% ・ ミス{" "}
+                  {outcome.misses} ・ 時間切れ {outcome.timeouts}
+                </p>
+                <p>
+                  最大コンボ {outcome.bestCombo} ・ HP {outcome.hp} ・ 敵残HP{" "}
+                  {outcome.enemyRemaining.toFixed(1)}
+                </p>
                 <Button onClick={() => setScreen("restart")}>再挑戦</Button>
-              )}
-            </section>
-          )}
+              </section>
+            ))}
           {screen === "restart" && (
             <section className="mt-panel">
               <h2>{playMode === "replay" ? "同じ階の再挑戦" : "章の再挑戦"}</h2>
@@ -1510,6 +1745,6 @@
         </main>
       );
     }
-    return { App, Tile, CutIn };
+    return { App, Tile, CutIn, Target: TowerTarget, Victory };
   };
 })(window);

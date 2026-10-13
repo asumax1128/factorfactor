@@ -69,6 +69,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only database --project demo-factorfactor-tower --config firebase/emulator.json "npm run test:ci:rules"
       - run: npm run test:audio
+      - run: npm run test:tower:polish
       - run: npm run test:tower:rpg
       - run: npm run test:tower:recovery
       - run: npm run test:tower:browser

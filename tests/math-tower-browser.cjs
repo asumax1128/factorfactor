@@ -145,7 +145,7 @@ const seed = () => ({
       for (const text of await notes.allTextContents()) assert.ok(text.trim());
       await page.getByRole("button", { name: "図鑑", exact: true }).click();
       await page
-        .getByRole("button", { name: "画像を拡大", exact: true })
+        .getByRole("button", { name: "画像を見る", exact: true })
         .first()
         .click();
       await page.getByRole("slider", { name: "画像の倍率" }).fill("2");

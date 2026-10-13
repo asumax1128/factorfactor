@@ -21,6 +21,10 @@ fs.writeFileSync(
 const allowed = [
   "index.html",
   "game-audio.js",
+  "fonts/katex/KaTeX_Main-Regular.woff2",
+  "fonts/katex/KaTeX_Math-Italic.woff2",
+  "fonts/katex/LICENSE-MIT.txt",
+  "fonts/katex/LICENSE-FONTS.txt",
   "manifest.webmanifest",
   "suri-data.js",
   "math-tower-core.js",
@@ -41,6 +45,10 @@ fs.writeFileSync(path.join(out, ".nojekyll"), "");
 let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
 for (const file of [
   "game-audio.js",
+  "fonts/katex/KaTeX_Main-Regular.woff2",
+  "fonts/katex/KaTeX_Math-Italic.woff2",
+  "fonts/katex/LICENSE-MIT.txt",
+  "fonts/katex/LICENSE-FONTS.txt",
   "math-tower-core.js",
   "math-tower-store.js",
   "math-tower-ui.js",

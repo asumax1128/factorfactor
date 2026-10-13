@@ -15,6 +15,9 @@ async function context(
     peers = [],
     onOperation = null,
     towerContent = null,
+    captureTower = false,
+    assetOverrides = null,
+    blockedAssets = [],
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -51,6 +54,14 @@ async function context(
     const u = new URL(route.request().url());
     requests.push(u.href);
     if (u.hostname === "localhost") {
+      if (blockedAssets.includes(u.pathname)) return route.abort();
+      if (assetOverrides?.[u.pathname])
+        return route.fulfill({
+          contentType: u.pathname.endsWith(".css")
+            ? "text/css"
+            : "application/javascript",
+          body: assetOverrides[u.pathname],
+        });
       if (towerContent && u.pathname === "/math-tower/chapter1.json")
         return route.fulfill({ json: towerContent });
       const f = path.resolve(root, "." + u.pathname);
@@ -90,6 +101,22 @@ async function context(
       });
     return route.abort();
   });
+  if (captureTower)
+    await ctx.addInitScript(() => {
+      let factory;
+      Object.defineProperty(window, "MathTowerFactory", {
+        configurable: true,
+        get: () => factory,
+        set: (fn) => {
+          factory = (H) => {
+            window.__towerHelpers = H;
+            const components = fn(H);
+            window.__towerComponents = components;
+            return components;
+          };
+        },
+      });
+    });
   const page = await ctx.newPage();
   peers.push(page);
   page.on("pageerror", (e) => errors.push(e.message));
