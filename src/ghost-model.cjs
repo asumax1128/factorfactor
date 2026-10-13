@@ -168,6 +168,19 @@ function advance(raw, now) {
         at: Math.max(m.game.time, Math.round(at)),
       };
     }
+    const deadline = v.startAt + v.timeoutMs;
+    if (deadline <= now && m.cpu.at >= deadline) {
+      // A suspended tab can pass both the plan and timeout. Commit the timeout
+      // before choosing the next board instead of answering an expired question.
+      m.game = E.step(
+        m.game,
+        bot,
+        { type: "heartbeat" },
+        Math.max(m.game.time, deadline),
+      );
+      delete m.cpu;
+      continue;
+    }
     if (m.cpu.at > now) break;
     const rt = E.runtime(m.game),
       a = rt.api;

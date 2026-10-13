@@ -704,6 +704,17 @@
               at: Math.max(m.game.time, Math.round(at))
             };
           }
+          const deadline = v.startAt + v.timeoutMs;
+          if (deadline <= now && m.cpu.at >= deadline) {
+            m.game = E.step(
+              m.game,
+              bot,
+              { type: "heartbeat" },
+              Math.max(m.game.time, deadline)
+            );
+            delete m.cpu;
+            continue;
+          }
           if (m.cpu.at > now) break;
           const rt = E.runtime(m.game), a = rt.api;
           let good = [], bad = [];
@@ -834,10 +845,10 @@
         const ghostRoot = `games/factor/ghostV1/users/${key}`;
         async function checkGhost() {
           try {
-            const v = (await db.ref(ghostRoot).get()).val();
+            const active = (await db.ref(`${ghostRoot}/activeMatch`).get()).val();
             ghostReady = true;
-            ghostActive = (v == null ? void 0 : v.activeMatch) || ghostActive;
-            return v;
+            ghostActive = active || null;
+            return { activeMatch: active };
           } catch (e) {
             if (e.code === "PERMISSION_DENIED" || /permission/i.test(e.message)) {
               ghostReady = false;
@@ -1035,10 +1046,9 @@
           };
         }
         async function find() {
-          var _a;
           const ghostUser = await checkGhost();
           if (ghostUser == null ? void 0 : ghostUser.activeMatch) {
-            const gm = (_a = ghostUser.matches) == null ? void 0 : _a[ghostUser.activeMatch];
+            const gm = await getMatch(ghostUser.activeMatch);
             if (gm && gm.phase !== "cancelled") {
               ghostActive = gm.id;
               return gm;
@@ -1193,7 +1203,14 @@
             opponent,
             origin,
             rng: Math.floor(Math.random() * 4294967295) + 1,
-            snapshots: { [key]: p },
+            snapshots: {
+              [key]: {
+                name: p.name,
+                easy: p.easy,
+                normal: p.normal,
+                badges: p.badges || {}
+              }
+            },
             usesSpecial: Math.random() < opponent.profile.sp
           };
           await tx(db.ref(ghostRoot), (u) => {
@@ -1302,8 +1319,9 @@
             if (["settled", "cancelled"].includes(raw.phase)) return raw;
             let n = copy(raw), ts = Math.max(now(), ((_a = n.game) == null ? void 0 : _a.time) || 0);
             n.votes || (n.votes = {});
+            const beforeStart = n.phase === "play" && now() < n.game.startAt;
             if (command.type === "leave") {
-              if (n.phase === "vote" || ts < n.game.startAt) {
+              if (n.phase === "vote" || beforeStart) {
                 n.phase = "cancelled";
                 return n;
               }
@@ -1325,7 +1343,7 @@
                   ts + 3800
                 );
               }
-            } else {
+            } else if (!beforeStart) {
               n = G.advance(n, ts);
               if (!n.game.result && ["answer", "special"].includes(command.type)) {
                 if (!Number.isSafeInteger(command.seq) || command.seq < 1)
@@ -1384,15 +1402,22 @@
           if (command.type === "directGhost") {
             if (!["easy", "normal"].includes(command.difficulty) || !["bounty", "profile"].includes(command.origin))
               throw Error("INVALID_GHOST_REQUEST");
-            if (await find()) throw Error("\u5BFE\u6226\u3092\u7D42\u3048\u3066\u304B\u3089\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044");
+            const active = await find();
+            if (active) {
+              if (((_a = active.opponent) == null ? void 0 : _a.key) === command.target && active.difficulty === command.difficulty && active.origin === command.origin)
+                return response(active);
+              throw Error(
+                "\u7D9A\u884C\u4E2D\u306E\u5BFE\u6226\u304C\u3042\u308A\u307E\u3059\u3002\u30AA\u30F3\u30E9\u30A4\u30F3\u753B\u9762\u3078\u623B\u308A\u3001\u305D\u306E\u5BFE\u6226\u3092\u7D42\u3048\u3066\u304B\u3089\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044"
+              );
+            }
             if (!ghostReady) throw Error("\u30B4\u30FC\u30B9\u30C8\u6A5F\u80FD\u306E\u6E96\u5099\u4E2D\u3067\u3059");
             const a = (await db.ref(`games/factor/accounts/${command.target}`).get()).val();
-            if (command.origin === "bounty" && (((_a = a == null ? void 0 : a.stats) == null ? void 0 : _a.streak) || 0) < 3)
+            if (command.origin === "bounty" && (((_b = a == null ? void 0 : a.stats) == null ? void 0 : _b.streak) || 0) < 3)
               throw Error("\u73FE\u5728\u3053\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306B\u306F\u8CDE\u91D1\u304C\u3042\u308A\u307E\u305B\u3093");
             if (command.target === key || !G.eligible(a))
               throw Error("20\u554F\u4EE5\u4E0A\u306E\u5B66\u7FD2\u8A18\u9332\u304C\u5FC5\u8981\u3067\u3059");
-            const u = (await db.ref(ghostRoot).get()).val();
-            if (command.origin === "bounty" && (((_b = u == null ? void 0 : u.bountyCooldowns) == null ? void 0 : _b[command.target]) || 0) > now())
+            const cooldown = (await db.ref(`${ghostRoot}/bountyCooldowns/${command.target}`).get()).val();
+            if (command.origin === "bounty" && (cooldown || 0) > now())
               throw Error("\u3053\u306E\u8CDE\u91D1\u9996\u306F7\u65E5\u9593\u4F11\u606F\u4E2D\u3067\u3059");
             const d = command.difficulty, p = (await profileRef.get()).val(), target = (await db.ref(`${ROOT}/profiles/${command.target}`).get()).val(), rt = (target == null ? void 0 : target[d]) ? C.ratingView(target[d], now()).rating : d === "easy" ? (_d = (_c = a.stats) == null ? void 0 : _c.rating) != null ? _d : 1500 : 1500;
             return beginGhost(
@@ -1484,7 +1509,7 @@
               matches: { [raw.id]: copy(raw) },
               settlements: {}
             };
-            const ts = Math.max(now(), ((_a2 = raw.game) == null ? void 0 : _a2.time) || 0);
+            const ts = raw.phase === "play" && now() < raw.game.startAt ? now() : Math.max(now(), ((_a2 = raw.game) == null ? void 0 : _a2.time) || 0);
             const next = C.transition(
               model,
               { uid, key },

@@ -9291,7 +9291,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
   </>);
 }
 
-function GhostHistory({acct}) {
+function GhostHistory({acct,stats={}}) {
   const [data,setData]=useState({own:{},inbox:{},old:{}}),[tab,setTab]=useState('own'),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   useEffect(()=>{if(!FB.db||!acct?.key)return;const subs=[];
     [['own',`ghostV1/users/${acct.key}/events`],['inbox',`ghostV1/inbox/${acct.key}`],['old',`ghostlog/${acct.key}`]].forEach(([k,path])=>{const r=FB.db.ref('games/factor/'+path),f=s=>setData(d=>({...d,[k]:s.val()||{}}));r.on('value',f,()=>{});subs.push([r,f]);});
@@ -9300,6 +9300,7 @@ function GhostHistory({acct}) {
   const counts=rows.reduce((s,e)=>{s[e.outcome]=(s[e.outcome]||0)+1;return s;},{w:0,l:0,d:0});
   const claim=async()=>{if(busy)return;setBusy(true);setMessage('');try{await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s=>{s ||= {};s.ghostPassiveAwards ||= {};for(const e of Object.values(data.inbox)){if(s.ghostPassiveAwards[e.id])continue;s.ghostPassiveAwards[e.id]=true;s['ghost'+({w:'W',l:'L',d:'D'}[e.outcome])]=(s['ghost'+({w:'W',l:'L',d:'D'}[e.outcome])]||0)+1;if(e.outcome==='w')s.exp=(s.exp||0)+5;}return s;});setMessage('新しい分身の結果を受け取りました（重複受取なし）');}catch(e){setMessage('保存できませんでした。再試行してください');}finally{setBusy(false);}};
   return <div className="my-3 p-3 rounded-xl" style={{background:COLORS.paperDark}}><h3 className="font-black text-sm">ゴースト対戦履歴</h3><div className="flex gap-2 my-2"><button className="v7-pill v7-cur" onClick={()=>setTab('own')}>自分の挑戦</button><button className="v7-pill v7-cur" onClick={()=>setTab('inbox')}>自分の分身</button></div>
+    {tab==='inbox' && ['ghostW','ghostL','ghostD'].some(k=>Number.isFinite(stats[k])) && <p className="text-xs font-bold">確認済みの分身通算：{(stats.ghostW||0)+(stats.ghostL||0)+(stats.ghostD||0)}戦・{stats.ghostW||0}勝 {stats.ghostL||0}敗 {stats.ghostD||0}分</p>}
     <p className="text-xs">保存された履歴：{rows.length}戦・{counts.w}勝 {counts.l}敗・勝率{rows.length?Math.round(counts.w/rows.length*100)+'%':'―'}</p>
     {tab==='inbox' && Object.keys(data.inbox).length>0 && <button className="v7-pill v7-cur my-2" disabled={busy} onClick={claim}>分身の新しい結果・勝利EXPを受け取る</button>}{message && <p role="status" className="text-xs">{message}</p>}
     {!rows.length && <p className="text-xs">履歴なし。未保存の過去試合は復元できません。</p>}
@@ -9352,7 +9353,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
           <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{d.toUpperCase()}でゴースト対戦</BigBtn>)}</div>
         </div>}
-        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} />}
+        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} stats={st} />}
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
             {!hideLegacyRating && box(<>レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}

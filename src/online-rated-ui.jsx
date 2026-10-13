@@ -168,10 +168,14 @@
               }}
               disabled={busy}
             >
-              オンラインへ戻る
+              {initialGhost ? '一覧へ戻る' : 'オンラインへ戻る'}
             </button>
             <h2>
-              {view === "ratings" ? "オンラインレーティング" : "すぐ遊ぶ"}
+              {view === "ratings"
+                ? "オンラインレーティング"
+                : initialGhost || ['bounty','profile'].includes(m?.origin)
+                  ? "指名ゴースト対戦"
+                  : "すぐ遊ぶ"}
             </h2>
             <small className="or-version">{root.FactorVersion?.label}</small>
             <button
@@ -199,7 +203,7 @@
               </button>
             </section>
           )}
-          {screen === "select" && (
+          {screen === "select" && !initialGhost && (
             <section>
               <h3>難易度を選んで対戦</h3>
               {["easy", "normal"].map((d) => (
@@ -211,6 +215,20 @@
                   {d.toUpperCase()}で相手を探す
                 </button>
               ))}
+            </section>
+          )}
+          {screen === "select" && initialGhost && (
+            <section>
+              <h3>指名ゴースト対戦</h3>
+              <p>
+                対象プレイヤーの学習記録で対戦します。公式レーティング・人間対戦数は変更しません。
+              </p>
+              <button
+                disabled={busy}
+                onClick={() => send({ type: "directGhost", ...initialGhost })}
+              >
+                指名対戦を再試行
+              </button>
             </section>
           )}
           {screen === "wait" && (

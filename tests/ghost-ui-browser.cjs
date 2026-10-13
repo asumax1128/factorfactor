@@ -80,6 +80,7 @@ const { chromium, context } = require("./browser-harness.cjs");
         .getByRole("button", { name: "分身の新しい結果・勝利EXPを受け取る" })
         .click();
       await p.getByText(/新しい分身の結果を受け取りました/).waitFor();
+      await p.getByText(/確認済みの分身通算：1戦/).waitFor();
       await p
         .getByRole("button", { name: "分身の新しい結果・勝利EXPを受け取る" })
         .click();
@@ -110,6 +111,8 @@ const { chromium, context } = require("./browser-harness.cjs");
         .getByRole("button", { name: "EASYでゴースト対戦", exact: true })
         .click();
       await p.getByText("GHOST 乱入！", { exact: true }).waitFor();
+      await p.getByRole('heading',{name:'指名ゴースト対戦',exact:true}).waitFor();
+      assert.equal(await p.getByRole('button',{name:/で相手を探す/}).count(),0);
       await p
         .getByRole("button", { name: "B：レース＋攻撃", exact: true })
         .click();

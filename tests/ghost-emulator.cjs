@@ -191,6 +191,8 @@ assert.deepEqual(rules,JSON.parse(fs.readFileSync("firebase/ghost-host.candidate
       origin: "bounty",
     });
     const bid = directed.match.id;
+    const repeated=await c.client.request({type:'directGhost',target:'ab',difficulty:'easy',origin:'bounty'});
+    assert.equal(repeated.match.id,bid,'lost response must resume the same directed match');
     await c.client.request({ type: "vote", matchId: bid, mode: "A" });
     const br = c.db.ref(`games/factor/ghostV1/users/ac/matches/${bid}`);
     let bm = (await br.get()).val();
@@ -254,6 +256,13 @@ assert.deepEqual(rules,JSON.parse(fs.readFileSync("firebase/ghost-host.candidate
     console.log(
       "PASS bounty exact 8EXP once, shared seven-day cross-difficulty cooldown, direct unrated/human counts unchanged, passive recipient history",
     );
+    clock=Date.now();
+    let before=await c.client.request({type:'directGhost',target:'ab',difficulty:'normal',origin:'profile'});
+    const cancelledId=before.match.id;
+    await c.client.request({type:'vote',matchId:cancelledId,mode:'B'});
+    before=await c.client.request({type:'leave',matchId:cancelledId});assert.equal(before.match,null);assert.equal(before.ratings.normal.games,0);assert.equal(before.ratings.normal.rating,1500);
+    console.log('PASS countdown cancellation remains unrated and does not create a defeat');
+
     const waiting = await a.client.request({
       type: "enqueue",
       difficulty: "easy",

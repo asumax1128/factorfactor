@@ -154,8 +154,8 @@
               },
               disabled: busy
             },
-            "\u30AA\u30F3\u30E9\u30A4\u30F3\u3078\u623B\u308B"
-          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_a = root.FactorVersion) == null ? void 0 : _a.label), /* @__PURE__ */ React.createElement(
+            initialGhost ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u3078\u623B\u308B"
+          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : initialGhost || ["bounty", "profile"].includes(m == null ? void 0 : m.origin) ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_a = root.FactorVersion) == null ? void 0 : _a.label), /* @__PURE__ */ React.createElement(
             "button",
             {
               "aria-label": muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3",
@@ -176,7 +176,7 @@
             },
             "\u518D\u8A66\u884C\u30FB\u6700\u65B0\u7D50\u679C\u3092\u78BA\u8A8D"
           )),
-          screen === "select" && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u96E3\u6613\u5EA6\u3092\u9078\u3093\u3067\u5BFE\u6226"), ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
+          screen === "select" && !initialGhost && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u96E3\u6613\u5EA6\u3092\u9078\u3093\u3067\u5BFE\u6226"), ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
             "button",
             {
               key: d,
@@ -186,6 +186,14 @@
             d.toUpperCase(),
             "\u3067\u76F8\u624B\u3092\u63A2\u3059"
           ))),
+          screen === "select" && initialGhost && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226"), /* @__PURE__ */ React.createElement("p", null, "\u5BFE\u8C61\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u5B66\u7FD2\u8A18\u9332\u3067\u5BFE\u6226\u3057\u307E\u3059\u3002\u516C\u5F0F\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30FB\u4EBA\u9593\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              disabled: busy,
+              onClick: () => send({ type: "directGhost", ...initialGhost })
+            },
+            "\u6307\u540D\u5BFE\u6226\u3092\u518D\u8A66\u884C"
+          )),
           screen === "wait" && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u540C\u3058\u96E3\u6613\u5EA6\u306E\u76F8\u624B\u3092\u691C\u7D22\u4E2D"), /* @__PURE__ */ React.createElement("p", null, state.ghostReady ? "10\u79D2\u3067\u4EBA\u9593\u304C\u898B\u3064\u304B\u3089\u306A\u3051\u308C\u3070\u30B4\u30FC\u30B9\u30C8\u30FBBOT\u304C\u4E71\u5165\u3057\u307E\u3059" : "\u4EBA\u9593\u306E\u5BFE\u6226\u76F8\u624B\u3092\u63A2\u3057\u3066\u3044\u307E\u3059"), /* @__PURE__ */ React.createElement(
             "button",
             {

@@ -397,6 +397,35 @@ assert.deepEqual(restored, original);
       );
       assert.equal(ranking.rankings.normal.length, 0);
       assert.equal(ranking.ranks.normal, null);
+      const beforeCountdown = await a.client.request({ type: "ratings" });
+      await a.client.request({ type: "enqueue", difficulty: "normal" });
+      const countdownPair = await b.client.request({
+        type: "enqueue",
+        difficulty: "normal",
+      });
+      const countdownId = countdownPair.match.id;
+      await a.client.request({ type: "vote", matchId: countdownId, mode: "B" });
+      await b.client.request({ type: "vote", matchId: countdownId, mode: "B" });
+      const countdownLeft = await a.client.request({
+        type: "leave",
+        matchId: countdownId,
+      });
+      assert.equal(
+        (
+          await a.db
+            .ref(`games/factor/onlineSparkV1/matches/${countdownId}/phase`)
+            .get()
+        ).val(),
+        "cancelled",
+      );
+      assert.deepEqual(
+        countdownLeft.ratings.normal,
+        beforeCountdown.ratings.normal,
+      );
+      await b.client.request({ type: "heartbeat", matchId: countdownId });
+      console.log(
+        "PASS human countdown exit cancels without loss or rating change",
+      );
       console.log(
         "PASS actual three-match ranking eligibility: EASY ranked, NORMAL remains independent/unlisted",
       );

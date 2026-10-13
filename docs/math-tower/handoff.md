@@ -110,3 +110,10 @@ Victoryは保存済み結果の表示専用。保存やR.completeを演出部品
 - ゴースト/限定開催の設計・認可・復旧は reports/2026-10-13_ghost-host-v511.md と firebase/ghost-host.candidate.rules.json を参照。
 - 本番ルール変更は安全確認後に事後報告で可。管理認証がない環境では所有者のConsole操作のみ依頼。現行ルールを取得せず全体を再構成しない。
 - Spark維持・Cloud Functions不要。数学の塔の物語/戦闘/難易度別保存/先生grantは変更していない。
+
+## 2026-10-13 Ver.5.12への引き継ぎ
+
+- Ver.5.11はmain 6faf135、Actions38388699503で検証・公開成功。所有者が候補049d94aのルールをConsoleで公開済み。
+- Ver.5.12は指名ゴースト戦の復帰/UI、読み取り軽量化、開始前退出、遅いゴーストの時間切れ後の古い問題への回答を修正。src/ghost-model.cjsは時間切れheartbeat後に次問のCPU予定を作り直す。数学の判定・タイマーの期限は変更しない。
+- 正式な次回公開は5.13。CHANGELOG/version.json/表示を同時更新。現行方針は所有者の最新版依頼を優先し、上記の旧未承認設計やFunctions必須案を採用しない。Sparkを維持。
+- Safari実機と実PagesへのHTTPは未確認。Actions/配信アーティファクトの版・SHA確認を実機検証と混同しない。

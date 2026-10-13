@@ -1,5 +1,7 @@
 # オンライン難易度別レート：引き継ぎ
 
+**現行方針（Ver.5.12）**：以下の初期監査記録は過去の設計。現在は所有者承認済みのSpark版を公開し、旧rating→EASY/NORMAL1500の一度限り移行を維持。EASY掲載1501以上、NORMAL人間3戦、乱入戦は別集計。Functions/Blazeは使用しない。[現在の実装・認可・公開報告](../reports/2026-10-13_ghost-host-v511.md)と[正式バージョン運用](game-version-policy.md)を優先する。次回公開は5.13。
+
 詳細仕様案は[online-difficulty-rating-plan.md](online-difficulty-rating-plan.md)、監査結果は[調査報告](../reports/2026-10-13_online-rating-investigation.md)。設計ブランチのみで、オンライン本番変更の承認はまだ得ていない。
 
 - 数学の塔の3件はmain `9fa9ac3`で実装。オンラインの製品コードは`42011a6`と同じ。

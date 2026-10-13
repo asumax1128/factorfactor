@@ -203,3 +203,34 @@ test("legacy passive rewards use per-ID receipts and award XP atomically even af
   assert.equal(old.exp, 305);
   assert.equal(old.ghostW, 11);
 });
+for (const mode of ["A", "B"])
+  test(
+    "slow ghost timeout during suspended-tab catch-up advances without stale-question failure " +
+      mode,
+    () => {
+      let seed = 1;
+      while (
+        ((Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296 <
+        0.95
+      )
+        seed++;
+      const start = Date.UTC(2026, 9, 13),
+        p = G.profile({ lv: { L1: { n: 20, ok: 20, ms: 360000 } } }, {});
+      const m = {
+        phase: "play",
+        mode,
+        game: E.begin("slow", "easy", mode, ["u", "_ghost"], "slow", start),
+        opponent: { profile: p },
+        rng: seed,
+        usesSpecial: false,
+      };
+      const n = G.advance(m, start + 30000);
+      assert(n.game.time >= start + 20000);
+      assert(
+        n.game.result ||
+          (mode === "A"
+            ? n.game.claims.length > 0
+            : n.game.states._ghost.hist.some((x) => x.timeout)),
+      );
+    },
+  );

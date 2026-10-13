@@ -72,10 +72,10 @@ function create({
   const ghostRoot = `games/factor/ghostV1/users/${key}`;
   async function checkGhost() {
     try {
-      const v = (await db.ref(ghostRoot).get()).val();
+      const active = (await db.ref(`${ghostRoot}/activeMatch`).get()).val();
       ghostReady = true;
-      ghostActive = v?.activeMatch || ghostActive;
-      return v;
+      ghostActive = active || null;
+      return { activeMatch: active };
     } catch (e) {
       if (e.code === "PERMISSION_DENIED" || /permission/i.test(e.message)) {
         ghostReady = false;
@@ -303,7 +303,7 @@ function create({
   async function find() {
     const ghostUser = await checkGhost();
     if (ghostUser?.activeMatch) {
-      const gm = ghostUser.matches?.[ghostUser.activeMatch];
+      const gm = await getMatch(ghostUser.activeMatch);
       if (gm && gm.phase !== "cancelled") {
         ghostActive = gm.id;
         return gm;
@@ -472,7 +472,14 @@ function create({
       opponent,
       origin,
       rng: Math.floor(Math.random() * 4294967295) + 1,
-      snapshots: { [key]: p },
+      snapshots: {
+        [key]: {
+          name: p.name,
+          easy: p.easy,
+          normal: p.normal,
+          badges: p.badges || {},
+        },
+      },
       usesSpecial: Math.random() < opponent.profile.sp,
     };
     await tx(db.ref(ghostRoot), (u) => {
@@ -594,8 +601,9 @@ function create({
       let n = copy(raw),
         ts = Math.max(now(), n.game?.time || 0);
       n.votes ||= {};
+      const beforeStart = n.phase === "play" && now() < n.game.startAt;
       if (command.type === "leave") {
-        if (n.phase === "vote" || ts < n.game.startAt) {
+        if (n.phase === "vote" || beforeStart) {
           n.phase = "cancelled";
           return n;
         }
@@ -617,7 +625,7 @@ function create({
             ts + 3800,
           );
         }
-      } else {
+      } else if (!beforeStart) {
         n = G.advance(n, ts);
         if (!n.game.result && ["answer", "special"].includes(command.type)) {
           if (!Number.isSafeInteger(command.seq) || command.seq < 1)
@@ -683,7 +691,18 @@ function create({
         !["bounty", "profile"].includes(command.origin)
       )
         throw Error("INVALID_GHOST_REQUEST");
-      if (await find()) throw Error("対戦を終えてから開始してください");
+      const active = await find();
+      if (active) {
+        if (
+          active.opponent?.key === command.target &&
+          active.difficulty === command.difficulty &&
+          active.origin === command.origin
+        )
+          return response(active);
+        throw Error(
+          "続行中の対戦があります。オンライン画面へ戻り、その対戦を終えてから開始してください",
+        );
+      }
       if (!ghostReady) throw Error("ゴースト機能の準備中です");
       const a = (
         await db.ref(`games/factor/accounts/${command.target}`).get()
@@ -692,11 +711,10 @@ function create({
         throw Error("現在このプレイヤーには賞金がありません");
       if (command.target === key || !G.eligible(a))
         throw Error("20問以上の学習記録が必要です");
-      const u = (await db.ref(ghostRoot).get()).val();
-      if (
-        command.origin === "bounty" &&
-        (u?.bountyCooldowns?.[command.target] || 0) > now()
-      )
+      const cooldown = (
+        await db.ref(`${ghostRoot}/bountyCooldowns/${command.target}`).get()
+      ).val();
+      if (command.origin === "bounty" && (cooldown || 0) > now())
         throw Error("この賞金首は7日間休息中です");
       const d = command.difficulty,
         p = (await profileRef.get()).val(),
@@ -801,7 +819,10 @@ function create({
         matches: { [raw.id]: copy(raw) },
         settlements: {},
       };
-      const ts = Math.max(now(), raw.game?.time || 0);
+      const ts =
+        raw.phase === "play" && now() < raw.game.startAt
+          ? now()
+          : Math.max(now(), raw.game?.time || 0);
       const next = C.transition(
         model,
         { uid, key },
