@@ -36,7 +36,7 @@ profileと本人限定の `backups/$key` を**一つのmulti-location updateで�
 - slots：本人の待機と、同じ難易度の待機に対する自分の参加だけを許可。
 - matches：待機と一致するペアで作り、参加者だけが進行を更新。所属・難易度・方式と確定結果を固定。
 
-[ルール全文候補](../../firebase/online-spark.candidate.rules.json)は設定コードであり、実プレイヤーのデータや認証情報を含まない。配信するPages成果物にはFirebase設定ディレクトリを入れない。`scripts/prepare-spark-rules.cjs` は候補作成だけで本番へ接続しない。
+[ルール全文候補](../firebase/online-spark.candidate.rules.json)は設定コードであり、実プレイヤーのデータや認証情報を含まない。配信するPages成果物にはFirebase設定ディレクトリを入れない。`scripts/prepare-spark-rules.cjs` は候補作成だけで本番へ接続しない。
 
 ## Consoleでの初回設定
 

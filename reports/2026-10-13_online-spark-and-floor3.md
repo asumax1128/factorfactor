@@ -19,3 +19,7 @@ Auth/Databaseエミュレータで4クライアントの難易度別マッチン
 設定手順・全文ルール候補・復旧は [設定記録](../docs/online-spark-setup.md) を参照。料金プラン変更なし。Sparkの容量制限は引き続き適用。
 
 本人レートや共有試合の悪意ある偽造を完全には防げない。直接の他人profile更新は拒否する。両者のレート保存は別transactionで、未保存側は再ログインで確定結果を反映する。本番の移行人数・実際の移行値とSafari実機は未確認。
+
+## 表示確認
+
+[iPhone相当390×844](assets/floor3/floor3-390x844.png) ／ [PC1366×768](assets/floor3/floor3-1366x768.png)。ブラウザによる確認画像で、iPhone Safari実機の画像ではない。
