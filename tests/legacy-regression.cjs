@@ -68,6 +68,14 @@ const previous = functions(
 );
 const withoutFrame = (s) => {
   const n = JSON.parse(s);
+  // A result snapshot is presentation metadata in the existing result write;
+  // normalize that assignment only, leaving every game/rating statement audited.
+  const stripReport = node => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node.body)) node.body = node.body.filter(x => !(x.type === 'ExpressionStatement' && x.expression?.type === 'AssignmentExpression' && x.expression.left?.object?.name === 'extra' && x.expression.left?.property?.name === 'aResult'));
+    for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripReport); else stripReport(v); }
+  };
+  stripReport(n);
   for (const statement of n.body.body) {
     for (const d of statement.declarations || [])
       if (d.id?.name === "wrap")

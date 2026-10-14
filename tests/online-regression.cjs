@@ -45,6 +45,8 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
     await g.page.getByRole("button", { name: "参加", exact: true }).click();
     await g.page.getByText("部屋コード", { exact: true }).waitFor();
     await h.page.getByRole("button", { name: /対戦スタート/ }).click();
+    await h.page.getByText("READY",{exact:true}).waitFor();
+    for (const t of [h,g]) { assert.equal(await t.page.locator("[data-btile],[data-poly]").count(),0,"online room countdown must contain no problem/tile DOM"); }
     await h.page.locator("[data-btile]").first().waitFor();
     await g.page.locator("[data-btile]").first().waitFor();
     for (let i = 0; i < 4; i++) {

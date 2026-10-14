@@ -3144,6 +3144,7 @@ const CombatFX=(()=>{
   function capture(els,to) {return {cards:els.filter(Boolean).map(el=>({node:el.cloneNode(true),r:el.getBoundingClientRect(),font:getComputedStyle(el).fontSize})),target:rectC(qs('[data-fxtarget]')),to:rectC(to || qs('.or-opponent') || qs('[data-opp]') || qs('.v7-st'))};}
   function merge(snapshot,color) {
     const {cards,target,to}=snapshot||{};if(!cards?.length||!target)return;
+    color=skinFxColor(color); // Preserve the equipped cosmetic in the shared merge animation.
     if(reduced())return;
     const mid={x:cards.reduce((s,c)=>s+c.r.left+c.r.width/2,0)/cards.length,y:cards.reduce((s,c)=>s+c.r.top+c.r.height/2,0)/cards.length};
     cards.forEach((c,i)=>{const n=c.node;n.removeAttribute('data-btile');n.removeAttribute('data-f');n.removeAttribute('id');n.dataset.combatCard='merge';n.style.cssText=`position:fixed;pointer-events:none;z-index:110;left:${c.r.left}px;top:${c.r.top}px;width:${c.r.width}px;height:${c.r.height}px;display:flex;align-items:center;justify-content:center;font-size:${c.font};border:2px solid ${color};border-radius:12px;background:#eef4ff;color:#1d2633;box-shadow:0 0 16px ${color};`;document.body.appendChild(n);nodes.add(n);const cx=c.r.left+c.r.width/2,cy=c.r.top+c.r.height/2;n.animate?.([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${mid.x-cx+(i?9:-9)}px,${mid.y-cy}px) scale(.5)`,opacity:1,offset:.38},{transform:`translate(${target.x-cx}px,${target.y-cy}px) scale(.12)`,opacity:.1}],{duration:390,easing:'cubic-bezier(.2,.8,.3,1)',fill:'forwards'});later(()=>remove(n),410);});
@@ -3580,8 +3581,8 @@ function Wardrobe({ acct, st, exp, onClose }) {
   const masterReached = RatingHistory.master(historicalProfile, st, RANKS[5].min);
   const [tab, setTab] = useState('tile');
   const info = skinInfo(st, exp);
-  // Only the requested master tile changes. All other cosmetic conditions stay intact.
-  const available = x => skinOpen(x.need, info) || (tab === 'tile' && x.id === 'master' && masterReached);
+  // Master tile/effect share historical rank proof. Other cosmetic conditions stay intact.
+  const available = x => skinOpen(x.need, info) || ((tab === 'tile' || tab === 'fx') && x.id === 'master' && (masterReached || (tab === 'fx' && st?.skin?.fx === 'master')));
   const list = tab === 'tile' ? SKIN_TILES : tab === 'bg' ? SKIN_BGS : SKIN_FX;
   const cur = SKIN[tab] || list[0].id;
   const openN = list.filter(x => available(x)).length;
@@ -9471,6 +9472,39 @@ function GhostHistory({acct,stats={}}) {
 }
 
 /* ---------- だれかの成績（みんなが見られる） ---------- */
+function AResultDetails({ report, me, names = {} }) {
+  if (!report) return <p className="text-xs">問題別の確定記録はありません。</p>;
+  const ids = report.ids, colors = ['#078AB8','#D94B28','#7752B8','#2A9678'];
+  const label = u => u === me ? 'あなた' : names[u] || `相手${ids.filter(x=>x!==me).indexOf(u)+1}`;
+  let lastLead = 0;
+  const rows = report.events.map(e => {
+    const diff = (e.totals[me] || 0) - Math.max(0,...ids.filter(u=>u!==me).map(u=>e.totals[u]||0));
+    const lead = Math.sign(diff), reversal = !!lead && !!lastLead && lead !== lastLead;
+    if (lead) lastLead = lead;
+    return {...e,diff,lead,reversal};
+  });
+  const max = Math.max(1,...Object.values(report.scores)), n = Math.max(1,rows.length);
+  const x = q => 28 + q / n * 276, y = v => 140 - v / max * 115;
+  return <section className="v7-panel my-3" data-a-result>
+    <h3 className="font-black" style={{fontSize:18,color:COLORS.ink}}>A方式 得点のふり返り</h3>
+    <div className="flex flex-wrap gap-2 my-2">{ids.map((u,i)=><div key={u} className="flex-1 rounded-xl p-2" style={{background:COLORS.paperDark,minWidth:100,color:colors[i%4]}}><b>{label(u)}</b><div>{report.scores[u]||0}点</div><small>最高 {report.best[u]||0}コンボ</small></div>)}</div>
+    {!report.consistent ? <p role="status">得点記録が不足しているため、推移は表示できません。</p> : <>
+      <svg viewBox="0 0 320 165" role="img" aria-label="問題番号ごとの累積得点推移" style={{width:'100%',display:'block'}}>
+        <title>問題番号と累積得点。逆転した問題を丸で表示</title>
+        {[0,Math.round(max/2),max].map((v,i)=><g key={i}><line x1="28" x2="304" y1={y(v)} y2={y(v)} stroke="#D9D1C3"/><text x="25" y={y(v)+3} textAnchor="end" fontSize="9" fill="#626B75">{v}</text></g>)}
+        {ids.map((u,i)=><polyline key={u} fill="none" stroke={colors[i%4]} strokeWidth="2.5" points={[[28,140],...rows.map(e=>[x(e.question),y(e.totals[u]||0)])].map(p=>p.join(',')).join(' ')} />)}
+        {rows.filter(e=>e.reversal).map(e=><circle key={e.id} cx={x(e.question)} cy={y(e.totals[me]||0)} r="5" fill="#FFD54A" stroke="#8B5B0E" />)}
+        <text x="28" y="158" fontSize="9" fill="#626B75">0問</text><text x="304" y="158" textAnchor="end" fontSize="9" fill="#626B75">{rows.length}問</text>
+      </svg>
+      <p className="text-[10px] font-bold">確定した{rows.length}問を表示 ・ ● リード交代（同点を挟んだ交代を含む）</p>
+      <ol className="mt-2">{rows.map(e=><li key={e.id} className="rounded-xl p-2 my-1 text-xs" style={{background:e.reversal?'#FFF1BA':COLORS.paperDark}} data-a-question={e.question}>
+        <b>第{e.question}問：{e.winner?label(e.winner):'獲得者なし'} +{e.pts}点</b>{e.ms!==null&&<span> ・ {(e.ms/1000).toFixed(1)}秒</span>}
+        <div>{ids.map(u=>`${label(u)} ${e.totals[u]||0}点`).join(' ／ ')}</div>
+        <div>{e.lead>0?'自分がリード':e.lead<0?'相手がリード':'同点'}（差 {Math.abs(e.diff)}点）{e.reversal&&<b> ・ 逆転！</b>}</div>
+      </li>)}</ol>
+    </>}
+  </section>;
+}
 function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   st = st || {};
   const historicalProfile = useRatingHistoryProfile(acctKey);
@@ -9478,7 +9512,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
   const g = st.games || 0;
   const [ghostEligible,setGhostEligible]=useState(null),[ghostFight,setGhostFight]=useState(null);
   const self=loadLS(ACCT_LS,null);
-  useEffect(()=>{if(!acctKey || me || !FB.db)return;FB.db.ref(`games/factor/accounts/${acctKey}/prof`).get().then(s=>{const p=s.val();setGhostEligible(Object.values(p?.lv||{}).reduce((n,L)=>n+(L?.n||0),0)>=20);}).catch(()=>setGhostEligible(false));},[acctKey,me]);
+  useEffect(()=>{let active=true;setGhostEligible(null);if(acctKey && FB.db)FB.db.ref(`games/factor/accounts/${acctKey}/prof`).get().then(s=>{const p=s.val();if(active)setGhostEligible(Object.values(p?.lv||{}).reduce((n,L)=>n+(typeof L?.n==='number'&&L.n>0?L.n:0),0)>=20);}).catch(()=>{if(active)setGhostEligible(false)});return()=>{active=false};},[acctKey]);
   const [nick, setNick] = useState(st.nick || '');
   const canNick = !!(me && acctKey);
   const pickNick = id => {
@@ -9514,9 +9548,9 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           </div>
           <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
-        {!me && acctKey && isReal(self) && <div className="my-3">
-          <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
-          <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}でゴースト対戦</BigBtn>)}</div>
+        {acctKey && isReal(self) && <div className="my-3">
+          <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{me ? (ghostEligible?'自分のゴーストと練習：レート・勝敗・EXP・称号・学習記録は更新しません':'自分のゴーストの記録がありません（20問以上の学習記録が必要です）') : ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
+          <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}で{me?'自分の':''}ゴースト対戦</BigBtn>)}</div>
         </div>}
         <CurrentRatings profile={historicalProfile} legacy={st} />
         <div className="flex gap-2 mb-3" data-highest-rating>{box('最高レート', RatingDisplay.format(highestRating))}</div>
@@ -9733,6 +9767,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       const order = [...ids].sort((a, b) => (a === winner ? -1 : b === winner ? 1 : 0) || (sc[b] || 0) - (sc[a] || 0));
       order.forEach((u, i) => { const p = order[i - 1]; rank[u] = (i > 0 && p !== winner && (sc[u] || 0) === (sc[p] || 0)) ? rank[p] : i + 1; });
       extra.sc = sc;
+      extra.aResult = window.OnlineSpark?.buildAResult?.(scoreA(bank, claimsRef.current, ids, N, hc), claimsRef.current, ids, state.startAt, A_NEXT_DELAY);
       if (!winner) { const tops = ids.filter(u => rank[u] === 1); if (tops.length === 1) winner = tops[0]; else extra.draw = true; }
     } else {
       const rest = ids.filter(u => u !== winner).sort((a, b) => {
@@ -10387,6 +10422,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
       </div>
       {rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}
       <Card className="mb-3">{order.map(row)}</Card>
+      {mode === 'A' && <AResultDetails report={result.aResult || window.OnlineSpark?.buildAResult?.(scA,claims,ids,state.startAt,A_NEXT_DELAY)} me={me} names={names} />}
       {rec && rec.exp && <div className="mb-3 v7-panel"><ExpGain before={rec.exp.before} after={rec.exp.after} label={practice ? 'CPU練習の経験値' : acct ? 'この試合の経験値' : 'この試合の経験値（ゲスト：この端末に保存）'} /></div>}
       {practice ? <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>CPU練習の勝敗は記録されません（経験値は入ります）</p>
         : acct ? <Card className="mb-3">
@@ -10859,7 +10895,7 @@ async function flushOnlineLearn(acct,matchId,rows) {
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
+const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');

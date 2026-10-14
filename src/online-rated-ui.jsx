@@ -112,7 +112,7 @@
           <div
             className="v7-play or-battle"
             data-online-mode={m.mode}
-            data-online-ready={!disabled && !ready && !g.result}
+            data-online-ready={!disabled && !counting && !ready && !g.result}
           >
             <div className="v7-zone">
               <div className="or-game-header">
@@ -220,7 +220,7 @@
                 秒
               </p>
             </div>
-            <div className="v7-main">
+            <div className="v7-main" inert={counting ? "" : undefined} aria-hidden={counting || undefined}>
               <div className="or-feedback" aria-live="polite">
                 <H.TimingJudgment
                   judge={feedback?.judge}
@@ -228,7 +228,7 @@
                 />
                 <H.ComboDisplay combo={combo} />
               </div>
-              <div className="relative" style={{ flexShrink: 0 }}>
+              {!counting && <><div className="relative" style={{ flexShrink: 0 }}>
                 <H.TargetCard
                   poly={g.poly}
                   level={g.level}
@@ -242,10 +242,10 @@
                 flash={feedback?.flash}
                 tiles={tiles}
                 onMatch={onMatch}
-                disabled={disabled || ready || !!g.result}
+                disabled={disabled || counting || ready || !!g.result}
                 dim={ready}
                 v7
-              />
+              /></>}
               <p className="v7-hint">
                 {m.mode === "A"
                   ? "先に正解した人だけ得点 ・ まちがえると2秒お手つき"
@@ -262,6 +262,7 @@
                     )}
               </div>
             )}
+            {!counting && time < (m.gameStartAt || g.startAt) + 550 && <div className="or-countdown" style={{background:'transparent',pointerEvents:'none'}} aria-label="対戦開始">GO!</div>}
           </div>
         </H.BattleSurface>
       );
@@ -298,7 +299,7 @@
             {formatRating(r?.before)} → {formatRating(r?.after)}
           </p>
           <p>
-            {["bounty", "profile"].includes(m.origin)
+            {m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : ["bounty", "profile"].includes(m.origin)
               ? "指名戦：公式レート・対戦数は変更しません"
               : `${label(m.difficulty)}のみ更新${m.opponent ? "（変動は人間戦の1/3）" : ""}`}
           </p>
@@ -307,6 +308,7 @@
               獲得EXP <b>+{m.exp || 0}</b>
             </div>
           )}
+          {m.mode === "A" && <H.AResultDetails report={m.aResult} me={m.selfUid} names={Object.fromEntries((m.members||[]).map(u=>[u.uid,u.uid==='_ghost'?m.opponent?.name:u.name]))} />}
           {badges.length > 0 && (
             <div className="or-new-title" data-new-title="1">
               ✨ 新しい称号！
@@ -515,6 +517,7 @@
         const m = current.current?.match,
           g = m?.game;
         if (actionPending.current || retry.current || !g) return;
+        if (Date.now() + (H.FB.off || 0) < (m.gameStartAt || g.startAt)) return;
         const command = {
           type: "answer",
           matchId: m.id,

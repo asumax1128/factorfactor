@@ -181,3 +181,16 @@ Ver.5.21追補: 初期1500の未記録判定では人間gamesだけでなくghos
 RatingDisplay.formatは表示時だけMath.round。ロビー・自己/他人プロフィール・ランキング・レーティング・乱入・結果・ゴースト履歴・旧季節履歴/結果差分を整数化。計算/保存/順位/マスター条件へformat値を渡さない。1819.9は表示1820でも未到達。最高値は引き続きRatingHistoryで別集計する。旧対戦記録/旧レートはラベルで明確に区別。全件取得/書き込みを追加せず、ロビーを閉じると対象リスナー解除。
 
 検証はnpm run test:rating-display。詳細reports/2026-10-14_rating-display-v522.md。通常の次回公開はVer.5.23。
+
+
+## Ver.5.23 オンライン4件改善
+
+新OnlineRated BattleViewは同期gameStartAtまでTargetCard/BattleBoardをマウントしない。inert/aria-hiddenとanswerの時刻ガードも使用し、GOと同時に表示・入力解禁。旧部屋/CPUのBattleGameは既存のカウントダウン専用returnを維持（Cはこの経路のみ、新レーティングはA/Bのみ）。
+
+AはscoreAを変更せず、engine.stepの確定claimへptsを追加。同じトランザクション内のメタデータで二重加点しない。settleはgame.aResultを固定。src/a-result.cjsとAResultDetailsが確定ログから累積/最高コンボ/SVG/逆転/時間を表示。旧部屋結果も同じresult書き込みでaResultを保持し、CPUはOnlineSpark未ロードでも既存結果を表示できる。途中終了は確定分のみ、記録不整合はグラフを捏造しない。
+
+自己ゴーストはorigin=profileを維持し、opponent.key===ログインkeyで練習を判定。eligibleは従来の学習記録20問以上、開始時のプロフィールを固定。response/apply/learning/saveGhostResultは自己対戦の報酬・公式戦績・公開学習集計・受信通知を更新しない。試合チェックポイントだけ自身のghostV1/usersへ既存形式で保存し、復帰可能。自己のbounty指定は拒否。
+
+Wardrobeのmaster tile/fxのみ歴代>=1820/永久マスターバッジ/既存装備を根拠に解放。他の解放条件は変更なし。CombatFX.mergeは旧fxMergeと同様にskinFxColorを使用し、装備色を反映。タイム判定文字の6色/数式設定は変更しない。
+
+検証: npm run test:online-improvements、既存test:rating-history、test:online、test:online-latencyと実SDK tests/online-latency-native.cjs。詳細reports/2026-10-14_online-improvements-v523.md。次の通常公開はVer.5.24。

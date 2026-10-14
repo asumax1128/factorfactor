@@ -3,6 +3,7 @@ const fs = require("node:fs"),
 const source = fs.readFileSync(require.resolve("./engine-source.js"), "utf8");
 const script = new vm.Script(source);
 const clone = (x) => JSON.parse(JSON.stringify(x));
+const AResult = require("../../src/a-result.cjs");
 const banks = new Map();
 function runtime(match) {
   match.seq ||= {};
@@ -225,6 +226,8 @@ function step(match, uid, command, now) {
       if (api.polyEqual(api.multiply(...fs), b.poly)) {
         const j = api.getJudgment(now - nextAt()).label;
         m.claims.push({ uid, at: now, j });
+        // Record the awarded points in the same committed claim. No extra write or second scoring path.
+        m.claims[m.claims.length - 1].pts = api.scoreA(rt.bank, m.claims, m.ids, N, {}).log.slice(-1)[0].pts;
       } else m.locks[uid] = now + api.A_LOCK_MS;
     }
     if (m.claims.length >= N) {
@@ -310,4 +313,9 @@ function view(match, uid) {
     ),
   };
 }
-module.exports = { begin, step, view, runtime };
+function reportA(match) {
+  if (match?.mode !== "A") return null;
+  const { api, bank } = runtime(match);
+  return AResult.build(api.scoreA(bank, match.claims, match.ids, api.DIFFICULTY_CONFIG[match.difficulty].clearCount, {}), match.claims, match.ids, match.startAt, api.A_NEXT_DELAY);
+}
+module.exports = { begin, step, view, runtime, reportA };

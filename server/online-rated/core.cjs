@@ -89,6 +89,7 @@ function migrate(state, accounts, migrationId, now) {
 function settle(n, m, now) {
   if (n.settlements[m.id]) return;
   if (!m.game?.result) throw Error("UNVERIFIED_RESULT");
+  if (m.mode === "A") m.game.aResult ||= Engine.reportA(m.game);
   const [a, b] = m.members.map((x) => x.key),
     d = m.difficulty,
     s = season(now);

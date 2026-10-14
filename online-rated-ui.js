@@ -108,7 +108,7 @@
           {
             className: "v7-play or-battle",
             "data-online-mode": m.mode,
-            "data-online-ready": !disabled && !ready && !g.result
+            "data-online-ready": !disabled && !counting && !ready && !g.result
           },
           /* @__PURE__ */ React.createElement("div", { className: "v7-zone" }, /* @__PURE__ */ React.createElement("div", { className: "or-game-header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "or-game-controls" }, /* @__PURE__ */ React.createElement(
             "button",
@@ -154,13 +154,13 @@
           ))), /* @__PURE__ */ React.createElement("p", { className: "or-connection", role: "status" }, counting ? "\u307E\u3082\u306A\u304F\u958B\u59CB" : ready ? "\u6B21\u306E\u554F\u984C\u3092\u6E96\u5099\u4E2D" : "\u5BFE\u6226\u4E2D", " ", "\u30FB \u6B8B\u308A", " ", Math.max(0, (g.timeoutMs - (time - g.startAt)) / 1e3).toFixed(
             1
           ), "\u79D2")),
-          /* @__PURE__ */ React.createElement("div", { className: "v7-main" }, /* @__PURE__ */ React.createElement("div", { className: "or-feedback", "aria-live": "polite" }, /* @__PURE__ */ React.createElement(
+          /* @__PURE__ */ React.createElement("div", { className: "v7-main", inert: counting ? "" : void 0, "aria-hidden": counting || void 0 }, /* @__PURE__ */ React.createElement("div", { className: "or-feedback", "aria-live": "polite" }, /* @__PURE__ */ React.createElement(
             H2.TimingJudgment,
             {
               judge: feedback == null ? void 0 : feedback.judge,
               className: "or-timing"
             }
-          ), /* @__PURE__ */ React.createElement(H2.ComboDisplay, { combo })), /* @__PURE__ */ React.createElement("div", { className: "relative", style: { flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
+          ), /* @__PURE__ */ React.createElement(H2.ComboDisplay, { combo })), !counting && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "relative", style: { flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
             H2.TargetCard,
             {
               poly: g.poly,
@@ -176,15 +176,16 @@
               flash: feedback == null ? void 0 : feedback.flash,
               tiles,
               onMatch,
-              disabled: disabled || ready || !!g.result,
+              disabled: disabled || counting || ready || !!g.result,
               dim: ready,
               v7: true
             }
-          ), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
+          )), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
           counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, (m.gameStartAt || g.startAt) - time > 3e3 ? "READY" : Math.max(
             1,
             Math.ceil(((m.gameStartAt || g.startAt) - time) / 1e3)
-          ))
+          )),
+          !counting && time < (m.gameStartAt || g.startAt) + 550 && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", style: { background: "transparent", pointerEvents: "none" }, "aria-label": "\u5BFE\u6226\u958B\u59CB" }, "GO!")
         ));
       }
       function Result({ H: H2, m, state, acct, titles: titles2, badgesBefore, busy, onExit }) {
@@ -208,8 +209,12 @@
           /* @__PURE__ */ React.createElement("p", { className: "or-result-sub" }, won ? "VICTORY\uFF01" : m.outcome === "draw" ? "DRAW" : "\u307E\u305F\u6311\u6226\u3057\u3088\u3046"),
           /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", Math.round((_c = r == null ? void 0 : r.delta) != null ? _c : 0) > 0 ? "+" : "", formatRating((_d = r == null ? void 0 : r.delta) != null ? _d : 0)),
           /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)),
-          /* @__PURE__ */ React.createElement("p", null, ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
+          /* @__PURE__ */ React.createElement("p", null, m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
           m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0)),
+          m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names: Object.fromEntries((m.members || []).map((u) => {
+            var _a2;
+            return [u.uid, u.uid === "_ghost" ? (_a2 = m.opponent) == null ? void 0 : _a2.name : u.name];
+          })) }),
           badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "or-new-title", "data-new-title": "1" }, "\u2728 \u65B0\u3057\u3044\u79F0\u53F7\uFF01", badges.map((k) => /* @__PURE__ */ React.createElement("p", { key: k }, titles2[k]))),
           /* @__PURE__ */ React.createElement("button", { disabled: busy, className: "or-primary", onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B")
         );
@@ -376,6 +381,7 @@
           trace("release");
           const m2 = (_a2 = current.current) == null ? void 0 : _a2.match, g2 = m2 == null ? void 0 : m2.game;
           if (actionPending.current || retry.current || !g2) return;
+          if (Date.now() + (H.FB.off || 0) < (m2.gameStartAt || g2.startAt)) return;
           const command = {
             type: "answer",
             matchId: m2.id,

@@ -179,7 +179,7 @@ async function touchPair(page, long = false, correct = true) {
     );
     const seen = await p.evaluate(() => window.__countdownValues);
     if (!process.env.PLAYABILITY_UI_FILE) {
-      assert.deepEqual(seen, ["READY", "3", "2", "1"]);
+      assert.deepEqual(seen, ["READY", "3", "2", "1", "GO!"]);
       const ms = await p.evaluate(
         () => window.__feedbackAt - window.__releaseAt,
       );

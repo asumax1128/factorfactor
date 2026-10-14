@@ -272,9 +272,10 @@ function create({
     });
   }
   async function response(m = null, withLegacy = false) {
-    if (m && (!m.opponent || m.origin === "quick")) await apply(m);
+    const selfPractice = m?.opponent?.key === key;
+    if (m && !selfPractice && (!m.opponent || m.origin === "quick")) await apply(m);
     if (m?.opponent && m.phase === "settled") await saveGhostResult(m);
-    if (m?.phase === "settled") {
+    if (m?.phase === "settled" && !selfPractice) {
       const playUid = m.members.find((u) => u.key === key).uid;
       const rows =
         m.mode === "B"
@@ -363,6 +364,8 @@ function create({
             votes: m.votes || {},
             opponent: m.opponent || null,
             origin: m.origin || "human",
+            selfPractice,
+            aResult: m.phase === "settled" && m.mode === "A" ? (m.game.aResult || E.reportA(m.game)) : null,
             exp: m.exp || 0,
             lastAnswer:
               m.mode === "B"
@@ -641,6 +644,7 @@ function create({
     return find();
   }
   async function saveGhostResult(m) {
+    if (m.opponent?.key === key) return; // Self practice cannot award XP/titles or write a passive inbox.
     const result = m.receipt.result,
       won = m.members.find((u) => u.uid === result.winner)?.key === key,
       draw = !!result.draw,
@@ -820,6 +824,7 @@ function create({
         }
       }
       if (n.game?.result) {
+        if (n.mode === "A") n.game.aResult ||= E.reportA(n.game);
         const r = C.ratingView(n.snapshots[key][n.difficulty], ts),
           o = n.game.result.draw
             ? "draw"
@@ -845,7 +850,7 @@ function create({
             },
           },
         };
-        n.exp = o === "win" ? 8 : 0;
+        n.exp = n.opponent.key === key ? 0 : o === "win" ? 8 : 0;
       }
       n.revision = (raw.revision || 0) + 1;
       return clean(n);
@@ -909,7 +914,7 @@ function create({
       ).val();
       if (command.origin === "bounty" && (a?.stats?.streak || 0) < 3)
         throw Error("現在このプレイヤーには賞金がありません");
-      if (command.target === key || !G.eligible(a))
+      if ((command.target === key && command.origin !== "profile") || !G.eligible(a))
         throw Error("20問以上の学習記録が必要です");
       const cooldown = (
         await db.ref(`${ghostRoot}/bountyCooldowns/${command.target}`).get()
@@ -932,7 +937,7 @@ function create({
           type: "ghost",
           key: command.target,
           base: a.name,
-          name: a.name + "のゴースト",
+          name: a.name + (command.target === key ? "のゴースト（自分・練習）" : "のゴースト"),
           rating: rt,
           rank: G.rank(rt),
           rankDifference: G.rank(rt) - G.rank(p[d].rating),
@@ -1071,6 +1076,7 @@ function create({
   };
 }
 module.exports = {
+  buildAResult: require("./a-result.cjs").build,
   ratingView: C.ratingView,
   create,
   ROOT,

@@ -142,6 +142,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         setItem: (k, v) => store.set(k, v),
         removeItem: (k) => store.delete(k),
       };
+    let learningCalls = 0;
     const make = (u) =>
       Spark.create({
         db: measured(u.db),
@@ -149,6 +150,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         account: { key: u.key, name: u.key === "aa" ? "A" : "B" },
         now: () => clock,
         storage,
+        learning: async () => { learningCalls++; },
       });
     b.client = make(b);
     await b.client.request({ type: "status" });
@@ -396,12 +398,44 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           mine = await a.client.request({ type: "leave", matchId: mid });
         other = await b.client.request({ type: "status", matchId: mid });
         assert.deepEqual(mine.match.receipt, other.match.receipt);
+        if (mode === "A") {
+          assert.deepEqual(mine.match.aResult, other.match.aResult);
+          assert(mine.match.aResult.consistent);
+          assert.equal(mine.match.aResult.events.length, count);
+          assert.equal(new Set(mine.match.aResult.events.map(e=>e.id)).size,count);
+        }
         assert.notEqual(mine.match.outcome, other.match.outcome);
         for (const u of [a, b])
           await u.client.request({ type: "ackReceipt", matchId: mid });
         console.log(
           `PASS actual SDK two-client ${difficulty}/${mode}: ${count} consecutive answers, common start, duplicate rejection and identical final receipt`,
         );
+      }
+      await assert.rejects(a.client.request({type:'directGhost',target:'aa',difficulty:'easy',origin:'profile'}),/20問/);
+      await a.db.ref('games/factor/accounts/aa/prof').set({lv:{L1:{n:30,ok:30,ms:300000}}});
+      for (const mode of ['A','B']) {
+        clock=Date.now();
+        const paths=['games/factor/accounts/aa','games/factor/onlineSparkV1/profiles/aa','games/factor/ghostV1/users/aa/events','games/factor/ghostV1/inbox/aa'];
+        const before=await Promise.all(paths.map(async p=>(await a.db.ref(p).get()).val())), calls=learningCalls;
+        let self=await a.client.request({type:'directGhost',target:'aa',difficulty:mode==='A'?'easy':'normal',origin:'profile'});
+        const mid=self.match.id;
+        assert(self.match.selfPractice);
+        self=await a.client.request({type:'vote',matchId:mid,mode});clock=self.match.gameStartAt+100;
+        if(mode==='A') {
+          let count=0;
+          while(self.match.phase!=='settled' && count<15) {
+            const g=self.match.game;clock=Math.max(clock,g.startAt,g.readyAt||0)+100;
+            const api=E.runtime(E.begin('pick','easy','A',['x','y'],'pick',clock)).api;
+            let pair;for(let i=0;i<g.tiles.length;i++)for(let j=i+1;j<g.tiles.length;j++)if(api.polyEqual(api.multiply(g.tiles[i].factor,g.tiles[j].factor),g.poly))pair=[g.tiles[i].id,g.tiles[j].id];
+            self=await a.client.request({type:'answer',matchId:mid,question:g.question,tiles:pair,seq:g.acceptedSeq+1});count++;
+          }
+          assert.equal(self.match.outcome,'win');assert.equal(self.match.aResult.events.length,15);
+        } else self=await a.client.request({type:'leave',matchId:mid});
+        assert.equal(self.match.exp,0);assert.equal(self.match.receipt.players.aa.delta,0);
+        await a.client.request({type:'status',matchId:mid});await a.client.request({type:'ackReceipt',matchId:mid});
+        assert.deepEqual(await Promise.all(paths.map(async p=>(await a.db.ref(p).get()).val())),before);
+        assert.equal(learningCalls,calls);
+        console.log('PASS actual SDK self ghost '+mode+': missing-record rejection, zero rating/XP/titles/inbox/learning changes across retry and acknowledgment');
       }
     }
   } finally {
