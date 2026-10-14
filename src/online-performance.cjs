@@ -23,6 +23,8 @@ function instrument(db) {
             : "other";
       return new Proxy(r, {
         get: (o, k) => {
+          if(k==='child')return child=>instrument(db).ref(path+'/'+child);
+          if(k==='set')return async value=>{const t=clock();mark('write-start',{scope});await o.set(value);mark('write-end',{scope,ms:clock()-t,applicationBytes:new TextEncoder().encode(JSON.stringify(value)).byteLength});};
           if (k === "get")
             return async () => {
               const t = clock();

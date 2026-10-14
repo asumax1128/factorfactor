@@ -1,3 +1,4 @@
+// Legacy in-flight B v1/manual-special regression. New timed B2 is covered by v524 tests.
 const assert = require("node:assert/strict"),
   fs = require("node:fs");
 const { chromium, context, pair, sleep } = require("./browser-harness.cjs");
@@ -29,7 +30,7 @@ async function open(
   };
   const t = await context(browser, {
     tree,
-    assetOverrides: { "/online-rated-ui.js": ui },
+    assetOverrides: { "/online-rated-ui.js": ui,"/online-spark.js": fs.readFileSync("online-spark.js","utf8")+"\n(()=>{const c=window.OnlineSpark.create;window.OnlineSpark.create=o=>c({...o,modernB:false});})();" },
   });
   await t.page
     .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
@@ -477,7 +478,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
         () =>
           window.__onlineState?.ticket &&
           window.__polling &&
-          Date.now() - window.__onlineState.searchStarted >= 10000,
+          Date.now() - window.__onlineState.searchStarted >= 5000,
         {},
         { timeout: 20000 },
       );
@@ -503,7 +504,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
       );
       await edge.ctx.close();
       console.log(
-        "PASS cancel at the 10-second intrusion boundary cannot start a second game or cause a loss",
+        "PASS cancel at the 5-second intrusion boundary cannot start a second game or cause a loss",
       );
       const pre = await open(b, "easy", "profile"),
         pp = pre.page;

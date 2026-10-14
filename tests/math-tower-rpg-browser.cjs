@@ -242,7 +242,7 @@ async function rawDrag(p, ids) {
         .isDisabled(),
     );
     await p.getByRole("button", { name: "1階", exact: true }).click();
-    await p.getByRole("button", { name: "HARDを選ぶ", exact: true }).click();
+    await p.getByRole("button", { name: "ハードを選ぶ", exact: true }).click();
     await p.getByRole("button", { name: "試練を開始", exact: true }).click();
     await p.locator("[data-math-dialog]").waitFor();
     await story(p);
@@ -283,11 +283,11 @@ async function rawDrag(p, ids) {
     await p.getByRole("button", { name: "戻る", exact: true }).click();
     await p.locator("[data-math-screen=home]").waitFor();
     await p.getByRole("button", { name: "はじめから", exact: true }).click();
-    await p.getByRole("button", { name: "EASYを選ぶ", exact: true }).click();
+    await p.getByRole("button", { name: "イージーを選ぶ", exact: true }).click();
     await p.locator("[data-math-screen=replaceConfirm]").waitFor();
     await p.getByRole("button", { name: "キャンセル", exact: true }).click();
     assert.deepEqual(q.adventures, before);
-    await p.getByRole("button", { name: "EASYを選ぶ", exact: true }).click();
+    await p.getByRole("button", { name: "イージーを選ぶ", exact: true }).click();
     await p
       .getByRole("button", { name: "置き換えて開始", exact: true })
       .click();
@@ -300,7 +300,7 @@ async function rawDrag(p, ids) {
       .getByRole("button", { name: "移行前の記録・復旧", exact: true })
       .click();
     await p
-      .getByRole("button", { name: "HARDの移行前の冒険を復元", exact: true })
+      .getByRole("button", { name: "ハードの移行前の冒険を復元", exact: true })
       .click();
     await p.getByRole("button", { name: "確認して復元", exact: true }).click();
     await p.locator("[data-math-screen=home]").waitFor();
@@ -312,11 +312,11 @@ async function rawDrag(p, ids) {
     await p.getByRole("button", { name: "冒険日誌", exact: true }).click();
     assert.match(
       await p.locator("[data-math-book]").innerText(),
-      /HARD 第1階：最高S/,
+      /ハード 第1階：最高S/,
     );
     assert.match(
       await p.locator("[data-math-book]").innerText(),
-      /HARD 第1階 ・ 再挑戦 ・ S/,
+      /ハード 第1階 ・ 再挑戦 ・ S/,
     );
     await p.getByRole("button", { name: "とじる", exact: true }).click();
     await p.locator("[data-math-screen=home]").waitFor();
@@ -327,7 +327,7 @@ async function rawDrag(p, ids) {
       .getByRole("button", { name: "クリアした階を選ぶ", exact: true })
       .click();
     await p.getByRole("button", { name: "1階", exact: true }).click();
-    await p.getByRole("button", { name: "EASYを選ぶ", exact: true }).click();
+    await p.getByRole("button", { name: "イージーを選ぶ", exact: true }).click();
     await p.getByRole("button", { name: "試練を開始", exact: true }).click();
     await p.locator("[data-math-dialog]").waitFor();
     await story(p);

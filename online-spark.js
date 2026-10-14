@@ -37,16 +37,244 @@
     }
   });
 
+  // server/online-rated/b2.cjs
+  var require_b2 = __commonJS({
+    "server/online-rated/b2.cjs"(exports, module) {
+      var copy = (x) => JSON.parse(JSON.stringify(x));
+      var POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };
+      var heal = (ms) => ms <= 2e3 ? 25 : ms <= 3e3 ? 20 : ms <= 5e3 ? 15 : ms <= 1e4 ? 10 : ms <= 15e3 ? 5 : 2;
+      var cap = (d) => d === "easy" ? 6 : 3;
+      function event(m, uid, type, payload) {
+        m.visualEvents || (m.visualEvents = []);
+        m.visualSeq = (m.visualSeq || 0) + 1;
+        m.visualEvents.push({ id: m.visualSeq, uid, type, payload });
+        m.visualEvents = m.visualEvents.slice(-32);
+      }
+      function board(m, s, bank, api, at) {
+        const lv = bank.level(s.c + 1), k = s.served[lv] || 0;
+        s.served[lv] = k + 1;
+        const b = bank.get(lv, k), tiles = copy(b.tiles);
+        s.oj = Math.min(cap(m.difficulty), s.oj + s.queued);
+        s.queued = 0;
+        if (s.cheerPoints === 30 && s.oj > 0 && s.cheerRemoved < 3) {
+          s.oj--;
+          s.cheerRemoved++;
+          s.cheerPoints = 0;
+        }
+        let guard = 0;
+        while (tiles.length < b.tiles.length + s.oj && guard < 400) {
+          const f = bank.get(lv, k + 77 + guard).tiles[guard % b.tiles.length].factor;
+          guard++;
+          if (tiles.some((t) => JSON.stringify(t.factor) === JSON.stringify(f) || api.polyEqual(api.multiply(t.factor, f), b.poly))) continue;
+          tiles.splice(guard * 7 % (tiles.length + 1), 0, { id: `oj${s.serial}_${guard}`, factor: copy(f) });
+        }
+        s.cur = { level: lv, k, poly: copy(b.poly), tiles, oj: tiles.length - b.tiles.length };
+        s.qStart = at;
+        s.comboDue = at + 1e4;
+        s.resolving = false;
+        s.nextAt = null;
+        s.serial++;
+      }
+      function begin(base, duration, bank, api) {
+        if (![60, 90, 120, 180].includes(duration)) throw Error("INVALID_DURATION");
+        const m = copy(base);
+        m.rules = "b2";
+        m.duration = duration;
+        m.endAt = m.startAt + duration * 1e3;
+        m.visualEvents = [];
+        m.states = Object.fromEntries(m.ids.map((u) => [u, { hp: 100, c: 0, score: 0, combo: 0, best: 0, gauge: 0, sp: 0, freezeUntil: 0, oj: 0, queued: 0, pending: 0, counterUntil: 0, cheerPoints: 0, cheerRemoved: 0, serial: 0, served: {}, hist: [], resolving: false, nextAt: null }]));
+        for (const u of m.ids) board(m, m.states[u], bank, api, m.startAt);
+        return m;
+      }
+      function finish(m, reason) {
+        const dead = m.ids.filter((u) => m.states[u].hp <= 0), top = Math.max(...m.ids.map((u) => m.states[u].score));
+        const alive = m.ids.filter((u) => !dead.includes(u));
+        const best = Math.max(...alive.map((u) => m.states[u].score));
+        const winners = reason === "ko" ? alive : alive.filter((u) => m.states[u].score === best);
+        m.result = { winner: winners.length === 1 ? winners[0] : null, draw: winners.length !== 1, reason, at: m.time };
+        const order = [...m.ids].sort((a, b) => Number(m.states[b].hp > 0) - Number(m.states[a].hp > 0) || (m.states[b].eliminatedAt || 0) - (m.states[a].eliminatedAt || 0) || m.states[b].score - m.states[a].score);
+        const rank = {};
+        order.forEach((u, i) => {
+          const p = order[i - 1], s = m.states[u], prev = m.states[p];
+          rank[u] = p && (s.hp > 0 && prev.hp > 0 && s.score === prev.score || s.hp <= 0 && prev.hp <= 0 && s.eliminatedAt === prev.eliminatedAt) ? rank[p] : i + 1;
+        });
+        m.result.rank = rank;
+      }
+      function ko(m) {
+        for (const u of m.ids) if (m.states[u].hp <= 0 && m.states[u].eliminatedAt == null) m.states[u].eliminatedAt = m.time;
+        const alive = m.ids.filter((u) => m.states[u].hp > 0);
+        if (alive.length <= 1) {
+          finish(m, "ko");
+          return true;
+        }
+        return false;
+      }
+      function target(m, uid, requested) {
+        return m.ids.find((u) => u === requested && u !== uid && m.states[u].hp > 0) || m.ids.slice(m.ids.indexOf(uid) + 1).concat(m.ids).find((u) => u !== uid && m.states[u].hp > 0);
+      }
+      function automatic(m) {
+        for (const u of m.ids) {
+          const s = m.states[u], to = target(m, u, s.target), o = m.states[to];
+          if (s.hp <= 0 || !o) continue;
+          if (s.gauge === 100 && o.freezeUntil <= m.time) {
+            s.spUsed = (s.spUsed || 0) + 1;
+            s.gauge = s.sp = 0;
+            o.freezeUntil = m.time + 3e3;
+            event(m, to, "freeze", { until: o.freezeUntil, from: u });
+          }
+        }
+      }
+      function advance(m, to, bank, api) {
+        var _a;
+        m.seq || (m.seq = {});
+        for (const s of Object.values(m.states)) {
+          s.hist || (s.hist = []);
+          s.served || (s.served = {});
+        }
+        if (to < m.time) throw Error("CLOCK_REVERSED");
+        while (!m.result && m.time < to) {
+          let t = Math.min(to, m.endAt);
+          for (const u of m.ids) {
+            const s = m.states[u], f = s.freezeUntil > m.time;
+            if (s.hp <= 0) continue;
+            t = Math.min(t, m.time + s.hp * 1e3, s.qStart + 2e4);
+            for (const d of [s.nextAt, f ? s.freezeUntil : 0, !f && !s.resolving && s.combo > 0 ? s.comboDue + 1 : 0, !f && s.pending ? s.counterUntil : 0]) if (d > m.time) t = Math.min(t, d);
+          }
+          if (t <= m.time) t = Math.min(to, m.time + 1);
+          const dt = t - m.time;
+          for (const u of m.ids) {
+            const s = m.states[u];
+            if (s.freezeUntil > m.time) {
+              if (s.combo > 0) s.comboDue += dt;
+              if (s.pending) s.counterUntil += dt;
+            }
+            s.hp = Math.max(0, Math.round((s.hp - dt / 1e3) * 1e6) / 1e6);
+            s.minHp = Math.min((_a = s.minHp) != null ? _a : 100, s.hp);
+            if (Math.max(...m.ids.filter((v) => v !== u).map((v) => m.states[v].score)) - s.score >= 40) s.behind = true;
+          }
+          m.time = t;
+          if (ko(m)) break;
+          if (t >= m.endAt) {
+            finish(m, "time");
+            break;
+          }
+          for (const u of m.ids) {
+            const s = m.states[u], f = s.freezeUntil > t;
+            if (s.hp <= 0) continue;
+            if (!f && !s.resolving && s.combo > 0 && s.comboDue < t) s.combo = 0;
+            if (!f && s.pending && s.counterUntil <= t) {
+              s.queued = Math.min(cap(m.difficulty) - s.oj, s.queued + s.pending);
+              s.pending = 0;
+              s.counterUntil = 0;
+            }
+            if (s.resolving && s.nextAt <= t) board(m, s, bank, api, s.nextAt);
+            if (!s.resolving && s.qStart + 2e4 <= t) {
+              s.combo = 0;
+              s.hp = Math.max(0, s.hp - (m.difficulty === "normal" ? 5 : 0));
+              s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, timeout: true, ms: 2e4 });
+              s.resolving = true;
+              s.nextAt = t + 420;
+              s.qStart = t;
+            }
+          }
+          if (ko(m)) break;
+          automatic(m);
+        }
+        return m;
+      }
+      function step(raw, uid, cmd, now, bank, api) {
+        var _a, _b;
+        const m = advance(copy(raw), now, bank, api);
+        if (m.result) return m;
+        const s = m.states[uid], to = target(m, uid, cmd.target), o = m.states[to];
+        if (!s) throw Error("NOT_PARTICIPANT");
+        if (cmd.type === "heartbeat") return m;
+        if (cmd.type === "cheer") {
+          if (m.ids.includes(cmd.viewer)) throw Error("PLAYER_CANNOT_CHEER");
+          m.cheerReceipts || (m.cheerReceipts = {});
+          const id = cmd.viewer + ":" + cmd.seq;
+          if (m.cheerReceipts[id]) return m;
+          const used = Object.values(m.cheerReceipts).filter((x) => x.viewer === cmd.viewer).length;
+          if (used >= 3 || cmd.seq !== used + 1) throw Error("CHEER_LIMIT");
+          m.cheerReceipts[id] = { viewer: cmd.viewer, target: uid };
+          s.cheerPoints = Math.min(30, s.cheerPoints + 10);
+          return m;
+        }
+        if (cmd.type === "special") throw Error("FREEZE_IS_AUTOMATIC");
+        if (s.hp <= 0) throw Error("KO");
+        s.target = to;
+        if (s.freezeUntil > now) throw Error("FROZEN");
+        if (s.resolving || cmd.question !== `${s.cur.level}:${s.cur.k}`) throw Error("STALE_QUESTION");
+        const fs = (_a = cmd.tiles) == null ? void 0 : _a.map((id) => {
+          var _a2;
+          return (_a2 = s.cur.tiles.find((t) => t.id === id)) == null ? void 0 : _a2.factor;
+        });
+        if ((fs == null ? void 0 : fs.length) !== 2 || cmd.tiles[0] === cmd.tiles[1] || fs.some((f) => !f)) throw Error("INVALID_TILES");
+        const ok = api.polyEqual(api.multiply(...fs), s.cur.poly), ms = now - s.qStart;
+        if (ok) {
+          s.combo++;
+          s.best = Math.max(s.best, s.combo);
+          const recovery = heal(ms), P = Math.round(POINTS[s.cur.level] * (1 + 0.1 * (s.combo - 1))) + Math.max(0, Math.round(s.hp + recovery - 100));
+          const bonus = Math.round(P * 0.1 * s.cur.oj);
+          s.score += P + bonus;
+          s.hp = Math.min(100, s.hp + recovery);
+          s.c++;
+          s.oj = Math.max(0, s.oj - 1);
+          let attack = s.combo === 1 ? 0 : s.combo === 2 ? 1 : s.combo === 3 ? 2 : 3;
+          if (s.pending && s.counterUntil > now) {
+            const cancel = Math.min(s.pending, attack);
+            s.cancelTotal = (s.cancelTotal || 0) + cancel;
+            s.pending -= cancel;
+            attack -= cancel;
+            if (!s.pending) s.counterUntil = 0;
+          }
+          const room = Math.max(0, cap(m.difficulty) - o.oj - o.queued - o.pending), arrived = Math.min(attack, room);
+          if (arrived) {
+            s.ojSent = (s.ojSent || 0) + arrived;
+            if (!o.pending) o.counterUntil = now + 3e3;
+            o.pending += arrived;
+            event(m, to, "incoming", { oj: arrived, until: o.counterUntil });
+          }
+          if (s.combo >= 2 && s.gauge < 100) s.gauge = Math.min(100, s.gauge + s.cur.level * 3);
+          s.sp = s.gauge;
+          s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: true, ms, j: api.getJudgment(ms).label, gain: P + bonus, base: P, bonus, oj: s.cur.oj });
+          if (ms <= 2e3) s.perfects = (s.perfects || 0) + 1;
+          automatic(m);
+        } else {
+          s.combo = 0;
+          const dmg = m.difficulty === "easy" ? 20 : 25;
+          s.dmgTaken = (s.dmgTaken || 0) + dmg;
+          s.hp = Math.max(0, s.hp - dmg);
+          s.minHp = Math.min((_b = s.minHp) != null ? _b : 100, s.hp);
+          s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, ms });
+        }
+        s.resolving = true;
+        s.nextAt = now + 420;
+        s.qStart = now;
+        ko(m);
+        return m;
+      }
+      function view(m, uid) {
+        var _a;
+        const s = m.states[uid];
+        return { id: m.id, mode: "B", difficulty: m.difficulty, rules: "b2", result: m.result || null, question: `${s.cur.level}:${s.cur.k}`, poly: s.cur.poly, tiles: s.cur.tiles, level: s.cur.level, startAt: s.qStart, timeoutMs: 2e4, acceptedSeq: ((_a = m.seq) == null ? void 0 : _a[uid]) || 0, visualEvents: m.visualEvents || [], resolving: s.resolving, combo: s.combo, readyAt: s.nextAt || s.qStart, endAt: m.endAt, freezeUntil: s.freezeUntil, live: copy(m.states) };
+      }
+      module.exports = { begin, step, view, advance, heal, cap, POINTS };
+    }
+  });
+
   // server/online-rated/engine.cjs
   var require_engine = __commonJS({
     "server/online-rated/engine.cjs"(exports, module) {
-      var makeRuntime = new Function("Math", "Date", "fref", "TSV", "fbNow", "// GENERATED from main index.html; do not edit. Server-only.\nfunction gcd(a, b) {\n  a = Math.abs(a); b = Math.abs(b);\n  while (b) { [a, b] = [b, a % b]; }\n  return a || 1;\n}\nfunction randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }\nfunction randSign() { return Math.random() < 0.5 ? 1 : -1; }\nfunction randNonZero(min, max) { let v = 0; while (v === 0) v = randInt(min, max); return v; }\nfunction factorKey(f) {\n  if (f.type === 'linear') return `L${f.a}_${f.b}`;\n  if (f.type === 'quadratic') return `Q${f.A}_${f.B}_${f.C}`;\n  return `C${f.k}`;\n}\nfunction toCoeffs(f) {\n  if (f.type === 'linear') return [f.a, f.b];\n  if (f.type === 'quadratic') return [f.A, f.B, f.C];\n  return [f.k];\n}\nfunction multiply(f1, f2) {\n  const c1 = toCoeffs(f1);\n  const c2 = toCoeffs(f2);\n  const raw = new Array(c1.length + c2.length - 1).fill(0);\n  for (let i = 0; i < c1.length; i++) {\n    for (let j = 0; j < c2.length; j++) raw[i + j] += c1[i] * c2[j];\n  }\n  // raw \u306F\u6B21\u6570\u306E\u9AD8\u3044\u9806\u3002x4\u301Cx0 \u306E5\u9805\u306B\u6B63\u898F\u5316\u3059\u308B(\u6700\u5927\u30672\u6B21\xD72\u6B21=4\u6B21\u307E\u3067\u5BFE\u5FDC)\u3002\n  const padded = [0, 0, 0, 0, 0];\n  for (let i = 0; i < raw.length; i++) {\n    const degree = raw.length - 1 - i;\n    if (degree <= 4) padded[4 - degree] = raw[i];\n  }\n  return { x4: padded[0], x3: padded[1], x2: padded[2], x1: padded[3], x0: padded[4] };\n}\nfunction polyEqual(p1, p2) {\n  return p1.x4 === p2.x4 && p1.x3 === p2.x3 && p1.x2 === p2.x2 && p1.x1 === p2.x1 && p1.x0 === p2.x0;\n}\nfunction coprime(a, b) { return gcd(Math.abs(a), Math.abs(b)) === 1; }\nfunction genL1() {\n  let b, c;\n  do {\n    b = randInt(1, 9);\n    c = randInt(1, 9);\n  } while (!coprime(b, c));\n  const a = randInt(2, 9);          // a \u2260 1\n  const sign = randSign();          // \xB1 \u306E2\u901A\u308A\n  const f1 = { type: 'const', k: a };\n  const f2 = { type: 'linear', a: b, b: sign * c };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL2() {\n  let b, c;\n  do {\n    b = randInt(1, 9);\n    c = randInt(1, 9);\n  } while (!coprime(b, c));\n  const a = randInt(1, 9);          // a = 1 \u3082\u8A31\u5BB9\n  const sign = randSign();\n  const f1 = { type: 'linear', a, b: 0 };            // ax\n  const f2 = { type: 'linear', a: b, b: sign * c };  // bx \xB1 c\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL3() {\n  let a, b;\n  do {\n    a = randNonZero(-9, 9);\n    b = randNonZero(-9, 9);\n  } while (a === -b);\n  const f1 = { type: 'linear', a: 1, b: a };\n  const f2 = { type: 'linear', a: 1, b };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL4() {\n  let a, b;\n  do {\n    a = randInt(1, 9);\n    b = randInt(1, 9);\n  } while (!coprime(a, b));\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a, b: -b };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL5() {\n  let c, b, d;\n  do {\n    c = randInt(2, 9);\n    b = randNonZero(-5, 5);\n    d = randNonZero(-5, 5);\n  } while (!coprime(c, d));\n  const f1 = { type: 'linear', a: 1, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL6() {\n  let c, b, d;\n  do {\n    c = randInt(2, 9);\n    b = randNonZero(-9, 9);\n    d = randNonZero(-9, 9);\n  } while (!coprime(c, d) || !(Math.abs(b) >= 6 || Math.abs(d) >= 6));\n  const f1 = { type: 'linear', a: 1, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL7() {\n  let a, b;\n  do {\n    a = randInt(1, 5);\n    b = randInt(1, 5);\n  } while (!coprime(a, b));\n  const isSum = Math.random() < 0.5;        // + \u306A\u3089\u548C\u3001- \u306A\u3089\u5DEE\n  const s = isSum ? 1 : -1;\n  const linear = { type: 'linear', a, b: s * b };                       // ax \xB1 b\n  const quad = { type: 'quadratic', A: a * a, B: -s * a * b, C: b * b }; // a\xB2x\xB2 \u2213 abx + b\xB2\n  return { factors: [linear, quad], poly: multiply(linear, quad) };\n}\nfunction genL8() {\n  let a, c, b, d;\n  do {\n    a = randInt(2, 4);\n    c = randInt(2, 4);\n    b = randNonZero(-4, 4);\n    d = randNonZero(-4, 4);\n  } while (!coprime(a, b) || !coprime(c, d) || !(a < c || (a === c && b <= d)));\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL9() {\n  let a, c, b, d;\n  do {\n    a = randInt(2, 9);\n    c = randInt(2, 9);\n    b = randNonZero(-9, 9);\n    d = randNonZero(-9, 9);\n  } while (\n    !coprime(a, b) || !coprime(c, d) ||\n    !(a < c || (a === c && b <= d)) ||\n    !(a >= 5 || c >= 5 || Math.abs(b) >= 5 || Math.abs(d) >= 5)\n  );\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nlet GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6, 7: genL7, 8: genL8, 9: genL9 };\nlet LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];\nlet LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };\nlet FIXED_PHASE_LAST_Q = 27;\nlet RANDOM_PHASE_FIRST_Q = 28;\nlet INITIAL_WEIGHTS = { 1: 8, 2: 8, 3: 8, 4: 8, 5: 10, 6: 10, 7: 12, 8: 16, 9: 20 };\nlet WEIGHT_DELTA = { 1: -1, 2: -1, 3: -1, 4: -1, 5: +2, 6: +2, 7: -2, 8: +2 };\nlet FINAL_STEP = 6;\nlet FINAL_FIXED_WEIGHTS = { 1: 2, 2: 2, 3: 2, 4: 2, 5: 22, 6: 22, 7: 2, 8: 30, 9: 16 };\nfunction getLevelWeights(questionNumber) {\n  const steps = Math.max(0, Math.floor((questionNumber - RANDOM_PHASE_FIRST_Q) / 3));\n\n  if (steps >= FINAL_STEP) return { ...FINAL_FIXED_WEIGHTS };\n\n  const w = {};\n  [1, 2, 3, 4].forEach(lv => { w[lv] = Math.max(0, INITIAL_WEIGHTS[lv] + WEIGHT_DELTA[lv] * steps); });\n  w[5] = INITIAL_WEIGHTS[5] + WEIGHT_DELTA[5] * steps;\n  w[6] = INITIAL_WEIGHTS[6] + WEIGHT_DELTA[6] * steps;\n  w[7] = Math.max(0, INITIAL_WEIGHTS[7] + WEIGHT_DELTA[7] * steps);\n  w[8] = INITIAL_WEIGHTS[8] + WEIGHT_DELTA[8] * steps;\n\n  // Lv.9\u306F\u300C\u4ED6\u306E8\u30EC\u30D9\u30EB\u3092\u5F15\u3044\u305F\u6B8B\u308A\u5168\u90E8\u300D\u3092\u5F15\u304D\u53D7\u3051\u308B(\u5E38\u306B\u5408\u8A08100%\u306B\u306A\u308B)\n  const usedSum = [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, lv) => s + w[lv], 0);\n  w[9] = Math.max(0, 100 - usedSum);\n  return w;\n}\nfunction pickLevelForQuestion(questionNumber) {\n  if (questionNumber <= FIXED_PHASE_LAST_Q) {\n    // 1\u301C3\u554F\u76EE=Lv.1\u30014\u301C6\u554F\u76EE=Lv.2 \u2026 25\u301C27\u554F\u76EE=Lv.9\n    return Math.min(9, Math.floor((questionNumber - 1) / 3) + 1);\n  }\n  const w = getLevelWeights(questionNumber);\n  let r = Math.random() * 100;\n  for (const lv of LEVEL_IDS) {\n    if (r < w[lv]) return lv;\n    r -= w[lv];\n  }\n  return 9; // \u4E38\u3081\u8AA4\u5DEE\u5BFE\u7B56\u306E\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\n}\nlet DIFFICULTY_CONFIG = {\n  easy: { label: '\u30A4\u30FC\u30B8\u30FC', clearCount: 15, color: '#52B788', tileCount: 6 },\n  normal: { label: '\u30CE\u30FC\u30DE\u30EB', clearCount: 30, color: '#E8A33D', tileCount: 9 },\n  hard: { label: '\u30CF\u30FC\u30C9', clearCount: 50, color: '#E76F51', tileCount: 9 },\n};\nfunction flipSign(f) {\n  if (f.type === 'const') return { type: 'const', k: -f.k };\n  // quadratic \u306F\u4E2D\u592E\u306E\u9805(\xB1nx)\u306E\u7B26\u53F7\u3092\u9593\u9055\u3048\u308B\u306E\u304C\u5178\u578B\u7684\u306A\u30DF\u30B9\u306A\u306E\u3067\u305D\u3053\u3092\u53CD\u8EE2\u3059\u308B\n  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: -f.B, C: f.C };\n  return { type: 'linear', a: f.a, b: -f.b };\n}\nfunction shiftConst(f) {\n  const d = randSign();\n  if (f.type === 'const') return { type: 'const', k: f.k + d };\n  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: f.B, C: f.C + d };\n  return { type: 'linear', a: f.a, b: f.b + d };\n}\nfunction foreignFactor(level) {\n  const { factors } = GENERATORS[level]();\n  return factors[randInt(0, 1)];\n}\nfunction genDummies(level, correctFactors) {\n  const dummies = [];\n  const pushUnique = (f) => {\n    const key = factorKey(f);\n    if (!correctFactors.some(cf => factorKey(cf) === key) && !dummies.some(d => factorKey(d) === key)) {\n      dummies.push(f);\n    }\n  };\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(flipSign(correctFactors[randInt(0, 1)]));\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(shiftConst(correctFactors[randInt(0, 1)]));\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(foreignFactor(level));\n  // \u76E4\u9762\u306E\u30DE\u30B9\u6570\u306F\u6709\u9650\u306A\u306E\u3067\u3001\u30C0\u30DF\u30FC\u304C\u591A\u3059\u304E\u306A\u3044\u3088\u3046\u4E0A\u9650\u3092\u8A2D\u3051\u308B(\u6700\u7D42\u7684\u306A\u679A\u6570\u306FbuildBoard\u5074\u3067tileCount\u306B\u5207\u308A\u8A70\u3081\u308B)\n  return dummies.slice(0, 5);\n}\nfunction buildBoard(level, seenSet, tileCount = 9) {\n  let factors, poly, sig;\n  let outerAttempt = 0;\n  do {\n    ({ factors, poly } = GENERATORS[level]());\n    sig = `${level}:${poly.x4},${poly.x3},${poly.x2},${poly.x1},${poly.x0}`;\n    outerAttempt++;\n  } while (seenSet && seenSet.has(sig) && outerAttempt < 60);\n  if (seenSet) seenSet.add(sig);\n\n  let tiles = [];\n  let attempt = 0;\n  while (true) {\n    attempt++;\n    const dummies = genDummies(level, factors);\n    let pool = [...factors, ...dummies];\n    let guard = 0;\n    while (pool.length < tileCount && guard < 200) {\n      guard++;\n      const f = foreignFactor(level);\n      const key = factorKey(f);\n      if (!pool.some(p => factorKey(p) === key)) pool.push(f);\n    }\n    // \u6B63\u89E3\u30DA\u30A22\u679A\u306F pool \u306E\u5148\u982D\u306B\u3042\u308B\u306E\u3067\u3001slice \u3057\u3066\u3082\u5FC5\u305A\u76E4\u9762\u306B\u6B8B\u308B\n    pool = pool.slice(0, tileCount);\n    tiles = pool.map((f, idx) => ({ id: `${Date.now()}_${idx}_${Math.random().toString(36).slice(2)}`, factor: f }));\n    for (let i = tiles.length - 1; i > 0; i--) {\n      const j = Math.floor(Math.random() * (i + 1));\n      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];\n    }\n    let matchCount = 0;\n    for (let i = 0; i < tiles.length && matchCount <= 1; i++) {\n      for (let j = i + 1; j < tiles.length; j++) {\n        if (polyEqual(multiply(tiles[i].factor, tiles[j].factor), poly)) {\n          matchCount++;\n          if (matchCount > 1) break;\n        }\n      }\n    }\n    if (matchCount === 1) break;\n    if (attempt > 40) break;\n  }\n  return { tiles, poly, factors };\n}\nlet QUESTION_TIMEOUT_MS = 20000;\nlet JUDGE_TIERS = [\n  { max: 2000, label: 'Perfect', recover: 25, color: '#FFD54A' },\n  { max: 3000, label: 'Excellent', recover: 20, color: '#8BE38F' },\n  { max: 5000, label: 'Great', recover: 15, color: '#6BD4E8' },\n  { max: 10000, label: 'Good', recover: 10, color: '#8FB8FF' },\n  { max: 15000, label: 'OK', recover: 5, color: '#C9C9C9' },\n  { max: 20000, label: 'Fair', recover: 2, color: '#FF9F1C' },\n];\nlet JUDGE_BAD = { label: 'Bad', recover: 0, color: '#FF5C5C' };\nfunction getJudgment(elapsedMs) {\n  for (const tier of JUDGE_TIERS) {\n    if (elapsedMs <= tier.max) return tier;\n  }\n  return JUDGE_BAD; // 20\u79D2\u8D85\u306F\u672C\u6765\u30BF\u30A4\u30E0\u30A2\u30C3\u30D7\u51E6\u7406\u306B\u56DE\u308B\u306E\u3067\u3053\u3053\u306B\u306F\u6765\u306A\u3044\u60F3\u5B9A\u306E\u4FDD\u967A\n}\nlet DIFFICULTY_MISS_PENALTY = { easy: 20, normal: 25, hard: 30 };\nlet DIFFICULTY_TIMEOUT_EXTRA = { easy: 0, normal: 5, hard: 10 };\nlet A_LOCK_MS = 2000;\nlet A_NEXT_DELAY = 1100;\nlet A_LASTSPURT = 3;\nlet B_LAND_DELAY = 3000;\nlet B_FORCE_LAND = 7000;\nlet OJAMA_UNIT = 5;\nlet OJAMA_MAX_PER_BOARD = 3;\nlet SP_MAX = 6;\nlet SP_BIG = { dmg: 15, oj: 1 };\nlet SP_HEAL = 30;\nlet SP_SHIELD_MS = 5000;\nlet PINCH_HP = 30;\nlet PINCH_MUL = 1.3;\nlet MULTI_ATK = { 3: 0.7, 4: 0.55 };\nlet RATING_K = 32;\nlet C_HP = { decay: 0.5, recover: 0.5, miss: 0.6 };\nlet C_UNITE = { dmg: 10, oj: 1, win: 3000, cool: 8000, combo: 3 };\nlet C_FOLLOW = { win: 3000, mul: 1.2 };\nlet handiDmgMul = h => 1 - 0.15 * (h || 0);\nlet handiPtsMul = h => 1 + 0.1 * (h || 0);\nlet BADGES = [\n  // g\uFF1A\u7CFB\u7D71\uFF08\u540C\u3058\u7CFB\u7D71\u306F\u4E00\u756A\u4E0A\u3060\u3051\u540D\u524D\u306E\u6A2A\u306B\u51FA\u3059\uFF09 r\uFF1A\u3081\u305A\u3089\u3057\u3055\uFF08\u5927\u304D\u3044\u307B\u3069\u5148\u306B\u51FA\u3059\uFF09 desc\uFF1A\u53D6\u308A\u65B9\n  { id: 'first', g: 'first', r: 1, icon: '\u{1F331}', label: '\u306F\u3058\u3081\u306E\u4E00\u6B69', desc: '\u521D\u3081\u3066\u52DD\u3064', test: st => (st.w || 0) >= 1 },\n  { id: 'lose50', g: 'lose', r: 2, icon: '\u{1F9F1}', label: '\u4E03\u8EE2\u3073\u516B\u8D77\u304D', desc: '\u8CA0\u305150\u56DE\uFF08\u305D\u308C\u3067\u3082\u7D9A\u3051\u305F\uFF01\uFF09', test: st => (st.l || 0) >= 50 },\n  { id: 'games100', g: 'games', r: 2, icon: '\u{1F4AF}', label: '\u767E\u6226\u932C\u78E8', desc: '100\u6226\u3059\u308B', test: st => (st.games || 0) >= 100 },\n  { id: 'rival20', g: 'rival', r: 2, icon: '\u{1F91D}', label: '\u6C38\u9060\u306E\u30E9\u30A4\u30D0\u30EB', desc: '\u540C\u3058\u76F8\u624B\u306820\u6226', test: st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20) },\n  { id: 'wide10', g: 'wide', r: 1, icon: '\u{1F30F}', label: '\u9854\u304C\u5E83\u3044', desc: '10\u4EBA\u4EE5\u4E0A\u3068\u5BFE\u6226', test: st => Object.keys(st.vs || {}).length >= 10 },\n  { id: 'dual', g: 'dual', r: 2, icon: '\u2696\uFE0F', label: '\u4E8C\u5200\u6D41', desc: 'A\u30FBB\u305D\u308C\u305E\u308C\u306710\u52DD', test: st => ((st.A || {}).w || 0) >= 10 && ((st.B || {}).w || 0) >= 10 },\n  { id: 'streak10', g: 'streak', r: 2, icon: '\u{1F525}', label: '10\u9023\u52DD', desc: '10\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 10 },\n  { id: 'streak30', g: 'streak', r: 4, icon: '\u{1F525}', label: '30\u9023\u52DD', desc: '30\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 30 },\n  { id: 'streak50', g: 'streak', r: 5, icon: '\u{1F525}', label: '50\u9023\u52DD', desc: '50\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 50 },\n  { id: 'perfect50', g: 'perfect', r: 1, icon: '\u2B50', label: 'Perfect 50\u56DE', desc: 'Perfect \u3092\u901A\u7B9750\u56DE', test: st => (st.perfects || 0) >= 50 },\n  { id: 'perfect100', g: 'perfect', r: 2, icon: '\u2B50', label: 'Perfect 100\u56DE', desc: 'Perfect \u3092\u901A\u7B97100\u56DE', test: st => (st.perfects || 0) >= 100 },\n  { id: 'perfect300', g: 'perfect', r: 3, icon: '\u{1F31F}', label: 'Perfect 300\u56DE', desc: 'Perfect \u3092\u901A\u7B97300\u56DE', test: st => (st.perfects || 0) >= 300 },\n  { id: 'perfect500', g: 'perfect', r: 4, icon: '\u{1F31F}', label: 'Perfect 500\u56DE', desc: 'Perfect \u3092\u901A\u7B97500\u56DE', test: st => (st.perfects || 0) >= 500 },\n  { id: 'perfect1000', g: 'perfect', r: 5, icon: '\u{1F451}', label: 'Perfect 1000\u56DE', desc: 'Perfect \u3092\u901A\u7B971000\u56DE', test: st => (st.perfects || 0) >= 1000 },\n  { id: 'comeback', g: 'comeback', r: 2, icon: '\u{1F504}', label: '\u9006\u8EE2\u52DD\u3061', desc: '\u4E0D\u5229\u306A\u5C55\u958B\u304B\u3089\u3072\u3063\u304F\u308A\u8FD4\u3057\u3066\u52DD\u3064', test: st => (st.comebacks || 0) >= 1 },\n  { id: 'comeback10', g: 'comeback', r: 4, icon: '\u{1F504}', label: '\u9006\u8EE2\u306E\u9B3C', desc: '\u9006\u8EE2\u52DD\u306110\u56DE', test: st => (st.comebacks || 0) >= 10 },\n  { id: 'master1700', g: 'master', r: 4, icon: '\u{1F451}', label: '\u56E0\u6570\u5206\u89E3\u30DE\u30B9\u30BF\u30FC', desc: '\u30EC\u30FC\u30C81700\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1700 },\n  { id: 'tour1', g: 'tour', r: 3, icon: '\u{1F3C6}', label: '\u30AF\u30E9\u30B9\u738B', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u3067\u512A\u52DD', test: st => (st.tourWins || 0) >= 1 },\n  { id: 'tour3', g: 'tour', r: 5, icon: '\u{1F3C6}', label: '\u4E09\u51A0\u738B', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u30673\u56DE\u512A\u52DD', test: st => (st.tourWins || 0) >= 3 },\n  { id: 'flash', g: 'flash', r: 3, icon: '\u26A1', label: '\u5149\u901F\u306E\u56E0\u6570\u5206\u89E3', desc: '1\u554F\u30921\u79D2\u4EE5\u5185\u306B\u6B63\u89E3', test: st => st.bestMs != null && st.bestMs <= 1000 },\n  { id: 'combo20', g: 'combo', r: 3, icon: '\u{1F525}', label: '\u30B3\u30F3\u30DC\u8077\u4EBA', desc: '1\u8A66\u5408\u306720\u30B3\u30F3\u30DC', test: st => (st.maxCombo || 0) >= 20 },\n  { id: 'nomiss', g: 'nomiss', r: 3, icon: '\u{1F3AF}', label: '\u30CE\u30FC\u30DF\u30B9\u5B8C\u8D70', desc: 'B\u3067\u30DF\u30B9\u30FB\u6642\u9593\u5207\u308C0\u306E\u307E\u307E\u52DD\u3064', test: st => (st.nomissWins || 0) >= 1 },\n  { id: 'clutch', g: 'clutch', r: 3, icon: '\u{1FA78}', label: '\u30AE\u30EA\u30AE\u30EA\u30BB\u30FC\u30D5', desc: 'B\u3067\u4F53\u529B5%\u4EE5\u4E0B\u306B\u306A\u3063\u3066\u304B\u3089\u52DD\u3064', test: st => (st.clutchWins || 0) >= 1 },\n  { id: 'cancel500', g: 'cancel', r: 3, icon: '\u{1F6E1}\uFE0F', label: '\u9244\u58C1\u306E\u5B88\u308A', desc: '\u76F8\u6BBA\u3067\u6253\u3061\u6D88\u3057\u305F\u91CF\u304C\u901A\u7B97500', test: st => (st.cancelTotal || 0) >= 500 },\n  { id: 'ojama100', g: 'ojama', r: 3, icon: '\u{1F4A3}', label: '\u304A\u3058\u3083\u307E\u8077\u4EBA', desc: '\u304A\u3058\u3083\u307E\u30BF\u30A4\u30EB\u3092\u901A\u7B97100\u679A\u9001\u308B', test: st => (st.ojSent || 0) >= 100 },\n  { id: 'sp50', g: 'sp', r: 3, icon: '\u2728', label: '\u5FC5\u6BBA\u6280\u30DE\u30B9\u30BF\u30FC', desc: '\u5FC5\u6BBA\u6280\u3092\u901A\u7B9750\u56DE\u4F7F\u3046', test: st => (st.spUsed || 0) >= 50 },\n  { id: 'giant', g: 'giant', r: 4, icon: '\u{1F9B8}', label: '\u30B8\u30E3\u30A4\u30A2\u30F3\u30C8\u30AD\u30E9\u30FC', desc: '\u81EA\u5206\u3088\u308A\u30EC\u30FC\u30C8\u304C200\u4EE5\u4E0A\u9AD8\u3044\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.giantWins || 0) >= 1 },\n  { id: 'survivor', g: 'survivor', r: 4, icon: '\u{1F3DD}\uFE0F', label: '\u30E9\u30B9\u30C8\u30B5\u30D0\u30A4\u30D0\u30FC', desc: '4\u4EBA\u6226\uFF08B\uFF09\u3067\u6700\u5F8C\u306E1\u4EBA\u307E\u3067\u751F\u304D\u6B8B\u3063\u3066\u52DD\u3064', test: st => (st.survivors || 0) >= 1 },\n  { id: 'shutout', g: 'shutout', r: 4, icon: '\u{1F977}', label: '\u5B8C\u5C01', desc: 'A\u3067\u76F8\u624B\u30920\u70B9\u306B\u3057\u3066\u52DD\u3064', test: st => (st.shutouts || 0) >= 1 },\n  { id: 'lv9', g: 'lv9', r: 4, icon: '\u{1F9E0}', label: 'Lv.9\u306E\u58C1', desc: 'Lv.9\u306E\u554F\u984C\u3092 Perfect \u3067\u6B63\u89E3', test: st => (st.lv9p || 0) >= 1 },\n  { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '\u{1F438}', label: '\u304A\u624B\u3064\u304D\u5927\u738B', desc: 'A\u3067\u304A\u624B\u3064\u304D\u901A\u7B97100\u56DE', test: st => (st.otetsuki || 0) >= 100 },\n  { id: 'handi', g: 'handi', r: 3, icon: '\u{1F381}', label: '\u30CF\u30F3\u30C7\u306A\u3093\u3066\u95A2\u4FC2\u306A\u3044', desc: '\u30CF\u30F3\u30C7\u2605\u2605\u2605\u306E\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.handiWins || 0) >= 1 },\n  { id: 'games300', g: 'games', r: 4, icon: '\u{1F3EF}', label: '\u4FEE\u884C\u306E\u9053', desc: '300\u6226\u3059\u308B', test: st => (st.games || 0) >= 300 },\n  { id: 'master1600', g: 'master', r: 2, icon: '\u{1F320}', label: '\u671F\u5F85\u306E\u65B0\u661F', desc: '\u30EC\u30FC\u30C81600\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1600 },\n  { id: 'master1900', g: 'master', r: 5, icon: '\u{1F409}', label: '\u4F1D\u8AAC\u306E\u56E0\u6570\u5206\u89E3\u5E2B', desc: '\u30EC\u30FC\u30C81900\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1900 },\n  { id: 'combo30', g: 'combo', r: 4, icon: '\u{1F30B}', label: '\u30B3\u30F3\u30DC\u306E\u795E', desc: '1\u8A66\u5408\u306730\u30B3\u30F3\u30DC', test: st => (st.maxCombo || 0) >= 30 },\n  { id: 'cancel2000', g: 'cancel', r: 4, icon: '\u{1F3F0}', label: '\u96E3\u653B\u4E0D\u843D', desc: '\u76F8\u6BBA\u3067\u6253\u3061\u6D88\u3057\u305F\u91CF\u304C\u901A\u7B972000', test: st => (st.cancelTotal || 0) >= 2000 },\n  { id: 'ojama500', g: 'ojama', r: 4, icon: '\u{1F608}', label: '\u304A\u3058\u3083\u307E\u9B54\u738B', desc: '\u304A\u3058\u3083\u307E\u30BF\u30A4\u30EB\u3092\u901A\u7B97500\u679A\u9001\u308B', test: st => (st.ojSent || 0) >= 500 },\n  { id: 'nomiss10', g: 'nomiss', r: 4, icon: '\u{1F3AF}', label: '\u30CE\u30FC\u30DF\u30B9\u306E\u9054\u4EBA', desc: '\u30CE\u30FC\u30DF\u30B9\u5B8C\u8D70\u306710\u56DE\u52DD\u3064', test: st => (st.nomissWins || 0) >= 10 },\n  { id: 'wide30', g: 'wide', r: 3, icon: '\u{1F3AA}', label: '\u4EBA\u6C17\u8005', desc: '30\u4EBA\u4EE5\u4E0A\u3068\u5BFE\u6226', test: st => Object.keys(st.vs || {}).length >= 30 },\n  { id: 'tour10', g: 'tour', r: 5, icon: '\u{1F3DB}\uFE0F', label: '\u6BBF\u5802\u5165\u308A', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u306710\u56DE\u512A\u52DD', test: st => (st.tourWins || 0) >= 10 },\n  { id: 'miracle', g: 'clutch', r: 5, icon: '\u{1F607}', label: '\u5947\u8DE1\u306E\u751F\u9084', desc: 'B\u3067\u4F53\u529B1%\u4EE5\u4E0B\u306B\u306A\u3063\u3066\u304B\u3089\u52DD\u3064', test: st => (st.miracleWins || 0) >= 1 },\n  { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '\u{1F434}', label: '\u30C0\u30FC\u30AF\u30DB\u30FC\u30B9', desc: '\u51FA\u5834\u8005\u306E\u4E2D\u3067\u30EC\u30FC\u30C8\u304C\u3044\u3061\u3070\u3093\u4F4E\u3044\u306E\u306B\u5927\u4F1A\u3067\u512A\u52DD\uFF08\u8A18\u9332\u3042\u308A\u306E\u4EBA\u304C4\u4EBA\u4EE5\u4E0A\uFF09', test: st => (st.darkHorse || 0) >= 1 },\n  { id: 'daily7', g: 'daily', r: 2, icon: '\u{1F4C5}', label: '\u7686\u52E4\u8CDE', desc: '7\u65E5\u7D9A\u3051\u3066\u5BFE\u6226\u3059\u308B', test: st => (st.maxDayStreak || 0) >= 7 },\n  { id: 'daily30', g: 'daily', r: 4, icon: '\u{1F5D3}\uFE0F', label: '\u7D99\u7D9A\u306F\u529B\u306A\u308A', desc: '30\u65E5\u7D9A\u3051\u3066\u5BFE\u6226\u3059\u308B', test: st => (st.maxDayStreak || 0) >= 30 },\n  { id: 'sp3', g: 'sp3', r: 3, icon: '\u{1F4A5}', label: '\u5FC5\u6BBA\u6280\u4E09\u9023\u767A', desc: '1\u8A66\u5408\u3067\u5FC5\u6BBA\u6280\u30923\u56DE\u4F7F\u3046', test: st => (st.maxSpMatch || 0) >= 3 },\n  { id: 'revenge', g: 'revenge', r: 2, icon: '\u2694\uFE0F', label: '\u30EA\u30D9\u30F3\u30B8\u6210\u529F', desc: '\u524D\u306E\u8A66\u5408\u3067\u8CA0\u3051\u305F\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.revenges || 0) >= 1 },\n  { id: 'calm', g: 'calm', r: 3, icon: '\u{1F9D8}', label: '\u51B7\u9759\u6C88\u7740', desc: 'A\u3067\u304A\u624B\u3064\u304D0\u306E\u307E\u307E\u30016\u554F\u4EE5\u4E0A\u53D6\u3063\u3066\u52DD\u3064', test: st => (st.calmWins || 0) >= 1 },\n  { id: 'flawless', g: 'flawless', r: 3, icon: '\u{1F48E}', label: '\u7121\u50B7\u306E\u52DD\u5229', desc: 'B\u3067\u653B\u6483\u3092\u4E00\u5EA6\u3082\u53D7\u3051\u305A\u306B\u52DD\u3064', test: st => (st.flawlessWins || 0) >= 1 },\n  { id: 'nosp', g: 'nosp', r: 3, icon: '\u{1F94B}', label: '\u5FC5\u6BBA\u6280\u3044\u3089\u305A', desc: 'B\u65B9\u5F0F\u3067\u5FC5\u6BBA\u6280\u3092\u4E00\u5EA6\u3082\u4F7F\u308F\u305A\u306B\u52DD\u3064', test: st => (st.noSpWins || 0) >= 1 },\n  { id: 'rgold', g: 'rank', r: 2, icon: '\u{1F947}', label: '\u30B4\u30FC\u30EB\u30C9\u306E\u98A8\u683C', desc: '\u30E9\u30F3\u30AF\u5E2F\u30B4\u30FC\u30EB\u30C9\uFF08\u30EC\u30FC\u30C81580\uFF09\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1580 },\n  { id: 'rmaster', g: 'rank', r: 4, icon: '\u{1F451}', label: '\u9802\u70B9\u306B\u7ACB\u3064\u8005', desc: '\u30E9\u30F3\u30AF\u5E2F\u30DE\u30B9\u30BF\u30FC\uFF08\u30EC\u30FC\u30C81820\uFF09\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1820 },\n  { id: 'bounty1', g: 'bounty', r: 2, icon: '\u{1F4B0}', label: '\u8CDE\u91D1\u7A3C\u304E', desc: '\u61F8\u8CDE\u91D1\u304C\u304B\u304B\u3063\u305F\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.bountyWins || 0) >= 1 },\n  { id: 'bounty10', g: 'bounty', r: 4, icon: '\u{1F920}', label: '\u4F1D\u8AAC\u306E\u30CF\u30F3\u30BF\u30FC', desc: '\u61F8\u8CDE\u91D1\u304C\u304B\u304B\u3063\u305F\u76F8\u624B\u306B\u901A\u7B9710\u56DE\u52DD\u3064', test: st => (st.bountyWins || 0) >= 10 },\n  { id: 'wanted', g: 'wanted', r: 3, icon: '\u{1F4DC}', label: '\u304A\u5C0B\u306D\u8005', desc: '\u61F8\u8CDE\u91D150\u4EE5\u4E0A\u304C\u304B\u304B\u308B\uFF087\u9023\u52DD\uFF09', test: st => (st.maxStreak || 0) >= 7 },\n  { id: 'mis7', g: 'mis', r: 3, icon: '\u{1F4C6}', label: '\u30DF\u30C3\u30B7\u30E7\u30F3\u7686\u52E4', desc: '\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3\u30927\u65E5\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u3059\u308B', test: st => (st.misDays || 0) >= 7 },\n  { id: 'lasthit', g: 'lasthit', r: 4, icon: '\u{1F5E1}\uFE0F', label: '\u30E9\u30B9\u30C8\u30A2\u30BF\u30C3\u30AB\u30FC', desc: '\u30AF\u30E9\u30B9\u5354\u529B\u30EC\u30A4\u30C9\u3067\u30DC\u30B9\u306B\u3068\u3069\u3081\u3092\u523A\u3059', test: st => (st.lastHits || 0) >= 1 },\n  // \u4ECA\u9031\u306E\u30DC\u30B9\n  { id: 'wk1', g: 'wk', r: 1, icon: '\u{1F5D3}\uFE0F', label: '\u521D\u9663', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u521D\u3081\u3066\u51FA\u6483\u3059\u308B', test: st => ((st.wk || {}).weeks || 0) >= 1 },\n  { id: 'wkst3', g: 'wkst', r: 2, icon: '\u{1F501}', label: '\u7686\u52E4\u306E\u6226\u58EB', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B3\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 3 },\n  { id: 'wkst5', g: 'wkst', r: 3, icon: '\u{1F6E1}\uFE0F', label: '\u6B74\u6226\u306E\u6226\u58EB', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B5\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 5 },\n  { id: 'wkst10', g: 'wkst', r: 5, icon: '\u{1F3EF}', label: '\u4E0D\u5C48\u306E\u5B88\u8B77\u8005', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B10\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 10 },\n  { id: 'wkk1', g: 'wkk', r: 2, icon: '\u2694\uFE0F', label: '\u8A0E\u4F10\u968A', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0\uFF08\u6483\u7834\u3055\u308C\u305F\u9031\u306B\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u308B\uFF09', test: st => ((st.wk || {}).kills || 0) >= 1 },\n  { id: 'wkk5', g: 'wkk', r: 3, icon: '\u{1F396}\uFE0F', label: '\u8A0E\u4F10\u968A\u9577', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B5\u56DE\u53C2\u52A0', test: st => ((st.wk || {}).kills || 0) >= 5 },\n  { id: 'wkk10', g: 'wkk', r: 4, icon: '\u{1F981}', label: '\u6551\u56FD\u306E\u82F1\u96C4', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B10\u56DE\u53C2\u52A0', test: st => ((st.wk || {}).kills || 0) >= 10 },\n  { id: 'wkace', g: 'wkace', r: 3, icon: '\u{1F3C5}', label: '\u4ECA\u9031\u306E\u30A8\u30FC\u30B9', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u30C0\u30E1\u30FC\u30B8\u3067\u90311\u4F4D\u306B\u306A\u308B', test: st => ((st.wk || {}).ace || 0) >= 1 },\n  { id: 'wkace5', g: 'wkace', r: 5, icon: '\u{1F31F}', label: '\u7D76\u5BFE\u7684\u30A8\u30FC\u30B9', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u30C0\u30E1\u30FC\u30B8\u3067\u90311\u4F4D\u30925\u56DE', test: st => ((st.wk || {}).ace || 0) >= 5 },\n  { id: 'wkone', g: 'wkone', r: 3, icon: '\u{1F4A5}', label: '\u4E00\u6483\u5FC5\u6BBA', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B1\u56DE\u306E\u51FA\u6483\u3067600\u30C0\u30E1\u30FC\u30B8', test: st => ((st.wk || {}).best || 0) >= 600 },\n  { id: 'wkone2', g: 'wkone', r: 4, icon: '\u2604\uFE0F', label: '\u4F1A\u5FC3\u306E\u51FA\u6483', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B1\u56DE\u306E\u51FA\u6483\u30671200\u30C0\u30E1\u30FC\u30B8', test: st => ((st.wk || {}).best || 0) >= 1200 },\n  { id: 'wkdex3', g: 'wkdex', r: 3, icon: '\u{1F4D6}', label: '\u30DC\u30B9\u56F3\u9451', desc: '3\u7A2E\u985E\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },\n  { id: 'wkdex6', g: 'wkdex', r: 5, icon: '\u{1F432}', label: '\u30DC\u30B9\u30CF\u30F3\u30BF\u30FC', desc: '6\u7A2E\u985E\u3059\u3079\u3066\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },\n  { id: 'lb7', g: 'lb', r: 2, icon: '\u{1F3AB}', label: '\u30B9\u30BF\u30F3\u30D7\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8', desc: '\u30ED\u30B0\u30A4\u30F3\u30DC\u30FC\u30CA\u30B9\u306E\u30AB\u30FC\u30C9\u30921\u679A\u5B8C\u6210\u3055\u305B\u308B\uFF087\u65E5\uFF09', test: st => ((st.login || {}).cards || 0) >= 1 },\n  { id: 'lb30', g: 'lb', r: 3, icon: '\u{1F3EB}', label: '\u3044\u3064\u3082\u306E\u9854', desc: '\u901A\u7B9730\u65E5\u30ED\u30B0\u30A4\u30F3', test: st => ((st.login || {}).n || 0) >= 30 },\n  { id: 'lb100', g: 'lb', r: 5, icon: '\u{1F338}', label: '\u5E38\u9023\u3055\u3093', desc: '\u901A\u7B97100\u65E5\u30ED\u30B0\u30A4\u30F3', test: st => ((st.login || {}).n || 0) >= 100 },\n  { id: 'wkchest1', g: 'wkchest', r: 2, icon: '\u{1F381}', label: '\u5B9D\u63A2\u3057', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u51FA\u6483\u4E2D\u306B\u5B9D\u7BB1\u3092\u958B\u3051\u308B', test: st => ((st.wk || {}).chests || 0) >= 1 },\n  { id: 'wkchest10', g: 'wkchest', r: 4, icon: '\u{1F3F4}\u200D\u2620\uFE0F', label: '\u30C8\u30EC\u30B8\u30E3\u30FC\u30CF\u30F3\u30BF\u30FC', desc: '\u5B9D\u7BB1\u3092\u901A\u7B9710\u500B\u958B\u3051\u308B', test: st => ((st.wk || {}).chests || 0) >= 10 },\n  { id: 'wksup1', g: 'wksup', r: 2, icon: '\u{1F4E3}', label: '\u7E01\u306E\u4E0B\u306E\u529B\u6301\u3061', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u30B5\u30DD\u30FC\u30BF\u30FC\u3067\u51FA\u6483', test: st => ((st.wk || {}).supRuns || 0) >= 1 },\n  { id: 'wksup100', g: 'wksup', r: 4, icon: '\u{1F3BA}', label: '\u540D\u30B5\u30DD\u30FC\u30BF\u30FC', desc: '\u5FDC\u63F4\u30DD\u30A4\u30F3\u30C8\u3092\u901A\u7B97100', test: st => ((st.wk || {}).sup || 0) >= 100 },\n  { id: 'tw10', g: 'tower', r: 2, icon: '\u{1F5FC}', label: '\u5854\u306E\u6311\u6226\u8005', desc: '\u6570\u7406\u306E\u5854\u306710\u968E\u3092\u7A81\u7834', test: st => ((st.tower || {}).best || 0) >= 10 },\n  { id: 'tw30', g: 'tower', r: 3, icon: '\u{1F3EF}', label: '\u5854\u306E\u719F\u7DF4\u8005', desc: '\u6570\u7406\u306E\u5854\u306730\u968E\u3092\u7A81\u7834', test: st => ((st.tower || {}).best || 0) >= 30 },\n  { id: 'tw50', g: 'tower', r: 5, icon: '\u{1F451}', label: '\u5854\u3092\u5236\u8987', desc: '\u6570\u7406\u306E\u5854\u306E50\u968E\u3067\u56E0\u6570\u306E\u738B\u3092\u5012\u3059', test: st => ((st.tower || {}).best || 0) >= 50 },\n  { id: 'tw70', g: 'tower', r: 5, icon: '\u{1F4D6}', label: '\u6570\u7406\u306E\u66F8\u306E\u7D99\u627F\u8005', desc: '\u6570\u7406\u306E\u5854\u306E\u7B2C\u4E00\u90E8\u3092\u30AF\u30EA\u30A2', test: st => ((st.tower || {}).best || 0) >= 70 },\n  { id: 'tw100', g: 'tower', r: 5, icon: '\u{1F30C}', label: '\u7D42\u308F\u308A\u306A\u304D\u63A2\u7A76\u8005', desc: '\u6570\u7406\u306E\u5854\u306E\u7B2C\u4E00\u90E8\u30923\u56DE\u30AF\u30EA\u30A2', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },\n  { id:'hyper_slayer',g:'hyper_slayer',r:5,icon:'\u{1F30C}',label:'\u8D85\u5F71\u306E\u5F81\u670D\u8005',desc:'\u4E71\u5165\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.hyper_slayer===true },\n  { id:'ghost_up1',g:'ghost_up1',r:3,icon:'\u2694\uFE0F',label:'\u683C\u4E0A\u306E\u5F71\u3092\u7834\u308B\u8005',desc:'1\u30E9\u30F3\u30AF\u4E0A\u306E\u4E71\u5165\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.ghost_up1===true },\n  { id:'ghost_up2',g:'ghost_up2',r:4,icon:'\u{1F320}',label:'\u4E8C\u968E\u7D1A\u306E\u5F71\u3092\u8D85\u3048\u308B\u8005',desc:'2\u30E9\u30F3\u30AF\u4E0A\u306E\u4E71\u5165\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.ghost_up2===true },\n  { id: 'wkrage', g: 'wkrage', r: 4, icon: '\u{1F624}', label: '\u6012\u308A\u3092\u93AE\u3081\u3057\u8005', desc: '\u6012\u3063\u3066\u5C45\u5EA7\u3063\u305F\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => ((st.wk || {}).rageKills || 0) >= 1 },\n  { id: 'wklast', g: 'wklast', r: 4, icon: '\u{1F5E1}\uFE0F', label: '\u8A0E\u4F10\u306E\u4E00\u6483', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u3068\u3069\u3081\u3092\u523A\u3059', test: st => ((st.wk || {}).lastHit || 0) >= 1 },\n  { id: 'alllv', g: 'alllv', r: 5, icon: '\u{1F308}', label: '\u30AA\u30FC\u30EB\u30EC\u30D9\u30EB\u5236\u8987', desc: 'Lv.1\u301CLv.9 \u3059\u3079\u3066\u3067 Perfect \u3092\u53D6\u308B', test: st => ((st.lvP || 0) & 1022) === 1022 },\n];\nfunction hashSeed(s) {\n  let h = 1779033703 ^ s.length;\n  for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }\n  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);\n  return (h ^= h >>> 16) >>> 0;\n}\nfunction mulberry32(a) {\n  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };\n}\nfunction withSeed(key, fn) {\n  const orig = Math.random;\n  Math.random = mulberry32(hashSeed(key));\n  try { return fn(); } finally { Math.random = orig; }\n}\nfunction makeBank(seed, tileCount) {\n  const lists = {}, seen = {}, levels = {};\n  return {\n    get(level, k) {\n      const L = lists[level] || (lists[level] = []);\n      const S = seen[level] || (seen[level] = new Set());\n      while (L.length <= k) {\n        const i = L.length;\n        const b = withSeed(`${seed}:${level}:${i}`, () => buildBoard(level, S, tileCount));\n        b.tiles = b.tiles.map((t, j) => ({ ...t, id: `q${level}_${i}_${j}` }));\n        L.push(b);\n      }\n      return L[k];\n    },\n    level(n) { // n \u554F\u76EE\uFF081\u59CB\u307E\u308A\uFF09\u306E\u30EC\u30D9\u30EB\n      if (levels[n] == null) levels[n] = withSeed(`${seed}:lv:${n}`, () => pickLevelForQuestion(n));\n      return levels[n];\n    },\n  };\n}\nfunction problemForA(bank, q) {\n  const lv = bank.level(q + 1);\n  let k = 0;\n  for (let i = 0; i < q; i++) if (bank.level(i + 1) === lv) k++;\n  return { level: lv, k, ...bank.get(lv, k) };\n}\nfunction addOjama(tiles, poly, level, n) {\n  const out = [...tiles];\n  let guard = 0, added = 0;\n  while (added < n && guard < 300) {\n    guard++;\n    const f = foreignFactor(level);\n    const key = factorKey(f);\n    if (out.some(t => factorKey(t.factor) === key)) continue;\n    if (out.some(t => polyEqual(multiply(t.factor, f), poly))) continue;\n    const pos = Math.floor(Math.random() * (out.length + 1));\n    out.splice(pos, 0, { id: 'oj_' + Math.random().toString(36).slice(2), factor: f, ojama: true });\n    added++;\n  }\n  return out;\n}\nfunction attackFor(judgeLabel, combo) {\n  let dmg = 0, oj = 0;\n  // ver.5.7 \u3067\u5F31\u3081\u305F\uFF083\u30B3\u30F3\u30DC\u76EE\u304B\u30892\u30FB4\u30FB6\u30FB8\u3001\u6700\u59278\u30025\u30B3\u30F3\u30DC\u3054\u3068\u306B+5\u3002\u304A\u3058\u3083\u307E\u306F Perfect \u30671\u679A\uFF09\n  if (combo >= 3) dmg += Math.min(8, 2 * (combo - 2));\n  if (combo > 0 && combo % 5 === 0) dmg += 5;\n  if (judgeLabel === 'Perfect') oj += 1;\n  return { dmg, oj };\n}\nfunction scoreA(bank, claims, players, N, hc) {\n  const sc = {}, cb = {}, best = {};\n  players.forEach(p => { sc[p] = 0; cb[p] = 0; best[p] = 0; });\n  const log = [];\n  for (let q = 0; ; q++) {\n    const c = claims && claims[q];\n    if (!c) break;\n    const lv = bank.level(q + 1);\n    if (c.uid in sc) {\n      const w = c.uid, mult = 1 + cb[w] * 0.1;\n      const spurt = N && q >= N - A_LASTSPURT ? 2 : 1;\n      const pts = Math.round((LEVEL_POINTS[lv] || 10) * mult * spurt * handiPtsMul(hc && hc[w]));\n      sc[w] += pts; cb[w]++; best[w] = Math.max(best[w], cb[w]);\n      players.forEach(p => { if (p !== w) cb[p] = 0; });\n      log.push({ q, w, pts, at: c.at, spurt: spurt > 1 });\n    } else {\n      players.forEach(p => { cb[p] = 0; });\n      log.push({ q, w: null, at: c.at });\n    }\n  }\n  return { sc, cb, best, log };\n}\nlet qStartA = (claims, q, startAt) => q === 0 ? startAt : ((claims[q - 1] && claims[q - 1].at) || startAt) + A_NEXT_DELAY;\nfunction ratingDelta(myR, opps) {\n  let d = 0;\n  opps.forEach(o => { const E = 1 / (1 + Math.pow(10, (o.r - myR) / 400)); d += RATING_K * (o.s - E); });\n  return d;\n}\nfunction bTarget(me, ids, live, ko, tm) {\n  const alive = ids.filter(u => u !== me && !(tm && tm[u] === tm[me]) && !(ko && ko[u]) && !(live[u] && live[u].st === 'ko'));\n  if (!alive.length) return null;\n  const L = u => live[u] || {};\n  alive.sort((a, b) => (L(b).c || 0) - (L(a).c || 0) || (L(b).score || 0) - (L(a).score || 0) || (a < b ? -1 : 1));\n  return alive[0];\n}\nfunction createBEngine(o) {\n  const s = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, resolving: false, over: false, ko: false,\n    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100, dmgTaken: 0 };\n  const fx = (t, p) => { if (o.fx) o.fx(t, p); };\n  const snd = (k, rate) => { if (o.sound) o.sound.play(k, rate); };\n  const mul = handiDmgMul(o.hc);\n  const r1 = v => Math.round(v * 100) / 100;\n  const E = { s };\n  /* C\uFF1A\u4F53\u529B\u306F\u30C1\u30FC\u30E0\u30671\u672C\uFF08rooms/<code>/thp/<gid>/<\u30C1\u30FC\u30E0>\uFF09\u3002\u81EA\u5206\u306E\u5897\u6E1B\u306F\u305F\u3081\u3066\u3001\u307E\u3068\u3081\u3066 transaction \u3067\u8DB3\u3059 */\n  const tm = o.tm || null, TC = !!tm, myT = TC ? tm[o.uid] : null;\n  const mate = TC ? o.ids.find(u => u !== o.uid && tm[u] === myT) : null;\n  s.pool = 100; s.dq = 0; s.flushT = 0; s.lastOkAt = 0; s.lastMissAt = 0; s.uniteAt = 0; s.unites = 0; s.covers = 0;\n  const poolRef = TC ? fref(`rooms/${o.code}/thp/${o.gid}/${myT}`) : null;\n  const syncHp = () => { if (TC) s.hp = Math.max(0, Math.min(100, r1(s.pool + s.dq))); };\n  const addHp = x => { if (!TC) { s.hp = Math.max(0, Math.min(100, r1(s.hp + x))); return; } s.dq += x; syncHp(); };\n  E.flush = force => {\n    if (!TC || !s.dq) return;\n    const t = Date.now();\n    if (!force && t - s.flushT < 300 && Math.abs(s.dq) < 5) return;\n    s.flushT = t; const d = s.dq; s.dq = 0;\n    poolRef.transaction(v => Math.max(0, Math.min(100, r1((v == null ? 100 : v) + d)))).catch(() => {});\n  };\n  let poolFn = null;\n  if (TC) { poolFn = snap => { const v = snap.val(); s.pool = v == null ? 100 : v; syncHp(); }; poolRef.on('value', poolFn); }\n  E.dispose = () => { if (poolFn) poolRef.off('value', poolFn); };\n  E.mate = mate; E.team = myT;\n  const mateL = () => (mate && ((o.view().live || {})[mate])) || {};\n  E.shield = () => Date.now() < s.shieldUntil;\n  E.pinch = () => s.hp <= PINCH_HP;\n  E.target = () => { const v = o.view(); return bTarget(o.uid, o.ids, v.live || {}, v.ko || {}, o.tm); };\n  E.serve = () => {\n    const n = s.c + 1, lv = o.bank.level(n), k = s.served[lv] || 0;\n    s.served[lv] = k + 1;\n    const b = o.bank.get(lv, k);\n    let tiles = b.tiles.map(t => ({ ...t }));\n    const oj = Math.min(OJAMA_MAX_PER_BOARD, s.ojNext);\n    if (oj > 0) { tiles = addOjama(tiles, b.poly, lv, oj); s.ojNext -= oj; fx('ojama', oj); }\n    s.cur = { level: lv, k, poly: b.poly, tiles, oj };\n    s.qStart = Date.now(); s.warned = false;\n  };\n  E.writeLive = force => {\n    const t = Date.now();\n    if (!force && t - s.pushT < 400) return;\n    s.pushT = t;\n    const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);\n    fref(`rooms/${o.code}/live/${o.gid}/${o.uid}`).set({ hp: Math.round(s.hp * 10) / 10, c: s.c, score: s.score, combo: s.combo, pd, po, sp: s.sp, sh: E.shield() ? 1 : 0,\n      lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play', ...(TC ? { ok: s.lastOkAt, ms: s.lastMissAt, un: s.uniteAt } : {}) }).catch(() => {});\n    E.flush(force);\n  };\n  E.knockout = () => {\n    if (s.over) return;\n    s.over = true; s.ko = true;\n    if (TC) { s.dq = -200; E.flush(true); }\n    s.hp = 0;\n    E.writeLive(true);\n    fref(`rooms/${o.code}/ko/${o.gid}/${o.uid}`).transaction(cur => cur ? undefined : { at: TSV() }).catch(() => {});\n    fx('ko');\n  };\n  const damage = x => {\n    if (x <= 0) return;\n    addHp(-x);\n    s.minHp = Math.min(s.minHp, s.hp);\n    if (s.hp <= 0) E.knockout();\n  };\n  /* \u5C4A\u3044\u305F\u653B\u6483\u3092\u53D7\u3051\u53D6\u308B\uFF08\u30B7\u30FC\u30EB\u30C9\u4E2D\u306F\u306F\u306D\u8FD4\u3059\uFF09 */\n  E.receive = evs => {\n    if (!evs) return;\n    let any = false;\n    Object.entries(evs).forEach(([k, e]) => {\n      if (s.seenEv[k] || !e) return;\n      s.seenEv[k] = 1;\n      if (s.over) return;\n      if (e.cover) { const c = coverPend(e.cover); if (c > 0) { fx('covered', { from: e.from, units: c }); E.writeLive(true); } return; }\n      if (E.shield()) { fx('blocked', e); return; }\n      const dmg = Math.round((e.dmg || 0) * mul);\n      s.pend.push({ dmg, oj: e.oj || 0, t: Date.now(), from: e.from });\n      any = true;\n      snd('buzz'); fx('incoming', { dmg, oj: e.oj || 0, from: e.from, sp: e.sp });\n    });\n    if (any) E.writeLive(true);\n  };\n  /* \u4E88\u544A\u6642\u9593\u3092\u904E\u304E\u305F\u653B\u6483\u3092\u843D\u3068\u3059 */\n  E.land = forceAll => {\n    const t = Date.now();\n    let dmg = 0, oj = 0;\n    s.pend = s.pend.filter(p => {\n      if (forceAll || t - p.t >= B_LAND_DELAY) { dmg += p.dmg; oj += p.oj; return false; }\n      return true;\n    });\n    if (E.shield()) { if (dmg || oj) fx('blocked', { dmg, oj }); return; }\n    if (oj > 0) s.ojNext += oj;\n    if (dmg > 0 || oj > 0) { s.dmgTaken += dmg + oj; snd('hit'); fx('hit', { dmg, oj }); }\n    damage(dmg);\n  };\n  /* C\uFF1A\u4EF2\u9593\u304C\u4EE3\u308F\u308A\u306B\u76F8\u6BBA\u3057\u3066\u304F\u308C\u305F\uFF08units \u3076\u3093\u4E88\u544A\u3092\u6E1B\u3089\u3059\uFF09 */\n  const coverPend = units => {\n    let done = 0;\n    for (const p of s.pend) {\n      if (units <= 0) break;\n      const pu = p.dmg + p.oj * OJAMA_UNIT, c = Math.min(units, pu);\n      units -= c; done += c; let r = c;\n      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;\n      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));\n    }\n    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);\n    return done;\n  };\n  /* \u81EA\u5206\u306E\u653B\u6483\uFF1A\u307E\u305A\u5C4A\u3044\u3066\u3044\u308B\u653B\u6483\u3092\u76F8\u6BBA\u3057\u3001\u6B8B\u308A\u30921\u4F4D\u306E\u4EBA\u306B\u9001\u308B */\n  E.sendAttack = (out, isSp) => {\n    let units = out.dmg + out.oj * OJAMA_UNIT;\n    if (units <= 0) return;\n    const pinch = E.pinch();\n    if (pinch) units = Math.round(units * PINCH_MUL);\n    // C\uFF1A\u4EF2\u9593\u304C\u30DF\u30B9\u3057\u305F\u76F4\u5F8C\u306F\u30D5\u30A9\u30ED\u30FC\uFF08\u653B\u64831.2\u500D\uFF09\n    const follow = TC && !isSp && mateL().ms && fbNow() - mateL().ms <= C_FOLLOW.win;\n    if (follow) units = Math.round(units * C_FOLLOW.mul);\n    let cancelled = 0;\n    for (const p of s.pend) {\n      if (units <= 0) break;\n      const pu = p.dmg + p.oj * OJAMA_UNIT;\n      const c = Math.min(units, pu);\n      units -= c; cancelled += c;\n      let r = c;\n      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;\n      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));\n    }\n    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);\n    // C\uFF1A\u4EF2\u9593\u306B\u5C4A\u3044\u3066\u3044\u308B\u653B\u6483\u3082\u30AB\u30D0\u30FC\uFF08\u81EA\u5206\u306E\u5206\u3092\u76F8\u6BBA\u3057\u305F\u3042\u3068\u306E\u6B8B\u308A\u3067\uFF09\n    let covered = 0;\n    if (TC && units > 0 && mate) {\n      const ml = mateL(), mp = (ml.pd || 0) + (ml.po || 0) * OJAMA_UNIT;\n      if (mp > 0 && ml.st === 'play') {\n        covered = Math.min(units, mp); units -= covered; s.covers += covered;\n        const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);\n        fref(`rooms/${o.code}/ev/${o.gid}/${mate}/${key}`).set({ cover: covered, from: o.uid, at: TSV() }).catch(() => {});\n      }\n    }\n    const to = units > 0 ? E.target() : null;\n    let dmg = 0, oj = 0;\n    if (to) {\n      // 3\u4EBA\u4EE5\u4E0A\u306E\u3068\u304D\u306F\u30011\u4F4D\u306B\u653B\u6483\u304C\u96C6\u4E2D\u3057\u3059\u304E\u306A\u3044\u3088\u3046\u306B\u5C11\u3057\u5F31\u3081\u308B\n      const v = o.view(), alive = o.ids.filter(u => !((v.ko || {})[u]) && !(((v.live || {})[u] || {}).st === 'ko')).length;\n      if (!TC) units = Math.max(1, Math.round(units * (MULTI_ATK[alive] || 1)));\n      oj = Math.min(out.oj, Math.floor(units / OJAMA_UNIT));\n      dmg = units - oj * OJAMA_UNIT;\n      const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);\n      fref(`rooms/${o.code}/ev/${o.gid}/${to}/${key}`).set({ dmg, oj, from: o.uid, sp: isSp ? 1 : 0, at: TSV() }).catch(() => {});\n      s.sent += units; s.ojSent += oj;\n      snd('send');\n    }\n    s.cancelTotal += cancelled + covered;\n    fx('send', { dmg, oj, to, cancelled, pinch, covered, follow, unite: isSp === 'unite' });\n  };\n  E.answer = ok => {\n    if (s.resolving || s.over || !s.cur) return null;\n    s.resolving = true;\n    const ms = Date.now() - s.qStart;\n    const cur = s.cur;\n    if (ok) {\n      const j = getJudgment(ms);\n      const mult = 1 + s.combo * 0.1, g = Math.round((LEVEL_POINTS[cur.level] || 10) * mult);\n      const rec = TC ? j.recover * C_HP.recover : j.recover;\n      const raw = s.hp + rec, over = Math.max(0, Math.round(raw - 100));\n      addHp(rec);\n      s.score += g + over; s.combo++; s.best = Math.max(s.best, s.combo); s.c++;\n      const pe = j.label === 'Perfect' || j.label === 'Excellent';\n      s.sp = Math.min(SP_MAX, s.sp + 1 + (pe ? 1 : 0));\n      if (j.label === 'Perfect') s.perfects++;\n      s.hist.push({ lv: cur.level, k: cur.k, ok: true, ms, j: j.label });\n      snd('ok', 1 + Math.min(s.combo, 15) * 0.035); if (pe) snd('speed'); if (s.combo % 5 === 0) snd('combo');\n      E.sendAttack(attackFor(j.label, s.combo));\n      if (TC) {\n        // \u5408\u4F53\u653B\u6483\uFF1A2\u4EBA\u3068\u30823\u30B3\u30F3\u30DC\u4EE5\u4E0A\u30923\u79D2\u4EE5\u5185\u306B\u305D\u308D\u3048\u305F\uFF088\u79D2\u306B1\u56DE\u307E\u3067\uFF09\n        const ml = mateL(), t = fbNow();\n        if (s.combo >= C_UNITE.combo && (ml.combo || 0) >= C_UNITE.combo && ml.ok && t - ml.ok <= C_UNITE.win && t - Math.max(s.uniteAt, ml.un || 0) > C_UNITE.cool && ml.st === 'play') {\n          s.uniteAt = t; s.unites++;\n          fx('unite', { mate });\n          E.sendAttack({ dmg: C_UNITE.dmg, oj: C_UNITE.oj }, 'unite');\n        }\n        s.lastOkAt = t;\n      }\n      E.writeLive(true);\n      if (TC ? s.c + (mateL().c || 0) >= o.N * 2 : s.c >= o.N) { s.over = true; E.writeLive(true); if (o.onClear) o.onClear(o.uid); return { ok: true, judge: j, gain: g + over, clear: true }; }\n      s.nextAt = Date.now() + 420;\n      return { ok: true, judge: j, gain: g + over };\n    }\n    snd('buzz');\n    s.combo = 0;\n    s.hist.push({ lv: cur.level, k: cur.k, ok: false, ms });\n    if (TC) s.lastMissAt = fbNow();\n    damage(Math.round((DIFFICULTY_MISS_PENALTY[o.diff] || 20) * mul * (TC ? C_HP.miss : 1)));\n    E.writeLive(true);\n    s.nextAt = Date.now() + 420;\n    return { ok: false };\n  };\n  E.next = () => {\n    E.land(false);\n    if (s.over) return;\n    E.serve();\n    s.resolving = false;\n    E.writeLive(true);\n    fx('next');\n  };\n  E.special = kind => {\n    if (s.over || s.sp < SP_MAX) return false;\n    s.sp = 0; s.spUsed++;\n    snd('special');\n    if (kind === 'big') E.sendAttack({ dmg: SP_BIG.dmg, oj: SP_BIG.oj }, true);\n    else if (kind === 'heal') addHp(SP_HEAL);\n    else if (kind === 'shield') { s.shieldUntil = Date.now() + SP_SHIELD_MS; s.pend = []; }\n    fx('special', kind);\n    E.writeLive(true);\n    return true;\n  };\n  /* \u89B3\u6226\u8005\u306E\u5FDC\u63F4\uFF1A\u4F53\u529B\u3092\u5C11\u3057\u56DE\u5FA9 */\n  E.cheer = h => { if (s.over) return false; addHp(h); E.writeLive(true); return true; };\n  /* 100\u30DF\u30EA\u79D2\u3054\u3068\u306B\u547C\u3076\uFF1A\u4F53\u529B\u306E\u81EA\u7136\u6E1B\u5C11\u30FB\u6642\u9593\u5207\u308C\u30FB\u4E88\u544A\u306E\u6642\u9593\u5207\u308C */\n  E.tick = () => {\n    const nowT = Date.now(), dt = nowT - s.lastT; s.lastT = nowT;\n    if (s.over) return;\n    if (s.nextAt && nowT >= s.nextAt) { s.nextAt = null; E.next(); if (s.over) return; }\n    if (!s.resolving) addHp(-dt / 1000 * mul * (TC ? C_HP.decay : 1));\n    if (s.pend.some(p => nowT - p.t >= B_FORCE_LAND)) {\n      const keep = []; let dmg = 0, oj = 0;\n      s.pend.forEach(p => { if (nowT - p.t >= B_FORCE_LAND) { dmg += p.dmg; oj += p.oj; } else keep.push(p); });\n      s.pend = keep;\n      if (!E.shield()) { s.ojNext += oj; s.dmgTaken += dmg + oj; if (dmg) { snd('hit'); fx('hit', { dmg, oj }); } damage(dmg); if (s.over) return; }\n    }\n    const qe = nowT - s.qStart;\n    if (!s.resolving && qe >= QUESTION_TIMEOUT_MS - 5000 && !s.warned) { s.warned = true; if (o.sound) snd('buzz'); }\n    if (!s.resolving && qe >= QUESTION_TIMEOUT_MS) {\n      s.resolving = true; s.combo = 0;\n      s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, timeout: true, ms: qe });\n      fx('timeout');\n      if (TC) s.lastMissAt = fbNow();\n      damage(Math.round((DIFFICULTY_TIMEOUT_EXTRA[o.diff] || 0) * mul * (TC ? C_HP.miss : 1)));\n      if (s.over) return;\n      s.nextAt = nowT + 420;\n    }\n    s.minHp = Math.min(s.minHp, s.hp);\n    if (s.hp <= 0) { E.knockout(); return; }\n    // \u9006\u8EE2\u52DD\u3061\u306E\u5224\u5B9A\u7528\uFF1A\u30D4\u30F3\u30C1\u306B\u306A\u3063\u305F\u3001\u307E\u305F\u306F1\u4F4D\u306B3\u554F\u4EE5\u4E0A\u5DEE\u3092\u3064\u3051\u3089\u308C\u305F\n    if (!s.behind) {\n      const v = o.view(), live = v.live || {};\n      const lead = Math.max(0, ...o.ids.filter(u => u !== o.uid && !(TC && tm[u] === myT)).map(u => (live[u] && live[u].c) || 0));\n      if (s.hp <= PINCH_HP || lead - s.c >= 3) s.behind = true;\n    }\n    E.writeLive(false);\n  };\n  E.serve();\n  return E;\n}\nreturn ({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES});\n");
+      var makeRuntime = new Function("Math", "Date", "fref", "TSV", "fbNow", "// GENERATED from main index.html; do not edit. Server-only.\nfunction gcd(a, b) {\n  a = Math.abs(a); b = Math.abs(b);\n  while (b) { [a, b] = [b, a % b]; }\n  return a || 1;\n}\nfunction randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }\nfunction randSign() { return Math.random() < 0.5 ? 1 : -1; }\nfunction randNonZero(min, max) { let v = 0; while (v === 0) v = randInt(min, max); return v; }\nfunction factorKey(f) {\n  if (f.type === 'linear') return `L${f.a}_${f.b}`;\n  if (f.type === 'quadratic') return `Q${f.A}_${f.B}_${f.C}`;\n  return `C${f.k}`;\n}\nfunction toCoeffs(f) {\n  if (f.type === 'linear') return [f.a, f.b];\n  if (f.type === 'quadratic') return [f.A, f.B, f.C];\n  return [f.k];\n}\nfunction multiply(f1, f2) {\n  const c1 = toCoeffs(f1);\n  const c2 = toCoeffs(f2);\n  const raw = new Array(c1.length + c2.length - 1).fill(0);\n  for (let i = 0; i < c1.length; i++) {\n    for (let j = 0; j < c2.length; j++) raw[i + j] += c1[i] * c2[j];\n  }\n  // raw \u306F\u6B21\u6570\u306E\u9AD8\u3044\u9806\u3002x4\u301Cx0 \u306E5\u9805\u306B\u6B63\u898F\u5316\u3059\u308B(\u6700\u5927\u30672\u6B21\xD72\u6B21=4\u6B21\u307E\u3067\u5BFE\u5FDC)\u3002\n  const padded = [0, 0, 0, 0, 0];\n  for (let i = 0; i < raw.length; i++) {\n    const degree = raw.length - 1 - i;\n    if (degree <= 4) padded[4 - degree] = raw[i];\n  }\n  return { x4: padded[0], x3: padded[1], x2: padded[2], x1: padded[3], x0: padded[4] };\n}\nfunction polyEqual(p1, p2) {\n  return p1.x4 === p2.x4 && p1.x3 === p2.x3 && p1.x2 === p2.x2 && p1.x1 === p2.x1 && p1.x0 === p2.x0;\n}\nlet POW_SYMBOL = { 4: 'x\u2074', 3: 'x\xB3', 2: 'x\xB2', 1: 'x', 0: '' };\nfunction formatPoly(poly) {\n  const terms = [];\n  [4, 3, 2, 1, 0].forEach(pow => {\n    const key = `x${pow}`;\n    if (poly[key] !== 0) terms.push({ pow, coef: poly[key] });\n  });\n  if (terms.length === 0) return '0';\n  return terms.map((t, i) => {\n    const sign = t.coef < 0 ? '-' : (i === 0 ? '' : '+');\n    const abs = Math.abs(t.coef);\n    const coefStr = (t.pow !== 0 && abs === 1) ? '' : `${abs}`;\n    const varStr = POW_SYMBOL[t.pow];\n    return i === 0 ? `${sign}${coefStr}${varStr}` : ` ${sign} ${coefStr}${varStr}`;\n  }).join('');\n}\nfunction coprime(a, b) { return gcd(Math.abs(a), Math.abs(b)) === 1; }\nfunction genL1() {\n  let b, c;\n  do {\n    b = randInt(1, 9);\n    c = randInt(1, 9);\n  } while (!coprime(b, c));\n  const a = randInt(2, 9);          // a \u2260 1\n  const sign = randSign();          // \xB1 \u306E2\u901A\u308A\n  const f1 = { type: 'const', k: a };\n  const f2 = { type: 'linear', a: b, b: sign * c };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL2() {\n  let b, c;\n  do {\n    b = randInt(1, 9);\n    c = randInt(1, 9);\n  } while (!coprime(b, c));\n  const a = randInt(1, 9);          // a = 1 \u3082\u8A31\u5BB9\n  const sign = randSign();\n  const f1 = { type: 'linear', a, b: 0 };            // ax\n  const f2 = { type: 'linear', a: b, b: sign * c };  // bx \xB1 c\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL3() {\n  let a, b;\n  do {\n    a = randNonZero(-9, 9);\n    b = randNonZero(-9, 9);\n  } while (a === -b);\n  const f1 = { type: 'linear', a: 1, b: a };\n  const f2 = { type: 'linear', a: 1, b };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL4() {\n  let a, b;\n  do {\n    a = randInt(1, 9);\n    b = randInt(1, 9);\n  } while (!coprime(a, b));\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a, b: -b };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL5() {\n  let c, b, d;\n  do {\n    c = randInt(2, 9);\n    b = randNonZero(-5, 5);\n    d = randNonZero(-5, 5);\n  } while (!coprime(c, d));\n  const f1 = { type: 'linear', a: 1, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL6() {\n  let c, b, d;\n  do {\n    c = randInt(2, 9);\n    b = randNonZero(-9, 9);\n    d = randNonZero(-9, 9);\n  } while (!coprime(c, d) || !(Math.abs(b) >= 6 || Math.abs(d) >= 6));\n  const f1 = { type: 'linear', a: 1, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL7() {\n  let a, b;\n  do {\n    a = randInt(1, 5);\n    b = randInt(1, 5);\n  } while (!coprime(a, b));\n  const isSum = Math.random() < 0.5;        // + \u306A\u3089\u548C\u3001- \u306A\u3089\u5DEE\n  const s = isSum ? 1 : -1;\n  const linear = { type: 'linear', a, b: s * b };                       // ax \xB1 b\n  const quad = { type: 'quadratic', A: a * a, B: -s * a * b, C: b * b }; // a\xB2x\xB2 \u2213 abx + b\xB2\n  return { factors: [linear, quad], poly: multiply(linear, quad) };\n}\nfunction genL8() {\n  let a, c, b, d;\n  do {\n    a = randInt(2, 4);\n    c = randInt(2, 4);\n    b = randNonZero(-4, 4);\n    d = randNonZero(-4, 4);\n  } while (!coprime(a, b) || !coprime(c, d) || !(a < c || (a === c && b <= d)));\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nfunction genL9() {\n  let a, c, b, d;\n  do {\n    a = randInt(2, 9);\n    c = randInt(2, 9);\n    b = randNonZero(-9, 9);\n    d = randNonZero(-9, 9);\n  } while (\n    !coprime(a, b) || !coprime(c, d) ||\n    !(a < c || (a === c && b <= d)) ||\n    !(a >= 5 || c >= 5 || Math.abs(b) >= 5 || Math.abs(d) >= 5)\n  );\n  const f1 = { type: 'linear', a, b };\n  const f2 = { type: 'linear', a: c, b: d };\n  return { factors: [f1, f2], poly: multiply(f1, f2) };\n}\nlet GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6, 7: genL7, 8: genL8, 9: genL9 };\nlet LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];\nlet LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };\nlet FIXED_PHASE_LAST_Q = 27;\nlet RANDOM_PHASE_FIRST_Q = 28;\nlet INITIAL_WEIGHTS = { 1: 8, 2: 8, 3: 8, 4: 8, 5: 10, 6: 10, 7: 12, 8: 16, 9: 20 };\nlet WEIGHT_DELTA = { 1: -1, 2: -1, 3: -1, 4: -1, 5: +2, 6: +2, 7: -2, 8: +2 };\nlet FINAL_STEP = 6;\nlet FINAL_FIXED_WEIGHTS = { 1: 2, 2: 2, 3: 2, 4: 2, 5: 22, 6: 22, 7: 2, 8: 30, 9: 16 };\nfunction getLevelWeights(questionNumber) {\n  const steps = Math.max(0, Math.floor((questionNumber - RANDOM_PHASE_FIRST_Q) / 3));\n\n  if (steps >= FINAL_STEP) return { ...FINAL_FIXED_WEIGHTS };\n\n  const w = {};\n  [1, 2, 3, 4].forEach(lv => { w[lv] = Math.max(0, INITIAL_WEIGHTS[lv] + WEIGHT_DELTA[lv] * steps); });\n  w[5] = INITIAL_WEIGHTS[5] + WEIGHT_DELTA[5] * steps;\n  w[6] = INITIAL_WEIGHTS[6] + WEIGHT_DELTA[6] * steps;\n  w[7] = Math.max(0, INITIAL_WEIGHTS[7] + WEIGHT_DELTA[7] * steps);\n  w[8] = INITIAL_WEIGHTS[8] + WEIGHT_DELTA[8] * steps;\n\n  // Lv.9\u306F\u300C\u4ED6\u306E8\u30EC\u30D9\u30EB\u3092\u5F15\u3044\u305F\u6B8B\u308A\u5168\u90E8\u300D\u3092\u5F15\u304D\u53D7\u3051\u308B(\u5E38\u306B\u5408\u8A08100%\u306B\u306A\u308B)\n  const usedSum = [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, lv) => s + w[lv], 0);\n  w[9] = Math.max(0, 100 - usedSum);\n  return w;\n}\nfunction pickLevelForQuestion(questionNumber) {\n  if (questionNumber <= FIXED_PHASE_LAST_Q) {\n    // 1\u301C3\u554F\u76EE=Lv.1\u30014\u301C6\u554F\u76EE=Lv.2 \u2026 25\u301C27\u554F\u76EE=Lv.9\n    return Math.min(9, Math.floor((questionNumber - 1) / 3) + 1);\n  }\n  const w = getLevelWeights(questionNumber);\n  let r = Math.random() * 100;\n  for (const lv of LEVEL_IDS) {\n    if (r < w[lv]) return lv;\n    r -= w[lv];\n  }\n  return 9; // \u4E38\u3081\u8AA4\u5DEE\u5BFE\u7B56\u306E\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\n}\nlet DIFFICULTY_CONFIG = {\n  easy: { label: '\u30A4\u30FC\u30B8\u30FC', clearCount: 15, color: '#52B788', tileCount: 6 },\n  normal: { label: '\u30CE\u30FC\u30DE\u30EB', clearCount: 30, color: '#E8A33D', tileCount: 9 },\n  hard: { label: '\u30CF\u30FC\u30C9', clearCount: 50, color: '#E76F51', tileCount: 9 },\n};\nfunction flipSign(f) {\n  if (f.type === 'const') return { type: 'const', k: -f.k };\n  // quadratic \u306F\u4E2D\u592E\u306E\u9805(\xB1nx)\u306E\u7B26\u53F7\u3092\u9593\u9055\u3048\u308B\u306E\u304C\u5178\u578B\u7684\u306A\u30DF\u30B9\u306A\u306E\u3067\u305D\u3053\u3092\u53CD\u8EE2\u3059\u308B\n  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: -f.B, C: f.C };\n  return { type: 'linear', a: f.a, b: -f.b };\n}\nfunction shiftConst(f) {\n  const d = randSign();\n  if (f.type === 'const') return { type: 'const', k: f.k + d };\n  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: f.B, C: f.C + d };\n  return { type: 'linear', a: f.a, b: f.b + d };\n}\nfunction foreignFactor(level) {\n  const { factors } = GENERATORS[level]();\n  return factors[randInt(0, 1)];\n}\nfunction genDummies(level, correctFactors) {\n  const dummies = [];\n  const pushUnique = (f) => {\n    const key = factorKey(f);\n    if (!correctFactors.some(cf => factorKey(cf) === key) && !dummies.some(d => factorKey(d) === key)) {\n      dummies.push(f);\n    }\n  };\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(flipSign(correctFactors[randInt(0, 1)]));\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(shiftConst(correctFactors[randInt(0, 1)]));\n  for (let i = 0; i < randInt(1, 2); i++) pushUnique(foreignFactor(level));\n  // \u76E4\u9762\u306E\u30DE\u30B9\u6570\u306F\u6709\u9650\u306A\u306E\u3067\u3001\u30C0\u30DF\u30FC\u304C\u591A\u3059\u304E\u306A\u3044\u3088\u3046\u4E0A\u9650\u3092\u8A2D\u3051\u308B(\u6700\u7D42\u7684\u306A\u679A\u6570\u306FbuildBoard\u5074\u3067tileCount\u306B\u5207\u308A\u8A70\u3081\u308B)\n  return dummies.slice(0, 5);\n}\nfunction buildBoard(level, seenSet, tileCount = 9) {\n  let factors, poly, sig;\n  let outerAttempt = 0;\n  do {\n    ({ factors, poly } = GENERATORS[level]());\n    sig = `${level}:${poly.x4},${poly.x3},${poly.x2},${poly.x1},${poly.x0}`;\n    outerAttempt++;\n  } while (seenSet && seenSet.has(sig) && outerAttempt < 60);\n  if (seenSet) seenSet.add(sig);\n\n  let tiles = [];\n  let attempt = 0;\n  while (true) {\n    attempt++;\n    const dummies = genDummies(level, factors);\n    let pool = [...factors, ...dummies];\n    let guard = 0;\n    while (pool.length < tileCount && guard < 200) {\n      guard++;\n      const f = foreignFactor(level);\n      const key = factorKey(f);\n      if (!pool.some(p => factorKey(p) === key)) pool.push(f);\n    }\n    // \u6B63\u89E3\u30DA\u30A22\u679A\u306F pool \u306E\u5148\u982D\u306B\u3042\u308B\u306E\u3067\u3001slice \u3057\u3066\u3082\u5FC5\u305A\u76E4\u9762\u306B\u6B8B\u308B\n    pool = pool.slice(0, tileCount);\n    tiles = pool.map((f, idx) => ({ id: `${Date.now()}_${idx}_${Math.random().toString(36).slice(2)}`, factor: f }));\n    for (let i = tiles.length - 1; i > 0; i--) {\n      const j = Math.floor(Math.random() * (i + 1));\n      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];\n    }\n    let matchCount = 0;\n    for (let i = 0; i < tiles.length && matchCount <= 1; i++) {\n      for (let j = i + 1; j < tiles.length; j++) {\n        if (polyEqual(multiply(tiles[i].factor, tiles[j].factor), poly)) {\n          matchCount++;\n          if (matchCount > 1) break;\n        }\n      }\n    }\n    if (matchCount === 1) break;\n    if (attempt > 40) break;\n  }\n  return { tiles, poly, factors };\n}\nlet REVERSE_STAGE_LEVELS = [5, 6, 8, 9];\nlet REVERSE_STAGE_MIN_CORRECT = 30;\nlet REVERSE_STAGE_CHANCE = 0.03;\nlet REVERSE_STAGE_POINTS = 50;\nlet QUESTION_TIMEOUT_MS = 20000;\nlet JUDGE_TIERS = [\n  { max: 2000, label: 'Perfect', recover: 25, color: '#FFD54A' },\n  { max: 3000, label: 'Excellent', recover: 20, color: '#8BE38F' },\n  { max: 5000, label: 'Great', recover: 15, color: '#6BD4E8' },\n  { max: 10000, label: 'Good', recover: 10, color: '#8FB8FF' },\n  { max: 15000, label: 'OK', recover: 5, color: '#C9C9C9' },\n  { max: 20000, label: 'Fair', recover: 2, color: '#FF9F1C' },\n];\nlet JUDGE_BAD = { label: 'Bad', recover: 0, color: '#FF5C5C' };\nfunction getJudgment(elapsedMs) {\n  for (const tier of JUDGE_TIERS) {\n    if (elapsedMs <= tier.max) return tier;\n  }\n  return JUDGE_BAD; // 20\u79D2\u8D85\u306F\u672C\u6765\u30BF\u30A4\u30E0\u30A2\u30C3\u30D7\u51E6\u7406\u306B\u56DE\u308B\u306E\u3067\u3053\u3053\u306B\u306F\u6765\u306A\u3044\u60F3\u5B9A\u306E\u4FDD\u967A\n}\nlet DIFFICULTY_MISS_PENALTY = { easy: 20, normal: 25, hard: 30 };\nlet DIFFICULTY_TIMEOUT_EXTRA = { easy: 0, normal: 5, hard: 10 };\nfunction buildReverseQuestion() {\n  const level = REVERSE_STAGE_LEVELS[randInt(0, REVERSE_STAGE_LEVELS.length - 1)];\n  const { factors, poly } = GENERATORS[level]();\n  const correctText = formatPoly(poly);\n\n  // \u30C0\u30DF\u30FC\u306E\u5C55\u958B\u7D50\u679C: \u7B26\u53F7\u30DF\u30B9\u30FB\u5B9A\u6570\u30BA\u30EC\u306A\u3069\u300C\u3042\u308A\u304C\u3061\u306A\u5C55\u958B\u9593\u9055\u3044\u300D\u3092\u5143\u306B\u4F5C\u308B\n  const candidates = [];\n  const pushUnique = (text) => {\n    if (text && text !== correctText && !candidates.includes(text)) candidates.push(text);\n  };\n  pushUnique(formatPoly(multiply(flipSign(factors[0]), factors[1])));\n  pushUnique(formatPoly(multiply(factors[0], flipSign(factors[1]))));\n  pushUnique(formatPoly(multiply(shiftConst(factors[0]), factors[1])));\n  pushUnique(formatPoly(multiply(factors[0], shiftConst(factors[1]))));\n  // \u305D\u308C\u3067\u30823\u3064\u63C3\u308F\u306A\u3044\u5834\u5408\u306F\u3001\u540C\u3058\u30EC\u30D9\u30EB\u306E\u5225\u554F\u984C\u306E\u5C55\u958B\u7D50\u679C\u3067\u57CB\u3081\u308B\n  let guard = 0;\n  while (candidates.length < 3 && guard < 30) {\n    guard++;\n    pushUnique(formatPoly(GENERATORS[level]().poly));\n  }\n\n  const allTexts = [correctText, ...candidates.slice(0, 3)];\n  for (let i = allTexts.length - 1; i > 0; i--) {\n    const j = Math.floor(Math.random() * (i + 1));\n    [allTexts[i], allTexts[j]] = [allTexts[j], allTexts[i]];\n  }\n  const choices = allTexts.map((text, idx) => ({\n    id: `rc_${idx}_${Math.random().toString(36).slice(2)}`,\n    text,\n    correct: text === correctText,\n  }));\n  return { level, factors, poly, choices };\n}\nlet A_LOCK_MS = 2000;\nlet A_NEXT_DELAY = 1100;\nlet A_LASTSPURT = 3;\nlet B_LAND_DELAY = 3000;\nlet B_FORCE_LAND = 7000;\nlet OJAMA_UNIT = 5;\nlet OJAMA_MAX_PER_BOARD = 3;\nlet SP_MAX = 6;\nlet SP_BIG = { dmg: 15, oj: 1 };\nlet SP_HEAL = 30;\nlet SP_SHIELD_MS = 5000;\nlet PINCH_HP = 30;\nlet PINCH_MUL = 1.3;\nlet MULTI_ATK = { 3: 0.7, 4: 0.55 };\nlet RATING_K = 32;\nlet C_HP = { decay: 0.5, recover: 0.5, miss: 0.6 };\nlet C_UNITE = { dmg: 10, oj: 1, win: 3000, cool: 8000, combo: 3 };\nlet C_FOLLOW = { win: 3000, mul: 1.2 };\nlet handiDmgMul = h => 1 - 0.15 * (h || 0);\nlet handiPtsMul = h => 1 + 0.1 * (h || 0);\nlet BADGES = [\n  ...[['daily_easy_king','DE\u30AD\u30F3\u30B0','\u30A4\u30FC\u30B8\u30FC'],['daily_normal_king','DN\u30AD\u30F3\u30B0','\u30CE\u30FC\u30DE\u30EB'],['daily_hard_king','DH\u30AD\u30F3\u30B0','\u30CF\u30FC\u30C9'],['daily_king','\u30C7\u30A4\u30EA\u30FC\u30AD\u30F3\u30B0','\u51683\u90E8\u9580']].map(([id,label,d])=>({id,g:id,r:4,icon:'\u{1F451}',label,desc:`\u30C7\u30A4\u30EA\u30FC${d}\u512A\u52DD`,test:st=>!!st.dailyTitles?.[id]})),\n  // g\uFF1A\u7CFB\u7D71\uFF08\u540C\u3058\u7CFB\u7D71\u306F\u4E00\u756A\u4E0A\u3060\u3051\u540D\u524D\u306E\u6A2A\u306B\u51FA\u3059\uFF09 r\uFF1A\u3081\u305A\u3089\u3057\u3055\uFF08\u5927\u304D\u3044\u307B\u3069\u5148\u306B\u51FA\u3059\uFF09 desc\uFF1A\u53D6\u308A\u65B9\n  { id: 'first', g: 'first', r: 1, icon: '\u{1F331}', label: '\u306F\u3058\u3081\u306E\u4E00\u6B69', desc: '\u521D\u3081\u3066\u52DD\u3064', test: st => (st.w || 0) >= 1 },\n  { id: 'lose50', g: 'lose', r: 2, icon: '\u{1F9F1}', label: '\u4E03\u8EE2\u3073\u516B\u8D77\u304D', desc: '\u8CA0\u305150\u56DE\uFF08\u305D\u308C\u3067\u3082\u7D9A\u3051\u305F\uFF01\uFF09', test: st => (st.l || 0) >= 50 },\n  { id: 'games100', g: 'games', r: 2, icon: '\u{1F4AF}', label: '\u767E\u6226\u932C\u78E8', desc: '100\u6226\u3059\u308B', test: st => (st.games || 0) >= 100 },\n  { id: 'rival20', g: 'rival', r: 2, icon: '\u{1F91D}', label: '\u6C38\u9060\u306E\u30E9\u30A4\u30D0\u30EB', desc: '\u540C\u3058\u76F8\u624B\u306820\u6226', test: st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20) },\n  { id: 'wide10', g: 'wide', r: 1, icon: '\u{1F30F}', label: '\u9854\u304C\u5E83\u3044', desc: '10\u4EBA\u4EE5\u4E0A\u3068\u5BFE\u6226', test: st => Object.keys(st.vs || {}).length >= 10 },\n  { id: 'dual', g: 'dual', r: 2, icon: '\u2696\uFE0F', label: '\u4E8C\u5200\u6D41', desc: 'A\u30FBB\u305D\u308C\u305E\u308C\u306710\u52DD', test: st => ((st.A || {}).w || 0) >= 10 && ((st.B || {}).w || 0) >= 10 },\n  { id: 'streak10', g: 'streak', r: 2, icon: '\u{1F525}', label: '10\u9023\u52DD', desc: '10\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 10 },\n  { id: 'streak30', g: 'streak', r: 4, icon: '\u{1F525}', label: '30\u9023\u52DD', desc: '30\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 30 },\n  { id: 'streak50', g: 'streak', r: 5, icon: '\u{1F525}', label: '50\u9023\u52DD', desc: '50\u9023\u52DD\u3059\u308B', test: st => (st.maxStreak || 0) >= 50 },\n  { id: 'perfect50', g: 'perfect', r: 1, icon: '\u2B50', label: 'Perfect 50\u56DE', desc: 'Perfect \u3092\u901A\u7B9750\u56DE', test: st => (st.perfects || 0) >= 50 },\n  { id: 'perfect100', g: 'perfect', r: 2, icon: '\u2B50', label: 'Perfect 100\u56DE', desc: 'Perfect \u3092\u901A\u7B97100\u56DE', test: st => (st.perfects || 0) >= 100 },\n  { id: 'perfect300', g: 'perfect', r: 3, icon: '\u{1F31F}', label: 'Perfect 300\u56DE', desc: 'Perfect \u3092\u901A\u7B97300\u56DE', test: st => (st.perfects || 0) >= 300 },\n  { id: 'perfect500', g: 'perfect', r: 4, icon: '\u{1F31F}', label: 'Perfect 500\u56DE', desc: 'Perfect \u3092\u901A\u7B97500\u56DE', test: st => (st.perfects || 0) >= 500 },\n  { id: 'perfect1000', g: 'perfect', r: 5, icon: '\u{1F451}', label: 'Perfect 1000\u56DE', desc: 'Perfect \u3092\u901A\u7B971000\u56DE', test: st => (st.perfects || 0) >= 1000 },\n  { id: 'comeback', g: 'comeback', r: 2, icon: '\u{1F504}', label: '\u9006\u8EE2\u52DD\u3061', desc: '\u4E0D\u5229\u306A\u5C55\u958B\u304B\u3089\u3072\u3063\u304F\u308A\u8FD4\u3057\u3066\u52DD\u3064', test: st => (st.comebacks || 0) >= 1 },\n  { id: 'comeback10', g: 'comeback', r: 4, icon: '\u{1F504}', label: '\u9006\u8EE2\u306E\u9B3C', desc: '\u9006\u8EE2\u52DD\u306110\u56DE', test: st => (st.comebacks || 0) >= 10 },\n  { id: 'master1700', g: 'master', r: 4, icon: '\u{1F451}', label: '\u56E0\u6570\u5206\u89E3\u30DE\u30B9\u30BF\u30FC', desc: '\u30EC\u30FC\u30C81700\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1700 },\n  { id: 'tour1', g: 'tour', r: 3, icon: '\u{1F3C6}', label: '\u30AF\u30E9\u30B9\u738B', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u3067\u512A\u52DD', test: st => (st.tourWins || 0) >= 1 },\n  { id: 'tour3', g: 'tour', r: 5, icon: '\u{1F3C6}', label: '\u4E09\u51A0\u738B', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u30673\u56DE\u512A\u52DD', test: st => (st.tourWins || 0) >= 3 },\n  { id: 'flash', g: 'flash', r: 3, icon: '\u26A1', label: '\u5149\u901F\u306E\u56E0\u6570\u5206\u89E3', desc: '1\u554F\u30921\u79D2\u4EE5\u5185\u306B\u6B63\u89E3', test: st => st.bestMs != null && st.bestMs <= 1000 },\n  { id: 'combo20', g: 'combo', r: 3, icon: '\u{1F525}', label: '\u30B3\u30F3\u30DC\u8077\u4EBA', desc: '1\u8A66\u5408\u306720\u30B3\u30F3\u30DC', test: st => (st.maxCombo || 0) >= 20 },\n  { id: 'nomiss', g: 'nomiss', r: 3, icon: '\u{1F3AF}', label: '\u30CE\u30FC\u30DF\u30B9\u5B8C\u8D70', desc: 'B\u3067\u30DF\u30B9\u30FB\u6642\u9593\u5207\u308C0\u306E\u307E\u307E\u52DD\u3064', test: st => (st.nomissWins || 0) >= 1 },\n  { id: 'clutch', g: 'clutch', r: 3, icon: '\u{1FA78}', label: '\u30AE\u30EA\u30AE\u30EA\u30BB\u30FC\u30D5', desc: 'B\u3067\u4F53\u529B5%\u4EE5\u4E0B\u306B\u306A\u3063\u3066\u304B\u3089\u52DD\u3064', test: st => (st.clutchWins || 0) >= 1 },\n  { id: 'cancel500', g: 'cancel', r: 3, icon: '\u{1F6E1}\uFE0F', label: '\u9244\u58C1\u306E\u5B88\u308A', desc: '\u76F8\u6BBA\u3067\u6253\u3061\u6D88\u3057\u305F\u91CF\u304C\u901A\u7B97500', test: st => (st.cancelTotal || 0) >= 500 },\n  { id: 'ojama100', g: 'ojama', r: 3, icon: '\u{1F4A3}', label: '\u304A\u3058\u3083\u307E\u8077\u4EBA', desc: '\u304A\u3058\u3083\u307E\u30BF\u30A4\u30EB\u3092\u901A\u7B97100\u679A\u9001\u308B', test: st => (st.ojSent || 0) >= 100 },\n  { id: 'sp50', g: 'sp', r: 3, icon: '\u2728', label: '\u5FC5\u6BBA\u6280\u30DE\u30B9\u30BF\u30FC', desc: '\u5FC5\u6BBA\u6280\u3092\u901A\u7B9750\u56DE\u4F7F\u3046', test: st => (st.spUsed || 0) >= 50 },\n  { id: 'giant', g: 'giant', r: 4, icon: '\u{1F9B8}', label: '\u30B8\u30E3\u30A4\u30A2\u30F3\u30C8\u30AD\u30E9\u30FC', desc: '\u81EA\u5206\u3088\u308A\u30EC\u30FC\u30C8\u304C200\u4EE5\u4E0A\u9AD8\u3044\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.giantWins || 0) >= 1 },\n  { id: 'survivor', g: 'survivor', r: 4, icon: '\u{1F3DD}\uFE0F', label: '\u30E9\u30B9\u30C8\u30B5\u30D0\u30A4\u30D0\u30FC', desc: '4\u4EBA\u6226\uFF08B\uFF09\u3067\u6700\u5F8C\u306E1\u4EBA\u307E\u3067\u751F\u304D\u6B8B\u3063\u3066\u52DD\u3064', test: st => (st.survivors || 0) >= 1 },\n  { id: 'shutout', g: 'shutout', r: 4, icon: '\u{1F977}', label: '\u5B8C\u5C01', desc: 'A\u3067\u76F8\u624B\u30920\u70B9\u306B\u3057\u3066\u52DD\u3064', test: st => (st.shutouts || 0) >= 1 },\n  { id: 'lv9', g: 'lv9', r: 4, icon: '\u{1F9E0}', label: 'Lv.9\u306E\u58C1', desc: 'Lv.9\u306E\u554F\u984C\u3092 Perfect \u3067\u6B63\u89E3', test: st => (st.lv9p || 0) >= 1 },\n  { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '\u{1F438}', label: '\u304A\u624B\u3064\u304D\u5927\u738B', desc: 'A\u3067\u304A\u624B\u3064\u304D\u901A\u7B97100\u56DE', test: st => (st.otetsuki || 0) >= 100 },\n  { id: 'handi', g: 'handi', r: 3, icon: '\u{1F381}', label: '\u30CF\u30F3\u30C7\u306A\u3093\u3066\u95A2\u4FC2\u306A\u3044', desc: '\u30CF\u30F3\u30C7\u2605\u2605\u2605\u306E\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.handiWins || 0) >= 1 },\n  { id: 'games300', g: 'games', r: 4, icon: '\u{1F3EF}', label: '\u4FEE\u884C\u306E\u9053', desc: '300\u6226\u3059\u308B', test: st => (st.games || 0) >= 300 },\n  { id: 'master1600', g: 'master', r: 2, icon: '\u{1F320}', label: '\u671F\u5F85\u306E\u65B0\u661F', desc: '\u30EC\u30FC\u30C81600\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1600 },\n  { id: 'master1900', g: 'master', r: 5, icon: '\u{1F409}', label: '\u4F1D\u8AAC\u306E\u56E0\u6570\u5206\u89E3\u5E2B', desc: '\u30EC\u30FC\u30C81900\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1900 },\n  { id: 'combo30', g: 'combo', r: 4, icon: '\u{1F30B}', label: '\u30B3\u30F3\u30DC\u306E\u795E', desc: '1\u8A66\u5408\u306730\u30B3\u30F3\u30DC', test: st => (st.maxCombo || 0) >= 30 },\n  { id: 'cancel2000', g: 'cancel', r: 4, icon: '\u{1F3F0}', label: '\u96E3\u653B\u4E0D\u843D', desc: '\u76F8\u6BBA\u3067\u6253\u3061\u6D88\u3057\u305F\u91CF\u304C\u901A\u7B972000', test: st => (st.cancelTotal || 0) >= 2000 },\n  { id: 'ojama500', g: 'ojama', r: 4, icon: '\u{1F608}', label: '\u304A\u3058\u3083\u307E\u9B54\u738B', desc: '\u304A\u3058\u3083\u307E\u30BF\u30A4\u30EB\u3092\u901A\u7B97500\u679A\u9001\u308B', test: st => (st.ojSent || 0) >= 500 },\n  { id: 'nomiss10', g: 'nomiss', r: 4, icon: '\u{1F3AF}', label: '\u30CE\u30FC\u30DF\u30B9\u306E\u9054\u4EBA', desc: '\u30CE\u30FC\u30DF\u30B9\u5B8C\u8D70\u306710\u56DE\u52DD\u3064', test: st => (st.nomissWins || 0) >= 10 },\n  { id: 'wide30', g: 'wide', r: 3, icon: '\u{1F3AA}', label: '\u4EBA\u6C17\u8005', desc: '30\u4EBA\u4EE5\u4E0A\u3068\u5BFE\u6226', test: st => Object.keys(st.vs || {}).length >= 30 },\n  { id: 'tour10', g: 'tour', r: 5, icon: '\u{1F3DB}\uFE0F', label: '\u6BBF\u5802\u5165\u308A', desc: '\u30AF\u30E9\u30B9\u5927\u4F1A\u306710\u56DE\u512A\u52DD', test: st => (st.tourWins || 0) >= 10 },\n  { id: 'miracle', g: 'clutch', r: 5, icon: '\u{1F607}', label: '\u5947\u8DE1\u306E\u751F\u9084', desc: 'B\u3067\u4F53\u529B1%\u4EE5\u4E0B\u306B\u306A\u3063\u3066\u304B\u3089\u52DD\u3064', test: st => (st.miracleWins || 0) >= 1 },\n  { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '\u{1F434}', label: '\u30C0\u30FC\u30AF\u30DB\u30FC\u30B9', desc: '\u51FA\u5834\u8005\u306E\u4E2D\u3067\u30EC\u30FC\u30C8\u304C\u3044\u3061\u3070\u3093\u4F4E\u3044\u306E\u306B\u5927\u4F1A\u3067\u512A\u52DD\uFF08\u8A18\u9332\u3042\u308A\u306E\u4EBA\u304C4\u4EBA\u4EE5\u4E0A\uFF09', test: st => (st.darkHorse || 0) >= 1 },\n  { id: 'daily7', g: 'daily', r: 2, icon: '\u{1F4C5}', label: '\u7686\u52E4\u8CDE', desc: '7\u65E5\u7D9A\u3051\u3066\u5BFE\u6226\u3059\u308B', test: st => (st.maxDayStreak || 0) >= 7 },\n  { id: 'daily30', g: 'daily', r: 4, icon: '\u{1F5D3}\uFE0F', label: '\u7D99\u7D9A\u306F\u529B\u306A\u308A', desc: '30\u65E5\u7D9A\u3051\u3066\u5BFE\u6226\u3059\u308B', test: st => (st.maxDayStreak || 0) >= 30 },\n  { id: 'sp3', g: 'sp3', r: 3, icon: '\u{1F4A5}', label: '\u5FC5\u6BBA\u6280\u4E09\u9023\u767A', desc: '1\u8A66\u5408\u3067\u5FC5\u6BBA\u6280\u30923\u56DE\u4F7F\u3046', test: st => (st.maxSpMatch || 0) >= 3 },\n  { id: 'revenge', g: 'revenge', r: 2, icon: '\u2694\uFE0F', label: '\u30EA\u30D9\u30F3\u30B8\u6210\u529F', desc: '\u524D\u306E\u8A66\u5408\u3067\u8CA0\u3051\u305F\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.revenges || 0) >= 1 },\n  { id: 'calm', g: 'calm', r: 3, icon: '\u{1F9D8}', label: '\u51B7\u9759\u6C88\u7740', desc: 'A\u3067\u304A\u624B\u3064\u304D0\u306E\u307E\u307E\u30016\u554F\u4EE5\u4E0A\u53D6\u3063\u3066\u52DD\u3064', test: st => (st.calmWins || 0) >= 1 },\n  { id: 'flawless', g: 'flawless', r: 3, icon: '\u{1F48E}', label: '\u7121\u50B7\u306E\u52DD\u5229', desc: 'B\u3067\u653B\u6483\u3092\u4E00\u5EA6\u3082\u53D7\u3051\u305A\u306B\u52DD\u3064', test: st => (st.flawlessWins || 0) >= 1 },\n  { id: 'nosp', g: 'nosp', r: 3, icon: '\u{1F94B}', label: '\u5FC5\u6BBA\u6280\u3044\u3089\u305A', desc: 'B\u65B9\u5F0F\u3067\u5FC5\u6BBA\u6280\u3092\u4E00\u5EA6\u3082\u4F7F\u308F\u305A\u306B\u52DD\u3064', test: st => (st.noSpWins || 0) >= 1 },\n  { id: 'rgold', g: 'rank', r: 2, icon: '\u{1F947}', label: '\u30B4\u30FC\u30EB\u30C9\u306E\u98A8\u683C', desc: '\u30E9\u30F3\u30AF\u5E2F\u30B4\u30FC\u30EB\u30C9\uFF08\u30EC\u30FC\u30C81580\uFF09\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1580 },\n  { id: 'rmaster', g: 'rank', r: 4, icon: '\u{1F451}', label: '\u9802\u70B9\u306B\u7ACB\u3064\u8005', desc: '\u30E9\u30F3\u30AF\u5E2F\u30DE\u30B9\u30BF\u30FC\uFF08\u30EC\u30FC\u30C81820\uFF09\u306B\u5230\u9054', test: st => (st.maxRating || 0) >= 1820 },\n  { id: 'bounty1', g: 'bounty', r: 2, icon: '\u{1F4B0}', label: '\u8CDE\u91D1\u7A3C\u304E', desc: '\u61F8\u8CDE\u91D1\u304C\u304B\u304B\u3063\u305F\u76F8\u624B\u306B\u52DD\u3064', test: st => (st.bountyWins || 0) >= 1 },\n  { id: 'bounty10', g: 'bounty', r: 4, icon: '\u{1F920}', label: '\u4F1D\u8AAC\u306E\u30CF\u30F3\u30BF\u30FC', desc: '\u61F8\u8CDE\u91D1\u304C\u304B\u304B\u3063\u305F\u76F8\u624B\u306B\u901A\u7B9710\u56DE\u52DD\u3064', test: st => (st.bountyWins || 0) >= 10 },\n  { id: 'wanted', g: 'wanted', r: 3, icon: '\u{1F4DC}', label: '\u304A\u5C0B\u306D\u8005', desc: '\u61F8\u8CDE\u91D150\u4EE5\u4E0A\u304C\u304B\u304B\u308B\uFF087\u9023\u52DD\uFF09', test: st => (st.maxStreak || 0) >= 7 },\n  { id: 'mis7', g: 'mis', r: 3, icon: '\u{1F4C6}', label: '\u30DF\u30C3\u30B7\u30E7\u30F3\u7686\u52E4', desc: '\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3\u30927\u65E5\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8\u3059\u308B', test: st => (st.misDays || 0) >= 7 },\n  { id: 'lasthit', g: 'lasthit', r: 4, icon: '\u{1F5E1}\uFE0F', label: '\u30E9\u30B9\u30C8\u30A2\u30BF\u30C3\u30AB\u30FC', desc: '\u30AF\u30E9\u30B9\u5354\u529B\u30EC\u30A4\u30C9\u3067\u30DC\u30B9\u306B\u3068\u3069\u3081\u3092\u523A\u3059', test: st => (st.lastHits || 0) >= 1 },\n  // \u4ECA\u9031\u306E\u30DC\u30B9\n  { id: 'wk1', g: 'wk', r: 1, icon: '\u{1F5D3}\uFE0F', label: '\u521D\u9663', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u521D\u3081\u3066\u51FA\u6483\u3059\u308B', test: st => ((st.wk || {}).weeks || 0) >= 1 },\n  { id: 'wkst3', g: 'wkst', r: 2, icon: '\u{1F501}', label: '\u7686\u52E4\u306E\u6226\u58EB', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B3\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 3 },\n  { id: 'wkst5', g: 'wkst', r: 3, icon: '\u{1F6E1}\uFE0F', label: '\u6B74\u6226\u306E\u6226\u58EB', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B5\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 5 },\n  { id: 'wkst10', g: 'wkst', r: 5, icon: '\u{1F3EF}', label: '\u4E0D\u5C48\u306E\u5B88\u8B77\u8005', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B10\u9031\u7D9A\u3051\u3066\u51FA\u6483', test: st => ((st.wk || {}).maxStreak || 0) >= 10 },\n  { id: 'wkk1', g: 'wkk', r: 2, icon: '\u2694\uFE0F', label: '\u8A0E\u4F10\u968A', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0\uFF08\u6483\u7834\u3055\u308C\u305F\u9031\u306B\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u308B\uFF09', test: st => ((st.wk || {}).kills || 0) >= 1 },\n  { id: 'wkk5', g: 'wkk', r: 3, icon: '\u{1F396}\uFE0F', label: '\u8A0E\u4F10\u968A\u9577', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B5\u56DE\u53C2\u52A0', test: st => ((st.wk || {}).kills || 0) >= 5 },\n  { id: 'wkk10', g: 'wkk', r: 4, icon: '\u{1F981}', label: '\u6551\u56FD\u306E\u82F1\u96C4', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B10\u56DE\u53C2\u52A0', test: st => ((st.wk || {}).kills || 0) >= 10 },\n  { id: 'wkace', g: 'wkace', r: 3, icon: '\u{1F3C5}', label: '\u4ECA\u9031\u306E\u30A8\u30FC\u30B9', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u30C0\u30E1\u30FC\u30B8\u3067\u90311\u4F4D\u306B\u306A\u308B', test: st => ((st.wk || {}).ace || 0) >= 1 },\n  { id: 'wkace5', g: 'wkace', r: 5, icon: '\u{1F31F}', label: '\u7D76\u5BFE\u7684\u30A8\u30FC\u30B9', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u30C0\u30E1\u30FC\u30B8\u3067\u90311\u4F4D\u30925\u56DE', test: st => ((st.wk || {}).ace || 0) >= 5 },\n  { id: 'wkone', g: 'wkone', r: 3, icon: '\u{1F4A5}', label: '\u4E00\u6483\u5FC5\u6BBA', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B1\u56DE\u306E\u51FA\u6483\u3067600\u30C0\u30E1\u30FC\u30B8', test: st => ((st.wk || {}).best || 0) >= 600 },\n  { id: 'wkone2', g: 'wkone', r: 4, icon: '\u2604\uFE0F', label: '\u4F1A\u5FC3\u306E\u51FA\u6483', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B1\u56DE\u306E\u51FA\u6483\u30671200\u30C0\u30E1\u30FC\u30B8', test: st => ((st.wk || {}).best || 0) >= 1200 },\n  { id: 'wkdex3', g: 'wkdex', r: 3, icon: '\u{1F4D6}', label: '\u30DC\u30B9\u56F3\u9451', desc: '3\u7A2E\u985E\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },\n  { id: 'wkdex6', g: 'wkdex', r: 5, icon: '\u{1F432}', label: '\u30DC\u30B9\u30CF\u30F3\u30BF\u30FC', desc: '6\u7A2E\u985E\u3059\u3079\u3066\u306E\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },\n  { id: 'lb7', g: 'lb', r: 2, icon: '\u{1F3AB}', label: '\u30B9\u30BF\u30F3\u30D7\u30B3\u30F3\u30D7\u30EA\u30FC\u30C8', desc: '\u30ED\u30B0\u30A4\u30F3\u30DC\u30FC\u30CA\u30B9\u306E\u30AB\u30FC\u30C9\u30921\u679A\u5B8C\u6210\u3055\u305B\u308B\uFF087\u65E5\uFF09', test: st => ((st.login || {}).cards || 0) >= 1 },\n  { id: 'lb30', g: 'lb', r: 3, icon: '\u{1F3EB}', label: '\u3044\u3064\u3082\u306E\u9854', desc: '\u901A\u7B9730\u65E5\u30ED\u30B0\u30A4\u30F3', test: st => ((st.login || {}).n || 0) >= 30 },\n  { id: 'lb100', g: 'lb', r: 5, icon: '\u{1F338}', label: '\u5E38\u9023\u3055\u3093', desc: '\u901A\u7B97100\u65E5\u30ED\u30B0\u30A4\u30F3', test: st => ((st.login || {}).n || 0) >= 100 },\n  { id: 'wkchest1', g: 'wkchest', r: 2, icon: '\u{1F381}', label: '\u5B9D\u63A2\u3057', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u51FA\u6483\u4E2D\u306B\u5B9D\u7BB1\u3092\u958B\u3051\u308B', test: st => ((st.wk || {}).chests || 0) >= 1 },\n  { id: 'wkchest10', g: 'wkchest', r: 4, icon: '\u{1F3F4}\u200D\u2620\uFE0F', label: '\u30C8\u30EC\u30B8\u30E3\u30FC\u30CF\u30F3\u30BF\u30FC', desc: '\u5B9D\u7BB1\u3092\u901A\u7B9710\u500B\u958B\u3051\u308B', test: st => ((st.wk || {}).chests || 0) >= 10 },\n  { id: 'wksup1', g: 'wksup', r: 2, icon: '\u{1F4E3}', label: '\u7E01\u306E\u4E0B\u306E\u529B\u6301\u3061', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u30B5\u30DD\u30FC\u30BF\u30FC\u3067\u51FA\u6483', test: st => ((st.wk || {}).supRuns || 0) >= 1 },\n  { id: 'wksup100', g: 'wksup', r: 4, icon: '\u{1F3BA}', label: '\u540D\u30B5\u30DD\u30FC\u30BF\u30FC', desc: '\u5FDC\u63F4\u30DD\u30A4\u30F3\u30C8\u3092\u901A\u7B97100', test: st => ((st.wk || {}).sup || 0) >= 100 },\n  { id: 'tw10', g: 'tower', r: 2, icon: '\u{1F5FC}', label: '\u5854\u306E\u6311\u6226\u8005', desc: '\u6570\u7406\u306E\u5854\u306710\u968E\u3092\u7A81\u7834', test: st => ((st.tower || {}).best || 0) >= 10 },\n  { id: 'tw30', g: 'tower', r: 3, icon: '\u{1F3EF}', label: '\u5854\u306E\u719F\u7DF4\u8005', desc: '\u6570\u7406\u306E\u5854\u306730\u968E\u3092\u7A81\u7834', test: st => ((st.tower || {}).best || 0) >= 30 },\n  { id: 'tw50', g: 'tower', r: 5, icon: '\u{1F451}', label: '\u5854\u3092\u5236\u8987', desc: '\u6570\u7406\u306E\u5854\u306E50\u968E\u3067\u56E0\u6570\u306E\u738B\u3092\u5012\u3059', test: st => ((st.tower || {}).best || 0) >= 50 },\n  { id: 'tw70', g: 'tower', r: 5, icon: '\u{1F4D6}', label: '\u6570\u7406\u306E\u66F8\u306E\u7D99\u627F\u8005', desc: '\u6570\u7406\u306E\u5854\u306E\u7B2C\u4E00\u90E8\u3092\u30AF\u30EA\u30A2', test: st => ((st.tower || {}).best || 0) >= 70 },\n  { id: 'tw100', g: 'tower', r: 5, icon: '\u{1F30C}', label: '\u7D42\u308F\u308A\u306A\u304D\u63A2\u7A76\u8005', desc: '\u6570\u7406\u306E\u5854\u306E\u7B2C\u4E00\u90E8\u30923\u56DE\u30AF\u30EA\u30A2', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },\n  { id:'hyper_slayer',g:'hyper_slayer',r:5,icon:'\u{1F30C}',label:'\u8D85\u5F71\u306E\u5F81\u670D\u8005',desc:'\u4E71\u5165\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.hyper_slayer===true },\n  { id:'ghost_up1',g:'ghost_up1',r:3,icon:'\u2694\uFE0F',label:'\u683C\u4E0A\u306E\u5F71\u3092\u7834\u308B\u8005',desc:'1\u30E9\u30F3\u30AF\u4E0A\u306E\u4E71\u5165\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.ghost_up1===true },\n  { id:'ghost_up2',g:'ghost_up2',r:4,icon:'\u{1F320}',label:'\u4E8C\u968E\u7D1A\u306E\u5F71\u3092\u8D85\u3048\u308B\u8005',desc:'2\u30E9\u30F3\u30AF\u4E0A\u306E\u4E71\u5165\u30B4\u30FC\u30B9\u30C8\u306B\u521D\u52DD\u5229\uFF08\u6C38\u4E45\uFF09',test:st=>st.ghostTitles?.ghost_up2===true },\n  { id: 'wkrage', g: 'wkrage', r: 4, icon: '\u{1F624}', label: '\u6012\u308A\u3092\u93AE\u3081\u3057\u8005', desc: '\u6012\u3063\u3066\u5C45\u5EA7\u3063\u305F\u30DC\u30B9\u306E\u8A0E\u4F10\u306B\u53C2\u52A0', test: st => ((st.wk || {}).rageKills || 0) >= 1 },\n  { id: 'wklast', g: 'wklast', r: 4, icon: '\u{1F5E1}\uFE0F', label: '\u8A0E\u4F10\u306E\u4E00\u6483', desc: '\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u3068\u3069\u3081\u3092\u523A\u3059', test: st => ((st.wk || {}).lastHit || 0) >= 1 },\n  { id: 'alllv', g: 'alllv', r: 5, icon: '\u{1F308}', label: '\u30AA\u30FC\u30EB\u30EC\u30D9\u30EB\u5236\u8987', desc: 'Lv.1\u301CLv.9 \u3059\u3079\u3066\u3067 Perfect \u3092\u53D6\u308B', test: st => ((st.lvP || 0) & 1022) === 1022 },\n];\nfunction hashSeed(s) {\n  let h = 1779033703 ^ s.length;\n  for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }\n  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);\n  return (h ^= h >>> 16) >>> 0;\n}\nfunction mulberry32(a) {\n  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };\n}\nfunction withSeed(key, fn) {\n  const orig = Math.random;\n  Math.random = mulberry32(hashSeed(key));\n  try { return fn(); } finally { Math.random = orig; }\n}\nfunction makeBank(seed, tileCount) {\n  const lists = {}, seen = {}, levels = {};\n  return {\n    get(level, k) {\n      const L = lists[level] || (lists[level] = []);\n      const S = seen[level] || (seen[level] = new Set());\n      while (L.length <= k) {\n        const i = L.length;\n        const b = withSeed(`${seed}:${level}:${i}`, () => buildBoard(level, S, tileCount));\n        b.tiles = b.tiles.map((t, j) => ({ ...t, id: `q${level}_${i}_${j}` }));\n        L.push(b);\n      }\n      return L[k];\n    },\n    level(n) { // n \u554F\u76EE\uFF081\u59CB\u307E\u308A\uFF09\u306E\u30EC\u30D9\u30EB\n      if (levels[n] == null) levels[n] = withSeed(`${seed}:lv:${n}`, () => pickLevelForQuestion(n));\n      return levels[n];\n    },\n  };\n}\nfunction problemForA(bank, q) {\n  const lv = bank.level(q + 1);\n  let k = 0;\n  for (let i = 0; i < q; i++) if (bank.level(i + 1) === lv) k++;\n  return { level: lv, k, ...bank.get(lv, k) };\n}\nfunction addOjama(tiles, poly, level, n) {\n  const out = [...tiles];\n  let guard = 0, added = 0;\n  while (added < n && guard < 300) {\n    guard++;\n    const f = foreignFactor(level);\n    const key = factorKey(f);\n    if (out.some(t => factorKey(t.factor) === key)) continue;\n    if (out.some(t => polyEqual(multiply(t.factor, f), poly))) continue;\n    const pos = Math.floor(Math.random() * (out.length + 1));\n    out.splice(pos, 0, { id: 'oj_' + Math.random().toString(36).slice(2), factor: f, ojama: true });\n    added++;\n  }\n  return out;\n}\nfunction attackFor(judgeLabel, combo) {\n  let dmg = 0, oj = 0;\n  // ver.5.7 \u3067\u5F31\u3081\u305F\uFF083\u30B3\u30F3\u30DC\u76EE\u304B\u30892\u30FB4\u30FB6\u30FB8\u3001\u6700\u59278\u30025\u30B3\u30F3\u30DC\u3054\u3068\u306B+5\u3002\u304A\u3058\u3083\u307E\u306F Perfect \u30671\u679A\uFF09\n  if (combo >= 3) dmg += Math.min(8, 2 * (combo - 2));\n  if (combo > 0 && combo % 5 === 0) dmg += 5;\n  if (judgeLabel === 'Perfect') oj += 1;\n  return { dmg, oj };\n}\nfunction scoreA(bank, claims, players, N, hc) {\n  const sc = {}, cb = {}, best = {};\n  players.forEach(p => { sc[p] = 0; cb[p] = 0; best[p] = 0; });\n  const log = [];\n  for (let q = 0; ; q++) {\n    const c = claims && claims[q];\n    if (!c) break;\n    const lv = bank.level(q + 1);\n    if (c.uid in sc) {\n      const w = c.uid, mult = 1 + cb[w] * 0.1;\n      const spurt = N && q >= N - A_LASTSPURT ? 2 : 1;\n      const pts = Math.round((LEVEL_POINTS[lv] || 10) * mult * spurt * handiPtsMul(hc && hc[w]));\n      sc[w] += pts; cb[w]++; best[w] = Math.max(best[w], cb[w]);\n      players.forEach(p => { if (p !== w) cb[p] = 0; });\n      log.push({ q, w, pts, at: c.at, spurt: spurt > 1 });\n    } else {\n      players.forEach(p => { cb[p] = 0; });\n      log.push({ q, w: null, at: c.at });\n    }\n  }\n  return { sc, cb, best, log };\n}\nlet qStartA = (claims, q, startAt) => q === 0 ? startAt : ((claims[q - 1] && claims[q - 1].at) || startAt) + A_NEXT_DELAY;\nfunction ratingDelta(myR, opps) {\n  let d = 0;\n  opps.forEach(o => { const E = 1 / (1 + Math.pow(10, (o.r - myR) / 400)); d += RATING_K * (o.s - E); });\n  return d;\n}\nfunction bTarget(me, ids, live, ko, tm) {\n  const alive = ids.filter(u => u !== me && !(tm && tm[u] === tm[me]) && !(ko && ko[u]) && !(live[u] && live[u].st === 'ko'));\n  if (!alive.length) return null;\n  const L = u => live[u] || {};\n  alive.sort((a, b) => (L(b).c || 0) - (L(a).c || 0) || (L(b).score || 0) - (L(a).score || 0) || (a < b ? -1 : 1));\n  return alive[0];\n}\nfunction createBEngine(o) {\n  const s = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, resolving: false, over: false, ko: false,\n    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100, dmgTaken: 0 };\n  const fx = (t, p) => { if (o.fx) o.fx(t, p); };\n  const snd = (k, rate) => { if (o.sound) o.sound.play(k, rate); };\n  const mul = handiDmgMul(o.hc);\n  const r1 = v => Math.round(v * 100) / 100;\n  const E = { s };\n  /* C\uFF1A\u4F53\u529B\u306F\u30C1\u30FC\u30E0\u30671\u672C\uFF08rooms/<code>/thp/<gid>/<\u30C1\u30FC\u30E0>\uFF09\u3002\u81EA\u5206\u306E\u5897\u6E1B\u306F\u305F\u3081\u3066\u3001\u307E\u3068\u3081\u3066 transaction \u3067\u8DB3\u3059 */\n  const tm = o.tm || null, TC = !!tm, myT = TC ? tm[o.uid] : null;\n  const mate = TC ? o.ids.find(u => u !== o.uid && tm[u] === myT) : null;\n  s.pool = 100; s.dq = 0; s.flushT = 0; s.lastOkAt = 0; s.lastMissAt = 0; s.uniteAt = 0; s.unites = 0; s.covers = 0;\n  const poolRef = TC ? fref(`rooms/${o.code}/thp/${o.gid}/${myT}`) : null;\n  const syncHp = () => { if (TC) s.hp = Math.max(0, Math.min(100, r1(s.pool + s.dq))); };\n  const addHp = x => { if (!TC) { s.hp = Math.max(0, Math.min(100, r1(s.hp + x))); return; } s.dq += x; syncHp(); };\n  E.flush = force => {\n    if (!TC || !s.dq) return;\n    const t = Date.now();\n    if (!force && t - s.flushT < 300 && Math.abs(s.dq) < 5) return;\n    s.flushT = t; const d = s.dq; s.dq = 0;\n    poolRef.transaction(v => Math.max(0, Math.min(100, r1((v == null ? 100 : v) + d)))).catch(() => {});\n  };\n  let poolFn = null;\n  if (TC) { poolFn = snap => { const v = snap.val(); s.pool = v == null ? 100 : v; syncHp(); }; poolRef.on('value', poolFn); }\n  E.dispose = () => { if (poolFn) poolRef.off('value', poolFn); };\n  E.mate = mate; E.team = myT;\n  const mateL = () => (mate && ((o.view().live || {})[mate])) || {};\n  E.shield = () => Date.now() < s.shieldUntil;\n  E.pinch = () => s.hp <= PINCH_HP;\n  E.target = () => { const v = o.view(); return bTarget(o.uid, o.ids, v.live || {}, v.ko || {}, o.tm); };\n  E.serve = () => {\n    const n = s.c + 1, lv = o.bank.level(n), k = s.served[lv] || 0;\n    s.served[lv] = k + 1;\n    const b = o.bank.get(lv, k);\n    let tiles = b.tiles.map(t => ({ ...t }));\n    const oj = Math.min(OJAMA_MAX_PER_BOARD, s.ojNext);\n    if (oj > 0) { tiles = addOjama(tiles, b.poly, lv, oj); s.ojNext -= oj; fx('ojama', oj); }\n    s.cur = { level: lv, k, poly: b.poly, tiles, oj };\n    s.qStart = Date.now(); s.warned = false;\n  };\n  E.writeLive = force => {\n    const t = Date.now();\n    if (!force && t - s.pushT < 400) return;\n    s.pushT = t;\n    const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);\n    fref(`rooms/${o.code}/live/${o.gid}/${o.uid}`).set({ hp: Math.round(s.hp * 10) / 10, c: s.c, score: s.score, combo: s.combo, pd, po, sp: s.sp, sh: E.shield() ? 1 : 0,\n      lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play', ...(TC ? { ok: s.lastOkAt, ms: s.lastMissAt, un: s.uniteAt } : {}) }).catch(() => {});\n    E.flush(force);\n  };\n  E.knockout = () => {\n    if (s.over) return;\n    s.over = true; s.ko = true;\n    if (TC) { s.dq = -200; E.flush(true); }\n    s.hp = 0;\n    E.writeLive(true);\n    fref(`rooms/${o.code}/ko/${o.gid}/${o.uid}`).transaction(cur => cur ? undefined : { at: TSV() }).catch(() => {});\n    fx('ko');\n  };\n  const damage = x => {\n    if (x <= 0) return;\n    addHp(-x);\n    s.minHp = Math.min(s.minHp, s.hp);\n    if (s.hp <= 0) E.knockout();\n  };\n  /* \u5C4A\u3044\u305F\u653B\u6483\u3092\u53D7\u3051\u53D6\u308B\uFF08\u30B7\u30FC\u30EB\u30C9\u4E2D\u306F\u306F\u306D\u8FD4\u3059\uFF09 */\n  E.receive = evs => {\n    if (!evs) return;\n    let any = false;\n    Object.entries(evs).forEach(([k, e]) => {\n      if (s.seenEv[k] || !e) return;\n      s.seenEv[k] = 1;\n      if (s.over) return;\n      if (e.cover) { const c = coverPend(e.cover); if (c > 0) { fx('covered', { from: e.from, units: c }); E.writeLive(true); } return; }\n      if (E.shield()) { fx('blocked', e); return; }\n      const dmg = Math.round((e.dmg || 0) * mul);\n      s.pend.push({ dmg, oj: e.oj || 0, t: Date.now(), from: e.from });\n      any = true;\n      snd('buzz'); fx('incoming', { dmg, oj: e.oj || 0, from: e.from, sp: e.sp });\n    });\n    if (any) E.writeLive(true);\n  };\n  /* \u4E88\u544A\u6642\u9593\u3092\u904E\u304E\u305F\u653B\u6483\u3092\u843D\u3068\u3059 */\n  E.land = forceAll => {\n    const t = Date.now();\n    let dmg = 0, oj = 0;\n    s.pend = s.pend.filter(p => {\n      if (forceAll || t - p.t >= B_LAND_DELAY) { dmg += p.dmg; oj += p.oj; return false; }\n      return true;\n    });\n    if (E.shield()) { if (dmg || oj) fx('blocked', { dmg, oj }); return; }\n    if (oj > 0) s.ojNext += oj;\n    if (dmg > 0 || oj > 0) { s.dmgTaken += dmg + oj; snd('hit'); fx('hit', { dmg, oj }); }\n    damage(dmg);\n  };\n  /* C\uFF1A\u4EF2\u9593\u304C\u4EE3\u308F\u308A\u306B\u76F8\u6BBA\u3057\u3066\u304F\u308C\u305F\uFF08units \u3076\u3093\u4E88\u544A\u3092\u6E1B\u3089\u3059\uFF09 */\n  const coverPend = units => {\n    let done = 0;\n    for (const p of s.pend) {\n      if (units <= 0) break;\n      const pu = p.dmg + p.oj * OJAMA_UNIT, c = Math.min(units, pu);\n      units -= c; done += c; let r = c;\n      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;\n      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));\n    }\n    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);\n    return done;\n  };\n  /* \u81EA\u5206\u306E\u653B\u6483\uFF1A\u307E\u305A\u5C4A\u3044\u3066\u3044\u308B\u653B\u6483\u3092\u76F8\u6BBA\u3057\u3001\u6B8B\u308A\u30921\u4F4D\u306E\u4EBA\u306B\u9001\u308B */\n  E.sendAttack = (out, isSp) => {\n    let units = out.dmg + out.oj * OJAMA_UNIT;\n    if (units <= 0) return;\n    const pinch = E.pinch();\n    if (pinch) units = Math.round(units * PINCH_MUL);\n    // C\uFF1A\u4EF2\u9593\u304C\u30DF\u30B9\u3057\u305F\u76F4\u5F8C\u306F\u30D5\u30A9\u30ED\u30FC\uFF08\u653B\u64831.2\u500D\uFF09\n    const follow = TC && !isSp && mateL().ms && fbNow() - mateL().ms <= C_FOLLOW.win;\n    if (follow) units = Math.round(units * C_FOLLOW.mul);\n    let cancelled = 0;\n    for (const p of s.pend) {\n      if (units <= 0) break;\n      const pu = p.dmg + p.oj * OJAMA_UNIT;\n      const c = Math.min(units, pu);\n      units -= c; cancelled += c;\n      let r = c;\n      const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;\n      if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));\n    }\n    s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);\n    // C\uFF1A\u4EF2\u9593\u306B\u5C4A\u3044\u3066\u3044\u308B\u653B\u6483\u3082\u30AB\u30D0\u30FC\uFF08\u81EA\u5206\u306E\u5206\u3092\u76F8\u6BBA\u3057\u305F\u3042\u3068\u306E\u6B8B\u308A\u3067\uFF09\n    let covered = 0;\n    if (TC && units > 0 && mate) {\n      const ml = mateL(), mp = (ml.pd || 0) + (ml.po || 0) * OJAMA_UNIT;\n      if (mp > 0 && ml.st === 'play') {\n        covered = Math.min(units, mp); units -= covered; s.covers += covered;\n        const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);\n        fref(`rooms/${o.code}/ev/${o.gid}/${mate}/${key}`).set({ cover: covered, from: o.uid, at: TSV() }).catch(() => {});\n      }\n    }\n    const to = units > 0 ? E.target() : null;\n    let dmg = 0, oj = 0;\n    if (to) {\n      // 3\u4EBA\u4EE5\u4E0A\u306E\u3068\u304D\u306F\u30011\u4F4D\u306B\u653B\u6483\u304C\u96C6\u4E2D\u3057\u3059\u304E\u306A\u3044\u3088\u3046\u306B\u5C11\u3057\u5F31\u3081\u308B\n      const v = o.view(), alive = o.ids.filter(u => !((v.ko || {})[u]) && !(((v.live || {})[u] || {}).st === 'ko')).length;\n      if (!TC) units = Math.max(1, Math.round(units * (MULTI_ATK[alive] || 1)));\n      oj = Math.min(out.oj, Math.floor(units / OJAMA_UNIT));\n      dmg = units - oj * OJAMA_UNIT;\n      const key = String(Date.now()).padStart(15, '0') + '_' + Math.random().toString(36).slice(2, 7);\n      fref(`rooms/${o.code}/ev/${o.gid}/${to}/${key}`).set({ dmg, oj, from: o.uid, sp: isSp ? 1 : 0, at: TSV() }).catch(() => {});\n      s.sent += units; s.ojSent += oj;\n      snd('send');\n    }\n    s.cancelTotal += cancelled + covered;\n    fx('send', { dmg, oj, to, cancelled, pinch, covered, follow, unite: isSp === 'unite' });\n  };\n  E.answer = ok => {\n    if (s.resolving || s.over || !s.cur) return null;\n    s.resolving = true;\n    const ms = Date.now() - s.qStart;\n    const cur = s.cur;\n    if (ok) {\n      const j = getJudgment(ms);\n      const mult = 1 + s.combo * 0.1, g = Math.round((LEVEL_POINTS[cur.level] || 10) * mult);\n      const rec = TC ? j.recover * C_HP.recover : j.recover;\n      const raw = s.hp + rec, over = Math.max(0, Math.round(raw - 100));\n      addHp(rec);\n      s.score += g + over; s.combo++; s.best = Math.max(s.best, s.combo); s.c++;\n      const pe = j.label === 'Perfect' || j.label === 'Excellent';\n      s.sp = Math.min(SP_MAX, s.sp + 1 + (pe ? 1 : 0));\n      if (j.label === 'Perfect') s.perfects++;\n      s.hist.push({ lv: cur.level, k: cur.k, ok: true, ms, j: j.label });\n      snd('ok', 1 + Math.min(s.combo, 15) * 0.035); if (pe) snd('speed'); if (s.combo % 5 === 0) snd('combo');\n      E.sendAttack(attackFor(j.label, s.combo));\n      if (TC) {\n        // \u5408\u4F53\u653B\u6483\uFF1A2\u4EBA\u3068\u30823\u30B3\u30F3\u30DC\u4EE5\u4E0A\u30923\u79D2\u4EE5\u5185\u306B\u305D\u308D\u3048\u305F\uFF088\u79D2\u306B1\u56DE\u307E\u3067\uFF09\n        const ml = mateL(), t = fbNow();\n        if (s.combo >= C_UNITE.combo && (ml.combo || 0) >= C_UNITE.combo && ml.ok && t - ml.ok <= C_UNITE.win && t - Math.max(s.uniteAt, ml.un || 0) > C_UNITE.cool && ml.st === 'play') {\n          s.uniteAt = t; s.unites++;\n          fx('unite', { mate });\n          E.sendAttack({ dmg: C_UNITE.dmg, oj: C_UNITE.oj }, 'unite');\n        }\n        s.lastOkAt = t;\n      }\n      E.writeLive(true);\n      if (TC ? s.c + (mateL().c || 0) >= o.N * 2 : s.c >= o.N) { s.over = true; E.writeLive(true); if (o.onClear) o.onClear(o.uid); return { ok: true, judge: j, gain: g + over, clear: true }; }\n      s.nextAt = Date.now() + 420;\n      return { ok: true, judge: j, gain: g + over };\n    }\n    snd('buzz');\n    s.combo = 0;\n    s.hist.push({ lv: cur.level, k: cur.k, ok: false, ms });\n    if (TC) s.lastMissAt = fbNow();\n    damage(Math.round((DIFFICULTY_MISS_PENALTY[o.diff] || 20) * mul * (TC ? C_HP.miss : 1)));\n    E.writeLive(true);\n    s.nextAt = Date.now() + 420;\n    return { ok: false };\n  };\n  E.next = () => {\n    E.land(false);\n    if (s.over) return;\n    E.serve();\n    s.resolving = false;\n    E.writeLive(true);\n    fx('next');\n  };\n  E.special = kind => {\n    if (s.over || s.sp < SP_MAX) return false;\n    s.sp = 0; s.spUsed++;\n    snd('special');\n    if (kind === 'big') E.sendAttack({ dmg: SP_BIG.dmg, oj: SP_BIG.oj }, true);\n    else if (kind === 'heal') addHp(SP_HEAL);\n    else if (kind === 'shield') { s.shieldUntil = Date.now() + SP_SHIELD_MS; s.pend = []; }\n    fx('special', kind);\n    E.writeLive(true);\n    return true;\n  };\n  /* \u89B3\u6226\u8005\u306E\u5FDC\u63F4\uFF1A\u4F53\u529B\u3092\u5C11\u3057\u56DE\u5FA9 */\n  E.cheer = h => { if (s.over) return false; addHp(h); E.writeLive(true); return true; };\n  /* 100\u30DF\u30EA\u79D2\u3054\u3068\u306B\u547C\u3076\uFF1A\u4F53\u529B\u306E\u81EA\u7136\u6E1B\u5C11\u30FB\u6642\u9593\u5207\u308C\u30FB\u4E88\u544A\u306E\u6642\u9593\u5207\u308C */\n  E.tick = () => {\n    const nowT = Date.now(), dt = nowT - s.lastT; s.lastT = nowT;\n    if (s.over) return;\n    if (s.nextAt && nowT >= s.nextAt) { s.nextAt = null; E.next(); if (s.over) return; }\n    if (!s.resolving) addHp(-dt / 1000 * mul * (TC ? C_HP.decay : 1));\n    if (s.pend.some(p => nowT - p.t >= B_FORCE_LAND)) {\n      const keep = []; let dmg = 0, oj = 0;\n      s.pend.forEach(p => { if (nowT - p.t >= B_FORCE_LAND) { dmg += p.dmg; oj += p.oj; } else keep.push(p); });\n      s.pend = keep;\n      if (!E.shield()) { s.ojNext += oj; s.dmgTaken += dmg + oj; if (dmg) { snd('hit'); fx('hit', { dmg, oj }); } damage(dmg); if (s.over) return; }\n    }\n    const qe = nowT - s.qStart;\n    if (!s.resolving && qe >= QUESTION_TIMEOUT_MS - 5000 && !s.warned) { s.warned = true; if (o.sound) snd('buzz'); }\n    if (!s.resolving && qe >= QUESTION_TIMEOUT_MS) {\n      s.resolving = true; s.combo = 0;\n      s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, timeout: true, ms: qe });\n      fx('timeout');\n      if (TC) s.lastMissAt = fbNow();\n      damage(Math.round((DIFFICULTY_TIMEOUT_EXTRA[o.diff] || 0) * mul * (TC ? C_HP.miss : 1)));\n      if (s.over) return;\n      s.nextAt = nowT + 420;\n    }\n    s.minHp = Math.min(s.minHp, s.hp);\n    if (s.hp <= 0) { E.knockout(); return; }\n    // \u9006\u8EE2\u52DD\u3061\u306E\u5224\u5B9A\u7528\uFF1A\u30D4\u30F3\u30C1\u306B\u306A\u3063\u305F\u3001\u307E\u305F\u306F1\u4F4D\u306B3\u554F\u4EE5\u4E0A\u5DEE\u3092\u3064\u3051\u3089\u308C\u305F\n    if (!s.behind) {\n      const v = o.view(), live = v.live || {};\n      const lead = Math.max(0, ...o.ids.filter(u => u !== o.uid && !(TC && tm[u] === myT)).map(u => (live[u] && live[u].c) || 0));\n      if (s.hp <= PINCH_HP || lead - s.c >= 3) s.behind = true;\n    }\n    E.writeLive(false);\n  };\n  E.serve();\n  return E;\n}\nreturn ({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES,buildReverseQuestion,withSeed,REVERSE_STAGE_CHANCE,REVERSE_STAGE_MIN_CORRECT,REVERSE_STAGE_POINTS,LEVEL_POINTS});\n");
       var script = { runInNewContext: (c) => makeRuntime(c.Math, c.Date, c.fref, c.TSV, c.fbNow) };
       var clone = (x) => JSON.parse(JSON.stringify(x));
       var AResult = require_a_result();
+      var B2 = require_b2();
       var banks = /* @__PURE__ */ new Map();
       function runtime(match) {
         var _a;
+        if (match.rules === "b2") return runtime({ ...match, rules: void 0, mode: "A", states: {} });
         match.seq || (match.seq = {});
         match.claims || (match.claims = []);
         match.locks || (match.locks = {});
@@ -178,7 +406,7 @@
           }
         };
       }
-      function begin(id, difficulty, mode, ids, seed, now) {
+      function begin(id, difficulty, mode, ids, seed, now, options = {}) {
         const m = {
           id,
           difficulty,
@@ -193,11 +421,19 @@
           seq: {},
           rng: 1
         };
+        if (mode === "B" && options.rules === "b2") {
+          const r = runtime({ ...m, mode: "A" });
+          return B2.begin(m, options.duration || 90, r.bank, r.api);
+        }
         if (mode === "B") runtime(m).saved();
         return m;
       }
       function step(match, uid, command, now) {
         var _a, _b;
+        if (match.rules === "b2") {
+          const r = runtime(match);
+          return B2.step(match, uid, command, now, r.bank, r.api);
+        }
         const m = clone(match), rt = runtime(m), { api } = rt;
         if (now - m.time > 36e5) throw Error("MATCH_EXPIRED");
         if (now < m.time) throw Error("CLOCK_REVERSED");
@@ -270,6 +506,7 @@
         return time < (s.shieldUntil || 0);
       }
       function view(match, uid) {
+        if (match.rules === "b2") return B2.view(match, uid);
         const rt = runtime(match), { api } = rt;
         const problem = match.mode === "A" ? api.problemForA(rt.bank, match.claims.length) : match.states[uid].cur;
         return {
@@ -594,7 +831,8 @@
               m.mode,
               m.members.map((x) => x.uid),
               m.seed,
-              now + 3800
+              now + 3800,
+              m.rulesVersion === 2 ? { rules: "b2", duration: m.duration || 90 } : {}
             );
           }
         } else if (m.phase === "play" && now >= m.game.startAt) {
@@ -644,6 +882,36 @@
         copy,
         ratingView: (r, now) => normalize(copy(r), season(now))
       };
+    }
+  });
+
+  // src/hyper-select.cjs
+  var require_hyper_select = __commonJS({
+    "src/hyper-select.cjs"(exports, module) {
+      var C = require_core();
+      var G = require_ghost_model();
+      function candidates(accounts, profiles, difficulty, now) {
+        var _a;
+        const players = { ...profiles };
+        for (const [k, a] of Object.entries(accounts)) if (!players[k] && (a == null ? void 0 : a.name) && typeof ((_a = a.stats) == null ? void 0 : _a.rating) === "number" && Number.isFinite(a.stats.rating)) players[k] = { name: a.name, statsKnown: false, easy: C.initial(a.stats.rating, now), normal: C.initial(1500, now) };
+        return C.rankings({ players }, difficulty, now).slice(0, 10).filter((r) => r.rank <= 10 && G.eligible(accounts[r.key])).map((r) => ({ ...r, weight: 11 - r.rank }));
+      }
+      function select({ accounts, profiles, difficulty, key, now, random = Math.random }) {
+        var _a;
+        const rows = candidates(accounts, profiles, difficulty, now);
+        if (!rows.length) throw Error("\u30E9\u30F3\u30AD\u30F3\u30B0TOP10\u306B\u5BFE\u6226\u53EF\u80FD\u306A\u5B66\u7FD2\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093");
+        let roll = random() * rows.reduce((n, r2) => n + r2.weight, 0), r = rows.at(-1);
+        for (const x of rows) {
+          roll -= x.weight;
+          if (roll < 0) {
+            r = x;
+            break;
+          }
+        }
+        const a = accounts[r.key], own = (_a = profiles[key]) == null ? void 0 : _a[difficulty], my = own ? C.ratingView(own, now).rating : 1500;
+        return { type: "hyper", key: r.key, base: a.name, name: a.name + "\u306E\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8" + (r.key === key ? "\uFF08\u81EA\u5206\u30FB\u7DF4\u7FD2\uFF09" : ""), rating: r.rating, rank: G.rank(r.rating), rankingRank: r.rank, rankDifference: G.rank(r.rating) - G.rank(my), profile: G.profile(a.prof, a.stats, true) };
+      }
+      module.exports = { candidates, select };
     }
   });
 
@@ -700,9 +968,11 @@
         difficulty,
         rating,
         random: random2 = Math.random,
-        bot
+        bot,
+        now = Date.now()
       }) {
         const kind = category(random2()), band = rank(rating), offset = { up2: 2, up1: 1, same: 0, down1: -1 }[kind];
+        if (kind === "hyper") return require_hyper_select().select({ accounts, profiles, key, difficulty, now, random: random2 });
         const all = Object.entries(accounts).filter(([k, a]) => k !== key && eligible(a)).map(([k, a]) => {
           var _a, _b;
           const rt = ((_a = profiles[k]) == null ? void 0 : _a[difficulty]) ? C.ratingView(profiles[k][difficulty], Date.now()).rating : difficulty === "easy" && valid((_b = a.stats) == null ? void 0 : _b.rating) ? a.stats.rating : 1500;
@@ -766,6 +1036,13 @@
         const m = C.copy(raw), bot = "_ghost", gp = m.opponent.profile;
         if (m.phase !== "play" || now < m.game.startAt) return m;
         for (let count = 0; count < 100 && !m.game.result; count++) {
+          if (m.game.rules === "b2" && m.game.states[bot].freezeUntil > m.game.time) {
+            const s = m.game.states[bot];
+            m.game = E.step(m.game, bot, { type: "heartbeat" }, Math.max(m.game.time, Math.min(now, s.freezeUntil, s.qStart + 2e4)));
+            delete m.cpu;
+            if (m.game.result || m.game.states[bot].freezeUntil > now) break;
+            continue;
+          }
           if (m.mode === "B" && ((_b = (_a = m.game.states) == null ? void 0 : _a[bot]) == null ? void 0 : _b.resolving)) {
             m.game = E.step(
               m.game,
@@ -807,7 +1084,7 @@
             { type: "answer", question: v.question, tiles: pool[0] || good[0] },
             Math.max(m.game.time, m.cpu.at)
           );
-          if (m.mode === "B" && m.usesSpecial && !m.game.result) {
+          if (m.mode === "B" && m.game.rules !== "b2" && m.usesSpecial && !m.game.result) {
             const s = m.game.states[bot];
             if (s.sp >= 6 && !m.specialAt)
               m.specialAt = m.game.time + Math.round(600 + random(m) * 1500);
@@ -818,7 +1095,7 @@
           if (m.mode === "A" && !correct)
             m.cpu.at += Math.max(0, (m.game.locks[bot] || 0) - m.game.time);
         }
-        if (m.mode === "B" && m.specialAt && m.specialAt <= now && !m.game.result) {
+        if (m.mode === "B" && m.game.rules !== "b2" && m.specialAt && m.specialAt <= now && !m.game.result) {
           const s = m.game.states[bot];
           m.game = E.step(
             m.game,
@@ -872,6 +1149,13 @@
             const r = db.ref(path), scope = /\/matches\//.test(path) ? "match" : /\/profiles/.test(path) ? "profile" : "other";
             return new Proxy(r, {
               get: (o, k) => {
+                if (k === "child") return (child) => instrument(db).ref(path + "/" + child);
+                if (k === "set") return async (value) => {
+                  const t = clock();
+                  mark("write-start", { scope });
+                  await o.set(value);
+                  mark("write-end", { scope, ms: clock() - t, applicationBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength });
+                };
                 if (k === "get")
                   return async () => {
                     const t = clock();
@@ -935,6 +1219,69 @@
     }
   });
 
+  // src/b2-pump.cjs
+  var require_b2_pump = __commonJS({
+    "src/b2-pump.cjs"(exports, module) {
+      var E = require_engine();
+      function pump(raw, clock) {
+        var _a, _b, _c, _d, _e;
+        const m = JSON.parse(JSON.stringify(raw));
+        if (((_a = m.game) == null ? void 0 : _a.rules) !== "b2") throw Error("NOT_B2");
+        (_b = m.game).seq || (_b.seq = {});
+        const intents = [];
+        for (const [uid, entries] of Object.entries(m.inputs || {})) for (const [id, c] of Object.entries(entries)) {
+          if (typeof c.at !== "number" || c.at > clock || ((_d = (_c = m.handled) == null ? void 0 : _c[uid]) == null ? void 0 : _d[id])) continue;
+          intents.push({ uid, id, c });
+        }
+        intents.sort((a, b) => a.c.at - b.c.at || a.uid.localeCompare(b.uid) || a.id.localeCompare(b.id));
+        for (const { uid, id, c } of intents) {
+          if (c.type === "answer" && c.seq > (m.game.seq[uid] || 0) + 1) continue;
+          m.handled || (m.handled = {});
+          (_e = m.handled)[uid] || (_e[uid] = {});
+          m.handled[uid][id] = true;
+          if (m.game.result) continue;
+          if (!m.game.ids.includes(uid)) {
+            if (c.at >= m.game.startAt && c.type === "cheer" && m.game.ids.includes(c.target) && !Object.values(m.accounts || {}).includes(c.account)) m.game = E.step(m.game, c.target, { type: "cheer", viewer: c.account || uid, seq: c.seq }, Math.max(c.at, m.game.time));
+            continue;
+          }
+          if (c.type === "leave") {
+            if (c.at < m.game.startAt) {
+              m.phase = "cancelled";
+              return m;
+            }
+            m.game = E.step(m.game, uid, { type: "heartbeat" }, Math.max(c.at, m.game.time));
+            if (!m.game.result) {
+              m.game.states[uid].hp = 0;
+              m.game.states[uid].eliminatedAt = m.game.time;
+              m.game = E.step(m.game, uid, { type: "heartbeat" }, m.game.time + 1);
+              if (m.game.result) m.game.result.reason = "leave";
+            }
+            continue;
+          }
+          if (c.type !== "answer") continue;
+          if (c.seq <= (m.game.seq[uid] || 0)) continue;
+          if (c.at < m.game.startAt) {
+            m.rejected || (m.rejected = {});
+            m.rejected[uid] = { seq: c.seq, code: "BEFORE_START" };
+            m.game.seq[uid] = c.seq;
+            continue;
+          }
+          try {
+            m.game = E.step(m.game, uid, c, Math.max(c.at, m.game.time));
+          } catch (e) {
+            if (!["STALE_QUESTION", "FROZEN", "INVALID_TILES", "KO"].includes(e.message)) throw e;
+            m.rejected || (m.rejected = {});
+            m.rejected[uid] = { seq: c.seq, code: e.message };
+          }
+          m.game.seq[uid] = c.seq;
+        }
+        if (!m.game.result && clock >= m.game.startAt) m.game = E.step(m.game, m.game.ids[0], { type: "heartbeat" }, Math.max(clock, m.game.time));
+        return m;
+      }
+      module.exports = { pump };
+    }
+  });
+
   // src/online-state-order.cjs
   var require_online_state_order = __commonJS({
     "src/online-state-order.cjs"(exports, module) {
@@ -959,6 +1306,7 @@
       var E = require_engine();
       var G = require_ghost_model();
       var Perf = require_online_performance();
+      var B2Pump = require_b2_pump();
       var ROOT = "games/factor/onlineSparkV1";
       var copy = C.copy;
       var id = () => {
@@ -1028,6 +1376,7 @@
         learning = async () => {
         },
         random = Math.random,
+        modernB = true,
         storage = typeof sessionStorage !== "undefined" ? sessionStorage : null
       }) {
         db = Perf.instrument(db);
@@ -1040,6 +1389,31 @@
         profileRef.on("value", ownListen, () => {
         });
         let ticket = null, difficulty = null, currentMatch = null, searchStarted = null, ghostReady = false, ghostActive = null;
+        let matchCache = null, matchWatch = null;
+        const stopMatchWatch = () => {
+          if (matchWatch) {
+            matchWatch.ref.off("value", matchWatch.fn);
+            matchWatch = null;
+          }
+          matchCache = null;
+        };
+        const watchMatch = (m) => {
+          var _a;
+          if (((_a = m == null ? void 0 : m.game) == null ? void 0 : _a.rules) !== "b2" || m.opponent) return;
+          if ((matchWatch == null ? void 0 : matchWatch.id) === m.id) return;
+          stopMatchWatch();
+          matchCache = copy(m);
+          const ref = db.ref(`${ROOT}/matches/${m.id}`), fn = (s) => {
+            const v = s.val();
+            if (!v) return;
+            if (matchCache && v.revision < (matchCache.revision || 0)) return;
+            matchCache = v;
+          };
+          matchWatch = { id: m.id, ref, fn };
+          ref.on("value", fn, () => {
+            stopMatchWatch();
+          });
+        };
         let connected = false;
         const reconnects = /* @__PURE__ */ new Set();
         const connectionRef = db.ref(".info/connected");
@@ -1153,7 +1527,10 @@
             }
             return copy(localGhost);
           }
-          return (await db.ref(`${ROOT}/matches/${matchId}`).get()).val();
+          if ((matchCache == null ? void 0 : matchCache.id) === matchId) return copy(matchCache);
+          const m = (await db.ref(`${ROOT}/matches/${matchId}`).get()).val();
+          watchMatch(m);
+          return m;
         }
         async function apply(m) {
           if (m.phase !== "settled" || !m.receipt) return;
@@ -1195,7 +1572,7 @@
           });
         }
         async function response(m = null, withLegacy = false) {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
           const selfPractice = ((_a = m == null ? void 0 : m.opponent) == null ? void 0 : _a.key) === key;
           if (m && !selfPractice && (!m.opponent || m.origin === "quick")) await apply(m);
           if ((m == null ? void 0 : m.opponent) && m.phase === "settled") await saveGhostResult(m);
@@ -1269,6 +1646,7 @@
               serverTime: ((_h = m.game) == null ? void 0 : _h.time) || 0,
               selfUid: ((_i = m.members.find((u) => u.key === key)) == null ? void 0 : _i.uid) || uid,
               gameStartAt: (_j = m.game) == null ? void 0 : _j.startAt,
+              rules: ((_k = m.game) == null ? void 0 : _k.rules) || null,
               members: m.members.map((x) => ({ uid: x.uid, name: x.name })),
               phase: m.phase,
               difficulty: m.difficulty,
@@ -1280,14 +1658,14 @@
               selfPractice,
               aResult: m.phase === "settled" && m.mode === "A" ? m.game.aResult || E.reportA(m.game) : null,
               exp: m.exp || 0,
-              lastAnswer: m.mode === "B" ? ((_o = (_n = (_m = (_k = m.game) == null ? void 0 : _k.states) == null ? void 0 : _m[(_l = m.members.find((u) => u.key === key)) == null ? void 0 : _l.uid]) == null ? void 0 : _n.hist) == null ? void 0 : _o.slice(-1)[0]) || null : ((_r = (_q = m.learning) == null ? void 0 : _q[(_p = m.members.find((u) => u.key === key)) == null ? void 0 : _p.uid]) == null ? void 0 : _r.slice(-1)[0]) || null,
+              lastAnswer: m.mode === "B" ? ((_p = (_o = (_n = (_l = m.game) == null ? void 0 : _l.states) == null ? void 0 : _n[(_m = m.members.find((u) => u.key === key)) == null ? void 0 : _m.uid]) == null ? void 0 : _o.hist) == null ? void 0 : _p.slice(-1)[0]) || null : ((_s = (_r = m.learning) == null ? void 0 : _r[(_q = m.members.find((u) => u.key === key)) == null ? void 0 : _q.uid]) == null ? void 0 : _s.slice(-1)[0]) || null,
               game: m.phase === "play" ? E.view(
                 m.game,
-                ((_s = m.members.find((u) => u.key === key)) == null ? void 0 : _s.uid) || uid
+                ((_t = m.members.find((u) => u.key === key)) == null ? void 0 : _t.uid) || uid
               ) : null,
-              result: ((_t = m.receipt) == null ? void 0 : _t.result) || null,
+              result: ((_u = m.receipt) == null ? void 0 : _u.result) || null,
               receipt: m.receipt || null,
-              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_u = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _u.key) === key ? "win" : "lose" : null
+              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_v = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _v.key) === key ? "win" : "lose" : null
             } : null,
             ratings: {
               easy: C.ratingView(p.easy, now()),
@@ -1300,8 +1678,8 @@
               normal: ranks.normal.slice(0, 10)
             },
             ranks: {
-              easy: ((_v = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _v.rank) || null,
-              normal: ((_w = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _w.rank) || null
+              easy: ((_w = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _w.rank) || null,
+              normal: ((_x = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _x.rank) || null
             }
           };
         }
@@ -1486,7 +1864,7 @@
           return response(await find());
         }
         async function intrusion() {
-          if (!ghostReady || !ticket || !difficulty || searchStarted == null || now() - searchStarted < 1e4)
+          if (!ghostReady || !ticket || !difficulty || searchStarted == null || now() - searchStarted < 5e3)
             return null;
           const ref = db.ref(`${ROOT}/slots/${difficulty}`), gid = "ghost-" + ticket;
           const cur = await tx(
@@ -1496,15 +1874,25 @@
           if ((cur == null ? void 0 : cur.id) !== ticket || cur.claim || cur.fallback !== gid) return find();
           const all = (await db.ref("games/factor/accounts").get()).val() || {}, p = (await profileRef.get()).val();
           profiles = (await pr.get()).val() || {};
-          const opponent = G.select({
-            accounts: all,
-            profiles,
-            key,
-            random,
-            difficulty,
-            rating: C.ratingView(p[difficulty], now()).rating,
-            bot
-          });
+          let opponent;
+          try {
+            opponent = G.select({
+              accounts: all,
+              profiles,
+              key,
+              random,
+              difficulty,
+              rating: C.ratingView(p[difficulty], now()).rating,
+              bot,
+              now: now()
+            });
+          } catch (e) {
+            await tx(ref, (s) => (s == null ? void 0 : s.id) === ticket && s.uid === uid ? null : s);
+            ticket = null;
+            difficulty = null;
+            searchStarted = null;
+            throw e;
+          }
           const d = difficulty;
           await beginGhost(d, opponent, "quick", gid);
           await tx(
@@ -1654,7 +2042,8 @@
                   n.mode,
                   [playUid, "_ghost"],
                   n.seed,
-                  ts + 3800
+                  ts + 3800,
+                  modernB ? { rules: "b2", duration: 90 } : {}
                 );
               }
             } else if (!beforeStart) {
@@ -1728,11 +2117,21 @@
           return response(m.phase === "cancelled" ? null : m);
         }
         async function request(command) {
-          var _a, _b, _c, _d;
+          var _a, _b, _c, _d, _e, _f;
           if (closed) throw Error("\u753B\u9762\u304C\u9589\u3058\u3089\u308C\u307E\u3057\u305F");
           if (command.protocol !== void 0 && command.protocol !== 2)
             throw Error("UPDATE_REQUIRED");
           await ensure();
+          if (command.type === "randomGhost") {
+            if (!["easy", "normal"].includes(command.difficulty) || !["ghost", "hyper"].includes(command.kind)) throw Error("INVALID_GHOST_REQUEST");
+            if (await find()) throw Error("\u7D9A\u884C\u4E2D\u306E\u5BFE\u6226\u304C\u3042\u308A\u307E\u3059");
+            if (!ghostReady) throw Error("\u30B4\u30FC\u30B9\u30C8\u6A5F\u80FD\u306E\u6E96\u5099\u4E2D\u3067\u3059");
+            const [a, p] = await Promise.all([db.ref("games/factor/accounts").get(), pr.get()]);
+            const accounts = a.val() || {}, profiles2 = p.val() || {};
+            const opponent = command.kind === "hyper" ? require_hyper_select().select({ accounts, profiles: profiles2, key, difficulty: command.difficulty, now: now(), random }) : G.select({ accounts, profiles: profiles2, key, difficulty: command.difficulty, rating: C.ratingView(ownProfile[command.difficulty], now()).rating, random: () => 0.5, bot });
+            if (opponent.type === "bot") throw Error("\u5BFE\u6226\u53EF\u80FD\u306A\u30B4\u30FC\u30B9\u30C8\u306E\u5B66\u7FD2\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093");
+            return beginGhost(command.difficulty, opponent, "profile");
+          }
           if (command.type === "directGhost") {
             if (!["easy", "normal"].includes(command.difficulty) || !["bounty", "profile"].includes(command.origin))
               throw Error("INVALID_GHOST_REQUEST");
@@ -1838,13 +2237,37 @@
           if (!m.members.some((x) => x.uid === uid && x.key === key) && !["settled", "cancelled"].includes(m.phase))
             throw Error("\u3053\u306E\u8A66\u5408\u3092\u5225\u306E\u30ED\u30B0\u30A4\u30F3\u72B6\u614B\u3067\u9032\u884C\u4E2D\u3067\u3059");
           if (["settled", "cancelled"].includes(m.phase)) return response(m);
+          if (((_e = m.game) == null ? void 0 : _e.rules) === "b2" && command.type === "heartbeat" && m.members[0].uid !== uid && now() - (m.clock || m.game.startAt) < 1400) return response(m);
+          let serverClock = null;
+          const matchRef = db.ref(`${ROOT}/matches/${m.id}`);
+          if (((_f = m.game) == null ? void 0 : _f.rules) === "b2") {
+            if (["answer", "leave"].includes(command.type)) {
+              const inputId = command.type === "answer" ? `a${command.seq}` : "leave";
+              const intentRef = matchRef.child(`inputs/${uid}/${inputId}`);
+              await tx(intentRef, (c) => c || clean({ ...command, at: { ".sv": "timestamp" } }));
+            }
+            await matchRef.child("clock").set({ ".sv": "timestamp" });
+            serverClock = (await matchRef.child("clock").get()).val();
+          } else if (m.phase === "vote") {
+            await matchRef.child("clock").set({ ".sv": "timestamp" });
+            serverClock = (await matchRef.child("clock").get()).val();
+          }
           m = await tx(db.ref(`${ROOT}/matches/${m.id}`), (raw) => {
-            var _a2, _b2, _c2, _d2, _e, _f;
+            var _a2, _b2, _c2, _d2, _e2, _f2, _g;
             if (!raw) throw Error("MATCH_NOT_FOUND");
             if (command.type === "abortInitialization") {
               if (raw.receipt || Object.values(((_a2 = raw.game) == null ? void 0 : _a2.seq) || {}).some((n) => n > 0) || ((_c2 = (_b2 = raw.game) == null ? void 0 : _b2.claims) == null ? void 0 : _c2.length))
                 throw Error("\u5BFE\u6226\u304C\u9032\u884C\u3057\u3066\u3044\u307E\u3059\u3002\u6700\u65B0\u306E\u72B6\u614B\u304B\u3089\u518D\u958B\u3057\u3066\u304F\u3060\u3055\u3044");
               return { ...raw, phase: "cancelled" };
+            }
+            if (((_d2 = raw.game) == null ? void 0 : _d2.rules) === "b2") {
+              const next2 = B2Pump.pump(raw, Math.max(serverClock || raw.clock, raw.game.time));
+              next2.revision = (raw.revision || 0) + 1;
+              if (next2.game.result && !next2.receipt) {
+                const model2 = { players: copy(next2.snapshots), settlements: {} };
+                C.settle(model2, next2, next2.game.result.at || serverClock);
+              }
+              return clean(next2);
             }
             const model = {
               enabled: true,
@@ -1853,7 +2276,11 @@
               matches: { [raw.id]: copy(raw) },
               settlements: {}
             };
-            const ts = raw.phase === "play" && now() < raw.game.startAt ? now() : Math.max(now(), ((_d2 = raw.game) == null ? void 0 : _d2.time) || 0);
+            if (raw.phase === "vote" && modernB) {
+              model.matches[raw.id].rulesVersion = 2;
+              model.matches[raw.id].duration = 90;
+            }
+            const ts = raw.phase === "play" && now() < raw.game.startAt ? now() : Math.max(serverClock || now(), ((_e2 = raw.game) == null ? void 0 : _e2.time) || 0);
             const next = C.transition(
               model,
               { uid, key },
@@ -1862,14 +2289,15 @@
               { mode: Math.random() < 0.5 ? "A" : "B" }
             ).state.matches[raw.id];
             const rec = aRecord(raw.game, uid, command, ts);
-            if (rec && ((_e = next.game.seq) == null ? void 0 : _e[uid]) === command.seq) {
+            if (rec && ((_f2 = next.game.seq) == null ? void 0 : _f2[uid]) === command.seq) {
               next.learning || (next.learning = {});
-              (_f = next.learning)[uid] || (_f[uid] = []);
+              (_g = next.learning)[uid] || (_g[uid] = []);
               next.learning[uid].push(rec);
             }
             next.revision = (raw.revision || 0) + 1;
             return clean(next);
           });
+          watchMatch(m);
           return response(m);
         }
         return {
@@ -1880,6 +2308,7 @@
           },
           close() {
             closed = true;
+            stopMatchWatch();
             for (const resume of reconnects) resume();
             reconnects.clear();
             connectionRef.off("value", connectionListen);
@@ -1952,7 +2381,359 @@
     }
   });
 
+  // src/daily-model.cjs
+  var require_daily_model = __commonJS({
+    "src/daily-model.cjs"(exports, module) {
+      var DAY = 864e5;
+      var SHIFT = 324e5;
+      var GRACE = 12e5;
+      var epoch = (t) => Math.floor((t + SHIFT) / DAY);
+      var date = (d) => new Date(d * DAY).toISOString().slice(0, 10);
+      function sortKey(r) {
+        return `${2e6 - r.score}:${r.cleared ? "0" : "1"}:${1e9 + (r.cleared ? r.elapsed : 100 - r.correct)}:${1e13 + r.confirmedAt}`;
+      }
+      function compare(a, b) {
+        return b.score - a.score || Number(b.cleared) - Number(a.cleared) || (a.cleared && b.cleared ? a.elapsed - b.elapsed : b.correct - a.correct) || a.confirmedAt - b.confirmedAt;
+      }
+      function best(previous, next) {
+        return !previous || compare(next, previous) < 0 ? next : previous;
+      }
+      function reserve(ledger, attempt) {
+        const next = JSON.parse(JSON.stringify(ledger || { slots: {} }));
+        next.slots || (next.slots = {});
+        const existing = Object.entries(next.slots).find(([, a]) => a.id === attempt.id);
+        if (existing) return { ledger: next, slot: Number(existing[0]), attempt: existing[1] };
+        const slot = Object.keys(next.slots).length;
+        if (slot >= 3) throw Error("\u4ECA\u65E5\u306E\u6311\u6226\u306F\u5408\u8A083\u56DE\u307E\u3067\u3067\u3059");
+        next.slots[slot] = attempt;
+        return { ledger: next, slot, attempt };
+      }
+      var finalizable = (d, now) => now >= (d + 1) * DAY - SHIFT + GRACE;
+      var awardIds = { easy: "daily_easy_king", normal: "daily_normal_king", hard: "daily_hard_king" };
+      function titles(had, d) {
+        const next = { ...had, [awardIds[d]]: true };
+        if (Object.values(awardIds).every((id) => next[id])) next.daily_king = true;
+        return next;
+      }
+      module.exports = { DAY, SHIFT, GRACE, epoch, date, sortKey, compare, best, reserve, finalizable, awardIds, titles };
+    }
+  });
+
+  // server/daily-play.cjs
+  var require_daily_play = __commonJS({
+    "server/daily-play.cjs"(exports, module) {
+      var E = require_engine();
+      var copy = (x) => JSON.parse(JSON.stringify(x));
+      function runtime(s) {
+        return E.runtime(E.begin("daily", s.difficulty, "A", ["daily", "unused"], s.seed, s.startAt));
+      }
+      function serve(s, at) {
+        const { api, bank } = runtime(s), lv = bank.level(s.index + 1), k = s.used[lv] || 0;
+        s.used[lv] = k + 1;
+        s.cur = { ...bank.get(lv, k), level: lv, k };
+        if (s.correct > api.REVERSE_STAGE_MIN_CORRECT && api.withSeed(`${s.seed}:reverse:${s.index}`, () => Math.random() < api.REVERSE_STAGE_CHANCE)) {
+          s.cur = { ...api.withSeed(`${s.seed}:reverse-board:${s.index}`, () => api.buildReverseQuestion()), reverse: true, k };
+        }
+        s.qStart = at;
+        s.readyAt = at;
+        s.resolving = false;
+      }
+      function begin(difficulty, seed, at, count) {
+        if (!["easy", "normal", "hard"].includes(difficulty)) throw Error("INVALID_DIFFICULTY");
+        count || (count = { easy: 15, normal: 30, hard: 50 }[difficulty]);
+        const s = { difficulty, seed, count, startAt: at, time: at, index: 0, hp: 100, score: 0, combo: 0, best: 0, correct: 0, hist: [], used: {}, done: false, cleared: false };
+        serve(s, at);
+        return s;
+      }
+      function finish(s, at, cleared, reason) {
+        s.done = true;
+        s.cleared = cleared;
+        s.elapsed = Math.max(0, Math.round(at - s.startAt));
+        s.reason = reason;
+        if (cleared) s.score += Math.round(s.correct * 15 - s.elapsed / 1e3);
+      }
+      function next(s, at) {
+        s.index++;
+        if (s.index >= s.count) {
+          finish(s, at, s.hp > 0, "complete");
+          return;
+        }
+        s.resolving = true;
+        s.readyAt = at + 420;
+      }
+      function tick(raw, at) {
+        const s = copy(raw);
+        if (s.done) return s;
+        while (s.time < at && !s.done) {
+          let t = at;
+          if (s.resolving) t = Math.min(t, s.readyAt);
+          else t = Math.min(t, s.qStart + 2e4);
+          t = Math.min(t, s.time + s.hp * 1e3);
+          s.hp = Math.max(0, Math.round((s.hp - (t - s.time) / 1e3) * 1e6) / 1e6);
+          s.time = t;
+          if (s.hp <= 0) {
+            finish(s, t, false, "ko");
+            break;
+          }
+          if (s.resolving && t >= s.readyAt) {
+            serve(s, t);
+            continue;
+          }
+          if (!s.resolving && t >= s.qStart + 2e4) {
+            s.hp = Math.max(0, s.hp - { easy: 0, normal: 5, hard: 10 }[s.difficulty]);
+            s.combo = 0;
+            s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, ms: 2e4, timeout: true });
+            s.index++;
+            if (s.hp <= 0 || s.index >= s.count) {
+              finish(s, t, false, s.hp <= 0 ? "ko" : "timeout");
+              break;
+            }
+            s.resolving = true;
+            s.readyAt = t + 420;
+          }
+        }
+        return s;
+      }
+      function answer(raw, ids, at) {
+        const s = tick(raw, at);
+        if (s.done || s.resolving) throw Error("NOT_READY");
+        const { api } = runtime(s);
+        let ok;
+        if (s.cur.reverse) {
+          const choice = s.cur.choices.find((c) => c.id === ids[0]);
+          if (!choice) throw Error("INVALID_CHOICE");
+          ok = choice.correct;
+        } else {
+          const fs = ids.map((id) => {
+            var _a;
+            return (_a = s.cur.tiles.find((t) => t.id === id)) == null ? void 0 : _a.factor;
+          });
+          if (fs.length !== 2 || ids[0] === ids[1] || fs.some((f) => !f)) throw Error("INVALID_TILES");
+          ok = api.polyEqual(api.multiply(...fs), s.cur.poly);
+        }
+        const ms = at - s.qStart, j = api.getJudgment(ms);
+        if (ok) {
+          const gain = Math.round((s.cur.reverse ? api.REVERSE_STAGE_POINTS : api.LEVEL_POINTS[s.cur.level]) * (1 + s.combo * 0.1)) + Math.max(0, Math.round(s.hp + j.recover - 100));
+          s.score += gain;
+          s.hp = Math.min(100, Math.round((s.hp + j.recover) * 100) / 100);
+          s.combo++;
+          s.best = Math.max(s.best, s.combo);
+          s.correct++;
+          s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: true, ms, j: j.label, gain });
+        } else {
+          s.combo = 0;
+          s.hp = Math.max(0, s.hp - { easy: 20, normal: 25, hard: 30 }[s.difficulty]);
+          s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: false, ms });
+        }
+        if (s.hp <= 0) finish(s, at, false, "ko");
+        else next(s, at);
+        return s;
+      }
+      module.exports = { begin, tick, answer };
+    }
+  });
+
+  // src/daily-client.cjs
+  var require_daily_client = __commonJS({
+    "src/daily-client.cjs"(exports, module) {
+      var D = require_daily_model();
+      var Play = require_daily_play();
+      var { tx } = require_online_spark_client();
+      var ROOT = "games/factor/dailyV2";
+      var stamp = () => ({ ".sv": "timestamp" });
+      var localReservations = /* @__PURE__ */ new WeakMap();
+      async function reserveSerial(db, path, operation) {
+        let queues = localReservations.get(db);
+        if (!queues) {
+          queues = /* @__PURE__ */ new Map();
+          localReservations.set(db, queues);
+        }
+        const previous = queues.get(path) || Promise.resolve(), task = previous.catch(() => {
+        }).then(operation);
+        queues.set(path, task);
+        try {
+          return await task;
+        } finally {
+          if (queues.get(path) === task) queues.delete(path);
+        }
+      }
+      function create({ db, uid, account, storage = globalThis.localStorage }) {
+        const key = account == null ? void 0 : account.key;
+        if (!key) throw Error("\u767B\u9332\u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044");
+        const ref = (p) => db.ref(`${ROOT}/${p}`), draftKey = `fxf_daily_v2:${key}`;
+        async function clock() {
+          await ref(`clock/${uid}`).set(stamp());
+          return (await ref(`clock/${uid}`).get()).val();
+        }
+        async function status() {
+          const now = await clock(), day = D.epoch(now), ledger = (await ref(`attempts/${key}/${day}`).get()).val();
+          return { now, day, used: Object.keys((ledger == null ? void 0 : ledger.slots) || {}).length };
+        }
+        async function start(difficulty) {
+          if (!["easy", "normal", "hard"].includes(difficulty)) throw Error("INVALID_DIFFICULTY");
+          let draft;
+          try {
+            draft = JSON.parse((storage == null ? void 0 : storage.getItem(draftKey)) || "null");
+          } catch (_) {
+          }
+          if (draft) {
+            const old = (await ref(`attempts/${key}/${draft.day}`).get()).val();
+            const found = Object.entries((old == null ? void 0 : old.slots) || {}).find(([, a2]) => a2.id === draft.id);
+            if (found && draft.status === "reserving" && !found[1].result) {
+              storage == null ? void 0 : storage.setItem(draftKey, JSON.stringify({ ...draft, status: "started" }));
+              return { ...found[1], day: draft.day, slot: found[0], used: Object.keys(old.slots).length };
+            }
+            if (found) storage == null ? void 0 : storage.removeItem(draftKey);
+          }
+          const now = await clock(), day = D.epoch(now), id = (draft == null ? void 0 : draft.status) === "reserving" && draft.day === day ? draft.id : globalThis.crypto.randomUUID(), seed = (draft == null ? void 0 : draft.status) === "reserving" && draft.day === day ? draft.seed : globalThis.crypto.randomUUID();
+          Play.begin(difficulty, seed, now);
+          const attempt = { id, seed, difficulty, at: stamp() };
+          storage == null ? void 0 : storage.setItem(draftKey, JSON.stringify({ id, day, seed, difficulty, status: "reserving" }));
+          let saved = await reserveSerial(db, `${key}/${day}`, () => tx(ref(`attempts/${key}/${day}`), (ledger) => D.reserve(ledger, attempt).ledger));
+          const [slot, a] = Object.entries(saved.slots).find(([, x]) => x.id === id);
+          await ref(`playedDays/${key}/${day}`).set(true).catch(() => {
+          });
+          storage == null ? void 0 : storage.setItem(draftKey, JSON.stringify({ id, day, status: "started" }));
+          return { day, slot, id, difficulty, seed, at: a.at, used: Object.keys(saved.slots).length };
+        }
+        async function publish(attempt, result) {
+          const proof = (await ref(`attempts/${key}/${attempt.day}/slots/${attempt.slot}/result`).get()).val();
+          if (!proof) throw Error("RESULT_REQUIRED");
+          const record = { ...proof, key, day: attempt.day, name: account.name, slot: attempt.slot };
+          record.sortKey = D.sortKey(record);
+          const board = ref(`boards/${attempt.day}/${attempt.difficulty}`);
+          for (let tries = 0; tries < 5; tries++) {
+            const [mineS, leadS] = await Promise.all([board.child(`records/${key}`).get(), board.child("leader").get()]);
+            const mine = mineS.val(), leader = leadS.val();
+            if (mine && D.compare(mine, record) <= 0) return mine;
+            const top = !leader || D.compare(record, leader) < 0 ? record : leader;
+            try {
+              await board.update({ [`records/${key}`]: record, leader: top });
+              return record;
+            } catch (e) {
+              if (tries === 4) throw e;
+            }
+          }
+        }
+        async function finish(attempt, state) {
+          await ref(`playedDays/${key}/${attempt.day}`).set(true);
+          const result = { score: Math.max(0, Math.round(state.score)), cleared: !!state.cleared, elapsed: Math.max(0, Math.round(state.elapsed || state.time - state.startAt)), correct: state.correct || 0, confirmedAt: stamp(), id: attempt.id };
+          await tx(ref(`attempts/${key}/${attempt.day}/slots/${attempt.slot}/result`), (old) => old || result);
+          const record = await publish(attempt, result);
+          storage == null ? void 0 : storage.removeItem(draftKey);
+          return record;
+        }
+        async function rankings(day, difficulty) {
+          const s = await ref(`boards/${day}/${difficulty}/records`).orderByChild("sortKey").limitToFirst(10).get();
+          const rows = [];
+          s.forEach((x) => rows.push(x.val()));
+          return rows.sort(D.compare);
+        }
+        async function awards() {
+          const now = await clock(), days = (await ref(`playedDays/${key}`).get()).val() || {}, had = (await ref(`titles/${key}`).get()).val() || {};
+          const cursor = (await ref(`awardCursor/${key}`).get()).val() || 0;
+          const work = Object.keys(days).map(Number).filter((d) => d > cursor && D.finalizable(d, now)).sort((a, b) => a - b).slice(0, 10);
+          for (const day of work) {
+            for (const d of Object.keys(D.awardIds)) {
+              const finalRef = ref(`finals/${day}/${d}`);
+              let final = (await finalRef.get()).val();
+              if (!final) {
+                const leader = (await ref(`boards/${day}/${d}/leader`).get()).val();
+                if (leader) {
+                  try {
+                    await finalRef.set(leader);
+                    final = leader;
+                  } catch (e) {
+                    final = (await finalRef.get()).val();
+                    if (!final) throw e;
+                  }
+                }
+              }
+              if ((final == null ? void 0 : final.key) === key && !had[D.awardIds[d]]) had[D.awardIds[d]] = await tx(ref(`titles/${key}/${D.awardIds[d]}`), (old) => old || { day });
+            }
+            await ref(`awardCursor/${key}`).set(day);
+          }
+          if (Object.values(D.awardIds).every((id) => had[id]) && !had.daily_king) {
+            await ref(`titles/${key}/daily_king`).set(true);
+            had.daily_king = true;
+          }
+          if (work.length === 10) return awards();
+          return had;
+        }
+        return { status, start, finish, publish, rankings, awards, clock };
+      }
+      module.exports = { create, Play, model: D, ROOT };
+    }
+  });
+
+  // src/room-b2-client.cjs
+  var require_room_b2_client = __commonJS({
+    "src/room-b2-client.cjs"(exports, module) {
+      var E = require_engine();
+      var { pump } = require_b2_pump();
+      var { tx } = require_online_spark_client();
+      var stamp = () => ({ ".sv": "timestamp" });
+      var clean = (x) => JSON.parse(JSON.stringify(x));
+      async function prepare({ db, code, state }) {
+        const ref = db.ref(`games/factor/rooms/${code}/b2/${state.gid}`);
+        await ref.child("clock").set(stamp());
+        const now = (await ref.child("clock").get()).val();
+        const startAt = now + 3800, game = E.begin(state.gid, state.diff, "B", state.players, state.seed, startAt, { rules: "b2", duration: state.duration || 90 });
+        await ref.update({ game, accounts: state.accts || {}, phase: "play", revision: 0, clock: now });
+        return startAt;
+      }
+      function create({ db, code, state, uid, isHost, onView, onError }) {
+        const ref = db.ref(`games/factor/rooms/${code}/b2/${state.gid}`);
+        let current = null, busy = false, closed = false;
+        const listener = (s) => {
+          current = s.val();
+          if (current == null ? void 0 : current.game) {
+            onView(current);
+            if (isHost && Object.entries(current.inputs || {}).some(([u, entries]) => Object.keys(entries).some((id) => {
+              var _a, _b;
+              return !((_b = (_a = current.handled) == null ? void 0 : _a[u]) == null ? void 0 : _b[id]);
+            }))) queueMicrotask(process);
+          }
+        };
+        ref.on("value", listener, onError);
+        async function process() {
+          if (!isHost || closed || busy || !(current == null ? void 0 : current.game) || current.game.result) return;
+          busy = true;
+          try {
+            await ref.child("clock").set(stamp());
+            const clock = (await ref.child("clock").get()).val();
+            await tx(ref, (raw) => {
+              if (!(raw == null ? void 0 : raw.game)) return raw;
+              const n = pump(raw, Math.max(clock, raw.game.time));
+              n.revision = (raw.revision || 0) + 1;
+              return clean(n);
+            });
+          } catch (e) {
+            onError == null ? void 0 : onError(e);
+          } finally {
+            busy = false;
+          }
+        }
+        const timer = isHost ? setInterval(process, 500) : null;
+        async function request(command) {
+          const input = command.type === "cheer" ? `c${command.seq}` : command.type === "answer" ? `a${command.seq}` : "leave";
+          await tx(ref.child(`inputs/${command.type === "cheer" ? "cheer_" + command.account : uid}/${input}`), (old) => old || clean({ ...command, at: stamp() }));
+          await process();
+          return current;
+        }
+        return { request, process, view: (raw) => E.view(raw.game, uid), close() {
+          closed = true;
+          clearInterval(timer);
+          ref.off("value", listener);
+        } };
+      }
+      module.exports = { prepare, create };
+    }
+  });
+
   // <stdin>
   window.OnlineSpark = require_online_spark_client();
   window.EventHost = require_event_host_client();
+  window.DailyV2 = require_daily_client();
+  window.RoomB2 = require_room_b2_client();
 })();

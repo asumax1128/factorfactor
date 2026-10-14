@@ -85,7 +85,7 @@ async function open(t) {
         );
         assert.match(
           await p.locator(".mt-panel").innerText(),
-          /HP 73 ・ NORMAL/,
+          /HP 73 ・ ノーマル/,
         );
         assert.equal(
           progressOf(t).revision,

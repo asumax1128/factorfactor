@@ -70,10 +70,12 @@ function select({
   rating,
   random = Math.random,
   bot,
+  now = Date.now(),
 }) {
   const kind = category(random()),
     band = rank(rating),
     offset = { up2: 2, up1: 1, same: 0, down1: -1 }[kind];
+  if(kind==="hyper")return require("./hyper-select.cjs").select({accounts,profiles,key,difficulty,now,random});
   const all = Object.entries(accounts)
     .filter(([k, a]) => k !== key && eligible(a))
     .map(([k, a]) => {
@@ -149,6 +151,10 @@ function advance(raw, now) {
   if (m.phase !== "play" || now < m.game.startAt) return m;
   // Persist timing/RNG so retries, reloads and duplicate requests do not re-roll.
   for (let count = 0; count < 100 && !m.game.result; count++) {
+    if(m.game.rules==='b2' && m.game.states[bot].freezeUntil>m.game.time){
+      const s=m.game.states[bot];m.game=E.step(m.game,bot,{type:'heartbeat'},Math.max(m.game.time,Math.min(now,s.freezeUntil,s.qStart+20000)));
+      delete m.cpu;if(m.game.result||m.game.states[bot].freezeUntil>now)break;continue;
+    }
     if (m.mode === "B" && m.game.states?.[bot]?.resolving) {
       m.game = E.step(
         m.game,
@@ -200,7 +206,7 @@ function advance(raw, now) {
       { type: "answer", question: v.question, tiles: pool[0] || good[0] },
       Math.max(m.game.time, m.cpu.at),
     );
-    if (m.mode === "B" && m.usesSpecial && !m.game.result) {
+    if (m.mode === "B" && m.game.rules!=='b2' && m.usesSpecial && !m.game.result) {
       const s = m.game.states[bot];
       if (s.sp >= 6 && !m.specialAt)
         m.specialAt = m.game.time + Math.round(600 + random(m) * 1500);
@@ -217,7 +223,7 @@ function advance(raw, now) {
     if (m.mode === "A" && !correct)
       m.cpu.at += Math.max(0, (m.game.locks[bot] || 0) - m.game.time);
   }
-  if (m.mode === "B" && m.specialAt && m.specialAt <= now && !m.game.result) {
+  if (m.mode === "B" && m.game.rules!=='b2' && m.specialAt && m.specialAt <= now && !m.game.result) {
     const s = m.game.states[bot];
     m.game = E.step(
       m.game,

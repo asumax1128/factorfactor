@@ -32,7 +32,9 @@
     "test:chromebook": "node tests/chromebook-browser.cjs",
     "test:rating-history": "node --test tests/rating-history.test.cjs && node tests/rating-history-browser.cjs",
     "test:rating-display": "node --test tests/rating-display.test.cjs && node tests/rating-display-browser.cjs",
-    "test:online-improvements": "node --test tests/online-improvements.test.cjs && node tests/battle-countdown-browser.cjs && node tests/master-effect-browser.cjs && node tests/online-improvements-browser.cjs"
+    "test:online-improvements": "node --test tests/online-improvements.test.cjs && node tests/battle-countdown-browser.cjs && node tests/master-effect-browser.cjs && node tests/online-improvements-browser.cjs",
+    "test:online-v524": "node --test tests/b2.test.cjs tests/daily-model.test.cjs tests/daily-play.test.cjs tests/hyper-top10.test.cjs && node tests/v524-browser.cjs",
+    "test:rewards-audit": "node tests/rewards-audit.cjs && node tests/rewards-audit-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

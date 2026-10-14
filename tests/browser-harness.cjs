@@ -63,7 +63,7 @@ async function context(
       if (blockedAssets.includes(u.pathname)) return route.abort();
       if (assetOverrides?.[u.pathname])
         return route.fulfill({
-          contentType: u.pathname.endsWith(".css")
+          contentType: (u.pathname === "/" || u.pathname.endsWith(".html")) ? "text/html" : u.pathname.endsWith(".css")
             ? "text/css"
             : "application/javascript",
           body: assetOverrides[u.pathname],
@@ -204,7 +204,7 @@ async function dismissCutin(page) {
 async function newTower(page, d = "normal") {
   await page.getByRole("button", { name: "はじめから", exact: true }).click();
   await page
-    .getByRole("button", { name: d.toUpperCase() + "を選ぶ", exact: true })
+    .getByRole("button", { name: new RegExp("^(" + ({easy:'イージー',normal:'ノーマル',hard:'ハード'})[d] + "|" + d.toUpperCase() + ")を選ぶ$"), exact: true })
     .click();
   if (await page.locator("[data-math-screen=replaceConfirm]").count())
     await page
@@ -215,7 +215,7 @@ async function newTower(page, d = "normal") {
 async function continueTower(page, d = "normal") {
   await page.getByRole("button", { name: "続きから", exact: true }).click();
   const btn = page.getByRole("button", {
-    name: d.toUpperCase() + "を選ぶ",
+    name: ({easy:'イージー',normal:'ノーマル',hard:'ハード'})[d] + "を選ぶ",
     exact: true,
   });
   if (await btn.isDisabled()) {

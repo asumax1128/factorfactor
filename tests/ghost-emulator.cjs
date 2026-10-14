@@ -91,7 +91,7 @@ assert.deepEqual(
         ref(ctx.database(), "games/factor/onlineSparkV1/profiles/ab/normal"),
         {
           rating: 1580,
-          games: 0,
+          games: 3, // Hyper must be eligible for the displayed NORMAL TOP10.
           w: 0,
           l: 0,
           d: 0,
@@ -109,7 +109,7 @@ assert.deepEqual(
     s = await a.client.request({ type: "heartbeat" });
     assert.equal(s.match, null);
     // undo the heartbeat lease advance for fake time; wait began is unchanged.
-    await new Promise((r) => setTimeout(r, 10000));
+    await new Promise((r) => setTimeout(r, 5200));
     clock = Date.now();
     s = await a.client.request({ type: "heartbeat" });
     assert(s.match?.opponent);
@@ -197,7 +197,7 @@ assert.deepEqual(
     s = await a.client.request({ type: "status" });
     assert.equal(s.match, null);
     console.log(
-      "PASS 10-second atomic intrusion, A engine settlement, one-third rating, human count unchanged, XP/history once, peer private access denied, result acknowledged",
+      "PASS 5-second atomic intrusion, A engine settlement, one-third rating, human count unchanged, XP/history once, peer private access denied, result acknowledged",
     );
     clock = Date.now();
     let directed = await c.client.request({

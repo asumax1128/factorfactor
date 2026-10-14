@@ -21,6 +21,12 @@ const seeds = [
   "QUESTION_TIMEOUT_MS",
   "ratingDelta",
   "BADGES",
+  "buildReverseQuestion",
+  "withSeed",
+  "REVERSE_STAGE_CHANCE",
+  "REVERSE_STAGE_MIN_CORRECT",
+  "REVERSE_STAGE_POINTS",
+  "LEVEL_POINTS",
 ];
 const injected = new Set(["fref", "TSV", "fbNow"]);
 let result;

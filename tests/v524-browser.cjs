@@ -1,0 +1,28 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const{chromium,context,pair,sleep}=require('./browser-harness.cjs');
+async function swipe(p,correct=true){const ids=await pair(p,correct),a=await p.locator(`[data-btile="${ids[0]}"]`).boundingBox(),b=await p.locator(`[data-btile="${ids[1]}"]`).boundingBox();const c=await p.context().newCDPSession(p);await c.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:a.x+a.width/2,y:a.y+a.height/2}]});await c.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:b.x+b.width/2,y:b.y+b.height/2}]});await c.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await c.detach()}
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium'});try{
+ const tree={games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{rating:1900},prof:{lv:{L1:{n:30,ok:28,ms:60000}}}}},onlineSparkV1:{config:{enabled:true,protocol:'spark-v1'}}}}};
+ const ui=fs.readFileSync('online-rated-ui.js','utf8')+'\n(()=>{const f=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{window.__H=H;window.__components=f(H);return window.__components;}})();';
+ const spark=fs.readFileSync('online-spark.js','utf8')+'\nfor(const k of ["begin","tick","answer"]){const f=window.DailyV2.Play[k];window.DailyV2.Play[k]=(...a)=>{const s=f(...a);window.__dailyGame=s;return s}}';
+ const t=await context(browser,{tree,assetOverrides:{'/online-rated-ui.js':ui,'/online-spark.js':spark}}),p=t.page;
+ // All three real daily runs; clear with one error and solve every following board.
+ await p.getByText('デイリーミッション',{exact:true}).first().click();
+ for(const[d,label,N]of[['easy','イージー',15],['normal','ノーマル',30],['hard','ハード',50]]){
+  await p.getByRole('button',{name:label,exact:true}).click();await p.getByRole('button',{name:'この難易度で挑戦',exact:true}).click();
+  await p.getByLabel('開始カウントダウン',{exact:true}).waitFor();assert.equal(await p.locator('[data-btile],[data-poly]').count(),0);
+  for(let i=0;i<N;i++){
+   await p.waitForFunction(()=>document.querySelector('[data-online-ready]')?.dataset.onlineReady==='true'||!!document.querySelector('[data-daily-choice]:not([disabled])'));
+   if(await p.getByText(/展開ボーナス/).count()){const id=await p.evaluate(()=>window.__dailyGame.cur.choices.find(c=>c.correct).id);await p.locator(`[data-daily-choice="${id}"]`).click();}
+   else try{await swipe(p,i!==0)}catch(e){await p.screenshot({path:'/tmp/v524-daily-error.png'});console.log('DAILY FAILURE',d,i,await p.locator('body').innerText());throw e;}
+   if(i<N-1)await p.waitForFunction(()=>document.querySelector('[data-online-ready]')?.dataset.onlineReady!=='true');
+  }
+  await p.getByRole('heading',{name:'クリア！',exact:true}).waitFor();assert.match(await p.locator('body').innerText(),new RegExp(`${N-1}問正解`));assert.match(await p.locator('body').innerText(),/クリアタイム/);await p.getByRole('button',{name:'デイリーへ戻る',exact:true}).click();console.log('PASS actual touch daily '+d+' '+N+' questions including an error');
+ }
+ await p.getByText('残り0回',{exact:false}).waitFor();assert(await p.getByRole('button',{name:'この難易度で挑戦',exact:true}).isDisabled());assert.equal(tree.games.factor.accounts.ateacher.stats.exp,30); // 20 + 5 + 5 once each.
+ await p.getByRole('button',{name:'← タイトルへ',exact:true}).click();await p.getByRole('button',{name:'オンライン対戦・CPU練習',exact:true}).click();await p.getByRole('button',{name:'👻 ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:'ハイパーゴースト',exact:true}).click();await p.getByRole('button',{name:'イージーハイパーゴースト',exact:true}).click();await p.getByText('GHOST 乱入！',{exact:false}).waitFor();await p.getByRole('button',{name:'B：レース＋攻撃',exact:true}).click();await p.waitForFunction(()=>document.querySelector('[data-online-ready]')?.dataset.onlineReady==='true');
+ await swipe(p);await sleep(450);p.once('dialog',d=>d.accept());await p.getByRole('button',{name:'✕ 退出',exact:true}).click();await p.locator('.or-result').waitFor();assert.match(await p.locator('.or-result').innerText(),/自分のゴーストとの練習/);assert.equal(tree.games.factor.accounts.ateacher.stats.exp,30);assert(!tree.games.factor.ghostV1.inbox);assert.deepEqual(t.errors,[]);
+ // Opaque frozen battle uses the actual shared component, no math/card DOM below it.
+ await p.evaluate(()=>{const H=window.__H,el=document.createElement('div');el.id='freeze-test';document.body.appendChild(el);const poly=[0,1,1],tiles=[{id:'a',factor:{type:'const',n:1}},{id:'b',factor:{type:'linear',a:1,b:1}}];ReactDOM.createRoot(el).render(React.createElement(window.__components.BattleView,{H,m:{id:'freeze',selfUid:'u',difficulty:'easy',mode:'B',gameStartAt:100},g:{id:'freeze',rules:'b2',poly,tiles,question:'1:0',level:1,startAt:100,readyAt:100,endAt:90000,timeoutMs:20000,freezeUntil:4000,live:{u:{hp:80,score:10,c:2,combo:2,gauge:100},v:{hp:90,score:20,c:3,combo:3}}},time:1000,disabled:false,muted:true,setMuted:()=>{},onMatch:()=>{throw Error('FROZEN INPUT')},onLeave:()=>{}}));});
+ await p.locator('#freeze-test .or-freeze').waitFor();await p.evaluate(()=>document.getElementById('root').style.display='none');assert.equal(await p.locator('#freeze-test [data-btile],#freeze-test [data-poly]').count(),0);assert.equal(await p.locator('#freeze-test .or-freeze').evaluate(e=>getComputedStyle(e).opacity),'1');await p.screenshot({path:'/tmp/v524-freeze.png'});assert.deepEqual(t.errors,[]);await t.ctx.close();console.log('PASS hyper self practice, opaque FREEZE and unchanged drag-only input');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

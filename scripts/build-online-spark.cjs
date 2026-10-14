@@ -4,7 +4,7 @@ const fs = require("node:fs"),
 require("./build-rated-engine.cjs");
 const source = fs.readFileSync("server/online-rated/engine-source.js", "utf8");
 const completion =
-  "({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES});";
+  "({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES,buildReverseQuestion,withSeed,REVERSE_STAGE_CHANCE,REVERSE_STAGE_MIN_CORRECT,REVERSE_STAGE_POINTS,LEVEL_POINTS});";
 if (!source.includes(completion))
   throw Error("Engine completion changed; review required");
 const body = source.replace(completion, "return " + completion);
@@ -12,7 +12,7 @@ esbuild
   .build({
     stdin: {
       contents:
-        'window.OnlineSpark = require("./src/online-spark-client.cjs");window.EventHost = require("./src/event-host-client.cjs");',
+        'window.OnlineSpark = require("./src/online-spark-client.cjs");window.EventHost = require("./src/event-host-client.cjs");window.DailyV2 = require("./src/daily-client.cjs");window.RoomB2 = require("./src/room-b2-client.cjs");',
       resolveDir: process.cwd(),
     },
     outfile: "online-spark.js",

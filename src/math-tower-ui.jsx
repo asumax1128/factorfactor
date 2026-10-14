@@ -1,5 +1,6 @@
 /* Chapter-one UI; Firebase protects trial access and progress. */
 (function (root) {
+  const difficultyLabel = d => ({easy:"イージー",normal:"ノーマル",hard:"ハード"})[d] || d;
   const { useState, useEffect, useRef } = React,
     R = root.MathTowerRules,
     Store = root.MathTowerStore;
@@ -582,7 +583,7 @@
             <h3>第1章</h3>
             {Object.entries(p.difficulties).map(([d, x]) => (
               <p key={d}>
-                {d.toUpperCase()}：{x.best}/5階 {x.records[5] ? "章クリア" : ""}
+                {difficultyLabel(d)}：{x.best}/5階 {x.records[5] ? "章クリア" : ""}
               </p>
             ))}
             {Object.entries(p.difficulties).flatMap(([d, x]) =>
@@ -590,7 +591,7 @@
                 .filter(([, r]) => r != null)
                 .map(([floor, r]) => (
                   <p key={d + floor}>
-                    {d.toUpperCase()} 第{floor}階：最高{r.rank} ・ 正答率
+                    {difficultyLabel(d)} 第{floor}階：最高{r.rank} ・ 正答率
                     {Math.round(r.accuracy * 100)}%
                   </p>
                 )),
@@ -602,7 +603,7 @@
               .slice(0, 10)
               .map(([id, r]) => (
                 <p key={id}>
-                  {String(r.difficulty || "").toUpperCase()} 第{r.floor}階 ・{" "}
+                  {difficultyLabel(r.difficulty || "")} 第{r.floor}階 ・{" "}
                   {r.mode === "replay" ? "再挑戦" : "本編"} ・{" "}
                   {r.rank || "敗北"}
                 </p>
@@ -1097,7 +1098,7 @@
             else if (difficulty === "hard")
               explain({
                 id: "hard-rule",
-                title: "HARDの撃破条件",
+                title: "ハードの撃破条件",
                 text: "敵HPを削り切り、Lv8以上の問題に正解すると撃破できます。",
               });
           };
@@ -1476,7 +1477,7 @@
                       setScreen("restoreConfirm");
                     }}
                   >
-                    {chosen.toUpperCase()}の移行前の冒険を復元
+                    {difficultyLabel(chosen)}の移行前の冒険を復元
                   </Button>
                 ),
               )}
@@ -1488,7 +1489,7 @@
           )}
           {screen === "restoreConfirm" && (
             <section className="mt-panel" role="dialog" aria-modal="true">
-              <h2>移行前の{difficulty.toUpperCase()}の冒険を復元しますか？</h2>
+              <h2>移行前の{difficultyLabel(difficulty)}の冒険を復元しますか？</h2>
               <p>
                 この難易度の現在の冒険を置き換えます。ほかの冒険や永続記録はそのままです。
               </p>
@@ -1523,7 +1524,7 @@
                 const a = progress.adventures[chosen];
                 return (
                   <article key={chosen}>
-                    <h3>{chosen.toUpperCase()}</h3>
+                    <h3>{difficultyLabel(chosen)}</h3>
                     <p data-adventure={chosen}>
                       {!a
                         ? "データなし"
@@ -1547,7 +1548,7 @@
                         }
                       }}
                     >
-                      {chosen.toUpperCase()}を選ぶ
+                      {difficultyLabel(chosen)}を選ぶ
                     </Button>
                   </article>
                 );
@@ -1557,7 +1558,7 @@
           )}
           {screen === "replaceConfirm" && (
             <section className="mt-panel" role="dialog" aria-modal="true">
-              <h2>{difficulty.toUpperCase()}の冒険を置き換えますか？</h2>
+              <h2>{difficultyLabel(difficulty)}の冒険を置き換えますか？</h2>
               <p>
                 この難易度の進行中の冒険だけを第1階・HP100で置き換えます。他の難易度、クリア履歴、図鑑、学習記録、最高評価は残ります。
               </p>
@@ -1594,7 +1595,7 @@
               <h2>{floor}階の準備</h2>
               <p>
                 HP {playMode === "replay" ? 100 : d.hp} ・{" "}
-                {difficulty.toUpperCase()} ・{" "}
+                {difficultyLabel(difficulty)} ・{" "}
                 {playMode === "replay" ? "独立した再挑戦" : "本編の冒険"}
               </p>
               {floor === 1 && (
@@ -1772,7 +1773,7 @@
               {playMode === "adventure" ? (
                 <>
                   <p>
-                    {difficulty.toUpperCase()} ・ HP {d.hp} ・ 次は第{d.floor}階
+                    {difficultyLabel(difficulty)} ・ HP {d.hp} ・ 次は第{d.floor}階
                   </p>
                   <Button
                     disabled={saving || recovering}

@@ -7,10 +7,10 @@
     const label = (d) => H.DIFFICULTY_CONFIG[d]?.label || d;
     const formatRating = H.RatingDisplay.format;
     const titles = {
-      easy_adept: "EASYの達人",
-      easy_master: "EASYマスター",
-      normal_adept: "NORMALの達人",
-      normal_master: "NORMALマスター",
+      easy_adept: "イージーの達人",
+      easy_master: "イージーマスター",
+      normal_adept: "ノーマルの達人",
+      normal_master: "ノーマルマスター",
       dual_master: "双璧のマスター",
       hyper_slayer: "超影の征服者",
       ghost_up1: "格上の影を破る者",
@@ -59,6 +59,7 @@
       onSpecial,
       onLeave,
       feedback,
+      extraControls,
     }) {
       const tiles = useMemo(
         () => g.tiles,
@@ -70,6 +71,7 @@
         opponent = Object.entries(g.live).find(
           ([uid]) => uid !== m.selfUid,
         )?.[1];
+      const frozen = g.rules === "b2" && time < g.freezeUntil;
       const counting = time < (m.gameStartAt || g.startAt),
         ready = !!g.resolving || time < Math.max(g.startAt, g.readyAt || 0);
       const score = typeof self === "number" ? self : self?.score || 0,
@@ -106,13 +108,15 @@
             actualAt: Date.now() + (H.FB.off || 0),
           });
       }, [counting, m.id]);
+      const [iceBreak,setIceBreak]=useState(false), previousFreeze=useRef(false);
+      useEffect(()=>{const was=previousFreeze.current;previousFreeze.current=frozen;if(was&&!frozen){setIceBreak(true);const t=setTimeout(()=>setIceBreak(false),450);return()=>clearTimeout(t)}},[frozen]);
       const N = H.DIFFICULTY_CONFIG[m.difficulty].clearCount;
       return (
         <H.BattleSurface>
           <div
             className="v7-play or-battle"
             data-online-mode={m.mode}
-            data-online-ready={!disabled && !counting && !ready && !g.result}
+            data-online-ready={!disabled && !counting && !frozen && !ready && !g.result}
           >
             <div className="v7-zone">
               <div className="or-game-header">
@@ -159,7 +163,7 @@
                 )}
                 {H.v7Stat(
                   m.mode === "A" ? "相手" : "SOLVED",
-                  m.mode === "A" ? opponent || 0 : `${self?.c || 0}/${N}`,
+                  m.mode === "A" ? opponent || 0 : g.rules === "b2" ? `${self?.c || 0}問` : `${self?.c || 0}/${N}`,
                   "#FFB59C",
                 )}
                 {H.v7Stat("COMBO", combo)}
@@ -173,12 +177,12 @@
                 </div>
               )}
               <div className="or-progress" aria-label="対戦の進行">
-                {Array.from({ length: N }, (_, i) => (
+                {Array.from({ length: g.rules==='b2'?20:N }, (_, i) => (
                   <i
                     key={i}
                     style={{
                       background:
-                        i < (m.mode === "A" ? Number(g.question) : self?.c || 0)
+                        i < (g.rules==='b2'?Math.max(0,Math.min(20,20*(time-m.gameStartAt)/(g.endAt-m.gameStartAt))):m.mode === "A" ? Number(g.question) : self?.c || 0)
                           ? "#7FD8FF"
                           : i ===
                               (m.mode === "A"
@@ -190,7 +194,7 @@
                   />
                 ))}
               </div>
-              {m.mode === "B" && (
+              {m.mode === "B" && g.rules !== "b2" && !m.daily && (
                 <div className="or-special">
                   <span>
                     必殺 {self?.sp || 0}/{H.SP_MAX}
@@ -214,13 +218,14 @@
                     ? "次の問題を準備中"
                     : "対戦中"}{" "}
                 ・ 残り{" "}
-                {Math.max(0, (g.timeoutMs - (time - g.startAt)) / 1000).toFixed(
+                {Math.max(0, ((g.rules === "b2" ? g.endAt-time : g.timeoutMs - (time - g.startAt))) / 1000).toFixed(
                   1,
                 )}
                 秒
               </p>
+              {extraControls}
             </div>
-            <div className="v7-main" inert={counting ? "" : undefined} aria-hidden={counting || undefined}>
+            <div className="v7-main" inert={counting || frozen ? "" : undefined} aria-hidden={counting || frozen || undefined}>
               <div className="or-feedback" aria-live="polite">
                 <H.TimingJudgment
                   judge={feedback?.judge}
@@ -228,11 +233,11 @@
                 />
                 <H.ComboDisplay combo={combo} />
               </div>
-              {!counting && <><div className="relative" style={{ flexShrink: 0 }}>
+              {!counting && !frozen && <><div className="relative" style={{ flexShrink: 0 }}>
                 <H.TargetCard
                   poly={g.poly}
                   level={g.level}
-                  qLabel={`問${m.mode === "A" ? Number(g.question) + 1 : (self?.c || 0) + 1}/${N}`}
+                  qLabel={`問${m.mode === "A" ? Number(g.question) + 1 : (self?.c || 0) + 1}${g.rules === "b2" ? "" : "/"+N}`}
                   gaugeKey={g.question + ":" + g.startAt}
                   gaugeMs={Math.max(1, g.timeoutMs - (time - g.startAt))}
                   v7
@@ -242,16 +247,19 @@
                 flash={feedback?.flash}
                 tiles={tiles}
                 onMatch={onMatch}
-                disabled={disabled || counting || ready || !!g.result}
+                disabled={disabled || counting || frozen || ready || !!g.result}
                 dim={ready}
                 v7
               /></>}
               <p className="v7-hint">
                 {m.mode === "A"
                   ? "先に正解した人だけ得点 ・ まちがえると2秒お手つき"
-                  : "コンボで攻撃 ・ ゲージ満タンで必殺技"}
+                  : m.daily ? "最後まで完走でクリア ・ 誤答があっても続けられます" : "コンボで攻撃 ・ ゲージ満タンで必殺技"}
               </p>
             </div>
+            {g.rules === "b2" && <div className="or-b2-status">必殺ゲージ {self?.gauge || 0}% ・ お邪魔 {self?.cur?.oj || 0}枚 ・ カウンター {self?.pending ? Math.max(0,(self.counterUntil-time)/1000).toFixed(1)+"秒" : "―"}</div>}
+            {iceBreak && <div className="or-ice-break" aria-hidden="true">{[0,1,2,3,4,5,6,7].map(i=><i key={i} style={{left:(i%4)*25+"%",top:Math.floor(i/4)*50+"%","--ice-x":(i%2?1:-1)*120+"px"}} />)}</div>}
+            {frozen && <div className="or-freeze" aria-label="FREEZE中"><strong>FREEZE!</strong><b>{Math.ceil((g.freezeUntil-time)/1000)}</b></div>}
             {counting && (
               <div className="or-countdown" aria-label="開始カウントダウン">
                 {(m.gameStartAt || g.startAt) - time > 3000
@@ -333,6 +341,7 @@
           view === "ratings" ? "ratings" : "select",
         ),
         [tab, setTab] = useState("easy"),
+        [hyperChoice,setHyperChoice] = useState(false),
         [busy, setBusy] = useState(false),
         [selectedPlayer, setSelectedPlayer] = useState(null),
         [muted, setMuted] = H.useGameMute();
@@ -432,11 +441,11 @@
             setError("対戦開始前に相手が退出しました");
           } else if (v.match) setScreen(v.match.phase);
           else if (v.ticket) setScreen("wait");
-          else setScreen("select");
+          else setScreen(view === "ghosts" ? "ghostMenu" : "select");
           return v;
         } catch (e) {
           if (life.current) {
-            if (["STALE_QUESTION", "SEQUENCE_GAP"].includes(e.message)) {
+            if (["STALE_QUESTION", "SEQUENCE_GAP", "FROZEN"].includes(e.message)) {
               retry.current = {
                 type: "status",
                 matchId: current.current?.match?.id,
@@ -517,7 +526,7 @@
         const m = current.current?.match,
           g = m?.game;
         if (actionPending.current || retry.current || !g) return;
-        if (Date.now() + (H.FB.off || 0) < (m.gameStartAt || g.startAt)) return;
+        if (Date.now() + (H.FB.off || 0) < (m.gameStartAt || g.startAt) || Date.now() + (H.FB.off || 0) < (g.freezeUntil || 0)) return;
         const command = {
           type: "answer",
           matchId: m.id,
@@ -605,6 +614,7 @@
               <h2>
                 {view === "ratings"
                   ? "オンラインレーティング"
+                  : view === 'ghosts' ? 'ゴースト対戦'
                   : initialGhost || ["bounty", "profile"].includes(m?.origin)
                     ? "指名ゴースト対戦"
                     : "すぐ遊ぶ"}
@@ -652,6 +662,17 @@
               ))}
             </section>
           )}
+          {screen === 'ghostMenu' && <section>
+            <h3>ゴースト対戦を選ぶ</h3>
+            {!hyperChoice ? <>
+              {['easy','normal'].map(d=><button key={d} className="or-difficulty" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'ghost'})}>{label(d)}ゴースト</button>)}
+              <button disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>setHyperChoice(true)}>ハイパーゴースト</button>
+            </> : <>
+              <p>各難易度のランキングTOP10から抽選します。順位が高いほど選ばれやすく、学習記録20問未満のプレイヤーは候補に入りません。</p>
+              {['easy','normal'].map(d=><button key={d} className="or-difficulty" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'hyper'})}>{label(d)}ハイパーゴースト</button>)}
+              <button onClick={()=>setHyperChoice(false)}>ゴーストメニューへ戻る</button>
+            </>}
+          </section>}
           {screen === "select" && initialGhost && (
             <section>
               <h3>指名ゴースト対戦</h3>
@@ -681,7 +702,7 @@
               </p>
               <p>
                 {state.ghostReady
-                  ? "10秒で人間が見つからなければゴースト・BOTが乱入します"
+                  ? "5秒で人間が見つからなければゴースト・BOTが乱入します"
                   : "人間の対戦相手を探しています"}
               </p>
               <button
@@ -835,8 +856,8 @@
                 <h3>{label(tab)}ランキング</h3>
                 <p className="or-rule">
                   {tab === "easy"
-                    ? "掲載条件：EASYレーティング1501以上（対戦数不問）"
-                    : "掲載条件：NORMALの有効な人間対戦3戦以上"}
+                    ? "掲載条件：イージーレーティング1501以上（対戦数不問）"
+                    : "掲載条件：ノーマルの有効な人間対戦3戦以上"}
                 </p>
                 {!state ? (
                   <p>読み込み中…</p>
@@ -935,6 +956,6 @@
         </main>
       );
     }
-    return { App, Result };
+    return { App, Result, BattleView };
   };
 })(window);

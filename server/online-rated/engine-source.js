@@ -35,6 +35,22 @@ function multiply(f1, f2) {
 function polyEqual(p1, p2) {
   return p1.x4 === p2.x4 && p1.x3 === p2.x3 && p1.x2 === p2.x2 && p1.x1 === p2.x1 && p1.x0 === p2.x0;
 }
+let POW_SYMBOL = { 4: 'x⁴', 3: 'x³', 2: 'x²', 1: 'x', 0: '' };
+function formatPoly(poly) {
+  const terms = [];
+  [4, 3, 2, 1, 0].forEach(pow => {
+    const key = `x${pow}`;
+    if (poly[key] !== 0) terms.push({ pow, coef: poly[key] });
+  });
+  if (terms.length === 0) return '0';
+  return terms.map((t, i) => {
+    const sign = t.coef < 0 ? '-' : (i === 0 ? '' : '+');
+    const abs = Math.abs(t.coef);
+    const coefStr = (t.pow !== 0 && abs === 1) ? '' : `${abs}`;
+    const varStr = POW_SYMBOL[t.pow];
+    return i === 0 ? `${sign}${coefStr}${varStr}` : ` ${sign} ${coefStr}${varStr}`;
+  }).join('');
+}
 function coprime(a, b) { return gcd(Math.abs(a), Math.abs(b)) === 1; }
 function genL1() {
   let b, c;
@@ -260,6 +276,10 @@ function buildBoard(level, seenSet, tileCount = 9) {
   }
   return { tiles, poly, factors };
 }
+let REVERSE_STAGE_LEVELS = [5, 6, 8, 9];
+let REVERSE_STAGE_MIN_CORRECT = 30;
+let REVERSE_STAGE_CHANCE = 0.03;
+let REVERSE_STAGE_POINTS = 50;
 let QUESTION_TIMEOUT_MS = 20000;
 let JUDGE_TIERS = [
   { max: 2000, label: 'Perfect', recover: 25, color: '#FFD54A' },
@@ -278,6 +298,39 @@ function getJudgment(elapsedMs) {
 }
 let DIFFICULTY_MISS_PENALTY = { easy: 20, normal: 25, hard: 30 };
 let DIFFICULTY_TIMEOUT_EXTRA = { easy: 0, normal: 5, hard: 10 };
+function buildReverseQuestion() {
+  const level = REVERSE_STAGE_LEVELS[randInt(0, REVERSE_STAGE_LEVELS.length - 1)];
+  const { factors, poly } = GENERATORS[level]();
+  const correctText = formatPoly(poly);
+
+  // ダミーの展開結果: 符号ミス・定数ズレなど「ありがちな展開間違い」を元に作る
+  const candidates = [];
+  const pushUnique = (text) => {
+    if (text && text !== correctText && !candidates.includes(text)) candidates.push(text);
+  };
+  pushUnique(formatPoly(multiply(flipSign(factors[0]), factors[1])));
+  pushUnique(formatPoly(multiply(factors[0], flipSign(factors[1]))));
+  pushUnique(formatPoly(multiply(shiftConst(factors[0]), factors[1])));
+  pushUnique(formatPoly(multiply(factors[0], shiftConst(factors[1]))));
+  // それでも3つ揃わない場合は、同じレベルの別問題の展開結果で埋める
+  let guard = 0;
+  while (candidates.length < 3 && guard < 30) {
+    guard++;
+    pushUnique(formatPoly(GENERATORS[level]().poly));
+  }
+
+  const allTexts = [correctText, ...candidates.slice(0, 3)];
+  for (let i = allTexts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allTexts[i], allTexts[j]] = [allTexts[j], allTexts[i]];
+  }
+  const choices = allTexts.map((text, idx) => ({
+    id: `rc_${idx}_${Math.random().toString(36).slice(2)}`,
+    text,
+    correct: text === correctText,
+  }));
+  return { level, factors, poly, choices };
+}
 let A_LOCK_MS = 2000;
 let A_NEXT_DELAY = 1100;
 let A_LASTSPURT = 3;
@@ -299,6 +352,7 @@ let C_FOLLOW = { win: 3000, mul: 1.2 };
 let handiDmgMul = h => 1 - 0.15 * (h || 0);
 let handiPtsMul = h => 1 + 0.1 * (h || 0);
 let BADGES = [
+  ...[['daily_easy_king','DEキング','イージー'],['daily_normal_king','DNキング','ノーマル'],['daily_hard_king','DHキング','ハード'],['daily_king','デイリーキング','全3部門']].map(([id,label,d])=>({id,g:id,r:4,icon:'👑',label,desc:`デイリー${d}優勝`,test:st=>!!st.dailyTitles?.[id]})),
   // g：系統（同じ系統は一番上だけ名前の横に出す） r：めずらしさ（大きいほど先に出す） desc：取り方
   { id: 'first', g: 'first', r: 1, icon: '🌱', label: 'はじめの一歩', desc: '初めて勝つ', test: st => (st.w || 0) >= 1 },
   { id: 'lose50', g: 'lose', r: 2, icon: '🧱', label: '七転び八起き', desc: '負け50回（それでも続けた！）', test: st => (st.l || 0) >= 50 },
@@ -740,4 +794,4 @@ function createBEngine(o) {
   E.serve();
   return E;
 }
-({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES});
+({makeBank,createBEngine,scoreA,problemForA,getJudgment,polyEqual,multiply,DIFFICULTY_CONFIG,qStartA,A_LOCK_MS,A_NEXT_DELAY,QUESTION_TIMEOUT_MS,ratingDelta,BADGES,buildReverseQuestion,withSeed,REVERSE_STAGE_CHANCE,REVERSE_STAGE_MIN_CORRECT,REVERSE_STAGE_POINTS,LEVEL_POINTS});

@@ -284,6 +284,7 @@ function transition(state, actor, cmd, now, entropy) {
         m.members.map((x) => x.uid),
         m.seed,
         now + 3800,
+        m.rulesVersion === 2 ? {rules:'b2',duration:m.duration||90} : {},
       );
     }
   } else if (m.phase === "play" && now >= m.game.startAt) {

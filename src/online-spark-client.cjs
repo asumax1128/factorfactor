@@ -4,6 +4,7 @@ const C = require("../server/online-rated/core.cjs"),
   E = require("../server/online-rated/engine.cjs"),
   G = require("./ghost-model.cjs");
 const Perf = require("./online-performance.cjs");
+const B2Pump = require('./b2-pump.cjs');
 const ROOT = "games/factor/onlineSparkV1";
 const copy = C.copy;
 const id = () => {
@@ -75,6 +76,7 @@ function create({
   bot = () => ({ name: "CPU", rt: 1500 }),
   learning = async () => {},
   random = Math.random,
+  modernB = true,
   storage = typeof sessionStorage !== "undefined" ? sessionStorage : null,
 }) {
   db = Perf.instrument(db);
@@ -102,6 +104,9 @@ function create({
     searchStarted = null,
     ghostReady = false,
     ghostActive = null;
+  let matchCache=null,matchWatch=null;
+  const stopMatchWatch=()=>{if(matchWatch){matchWatch.ref.off('value',matchWatch.fn);matchWatch=null;}matchCache=null;};
+  const watchMatch=m=>{if(m?.game?.rules!=='b2'||m.opponent)return;if(matchWatch?.id===m.id)return;stopMatchWatch();matchCache=copy(m);const ref=db.ref(`${ROOT}/matches/${m.id}`),fn=s=>{const v=s.val();if(!v)return;if(matchCache&&v.revision<(matchCache.revision||0))return;matchCache=v;};matchWatch={id:m.id,ref,fn};ref.on('value',fn,()=>{stopMatchWatch()});};
   let connected = false;
   const reconnects = new Set();
   const connectionRef = db.ref(".info/connected");
@@ -227,7 +232,8 @@ function create({
       }
       return copy(localGhost);
     }
-    return (await db.ref(`${ROOT}/matches/${matchId}`).get()).val();
+    if(matchCache?.id===matchId)return copy(matchCache);
+    const m=(await db.ref(`${ROOT}/matches/${matchId}`).get()).val();watchMatch(m);return m;
   }
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
@@ -356,6 +362,7 @@ function create({
             serverTime: m.game?.time || 0,
             selfUid: m.members.find((u) => u.key === key)?.uid || uid,
             gameStartAt: m.game?.startAt,
+            rules: m.game?.rules || null,
             members: m.members.map((x) => ({ uid: x.uid, name: x.name })),
             phase: m.phase,
             difficulty: m.difficulty,
@@ -609,7 +616,7 @@ function create({
       !ticket ||
       !difficulty ||
       searchStarted == null ||
-      now() - searchStarted < 10000
+      now() - searchStarted < 5000
     )
       return null;
     const ref = db.ref(`${ROOT}/slots/${difficulty}`),
@@ -624,15 +631,16 @@ function create({
     const all = (await db.ref("games/factor/accounts").get()).val() || {},
       p = (await profileRef.get()).val();
     profiles = (await pr.get()).val() || {};
-    const opponent = G.select({
+    let opponent;
+    try { opponent = G.select({
       accounts: all,
       profiles,
       key,
       random,
       difficulty,
       rating: C.ratingView(p[difficulty], now()).rating,
-      bot,
-    });
+      bot, now: now(),
+    }); } catch(e) {await tx(ref,s=>s?.id===ticket&&s.uid===uid?null:s);ticket=null;difficulty=null;searchStarted=null;throw e;}
     const d = difficulty;
     await beginGhost(d, opponent, "quick", gid);
     await tx(ref, (s) =>
@@ -802,6 +810,7 @@ function create({
             [playUid, "_ghost"],
             n.seed,
             ts + 3800,
+            modernB ? { rules:'b2',duration:90 } : {},
           );
         }
       } else if (!beforeStart) {
@@ -890,6 +899,13 @@ function create({
     if (command.protocol !== undefined && command.protocol !== 2)
       throw Error("UPDATE_REQUIRED");
     await ensure();
+    if(command.type==='randomGhost'){
+      if(!['easy','normal'].includes(command.difficulty)||!['ghost','hyper'].includes(command.kind))throw Error('INVALID_GHOST_REQUEST');
+      if(await find())throw Error('続行中の対戦があります');if(!ghostReady)throw Error('ゴースト機能の準備中です');
+      const [a,p]=await Promise.all([db.ref('games/factor/accounts').get(),pr.get()]);const accounts=a.val()||{},profiles=p.val()||{};
+      const opponent=command.kind==='hyper'?require('./hyper-select.cjs').select({accounts,profiles,key,difficulty:command.difficulty,now:now(),random}):G.select({accounts,profiles,key,difficulty:command.difficulty,rating:C.ratingView(ownProfile[command.difficulty],now()).rating,random:()=>.5,bot});
+      if(opponent.type==='bot')throw Error('対戦可能なゴーストの学習記録がありません');return beginGhost(command.difficulty,opponent,'profile');
+    }
     if (command.type === "directGhost") {
       if (
         !["easy", "normal"].includes(command.difficulty) ||
@@ -1020,6 +1036,23 @@ function create({
     )
       throw Error("この試合を別のログイン状態で進行中です");
     if (["settled", "cancelled"].includes(m.phase)) return response(m);
+    if(m.game?.rules==='b2'&&command.type==='heartbeat'&&m.members[0].uid!==uid&&now()-(m.clock||m.game.startAt)<1400)return response(m);
+    // Server stamps, rather than either device's wall clock, order new B inputs.
+    // Local feedback still starts at pointer-up; these writes only settle score.
+    let serverClock=null;
+    const matchRef=db.ref(`${ROOT}/matches/${m.id}`);
+    if(m.game?.rules==='b2'){
+      if(['answer','leave'].includes(command.type)){
+        const inputId=command.type==='answer'?`a${command.seq}`:'leave';
+        const intentRef=matchRef.child(`inputs/${uid}/${inputId}`);
+        await tx(intentRef,c=>c||clean({...command,at:{'.sv':'timestamp'}}));
+      }
+      await matchRef.child('clock').set({'.sv':'timestamp'});
+      serverClock=(await matchRef.child('clock').get()).val();
+    } else if(m.phase==='vote'){
+      await matchRef.child('clock').set({'.sv':'timestamp'});
+      serverClock=(await matchRef.child('clock').get()).val();
+    }
     m = await tx(db.ref(`${ROOT}/matches/${m.id}`), (raw) => {
       if (!raw) throw Error("MATCH_NOT_FOUND");
       if (command.type === "abortInitialization") {
@@ -1031,6 +1064,15 @@ function create({
           throw Error("対戦が進行しています。最新の状態から再開してください");
         return { ...raw, phase: "cancelled" };
       }
+      if(raw.game?.rules==='b2'){
+        const next=B2Pump.pump(raw,Math.max(serverClock||raw.clock,raw.game.time));
+        next.revision=(raw.revision||0)+1;
+        if(next.game.result&&!next.receipt){
+          const model={players:copy(next.snapshots),settlements:{}};
+          C.settle(model,next,next.game.result.at||serverClock);
+        }
+        return clean(next);
+      }
       const model = {
         enabled: true,
         players: copy(raw.snapshots),
@@ -1038,10 +1080,11 @@ function create({
         matches: { [raw.id]: copy(raw) },
         settlements: {},
       };
+      if(raw.phase==='vote'&&modernB) {model.matches[raw.id].rulesVersion=2;model.matches[raw.id].duration=90;}
       const ts =
         raw.phase === "play" && now() < raw.game.startAt
           ? now()
-          : Math.max(now(), raw.game?.time || 0);
+          : Math.max(serverClock||now(), raw.game?.time || 0);
       const next = C.transition(
         model,
         { uid, key },
@@ -1058,6 +1101,7 @@ function create({
       next.revision = (raw.revision || 0) + 1;
       return clean(next);
     });
+    watchMatch(m);
     return response(m);
   }
   return {
@@ -1068,6 +1112,7 @@ function create({
     },
     close() {
       closed = true;
+      stopMatchWatch();
       for (const resume of reconnects) resume();
       reconnects.clear();
       connectionRef.off("value", connectionListen);

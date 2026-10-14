@@ -100,7 +100,7 @@
   function snap(path) {
     const raw = getAt(tree, path);
     const v = raw == null ? null : out(JSON.parse(JSON.stringify(raw)));
-    return { val: () => v, exists: () => v !== null, key: split(path).pop() };
+    return { val: () => v, exists: () => v !== null, key: split(path).pop(),forEach(fn){for(const [key,value]of Object.entries(v||{}))if(fn({key,val:()=>value})===true)break;} };
   }
   const send = async (op) => {
     await window.__fbOp(op);
@@ -118,6 +118,8 @@
     path = split(path).join("/");
     return {
       _p: path,
+      child(p){return ref(path+'/'+p)},
+      orderByChild(field){return {limitToFirst(n){return {async get(){const s=await ref(path).get();const rows=Object.entries(s.val()||{}).sort((a,b)=>String(a[1][field]).localeCompare(String(b[1][field]))).slice(0,n);return {val:()=>Object.fromEntries(rows),forEach(fn){for(const[key,value]of rows)if(fn({key,val:()=>value})===true)break}}}}}}},
       on(ev, fn, cancel) {
         if (path === ".info/serverTimeOffset") {
           setTimeout(() => fn({ val: () => 0 }), 0);

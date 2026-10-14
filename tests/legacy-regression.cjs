@@ -68,6 +68,21 @@ const previous = functions(
 );
 const withoutFrame = (s) => {
   const n = JSON.parse(s);
+  // Only the new B2 final-result adapter is removed for this comparison.
+  // The legacy CPU/A/C branch must still be byte-identical after normalization.
+  const aliases={};
+  for(const stmt of n.body.body)for(const d of stmt.declarations||[])if(['savedResult','savedLive','savedKo'].includes(d.id?.name))aliases[d.id.name]=d.init;
+  n.body.body=n.body.body.filter(stmt=>!(stmt.declarations||[]).some(d=>aliases[d.id?.name])&&!(stmt.type==='IfStatement'&&JSON.stringify(stmt.test).includes('b2Final')));
+  for(const stmt of n.body.body)for(const d of stmt.declarations||[]){
+    if(d.id?.name==='result'&&aliases.savedResult)d.init=aliases.savedResult;
+    if(d.id?.name==='live'&&aliases.savedLive)d.init={type:'LogicalExpression',left:aliases.savedLive,operator:'||',right:{type:'ObjectExpression',properties:[]}};
+    if(d.id?.name==='ko'&&aliases.savedKo)d.init={type:'LogicalExpression',left:aliases.savedKo,operator:'||',right:{type:'ObjectExpression',properties:[]}};
+  }
+  const stripB2=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='ObjectExpression')node.properties=node.properties.filter(p=>!(p.type==='SpreadElement'&&JSON.stringify(p).includes('b2')));
+    if(Array.isArray(node.body))node.body=node.body.map(x=>x.type==='IfStatement'&&JSON.stringify(x.test).includes('b2')&&x.alternate?.type==='ExpressionStatement'?x.alternate:x);
+    for(const v of Object.values(node))if(v&&typeof v==='object'){if(Array.isArray(v))v.forEach(stripB2);else stripB2(v)};
+  };stripB2(n);
   // A result snapshot is presentation metadata in the existing result write;
   // normalize that assignment only, leaving every game/rating statement audited.
   const stripReport = node => {
@@ -93,9 +108,16 @@ for (const [name, value] of Object.entries(before)) {
   if (
     [
       "AppRoot",
+      "missionsFor", // Daily challenge prompt text only; targets unchanged.
+      "DailyTileV7", // Refreshed daily entry label; mission counts unchanged.
+      "DailyApp", // Replaced by dailyV2; its frozen legacy runner is preserved.
+      "BattleLobby", // Online B duration selector; A/C controls unchanged.
+      "BattleResult", // Timed B labels; existing A detailed result retained.
+      "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.
       "LearnApp", // Displays fastest per level; responsive browser tested.
+      "TeacherDash", // Verified teacher gate and read-only achievement condition catalogue.
       "TeacherArea", // Adds scoped grant manager; teacher authentication unchanged.
       "GhostNews", // Makes old passive rewards atomic with receipt/counters, fixing duplicate XP.
       "FxLayer", // Optional online-local layer above profile overlays; default tower layer unchanged.

@@ -53,7 +53,7 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
       await drag(h.page);
       await drag(g.page);
     }
-    assert.ok(Object.keys(tree.games.factor.rooms[code].live).length > 0);
+    const modern=Object.values(tree.games.factor.rooms[code].b2)[0].game;assert.equal(modern.rules,'b2');assert(modern.states.host.c>0&&modern.states.guest.c>0);assert.equal(modern.duration,90);
     console.log("PASS two-player online battle and shared live updates");
     await h.page.reload();
     await h.page

@@ -1,7 +1,7 @@
 name: Verify and publish FACTORxFACTOR
 on:
   push:
-    branches: [main]
+    branches: [main, release/v524]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
@@ -63,12 +63,12 @@ jobs:
       - name: Verify formal release version
         if: github.event_name != 'workflow_dispatch' || inputs.source_sha == ''
         env:
-          RELEASE_BASE: ${{ github.event.before }}
+          RELEASE_BASE: ${{ github.ref == 'refs/heads/main' && github.event.before || 'origin/main' }}
           APPROVED_MAJOR_VERSION: ${{ vars.APPROVED_MAJOR_VERSION }}
         run: node scripts/check-release-version.cjs
       - run: npm run build:pages
       - name: Check committed generated UI
-        run: git diff --exit-code -- game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js server/online-rated/engine-source.js
+        run: git diff --exit-code -- game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
       - run: npm run test:version
       - run: npm run test:tower
       - name: Actual emulator rules and compatibility
@@ -95,6 +95,8 @@ jobs:
       - run: npm run test:rating-history
       - run: npm run test:rating-display
       - run: npm run test:online-improvements
+      - run: npm run test:rewards-audit
+      - run: npm run test:online-v524
       - run: npm run test:chromebook
       - run: npm run test:ghost
       - name: Spark Auth, matching and ratings in demo emulators only
@@ -102,7 +104,7 @@ jobs:
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"
       - name: Ghost history, rating isolation and limited-host authorization
         run: |
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs && HTTP_PROXY= http_proxy= node tests/v524-emulator.cjs"
       - run: npm run test:accounts
       - name: Recheck final public payload after tests
         run: node scripts/build-pages.cjs

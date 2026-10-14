@@ -145,6 +145,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     let learningCalls = 0;
     const make = (u) =>
       Spark.create({
+        modernB:false, // Retain the 15-question v5.17 measurement fixture; B2 is timed.
         db: measured(u.db),
         uid: u.uid,
         account: { key: u.key, name: u.key === "aa" ? "A" : "B" },

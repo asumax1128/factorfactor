@@ -1,0 +1,39 @@
+// New branch only. Trusted identity/time, immutable starts, monotone best records,
+// an inductively verified minimum leader, and immutable daily champion proofs.
+const own="auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()";
+const epoch="((now + 32400000 - (now + 32400000) % 86400000) / 86400000)";
+const current=`$day === (${epoch} + '')`;
+const diff="($difficulty === 'easy' || $difficulty === 'normal' || $difficulty === 'hard')";
+const equal=(a,b,fields)=>fields.map(f=>`${a}.child('${f}').val() === ${b}.child('${f}').val()`).join(' && ');
+const fields=['score','cleared','elapsed','correct','confirmedAt','id'];
+const recordFields=[...fields,'key','day','name','slot','sortKey'];
+// All values are bounded integers; lexicographic sort strings mirror this
+// numeric comparator. No rounded ratings or inferred scoring are used.
+function better(a,b){const get=(x,f)=>`${x}.child('${f}').val()`;return `(${get(a,'score')} > ${get(b,'score')} || ${get(a,'score')} === ${get(b,'score')} && (${get(a,'cleared')} === true && ${get(b,'cleared')} !== true || ${get(a,'cleared')} === ${get(b,'cleared')} && (${get(a,'cleared')} === true && ${get(a,'elapsed')} < ${get(b,'elapsed')} || ${get(a,'cleared')} !== true && ${get(a,'correct')} > ${get(b,'correct')} || ${get(a,'elapsed')} === ${get(b,'elapsed')} && ${get(a,'correct')} === ${get(b,'correct')} && ${get(a,'confirmedAt')} < ${get(b,'confirmedAt')} || ${get(a,'cleared')} === true && ${get(a,'elapsed')} === ${get(b,'elapsed')} && ${get(a,'confirmedAt')} < ${get(b,'confirmedAt')} || ${get(a,'cleared')} !== true && ${get(a,'correct')} === ${get(b,'correct')} && ${get(a,'confirmedAt')} < ${get(b,'confirmedAt')})))`;}
+const shape="newData.hasChildren(['score','cleared','elapsed','correct','confirmedAt','id']) && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() < 1000000 && newData.child('score').val() % 1 === 0 && newData.child('cleared').isBoolean() && newData.child('elapsed').isNumber() && newData.child('elapsed').val() >= 0 && newData.child('elapsed').val() < 1200000 && newData.child('elapsed').val() % 1 === 0 && newData.child('correct').isNumber() && newData.child('correct').val() >= 0 && newData.child('correct').val() <= 50 && newData.child('correct').val() % 1 === 0 && newData.child('confirmedAt').isNumber() && newData.child('id').isString()";
+const proof="root.child('games/factor/dailyV2/attempts/' + $account + '/' + $day + '/slots/' + newData.child('slot').val())";
+const leader="newData.parent().parent().child('leader')";
+const frozen="root.child('games/factor/dailyV2/boards/' + $day + '/' + $difficulty + '/leader')";
+const beforeClose=`now < (${epoch}+1)*86400000 - 32400000 + 1200000`;
+module.exports={
+ '.read':false,'.write':false,
+ ready:{'.read':'auth != null'},
+ clock:{$uid:{'.read':'auth != null && auth.uid === $uid','.write':'auth != null && auth.uid === $uid && newData.val() === now'}},
+ attempts:{$account:{'.read':own,$day:{'.write':`${own} && newData.exists()`,'.validate':"newData.hasChildren(['slots']) && (!data.child('slots/0').exists() || newData.child('slots/0').exists()) && (!data.child('slots/1').exists() || newData.child('slots/1').exists()) && (!data.child('slots/2').exists() || newData.child('slots/2').exists())",
+  slots:{$slot:{'.validate':"($slot === '0' || $slot === '1' || $slot === '2') && newData.hasChildren(['id','seed','difficulty','at']) && newData.child('id').isString() && newData.child('id').val().length <= 64 && newData.child('seed').isString() && newData.child('seed').val().length <= 64 && (newData.child('difficulty').val() === 'easy' || newData.child('difficulty').val() === 'normal' || newData.child('difficulty').val() === 'hard') && (!data.exists() && "+current+" && newData.child('at').val() === now || data.exists() && "+equal('newData','data',['id','seed','difficulty','at'])+" && (!data.child('result').exists() || newData.child('result').exists()))",
+   result:{...Object.fromEntries(fields.map(f=>[f,{'.validate':true}])),'$other':{'.validate':false},'.validate':`data.exists() ? (${equal('newData','data',fields)}) : (${shape} && newData.child('confirmedAt').val() === now && newData.child('id').val() === newData.parent().child('id').val() && now < (data.parent().child('at').val() + 32400000 - (data.parent().child('at').val() + 32400000) % 86400000) + 86400000 - 32400000 + 1200000)`},
+   '$other':{'.validate':"$other === 'id' || $other === 'seed' || $other === 'difficulty' || $other === 'at'"}
+  }},'$other':{'.validate':false}
+ }}},
+ boards:{$day:{$difficulty:{'.read':'auth != null',
+  records:{'.indexOn':['sortKey'],$account:{...Object.fromEntries(recordFields.map(f=>[f,{'.validate':true}])),'$other':{'.validate':false},'.write':`${own} && newData.exists()`,'.validate':`${diff} && $day === (newData.child('day').val() + '') && ${shape} && newData.child('key').val() === $account && newData.child('name').isString() && newData.child('name').val() === root.child('games/factor/accounts/' + $account + '/name').val() && newData.child('name').val().length <= 10 && ${proof}.child('difficulty').val() === $difficulty && (${equal('newData',proof+".child('result')",fields)}) && now < (${proof}.child('at').val() + 32400000 - (${proof}.child('at').val() + 32400000) % 86400000) + 86400000 - 32400000 + 1200000 && (!data.exists() || ${better('newData','data')} || ${equal('newData','data',recordFields)}) && (${leader}.exists() && (${better(leader,'newData')} || ${equal(leader,'newData',recordFields)})) && newData.child('sortKey').val() === ((2000000-newData.child('score').val()) + ':' + (newData.child('cleared').val() === true ? '0' : '1') + ':' + (1000000000 + (newData.child('cleared').val() === true ? newData.child('elapsed').val() : 100-newData.child('correct').val())) + ':' + (10000000000000 + newData.child('confirmedAt').val()))`}},
+  leader:{...Object.fromEntries(recordFields.map(f=>[f,{'.validate':true}])),'$other':{'.validate':false},'.write':'auth != null && newData.exists()', '.validate':`${diff} && (${equal('newData',"newData.parent().child('records/' + newData.child('key').val())",recordFields)}) && (!data.exists() || ${better('newData','data')} || ${equal('newData','data',recordFields)}) && now < (newData.child('day').val()+1)*86400000 - 32400000 + 1200000`}
+ }}},
+ finals:{$day:{$difficulty:{...Object.fromEntries(recordFields.map(f=>[f,{'.validate':true}])),'$other':{'.validate':false},'.read':'auth != null','.write':`auth != null && !data.exists() && newData.exists()`,'.validate':`${diff} && ${frozen}.exists() && (${equal('newData',frozen,recordFields)}) && now >= (${frozen}.child('day').val()+1)*86400000 - 32400000 + 1200000`}}},
+ playedDays:{$account:{'.read':own,$day:{'.write':`${own} && newData.val() === true && root.child('games/factor/dailyV2/attempts/' + $account + '/' + $day + '/slots').exists()`}}},
+ awardCursor:{$account:{'.read':own,'.write':`${own} && newData.isNumber() && (!data.exists() || newData.val() >= data.val()) && newData.val() < ${epoch}`}},
+ titles:{$account:{'.read':'auth != null',
+  ...Object.fromEntries(Object.entries({daily_easy_king:'easy',daily_normal_king:'normal',daily_hard_king:'hard'}).map(([id,d])=>[id,{'.write':`${own} && newData.exists() && (!data.exists() || newData.child('day').val() === data.child('day').val()) && root.child('games/factor/dailyV2/finals/' + newData.child('day').val() + '/${d}/key').val() === $account`}])),
+  daily_king:{'.write':`${own} && newData.val() === true && root.child('games/factor/dailyV2/titles/' + $account + '/daily_easy_king').exists() && root.child('games/factor/dailyV2/titles/' + $account + '/daily_normal_king').exists() && root.child('games/factor/dailyV2/titles/' + $account + '/daily_hard_king').exists()`}
+ }}
+};

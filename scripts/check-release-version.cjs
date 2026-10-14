@@ -8,7 +8,7 @@ const git = (...args) =>
     stdio: ["ignore", "pipe", "pipe"],
   });
 const base =
-  /^[0-9a-f]{40}$/.test(process.env.RELEASE_BASE || "") &&
+  process.env.RELEASE_BASE === 'origin/main' ? 'origin/main' : /^[0-9a-f]{40}$/.test(process.env.RELEASE_BASE || "") &&
   !/^0+$/.test(process.env.RELEASE_BASE)
     ? process.env.RELEASE_BASE
     : "HEAD^";

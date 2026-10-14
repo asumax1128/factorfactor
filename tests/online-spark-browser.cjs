@@ -26,7 +26,9 @@ const { chromium, context } = require("./browser-harness.cjs");
         val: () => copy(value(p)),
         exists: () => value(p) !== null,
       });
+      function resolve(v){if(Array.isArray(v))return v.map(resolve);if(v&&typeof v==='object'){if(v['.sv']==='timestamp')return clock;return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,resolve(x)]));}return v;}
       function write(p, v) {
+        v=resolve(v);
         const parts = p.split("/");
         let node = tree;
         for (const k of parts.slice(0, -1)) node = node[k] || (node[k] = {});
@@ -37,6 +39,8 @@ const { chromium, context } = require("./browser-harness.cjs");
       }
       const db = {
         ref: (p) => ({
+          child:q=>db.ref(p+"/"+q),
+          set:async v=>write(p,v),
           get: async () => snap(p),
           on(event, f) {
             if (!observers.has(p)) observers.set(p, new Set());

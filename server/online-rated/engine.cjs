@@ -4,8 +4,10 @@ const source = fs.readFileSync(require.resolve("./engine-source.js"), "utf8");
 const script = new vm.Script(source);
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const AResult = require("../../src/a-result.cjs");
+const B2 = require("./b2.cjs");
 const banks = new Map();
 function runtime(match) {
+  if (match.rules === 'b2') return runtime({ ...match, rules: undefined, mode: 'A', states: {} });
   match.seq ||= {};
   match.claims ||= [];
   match.locks ||= {};
@@ -141,7 +143,7 @@ function runtime(match) {
     },
   };
 }
-function begin(id, difficulty, mode, ids, seed, now) {
+function begin(id, difficulty, mode, ids, seed, now, options = {}) {
   const m = {
     id,
     difficulty,
@@ -156,10 +158,12 @@ function begin(id, difficulty, mode, ids, seed, now) {
     seq: {},
     rng: 1,
   };
+  if (mode === 'B' && options.rules === 'b2') {const r=runtime({...m,mode:'A'});return B2.begin(m,options.duration||90,r.bank,r.api);}
   if (mode === "B") runtime(m).saved();
   return m;
 }
 function step(match, uid, command, now) {
+  if (match.rules === 'b2') {const r=runtime(match);return B2.step(match,uid,command,now,r.bank,r.api);}
   const m = clone(match),
     rt = runtime(m),
     { api } = rt;
@@ -247,6 +251,7 @@ function nowShield(s, time) {
   return time < (s.shieldUntil || 0);
 }
 function view(match, uid) {
+  if (match.rules === 'b2') return B2.view(match,uid);
   const rt = runtime(match),
     { api } = rt;
   const problem =
