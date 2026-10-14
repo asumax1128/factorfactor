@@ -3527,6 +3527,34 @@ const RatingHistory = (() => {
   };
   return { number, highest, master, difficulties };
 })();
+// Presentation only: never feed formatted values back into rankings or rewards.
+const RatingDisplay = {
+  format(value) {
+    if (!['number', 'string'].includes(typeof value) || (typeof value === 'string' && !value.trim()) || !Number.isFinite(Number(value))) return '―';
+    return String(Math.round(Number(value)));
+  },
+  current(profile, legacy, difficulty, now = fbNow()) {
+    if (profile === undefined) return { value: null, note: '読込中' };
+    if (!profile) return difficulty === 'easy'
+      ? { value: RatingHistory.number(legacy?.rating), note: '旧レート引継ぎ前' }
+      : { value: 1500, note: '開始値' };
+    const r = profile[difficulty], value = RatingHistory.number(r?.rating);
+    if (value === null) return { value: null, note: '未記録' };
+    // Reuse the exact read-only seasonal view used by EASY/NORMAL rankings.
+    return { value: r.season && window.OnlineSpark?.ratingView
+      ? window.OnlineSpark.ratingView({ ...r, rating: value }, now).rating : value, note: '' };
+  },
+};
+function CurrentRatings({ profile, legacy }) {
+  return <div className="flex gap-2 my-2" data-current-ratings>{['easy', 'normal'].map(d => {
+    const r = RatingDisplay.current(profile, legacy, d);
+    return <div key={d} className="flex-1 rounded-xl px-2 py-2 text-center" style={{background:COLORS.paperDark}}>
+      <div className="text-[10px] font-bold" style={{color:COLORS.inkSoft}}>{DIFFICULTY_CONFIG[d].label} 現在レート</div>
+      <div className="font-black" style={{color:COLORS.ink,...bFont}}>{RatingDisplay.format(r.value)}</div>
+      {r.note && <div className="text-[9px] font-bold">{r.note}</div>}
+    </div>;
+  })}</div>;
+}
 function useRatingHistoryProfile(account) {
   const fb = useFbReady(), db = dbOf();
   const [snapshot, setSnapshot] = useState({ account: null, profile: null });
@@ -3539,7 +3567,7 @@ function useRatingHistoryProfile(account) {
     return () => { active = false; ref.off('value', read); };
   }, [fb.ready, db, account]);
   // Never reuse the previous student's snapshot while the next read is pending.
-  return snapshot.account === account ? snapshot.profile : null;
+  return snapshot.account === account ? snapshot.profile : undefined;
 }
 function skinInfo(st, exp) {
   st = st || {};
@@ -9254,6 +9282,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
 
 /* ---------- 対戦のトップ画面 ---------- */
 function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats, quickPending, quickMessage, quickError, onConfigRetry, ratedEnabled }) {
+  const currentProfile = useRatingHistoryProfile(ratedEnabled ? acct?.key : null);
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
   const [nameOf, setNameOf] = useState({});
@@ -9354,8 +9383,9 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
               <BadgeIcons st={stats} max={5} />
             </div>
             <div className="text-xs font-bold mt-0.5" style={{ color: 'var(--v7-ink)' }}>
-              {stats && stats.games ? `レート ${ratingOf(stats)} ・ 勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}${stats.streak ? ` ・ ${stats.streak}連勝中` : ''}` : 'まだ対戦の記録がありません'}
+              {stats && stats.games ? `${ratedEnabled ? '従来の対戦記録' : `レート ${ratingOf(stats)}`} ・ 勝率 ${Math.round(winRate(stats) * 100)}% ・ ${stats.games}戦 ${recordText(stats)}${stats.streak ? ` ・ ${stats.streak}連勝中` : ''}` : '従来の対戦記録はまだありません'}
             </div>
+            {ratedEnabled && <CurrentRatings profile={currentProfile} legacy={stats} />}
 
             <div className="flex gap-1.5 mt-2 flex-wrap">
               <button onClick={() => openProfile(acct.key)} className="v7-pill v7-cur"><V7Icon name="stats" />称号とくわしい成績</button>
@@ -9436,7 +9466,7 @@ function GhostHistory({acct,stats={}}) {
     <p className="text-xs">保存された履歴：{rows.length}戦・{counts.w}勝 {counts.l}敗・勝率{rows.length?Math.round(counts.w/rows.length*100)+'%':'―'}</p>
     {tab==='inbox' && Object.keys(data.inbox).length>0 && <button className="v7-pill v7-cur my-2" disabled={busy} onClick={claim}>分身の新しい結果・勝利EXPを受け取る</button>}{message && <p role="status" className="text-xs">{message}</p>}
     {!rows.length && <p className="text-xs">履歴なし。未保存の過去試合は復元できません。</p>}
-    {rows.slice(0,50).map(e=><div key={e.id} className="text-xs py-2" style={{borderTop:'1px solid #d9d1c3'}}><strong>{tab==='own'?e.opponent:e.by} ・ {({w:'勝利',l:'敗北',d:'引き分け'})[e.outcome]}</strong><p>{e.at?new Date(e.at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'日時不明'}<br/>{e.difficulty?.toUpperCase()||'―'}・{e.mode||'―'}方式・{e.type==='hyper'?'ハイパーゴースト':e.type==='bot'?'BOT':'ゴースト'}<br/>獲得EXP {tab==='own'?e.exp??'―':e.old?'―':(e.outcome==='w'?'5（受取式）':'0')}・レート変動 {tab==='own'&&e.delta!=null?e.delta:'―'}{e.old&&'（従来の通知）'}</p></div>)}
+    {rows.slice(0,50).map(e=><div key={e.id} className="text-xs py-2" style={{borderTop:'1px solid #d9d1c3'}}><strong>{tab==='own'?e.opponent:e.by} ・ {({w:'勝利',l:'敗北',d:'引き分け'})[e.outcome]}</strong><p>{e.at?new Date(e.at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}):'日時不明'}<br/>{e.difficulty?.toUpperCase()||'―'}・{e.mode||'―'}方式・{e.type==='hyper'?'ハイパーゴースト':e.type==='bot'?'BOT':'ゴースト'}<br/>獲得EXP {tab==='own'?e.exp??'―':e.old?'―':(e.outcome==='w'?'5（受取式）':'0')}・レート変動 {tab==='own'&&e.delta!=null?RatingDisplay.format(e.delta):'―'}{e.old&&'（従来の通知）'}</p></div>)}
     {rows.length>50&&<p className="text-xs">最新50件を表示しています。</p>}</div>;
 }
 
@@ -9488,10 +9518,11 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
           <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}でゴースト対戦</BigBtn>)}</div>
         </div>}
-        <div className="flex gap-2 mb-3" data-highest-rating>{box('最高レート', highestRating === null ? '―' : Math.round(highestRating))}</div>
+        <CurrentRatings profile={historicalProfile} legacy={st} />
+        <div className="flex gap-2 mb-3" data-highest-rating>{box('最高レート', RatingDisplay.format(highestRating))}</div>
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
-            {!hideLegacyRating && box(<>レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
+            {!hideLegacyRating && box(<>従来レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
           </div>
           <div className="flex gap-2 mb-3">
             {box('成績', recordText(st))}{box('最高連勝', st.maxStreak || 0)}
@@ -9508,7 +9539,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           <div className="text-[11px] font-black mt-2 mb-0.5" style={{ color: COLORS.inkSoft }}>🗓 シーズンの記録</div>
           <div className="flex flex-wrap gap-1">
             <span className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: `${COLORS.sky}18`, color: COLORS.ink }}>{seasonLabel(seasonKey())}（今）最高 <RankPill r={(st.season || SEASON0) === seasonKey() ? (st.seasonMax || ratingOf(st)) : ratingOf(st)} size={9} /></span>
-            {Object.entries(st.seasonHist || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => <span key={k} className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.ink }}>{seasonLabel(k)} 最高 <RankPill r={v.max} size={9} /> {v.max}</span>)}
+            {Object.entries(st.seasonHist || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => <span key={k} className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.ink }}>{seasonLabel(k)} 最高 <RankPill r={v.max} size={9} /> {RatingDisplay.format(v.max)}</span>)}
           </div></>}
         </>)}
         <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>🎖 称号（{got.size}/{BADGES.length}）</div>
@@ -10362,7 +10393,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
           <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>🏅 {acct.name} のせいせき</div>
           {rec && rec.dr != null && <div className="font-black text-lg" style={{ color: COLORS.sky, ...bFont }}>
             レート {Math.round(rec.before != null ? rec.before : RATING_INIT)} → <CountUp from={rec.before != null ? rec.before : RATING_INIT} to={(rec.before != null ? rec.before : RATING_INIT) + rec.dr} ms={1400} delay={400} />
-            <span className="text-sm ml-1" style={{ color: rec.dr >= 0 ? COLORS.leafDeep : COLORS.coral }}>（{rec.dr >= 0 ? '+' : ''}{Math.round(rec.dr * 10) / 10}）</span>
+            <span className="text-sm ml-1" style={{ color: rec.dr >= 0 ? COLORS.leafDeep : COLORS.coral }}>（{rec.dr >= 0 ? '+' : ''}{RatingDisplay.format(rec.dr)}）</span>
             {Object.values(state.handi || {}).some(h => h > 0) && <span className="text-[10px] ml-1" style={{ color: COLORS.inkSoft }}>ハンデありのため半分</span>}
             {rec.dr < 0 && <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>はじめの10戦は、レートの下がり方が半分になります</div>}
             {(() => { const after = (rec.before != null ? rec.before : RATING_INIT) + rec.dr, k = rankOf(after); return (
@@ -10828,7 +10859,7 @@ async function flushOnlineLearn(acct,matchId,rows) {
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
+const OnlineRatedApp = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, PlayerProfile, Nick, BadgeIcons, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }).App : null;
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'solo');

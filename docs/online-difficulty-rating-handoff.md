@@ -49,3 +49,12 @@ BattleHomeは選択時にopenProfileでwinを{type:'profile',key,origin}へ置�
 index.htmlのRatingHistoryでEASY/NORMALのmaxRating・seasonMax・seasonHist/maxと旧EASY履歴を共通集計。現在レート/初期1500で歴代最高を作らない。PlayerProfileは旧対戦数0/オンライン経路でも最高を表示。Wardrobeのmasterタイルだけ、履歴>=1820/既存永久達成フラグ/保存済みmaster装備を解放根拠にする。他の条件は既存skinOpen/skinInfoを維持。画面表示中だけ対象プロフィールを1件監視し、アカウント切替の古い値・閉じた後の通知は使わない。マイグレーション/新フラグ保存/ルール変更/全件監視は追加しない。test:rating-historyをCIへ追加。詳細はreports/2026-10-14_rating-history-v520.md。次の通常公開は5.21。指定asumax1128/factorはREADMEだけの初期コミット12d6eceのため、実コードと公開はfactorfactorで保守した。
 
 Ver.5.21追補: 初期1500の未記録判定では人間gamesだけでなくghost.gamesも確認する。乱入戦は公式レートを更新するため、人間games=0でも履歴がある。32件の単体テストでこの境界を保護。次の通常公開は5.22。
+
+
+## Ver.5.22 現在レート表示の統一
+
+ロビーは旧accounts/stats/ratingではなく、開いているアカウントのonlineSparkV1/profiles/easy,normal/ratingを別々に表示。CurrentRatingsをPlayerProfileとも共用し、useRatingHistoryProfileの対象1件の監視を再利用。前アカウント/未読込はundefinedとして旧値を先に見せない。プロフィールが存在しない移行前だけ、ランキング同様に旧ratingのEASY投影とNORMAL開始値1500を明記する。欠損難易度は旧値で補わず未記録。月替わりはOnlineSpark.ratingView（既存core関数の読み取り専用export）と同じ結果。
+
+RatingDisplay.formatは表示時だけMath.round。ロビー・自己/他人プロフィール・ランキング・レーティング・乱入・結果・ゴースト履歴・旧季節履歴/結果差分を整数化。計算/保存/順位/マスター条件へformat値を渡さない。1819.9は表示1820でも未到達。最高値は引き続きRatingHistoryで別集計する。旧対戦記録/旧レートはラベルで明確に区別。全件取得/書き込みを追加せず、ロビーを閉じると対象リスナー解除。
+
+検証はnpm run test:rating-display。詳細reports/2026-10-14_rating-display-v522.md。通常の次回公開はVer.5.23。

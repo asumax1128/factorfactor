@@ -93,6 +93,7 @@ jobs:
       - run: npm run test:online-playability
       - run: npm run test:bounty-profile
       - run: npm run test:rating-history
+      - run: npm run test:rating-display
       - run: npm run test:chromebook
       - run: npm run test:ghost
       - name: Spark Auth, matching and ratings in demo emulators only

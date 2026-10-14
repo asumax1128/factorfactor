@@ -98,6 +98,7 @@ for (const [name, value] of Object.entries(before)) {
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
       "Wardrobe", // Master tile alone reads immutable EASY/NORMAL history; other cosmetic rules unchanged.
       "PlayerProfile", // Only optional online-context hiding of legacy rating; default profile unchanged.
+      "BattleResult", // Rating delta display only; raw result, rank and reward processing unchanged.
       "BattleHome", // Routes new ranking only when the protected feature flag is enabled.
       "FactorHunt",
       "TowerTileV7",

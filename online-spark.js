@@ -1842,6 +1842,7 @@
         };
       }
       module.exports = {
+        ratingView: C.ratingView,
         create,
         ROOT,
         tx,

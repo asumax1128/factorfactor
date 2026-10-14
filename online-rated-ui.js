@@ -13,6 +13,7 @@
         var _a;
         return ((_a = H.DIFFICULTY_CONFIG[d]) == null ? void 0 : _a.label) || d;
       };
+      const formatRating = H.RatingDisplay.format;
       const titles = {
         easy_adept: "EASY\u306E\u9054\u4EBA",
         easy_master: "EASY\u30DE\u30B9\u30BF\u30FC",
@@ -187,7 +188,7 @@
         ));
       }
       function Result({ H: H2, m, state, acct, titles: titles2, badgesBefore, busy, onExit }) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const won = m.outcome === "win", r = (_b = (_a = m.receipt) == null ? void 0 : _a.players) == null ? void 0 : _b[acct.key];
         const badges = Object.keys(state.badges || {}).filter(
           (k) => !badgesBefore[k] && titles2[k]
@@ -205,8 +206,8 @@
           won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }),
           /* @__PURE__ */ React.createElement("h3", null, won ? "\u52DD\u5229\uFF01" : m.outcome === "draw" ? "\u5F15\u304D\u5206\u3051" : "\u6557\u5317"),
           /* @__PURE__ */ React.createElement("p", { className: "or-result-sub" }, won ? "VICTORY\uFF01" : m.outcome === "draw" ? "DRAW" : "\u307E\u305F\u6311\u6226\u3057\u3088\u3046"),
-          /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", (r == null ? void 0 : r.delta) >= 0 ? "+" : "", (_c = r == null ? void 0 : r.delta) != null ? _c : 0),
-          /* @__PURE__ */ React.createElement("p", null, r == null ? void 0 : r.before, " \u2192 ", r == null ? void 0 : r.after),
+          /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", Math.round((_c = r == null ? void 0 : r.delta) != null ? _c : 0) > 0 ? "+" : "", formatRating((_d = r == null ? void 0 : r.delta) != null ? _d : 0)),
+          /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)),
           /* @__PURE__ */ React.createElement("p", null, ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
           m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0)),
           badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "or-new-title", "data-new-title": "1" }, "\u2728 \u65B0\u3057\u3044\u79F0\u53F7\uFF01", badges.map((k) => /* @__PURE__ */ React.createElement("p", { key: k }, titles2[k]))),
@@ -523,7 +524,7 @@
               "\u30D7\u30E9\u30C1\u30CA",
               "\u30C0\u30A4\u30E4",
               "\u30DE\u30B9\u30BF\u30FC"
-            ][m.opponent.rank], " ", "\u30FB \u30EC\u30FC\u30C8", m.opponent.rating)
+            ][m.opponent.rank], " ", "\u30FB \u30EC\u30FC\u30C8", formatRating(m.opponent.rating))
           ), /* @__PURE__ */ React.createElement("h3", null, label(m.difficulty), " \u30FB \u65B9\u5F0F\u3092\u9078\u3076"), /* @__PURE__ */ React.createElement("p", null, "\u96E3\u6613\u5EA6\u306F\u56FA\u5B9A\u3067\u3059\u3002\u65B9\u5F0F\u304C\u5206\u304B\u308C\u305F\u5834\u5408\u30FB\u6642\u9593\u5207\u308C\u306F\u30E9\u30F3\u30C0\u30E0\u306B\u6C7A\u307E\u308A\u307E\u3059\u3002"), ["A", "B"].map((mode) => /* @__PURE__ */ React.createElement(
             "button",
             {
@@ -601,10 +602,7 @@
               onClick: () => setTab(d)
             },
             label(d)
-          ))), /* @__PURE__ */ React.createElement("section", { className: "or-self", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("h3", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, ((_c = (_b = state == null ? void 0 : state.ratings) == null ? void 0 : _b[tab]) == null ? void 0 : _c.rating) == null ? "\u8AAD\u8FBC\u4E2D" : Number(state.ratings[tab].rating).toLocaleString(
-            "ja-JP",
-            { maximumFractionDigits: 1 }
-          )), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_f = (_e = (_d = state == null ? void 0 : state.ratings) == null ? void 0 : _d[tab]) == null ? void 0 : _e.games) != null ? _f : 0, "\u6226"), !!((_i = (_h = (_g = state == null ? void 0 : state.ratings) == null ? void 0 : _g[tab]) == null ? void 0 : _h.ghost) == null ? void 0 : _i.games) && /* @__PURE__ */ React.createElement("p", null, "\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A", state.ratings[tab].ghost.games, "\u6226"), /* @__PURE__ */ React.createElement("p", null, ((_j = state == null ? void 0 : state.ranks) == null ? void 0 : _j[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", { className: "or-rule" }, tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1AEASY\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1ANORMAL\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), !state ? /* @__PURE__ */ React.createElement("p", null, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026") : !((_l = (_k = state.rankings) == null ? void 0 : _k[tab]) == null ? void 0 : _l.length) ? /* @__PURE__ */ React.createElement("p", null, "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093") : /* @__PURE__ */ React.createElement("ol", { className: "or-ranking" }, state.rankings[tab].map((r) => {
+          ))), /* @__PURE__ */ React.createElement("section", { className: "or-self", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("h3", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, ((_c = (_b = state == null ? void 0 : state.ratings) == null ? void 0 : _b[tab]) == null ? void 0 : _c.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(state.ratings[tab].rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_f = (_e = (_d = state == null ? void 0 : state.ratings) == null ? void 0 : _d[tab]) == null ? void 0 : _e.games) != null ? _f : 0, "\u6226"), !!((_i = (_h = (_g = state == null ? void 0 : state.ratings) == null ? void 0 : _g[tab]) == null ? void 0 : _h.ghost) == null ? void 0 : _i.games) && /* @__PURE__ */ React.createElement("p", null, "\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A", state.ratings[tab].ghost.games, "\u6226"), /* @__PURE__ */ React.createElement("p", null, ((_j = state == null ? void 0 : state.ranks) == null ? void 0 : _j[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", { className: "or-rule" }, tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1AEASY\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1ANORMAL\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), !state ? /* @__PURE__ */ React.createElement("p", null, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026") : !((_l = (_k = state.rankings) == null ? void 0 : _k[tab]) == null ? void 0 : _l.length) ? /* @__PURE__ */ React.createElement("p", null, "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093") : /* @__PURE__ */ React.createElement("ol", { className: "or-ranking" }, state.rankings[tab].map((r) => {
             var _a2, _b2, _c2, _d2;
             return /* @__PURE__ */ React.createElement("li", { key: r.key }, /* @__PURE__ */ React.createElement("span", null, r.rank, "\u4F4D"), /* @__PURE__ */ React.createElement("div", { className: "or-player" }, /* @__PURE__ */ React.createElement(
               "button",
@@ -619,9 +617,7 @@
                 st: ((_c2 = r.cosmetics) == null ? void 0 : _c2.stats) || {},
                 max: 4
               }
-            )), /* @__PURE__ */ React.createElement("strong", null, Number(r.rating).toLocaleString("ja-JP", {
-              maximumFractionDigits: 1
-            })), /* @__PURE__ */ React.createElement(
+            )), /* @__PURE__ */ React.createElement("strong", null, formatRating(r.rating)), /* @__PURE__ */ React.createElement(
               "div",
               {
                 className: "or-record",

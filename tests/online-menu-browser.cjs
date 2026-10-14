@@ -97,7 +97,7 @@ const { chromium, context } = require("./browser-harness.cjs");
         .getByRole("heading", { name: "オンラインレーティング", exact: true })
         .waitFor();
       await p.waitForFunction(
-        () => document.querySelector(".or-rating")?.textContent === "1,649.6",
+        () => document.querySelector(".or-rating")?.textContent === "1650",
       );
       assert.equal(
         await p.getByRole("button", { name: /相手を探す/ }).count(),
@@ -109,7 +109,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       assert.ok(!rows.includes("New"));
       assert.ok(rows.includes("Teacher"));
       await p.getByRole("button", { name: "ノーマル", exact: true }).click();
-      assert.equal(await p.locator(".or-rating").innerText(), "1,500");
+      assert.equal(await p.locator(".or-rating").innerText(), "1500");
       assert.match(await p.locator(".or-rule").innerText(), /3戦以上/);
       assert.match(await p.locator(".or-ranking").innerText(), /New/);
       assert.deepEqual(tree.games.factor.accounts.alegacy, {

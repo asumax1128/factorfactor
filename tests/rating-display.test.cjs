@@ -1,0 +1,13 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const C=require('../server/online-rated/core.cjs'),s=fs.readFileSync('index.html','utf8');
+const context={window:{OnlineSpark:{ratingView:C.ratingView}}};
+const history=s.slice(s.indexOf('const RatingHistory ='),s.indexOf('// Presentation only:'));
+const display=s.slice(s.indexOf('const RatingDisplay ='),s.indexOf('function CurrentRatings'));
+const D=vm.runInNewContext(history+display+'\nRatingDisplay',context),now=Date.UTC(2026,9,14);
+for(const [v,w]of [[1665.6,'1666'],[1665.4,'1665'],[1819.9,'1820'],['1665.6','1666'],[-4.6,'-5'],[-0.4,'0'],[0,'0'],[null,'―'],[undefined,'―'],['','―'],[' ','―'],[true,'―'],[NaN,'―']])test('display '+String(v),()=>assert.equal(D.format(v),w));
+test('current is not maximum or old rating',()=>{const p={easy:{rating:1665.6,maxRating:1900,season:'2026-10'},normal:{rating:1540.3,maxRating:1800,season:'2026-10'}};const before=JSON.stringify(p);assert.equal(D.current(p,{rating:1650},'easy',now).value,1665.6);assert.equal(D.current(p,null,'normal',now).value,1540.3);assert.equal(JSON.stringify(p),before)});
+test('season view exactly matches ranking and does not mutate',()=>{const r={rating:1831.2,maxRating:2000,season:'2026-09',seasonMax:1900};const before=JSON.stringify(r);assert.equal(D.current({easy:r},null,'easy',now).value,C.ratingView(r,now).rating);assert.equal(JSON.stringify(r),before)});
+test('missing difficulty never falls back to stale legacy',()=>assert.equal(D.current({normal:{rating:1600}},{rating:1650},'easy',now).value,null));
+test('unmigrated uses ranking legacy projection without seasonal legacy reset',()=>{assert.equal(D.current(null,{rating:1800,season:'2026-09'},'easy',now).value,1800);assert.equal(D.current(null,null,'normal',now).value,1500)});
+test('pending read never flashes legacy',()=>{const r=D.current(undefined,{rating:1650},'easy',now);assert.equal(r.value,null);assert.equal(r.note,'読込中')});
+test('format does not influence raw order or master',()=>{const p={easy:{rating:1819.9,maxRating:1819.9}};assert.equal(D.format(p.easy.rating),'1820');const H=vm.runInNewContext(history+'RatingHistory');assert.equal(H.master(p,null,1820),false);assert.equal(p.easy.rating,1819.9);const ranks=C.rankings({players:{a:{name:'A',easy:{rating:1665.5,games:3,season:'2026-10'}},b:{name:'B',easy:{rating:1665.6,games:3,season:'2026-10'}}}},'easy',now);assert.equal(ranks[0].key,'b');assert.equal(D.format(ranks[0].rating),D.format(ranks[1].rating))});

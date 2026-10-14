@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const s=fs.readFileSync('index.html','utf8');const a=s.indexOf('const RatingHistory ='),b=s.indexOf('function useRatingHistoryProfile',a);const H=vm.runInNewContext(s.slice(a,b)+'\nRatingHistory');
+const s=fs.readFileSync('index.html','utf8');const a=s.indexOf('const RatingHistory ='),b=s.indexOf('// Presentation only:',a);const H=vm.runInNewContext(s.slice(a,b)+'\nRatingHistory');
 const cases=[
  ['easy higher',{easy:{maxRating:1900},normal:{maxRating:1800}},null,1900],
  ['normal higher',{easy:{maxRating:1700},normal:{maxRating:1900}},null,1900],

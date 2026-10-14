@@ -30,7 +30,8 @@
     "test:online-latency": "node --test tests/online-state-order.test.cjs && node tests/online-latency-browser.cjs",
     "test:bounty-profile": "node tests/bounty-profile-browser.cjs",
     "test:chromebook": "node tests/chromebook-browser.cjs",
-    "test:rating-history": "node --test tests/rating-history.test.cjs && node tests/rating-history-browser.cjs"
+    "test:rating-history": "node --test tests/rating-history.test.cjs && node tests/rating-history-browser.cjs",
+    "test:rating-display": "node --test tests/rating-display.test.cjs && node tests/rating-display-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

@@ -5,6 +5,7 @@
     const trace = (kind, detail) =>
       root.OnlineSpark?.performance?.mark(kind, detail);
     const label = (d) => H.DIFFICULTY_CONFIG[d]?.label || d;
+    const formatRating = H.RatingDisplay.format;
     const titles = {
       easy_adept: "EASYの達人",
       easy_master: "EASYマスター",
@@ -290,11 +291,11 @@
                 : "また挑戦しよう"}
           </p>
           <strong className="or-delta">
-            レート {r?.delta >= 0 ? "+" : ""}
-            {r?.delta ?? 0}
+            レート {Math.round(r?.delta ?? 0) > 0 ? "+" : ""}
+            {formatRating(r?.delta ?? 0)}
           </strong>
           <p>
-            {r?.before} → {r?.after}
+            {formatRating(r?.before)} → {formatRating(r?.after)}
           </p>
           <p>
             {["bounty", "profile"].includes(m.origin)
@@ -714,7 +715,7 @@
                         "マスター",
                       ][m.opponent.rank]
                     }{" "}
-                    ・ レート{m.opponent.rating}
+                    ・ レート{formatRating(m.opponent.rating)}
                   </small>
                 </div>
               )}
@@ -815,10 +816,7 @@
                 <strong className="or-rating">
                   {state?.ratings?.[tab]?.rating == null
                     ? "読込中"
-                    : Number(state.ratings[tab].rating).toLocaleString(
-                        "ja-JP",
-                        { maximumFractionDigits: 1 },
-                      )}
+                    : formatRating(state.ratings[tab].rating)}
                 </strong>
                 <p>有効な人間対戦 {state?.ratings?.[tab]?.games ?? 0}戦</p>
                 {!!state?.ratings?.[tab]?.ghost?.games && (
@@ -868,9 +866,7 @@
                           )}
                         </div>
                         <strong>
-                          {Number(r.rating).toLocaleString("ja-JP", {
-                            maximumFractionDigits: 1,
-                          })}
+                          {formatRating(r.rating)}
                         </strong>
                         <div
                           className="or-record"
