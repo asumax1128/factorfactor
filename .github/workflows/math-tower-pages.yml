@@ -19,6 +19,8 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    outputs:
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
@@ -67,6 +69,9 @@ jobs:
           APPROVED_MAJOR_VERSION: ${{ vars.APPROVED_MAJOR_VERSION }}
         run: node scripts/check-release-version.cjs
       - run: npm run build:pages
+      - name: Expose verified release version
+        id: release
+        run: node -e 'const fs=require("fs"),v=require("./version.json");fs.appendFileSync(process.env.GITHUB_OUTPUT,"version="+v.major+"."+v.minor+"\n")'
       - name: Check committed generated UI
         run: git diff --exit-code -- game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
       - run: npm run test:version
@@ -128,3 +133,18 @@ jobs:
       - name: Deploy verified artifact only
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Verify live published version
+        env:
+          EXPECTED_VERSION: ${{ needs.verify.outputs.version }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          for attempt in {1..12}; do
+            site_version="$(curl --fail --silent --show-error --location --max-time 20 "${PAGE_URL%/}/game-version.js?run=${GITHUB_RUN_ID}-${attempt}" || true)"
+            if [[ "$site_version" == *"\"number\":\"${EXPECTED_VERSION}\""* ]]; then
+              printf 'Live Pages version verified: %s\n' "$EXPECTED_VERSION"
+              exit 0
+            fi
+            sleep 10
+          done
+          printf '::error::Live Pages version did not match %s\n' "$EXPECTED_VERSION"
+          exit 1

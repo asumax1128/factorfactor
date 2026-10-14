@@ -7505,7 +7505,7 @@ function AchievementAuditPanel() {
 }
 
 function BadgeIcons({ st, max = 4 }) {
-  const list = badgesOf(st);
+  const list = badgesOf(st).filter(b=>achievementStatus(b.id)==='active');
   if (!list.length) return null;
   // 同じ系統は一番上だけ、めずらしい順に出す
   const top = {};
@@ -9576,6 +9576,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
     </div>;
   };
   const got = new Set(badgesOf(st).map(b => b.id));
+  const visibleAchievements=activeAchievements(), visibleEarned=visibleAchievements.filter(b=>got.has(b.id)).length;
   if(ghostFight && OnlineRatedApp) return <div className="fixed inset-0 overflow-y-auto" style={{zIndex:100,background:COLORS.paper}}><OnlineRatedApp acct={self} initialGhost={{target:acctKey,difficulty:ghostFight,origin:ghostOrigin}} onExit={()=>{setGhostFight(null);onClose();}} /></div>;
   return (
     <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 80 }}>
@@ -9616,19 +9617,11 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
             {Object.entries(st.seasonHist || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => <span key={k} className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.ink }}>{seasonLabel(k)} 最高 <RankPill r={v.max} size={9} /> {RatingDisplay.format(v.max)}</span>)}
           </div></>}
         </>)}
-        <section data-achievements className="mt-3">
-          <div className="text-xs font-black mb-1" style={{color:COLORS.inkSoft}}>実績（{activeAchievements().filter(b=>got.has(b.id)).length}/{activeAchievements().length} · {activeAchievements().length ? Math.round(100 * activeAchievements().filter(b=>got.has(b.id)).length / activeAchievements().length) : 0}%）</div>
-          <details><summary className="text-xs font-bold">有効な実績一覧</summary><div className="grid grid-cols-3 gap-1.5 mt-2">
-            {activeAchievements().map(b=><div key={b.id} data-achievement={b.id} className="rounded-xl p-2 text-center" style={{background:COLORS.paperDark}}>
-              <div>{got.has(b.id)?b.icon:'🔒'}</div><div className="text-[10px] font-black">{b.label}</div><div className="text-[9px]">{got.has(b.id)?b.desc:'？？？'}</div>
-            </div>)}
-          </div></details>
-        </section>
-        <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }}>🎖 称号（{got.size}/{BADGES.length}）</div>
+        <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }} data-achievement-count>🎖 称号・実績（{visibleEarned}/{visibleAchievements.length} · {visibleAchievements.length ? Math.round(100*visibleEarned/visibleAchievements.length) : 0}%）</div>
         {canNick && <p className="text-[10px] font-bold mb-1" style={{ color: '#9a6a12' }}>取った称号をタップすると「二つ名」として名前の上に表示されます（もう一度タップではずす）</p>}
-        <div className="grid grid-cols-3 gap-1.5">
-          {BADGES.map(b => (
-            <div key={b.id} onClick={() => canNick && got.has(b.id) && pickNick(b.id)} className={`rounded-xl px-1 py-1.5 text-center ${canNick && got.has(b.id) ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+        <div data-achievements className="grid grid-cols-3 gap-1.5">
+          {visibleAchievements.map(b => (
+            <div key={b.id} data-achievement={b.id} onClick={() => canNick && got.has(b.id) && pickNick(b.id)} className={`rounded-xl px-1 py-1.5 text-center ${canNick && got.has(b.id) ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
               style={{ background: got.has(b.id) ? `${COLORS.amber}33` : COLORS.paperDark, opacity: got.has(b.id) ? 1 : 0.45, outline: nick === b.id ? '3px solid #e8a33d' : 'none' }}>
               {nick === b.id && <div className="text-[8px] font-black" style={{ color: '#b7791f' }}>二つ名</div>}
               <div className="text-lg leading-none">{got.has(b.id) ? b.icon : '🔒'}</div>

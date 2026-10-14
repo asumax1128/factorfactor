@@ -117,6 +117,7 @@ for (const [name, value] of Object.entries(before)) {
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.
       "LearnApp", // Displays fastest per level; responsive browser tested.
+      "BadgeIcons", // Approved temporary hiding of tower reward icons; underlying award/equipment predicates retained.
       "TeacherDash", // Verified teacher gate and read-only achievement condition catalogue.
       "TeacherArea", // Adds scoped grant manager; teacher authentication unchanged.
       "GhostNews", // Makes old passive rewards atomic with receipt/counters, fixing duplicate XP.

@@ -1,0 +1,2 @@
+# Excel-friendly CSVs retain BOM and CRLF in working trees; Git stores normalized text.
+reports/*_inventory.csv text eol=crlf whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

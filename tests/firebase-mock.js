@@ -114,6 +114,7 @@
       getAt(tree, "games/factor/teachers/" + key)
     );
   }
+  let transactionQueue = Promise.resolve();
   function ref(path) {
     path = split(path).join("/");
     return {
@@ -168,12 +169,15 @@
         pr.then = pr.then.bind(pr);
         return Object.assign(pr, { key: id });
       },
-      async transaction(fn) {
-        const cur = snap(path).val();
-        const nv = fn(cur);
-        if (nv === undefined) return { committed: false };
-        await send({ kind: "set", path, v: norm(nv) });
-        return { committed: true, snapshot: snap(path) };
+      transaction(fn) {
+        const task = transactionQueue.then(async () => {
+          const cur = snap(path).val(), nv = fn(cur);
+          if (nv === undefined) return { committed: false };
+          await send({ kind: "set", path, v: norm(nv) });
+          return { committed: true, snapshot: snap(path) };
+        });
+        transactionQueue = task.catch(() => {});
+        return task;
       },
       onDisconnect() {
         return { remove() {}, cancel() {} };
