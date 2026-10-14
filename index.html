@@ -304,6 +304,23 @@
     .v7-poly { font-size: clamp(2rem, 8vh, 3.8rem); }
     .v7-target { padding: 16px 12px 14px; }
   }
+  /* Short Chromebook windows / desktop zoom. Only solo + CPU/new online;
+     preserve tower layouts and the existing formula fonts and card gestures. */
+  .compat-play .v7-main { min-width: 0; }
+  @media (min-width: 600px) and (max-width: 899px) and (max-height: 600px) and (orientation: landscape) {
+    .compat-play .v7-play { display: grid; grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); gap: 12px; }
+    .compat-play .v7-zone { min-width: 0; }
+  }
+  @media (max-height: 450px) {
+    .compat-play.game-lock { overflow-y: auto !important; touch-action: pan-y !important; }
+    .compat-play .v7-play { min-height: 450px; flex-shrink: 0; }
+    .compat-play .v7-main { min-height: 320px; }
+    .compat-play .v7-play, .compat-play .v7-main, .compat-play .v7-main > div:first-child, .compat-play .v7-zone, .compat-play .v7-zone *, .compat-play .v7-target, .compat-play .v7-target * { touch-action: pan-y !important; }
+    .compat-play [data-btile], .compat-play [data-tile-id] { touch-action: none !important; }
+  }
+  @media (max-height: 450px) and (max-width: 599px) {
+    .compat-play .v7-play { min-height: 650px; }
+  }
   /* 数理の塔の戦闘（.tw-land は塔の戦闘画面にだけ付く）：画面の切りかえは通常モードと同じ（スマホ縦＝スマホ版、タブレット・PCの横＝タブレット版）。
      スマホを横にして遊んだときだけの予備として、横向きなら2列にする（通常モードには付かない） */
   @media (orientation: landscape) {
@@ -1931,7 +1948,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   useEffect(() => { presenceSet(screen === 'playing' ? { act: 'solo', detail: DIFFICULTY_CONFIG[difficulty] ? DIFFICULTY_CONFIG[difficulty].label : '' } : { act: 'menu', detail: '' }); }, [screen]);
   useEffect(() => {
     if (screen !== 'playing') return;
-    const blockScroll = (e) => { if (e.cancelable) e.preventDefault(); };
+    const blockScroll = (e) => { if (e.cancelable && !(e.target.closest && e.target.closest('.compat-play.fx-scroll'))) e.preventDefault(); };
     document.addEventListener('touchmove', blockScroll, { passive: false });
 
     // 自分のdiv(.game-lock)の外側、body/html 自体もスクロールできないようにする。
@@ -2836,7 +2853,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout }) {
   const hpColor = life <= 10 ? 'linear-gradient(90deg,#E53935,#FF8A65)' : life <= 30 ? 'linear-gradient(90deg,#F2A516,#FFD54A)' : 'linear-gradient(90deg,#3FBF73,#8BE38F)';
   return (
     <div
-      className="game-lock v7-battle w-full flex flex-col items-center px-3"
+      className="game-lock v7-battle compat-play fx-scroll w-full flex flex-col items-center px-3"
       style={{
         height: '100dvh',
         maxHeight: '100dvh',
@@ -9560,7 +9577,7 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
    ===================================================================== */
 // CPU練習と新オンライン対戦で共有する表示枠。同期・判定・保存は呼出側が管理する。
 function BattleSurface({children}) {
-  return <div className="game-lock v7-battle w-full flex flex-col items-center px-3" style={{height:'100dvh',maxHeight:'100dvh',overflow:'hidden',paddingTop:'max(0.5rem, env(safe-area-inset-top))',paddingBottom:'max(0.5rem, env(safe-area-inset-bottom))',background:skinBg(V7_NIGHT),fontFamily:"'Zen Kaku Gothic New', sans-serif",touchAction:'none',position:'relative'}}><FontImport /><V7Theme.Provider value={true}>{children}</V7Theme.Provider></div>;
+  return <div className="game-lock v7-battle compat-play fx-scroll w-full flex flex-col items-center px-3" style={{height:'100dvh',maxHeight:'100dvh',overflow:'hidden',paddingTop:'max(0.5rem, env(safe-area-inset-top))',paddingBottom:'max(0.5rem, env(safe-area-inset-bottom))',background:skinBg(V7_NIGHT),fontFamily:"'Zen Kaku Gothic New', sans-serif",touchAction:'none',position:'relative'}}><FontImport /><V7Theme.Provider value={true}>{children}</V7Theme.Provider></div>;
 }
 function BattleGame({ code, state, players, isHost, acct, who, practice, sound, muted, setMuted, onLeave, onRematch, onLobby, onBack }) {
   const me = myUid();

@@ -39,3 +39,7 @@
 BattleHomeは選択時にopenProfileでwinを{type:'profile',key,origin}へ置き換える。単一のモーダル状態で一覧または詳細だけを表示する。一覧と詳細を重ねない。賞金首用のorigin='bounty'は一覧を閉じても保持し、PlayerProfileへ渡す。winからoriginを算出する旧実装へ戻さない。詳細は選択キーで再生成して前の相手の状態を持ち越さず、閉じるとオンラインメニューへ戻す。背景のoverflow/overscrollは一覧または詳細がある間だけ保持し、終了/アンマウント時に以前の値を復元。z-index・共通PlayerProfile・ソロ/CPU/数学の塔・判定/同期・報酬/レート/7日制限・Firebaseルールは変更しない。
 
 回帰: npm run test:bounty-profile（320/390/430/1366px、連続タップ、一つの詳細、実タッチスクロール、閉じて復帰、別相手、みんなの成績、bounty経路の指名戦）。詳細は reports/2026-10-14_bounty-profile-v518.md。次の通常公開はVer.5.19。
+
+## Ver.5.19 Chromebook互換性調査
+
+683×325の縦積みで問題切断・カード高さ4pxを再現。index.htmlのcompat-playだけ短い横画面の2列/低画面スクロールを追加。数学の塔の外枠と入力処理、Ver.5.17の同期、カードのドラッグ方式、数式設定は変更しない。通常タッチ不能はChromiumで未再現。学校の実機確認と匿名診断は[Chromebook確認手順](ui-reference/chromebook-check.md)。tests/chromebook-browser.cjsをCIに追加。次の通常公開はVer.5.20。
