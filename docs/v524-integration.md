@@ -73,3 +73,5 @@ Pagesの公開後、deployジョブでgame-version.jsを実HTTP取得し、検�
 ## 公開前CIの待機条件補正
 
 `tests/online-spark-emulator.cjs`の旧B用「1/15」待機が新B2の時間制「1問」表示で永久に成立せず、520行でタイムアウトした。ローカル実SDKでも同じ失敗を再現。B2の表示と確定済み正解数1・得点正値・seq1を照合するテストへ修正し、ゲーム・タイムアウト時間・ルールは変更しない。Chromebook回帰は同一コミットの本番用CIとローカル再実行で成功した。
+
+`ghost-emulator.cjs`のTOP10掲載fixtureはgames=3に対しw/l/d全て0であり、後の本人profile transactionが既存の勝敗合計ルールで拒否された。fixtureのみ3戦3引き分けへ整合し、ルール・本体は変更しない。

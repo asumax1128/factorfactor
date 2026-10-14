@@ -94,7 +94,7 @@ assert.deepEqual(
           games: 3, // Hyper must be eligible for the displayed NORMAL TOP10.
           w: 0,
           l: 0,
-          d: 0,
+          d: 3, // Keep the production invariant games === w + l + d.
           maxRating: 1580,
           season: "2026-10",
           seasonMax: 1580,
