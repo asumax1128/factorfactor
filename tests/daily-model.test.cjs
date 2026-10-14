@@ -6,3 +6,5 @@ for(const [name,r,winner]of [['score first',{score:101,cleared:false},'new'],['c
 test('uncompleted ties use correct count then confirmation time',()=>{const a={...base,cleared:false,correct:5},b={...a,correct:6};assert(D.compare(b,a)<0);assert(D.sortKey(b)<D.sortKey(a))});
 test('day finalization waits for crossing-midnight sessions; past winners become immutable',()=>{const d=D.epoch(Date.UTC(2026,9,14));const end=(d+1)*D.DAY-D.SHIFT;assert(!D.finalizable(d,end));assert(D.finalizable(d,end+D.GRACE))});
 test('three independent permanent wins unlock the composite without erasing originals',()=>{let t={old:true};for(const d of ['easy','normal','hard'])t=D.titles(t,d);assert(t.old);assert(t.daily_king);for(const id of Object.values(D.awardIds))assert(t[id]);assert.deepEqual(D.titles(t,'easy'),t)});
+
+test('complete ties use the same stable account-key order as the indexed ranking',()=>{const a={...base,key:'aa'},b={...base,key:'ab'};assert(D.compare(a,b)<0);assert(D.sortKey(a)<D.sortKey(b));assert.equal(D.compare({...base,key:'a_9'},{...base,key:'a0'}),1);});

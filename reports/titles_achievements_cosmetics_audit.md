@@ -1,6 +1,6 @@
 # 称号・実績・きせかえ実装監査
 
-対象: 未公開5.24候補（基準4b1574b）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
+対象: Ver.5.25（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
 
 ## システムの区別
 
@@ -18,6 +18,8 @@
 
 塔: tw10（塔の挑戦者）、tw30（塔の熟練者）、tw50（塔を制覇）、tw70（数理の書の継承者）、tw100（終わりなき探究者）。旧TowerAppはst.tower.best/endNを書きますが、現行入口はMathTowerApp試遊版で、公式記録へ反映しません。過去の履歴を保持し、一時非表示です。tw100は説明「第一部3回」に対しendN>=3 OR best>=100。tw50は説明「王を倒す」に対しbest>=50のみ。条件は今回変更しません。
 
+nomiss/clutch/miracle/flawlessは説明がB限定ですが、実集計はisBm(mode)なのでCも含みます。新B2のflawless（無傷の勝利）は、dmgTakenが誤答のHP罰を集計し、お邪魔カードを受けたことは集計しません。説明と指標の対応は今後の精査対象です。いずれも取得可能であり廃止しません。
+
 明示的なhidden/secretフラグのある称号定義はありません。BADGESの名称は未取得でも表示し、取得条件を隠します。未取得のBADGESは既存プロフィールで説明を？？？にするため、先生以外に具体条件を開示しない仕様を維持します。名称は既存の公開表示を維持。
 
 ## C. きせかえ
@@ -26,13 +28,15 @@
 
 レベル解放: tile:wood Lv3、tile:board Lv5、tile:washi Lv8、tile:candy Lv12、tile:neon Lv16、tile:space Lv22、bg:sunset Lv4、bg:forest Lv7、bg:sakura Lv10、bg:lavender Lv14、bg:starry Lv20、fx:gold Lv6、fx:heart Lv9、fx:aqua Lv13、fx:fire Lv18、fx:rainbow Lv25。レート解放: tile:gold rank index 2（閾値1580）、tile:gem rank index 4（閾値1730）、tile:master rank index 5（閾値1820）、bg:goldbg rank index 3（閾値1650）、fx:master rank index 5（閾値1820）。その他の独立した数値・ボスIDはCSVの必要数値を参照。rankはskinInfoの歴代レート、マスター2アイテムのみ新旧EASY/NORMAL履歴と永久達成証明を追加参照します。
 
+レート解放のtile:gold/tile:gem/bg:goldbgは従来statsのmaxRating/seasonMaxによる判定で、MASTERの例外のように新難易度別履歴や保存装備を参照しません。保存済みの装備があっても参照履歴が欠損すると再選択不可となる可能性があるため、個別データは未確認として記録し、条件は変更しません。
+
 全37アイテムはCSS/色の定義で、画像ファイルを参照しません。そのため、このアイテム群の画像欠落・ファイル名不一致は0。img配下の他の画像は塔・ヘルプ・演出用であり、きせかえ定義の不足ではありません。画像共有・未使用の全リソースの到達解析は未確認で、削除していません。
 
 ## D. 保存と連動
 
 BADGESは主にgames/factor/accounts/<k>/statsの累積値に対する動的判定です。保存済み取得ID全件リストとは限りません。recordMatch、txStats、週ボス確定、ログイン更新の数値を参照します。二つ名はstats.nick、きせかえはstats.skinおよびローカルfxf_skin_v1保存（setSkinを参照）。通常取得通知はbefore/afterのbadgesOf差分で、今回状態変更はこの判定や履歴を変更しません。
 
-新レート5称号とghost3はgames/factor/onlineSparkV1/profiles/<k>/badgesの永久フラグ（実際のROOTはonline-spark-client参照）。ghost3はlegacy stats.ghostTitlesにも投影。ghostの条件はsrc/ghost-model.cjs titles: quick乱入勝利のみ、hyperまたはrankDifference==1/2。指名・自己練習は対象外。独立レート称号の装備はprofile.titleで、旧stats.nickと別です。デイリー4称号はdailyV2/titles/<k>の確定順位証明を使い、BADGESに注入して装備します。
+新レート5称号とghost3はgames/factor/onlineSparkV1/profiles/<k>/badgesの永久フラグ（実際のROOTはonline-spark-client参照）。ghost3はlegacy stats.ghostTitlesにも投影。ghostの条件はsrc/ghost-model.cjs titles: quick乱入勝利のみ、hyperまたはrankDifference==1/2。指名・自己練習は対象外。独立レート称号の装備はprofile.titleで、旧stats.nickと別です。従来のw/l/games等はrecordMatchのルーム・大会の戦績で、CPU練習はaddExp/flushLearn経路です。新レート対戦のeasy/normal戦績は別のprofileに保存し、旧BADGESの全統計へ同じように投影する仕組みではありません。デイリー4称号はdailyV2/titles/<k>の確定順位証明を使い、BADGESに注入して装備します。
 
 rainbowタイルはBADGES20、aurora背景は30。実績のactive達成率と異なり、着せかえ用の従来BADGES取得数にはhiddenも含めます。共有の称号・実績一覧の表示数は所有者承認によりactive87件へ統一。着せかえ用の全取得数や所持率は変更しません。ミッション3日、bounty1、ボス討伐フラグ、かけら5、塔best50と各実績の閾値は独立しており、専用IDを持つ実績の取得フラグそのものを要求しません。
 

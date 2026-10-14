@@ -1,7 +1,7 @@
 name: Verify and publish FACTORxFACTOR
 on:
   push:
-    branches: [main, release/v524]
+    branches: [main, release/v524, release/v525]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -119,7 +119,7 @@ jobs:
           retention-days: 30
   deploy:
     needs: verify
-    if: false # Publication paused pending exact-tie authorization regression verification
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MATH_TOWER_AUTODEPLOY == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read

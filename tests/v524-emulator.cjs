@@ -2,7 +2,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict'),firebase=requir
 const{initializeTestEnvironment,assertFails}=require('@firebase/rules-unit-testing'),{set,ref}=require('firebase/database');
 const Daily=require('../src/daily-client.cjs'),D=Daily.model,Room=require('../src/room-b2-client.cjs'),Spark=require('../src/online-spark-client.cjs'),E=require('../server/online-rated/engine.cjs');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-(async()=>{assert.equal(process.env.GCLOUD_PROJECT,'demo-factorfactor-tower');const env=await initializeTestEnvironment({projectId:process.env.GCLOUD_PROJECT,database:{host:'127.0.0.1',port:9000,rules:fs.readFileSync('firebase/v524.candidate.rules.json','utf8')}}),users=[];
+(async()=>{assert.equal(process.env.GCLOUD_PROJECT,'demo-factorfactor-tower');const env=await initializeTestEnvironment({projectId:process.env.GCLOUD_PROJECT,database:{host:'127.0.0.1',port:9000,rules:fs.readFileSync('firebase/v525.candidate.rules.json','utf8')}}),users=[];
 try{
  for(const key of ['aa','ab','av','ad']){const app=firebase.initializeApp({projectId:process.env.GCLOUD_PROJECT,apiKey:'fixture',databaseURL:'https://demo-factorfactor-tower.firebaseio.com'},'v524-'+key);app.auth().useEmulator('http://127.0.0.1:9099',{disableWarnings:true});app.database().useEmulator('127.0.0.1',9000);const{user}=await app.auth().signInAnonymously();users.push({key,uid:user.uid,app,db:app.database()});}
  const[a,b,v,peer]=users;await env.withSecurityRulesDisabled(ctx=>set(ref(ctx.database()),{games:{factor:{accounts:Object.fromEntries(users.map(u=>[u.key,{name:u.key,stats:{rating:1500}}])),logins:Object.fromEntries(users.map(u=>[u.key,{[u.uid]:'fixture'}])),onlineSparkV1:{config:{enabled:true}},rooms:{1234:{meta:{host:a.uid,createdAt:Date.now()},players:{[a.uid]:{name:'A'},[b.uid]:{name:'B'}},state:{phase:'lobby',players:[a.uid,b.uid],accts:{[a.uid]:a.key,[b.uid]:b.key}}}}}}}));
@@ -17,6 +17,14 @@ try{
  await assertFails(a.db.ref(`${Daily.ROOT}/finals/${attempt.day-1}/hard`).set({fake:true}));
  await assertFails(a.db.ref(`games/factor/accounts/${a.key}/stats/nick`).set('daily_king'));
  const ba=await db.start('normal');await db.finish(ba,{score:200,cleared:true,elapsed:5000,correct:30});assert.equal((await db.rankings(ba.day,'normal'))[0].cleared,true);
+ // Exact ties: proof timestamps are seeded identically, as possible in one server ms.
+ const stampTie=Date.now(),tieDay=D.epoch(stampTie),tieRecords=[];
+ for(const [u,slot]of [[b,0],[a,2]]){const result={score:321,cleared:true,elapsed:10000,correct:14,confirmedAt:stampTie,id:'tie-'+u.key};const attemptTie={id:result.id,seed:'tie',difficulty:'hard',at:stampTie,result};await env.withSecurityRulesDisabled(ctx=>set(ref(ctx.database(),`${Daily.ROOT}/attempts/${u.key}/${tieDay}/slots/${slot}`),attemptTie));const record={...result,key:u.key,name:u.key,slot,day:tieDay};record.sortKey=D.sortKey(record);tieRecords.push(record);const board=u.db.ref(`${Daily.ROOT}/boards/${tieDay}/hard`);await board.update({['records/'+u.key]:record,leader:record});}
+ const tied=await da.rankings(tieDay,'hard');assert.equal(tied.length,2);assert.equal(tied[0].key,a.key);assert.equal((await a.db.ref(`${Daily.ROOT}/boards/${tieDay}/hard/leader`).get()).val().key,a.key);console.log('PASS exact timestamp ties keep both records and canonical champion');
+ const extra={};for(let i=0;i<11;i++){const key='ax'+i,r={...tieRecords[0],key,name:key,id:'rank-'+i,score:320-i};r.sortKey=D.sortKey(r);extra['records/'+key]=r;}
+ await env.withSecurityRulesDisabled(ctx=>Promise.all(Object.entries(extra).map(([p,r])=>set(ref(ctx.database(),`${Daily.ROOT}/boards/${tieDay}/hard/${p}`),r))));
+ const ten=await da.rankings(tieDay,'hard');assert.equal(ten.length,10);assert.equal(ten[0].key,a.key);assert.equal(ten[1].key,b.key);console.log('PASS actual SDK query returns all TOP10 rows');
+
  // Wrong difficulty/forged scores cannot enter either leaderboard.
  const forged={...(await da.rankings(attempt.day,'easy'))[0],score:999999};await assertFails(a.db.ref(`${Daily.ROOT}/boards/${attempt.day}/easy/records/${a.key}`).set(forged));
  // Past winners are fixed after the grace period, then claimed only by that account.

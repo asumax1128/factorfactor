@@ -100,7 +100,7 @@
   function snap(path) {
     const raw = getAt(tree, path);
     const v = raw == null ? null : out(JSON.parse(JSON.stringify(raw)));
-    return { val: () => v, exists: () => v !== null, key: split(path).pop(),forEach(fn){for(const [key,value]of Object.entries(v||{}))if(fn({key,val:()=>value})===true)break;} };
+    return { val: () => v, exists: () => v !== null, key: split(path).pop(),forEach(fn){for(const [key,value]of Object.entries(v||{}))if(fn({key,val:()=>value}))break;} };
   }
   const send = async (op) => {
     await window.__fbOp(op);
@@ -120,7 +120,7 @@
     return {
       _p: path,
       child(p){return ref(path+'/'+p)},
-      orderByChild(field){return {limitToFirst(n){return {async get(){const s=await ref(path).get();const rows=Object.entries(s.val()||{}).sort((a,b)=>String(a[1][field]).localeCompare(String(b[1][field]))).slice(0,n);return {val:()=>Object.fromEntries(rows),forEach(fn){for(const[key,value]of rows)if(fn({key,val:()=>value})===true)break}}}}}}},
+      orderByChild(field){return {limitToFirst(n){return {async get(){const s=await ref(path).get();const rows=Object.entries(s.val()||{}).sort((a,b)=>(String(a[1][field])<String(b[1][field])?-1:String(a[1][field])>String(b[1][field])?1:a[0]<b[0]?-1:a[0]>b[0]?1:0)).slice(0,n);return {val:()=>Object.fromEntries(rows),forEach(fn){for(const[key,value]of rows)if(fn({key,val:()=>value}))break}}}}}}},
       on(ev, fn, cancel) {
         if (path === ".info/serverTimeOffset") {
           setTimeout(() => fn({ val: () => 0 }), 0);

@@ -1,5 +1,5 @@
 const fs=require('node:fs'),path=require('node:path');
-const source=process.argv[2]||'firebase/ghost-host.candidate.rules.json',target=process.argv[3]||'firebase/v524.candidate.rules.json';
+const source=process.argv[2]||'firebase/ghost-host.candidate.rules.json',target=process.argv[3]||'firebase/v525.candidate.rules.json';
 const full=JSON.parse(fs.readFileSync(source,'utf8')),factor=full.rules.games.factor;
 if(factor.dailyV2)throw Error('Review existing dailyV2 before replacing it');
 factor.dailyV2=require('../firebase/daily-v2-rules.cjs');

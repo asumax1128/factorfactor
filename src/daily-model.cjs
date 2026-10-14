@@ -1,8 +1,8 @@
 const DAY=86400000,SHIFT=32400000,GRACE=1200000;
 const epoch=t=>Math.floor((t+SHIFT)/DAY);
 const date=d=>new Date(d*DAY).toISOString().slice(0,10);
-function sortKey(r){return `${2000000-r.score}:${r.cleared?'0':'1'}:${1000000000+(r.cleared?r.elapsed:100-r.correct)}:${10000000000000+r.confirmedAt}`}
-function compare(a,b){return b.score-a.score||Number(b.cleared)-Number(a.cleared)||(a.cleared&&b.cleared?a.elapsed-b.elapsed:b.correct-a.correct)||a.confirmedAt-b.confirmedAt}
+function sortKey(r){return `${2000000-r.score}:${r.cleared?'0':'1'}:${1000000000+(r.cleared?r.elapsed:100-r.correct)}:${10000000000000+r.confirmedAt}:${r.key||''}`}
+function compare(a,b){return b.score-a.score||Number(b.cleared)-Number(a.cleared)||(a.cleared&&b.cleared?a.elapsed-b.elapsed:b.correct-a.correct)||a.confirmedAt-b.confirmedAt||((a.key||'')<(b.key||'')?-1:(a.key||'')>(b.key||'')?1:0)}
 function best(previous,next){return !previous||compare(next,previous)<0?next:previous}
 function reserve(ledger,attempt){
  const next=JSON.parse(JSON.stringify(ledger||{slots:{}}));next.slots ||= {};

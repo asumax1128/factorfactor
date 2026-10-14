@@ -83,7 +83,7 @@ window.AchievementAudit = [
     "description": "初めて勝つ",
     "condition": "st => (st.w || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -92,7 +92,7 @@ window.AchievementAudit = [
     "judge": "index.html:7400",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10304; index.html:10305; index.html:7400",
+    "writers": "index.html:10304; index.html:10305; index.html:7777; index.html:7400",
     "relation": "単条件"
   },
   {
@@ -102,7 +102,7 @@ window.AchievementAudit = [
     "description": "負け50回（それでも続けた！）",
     "condition": "st => (st.l || 0) >= 50",
     "numbers": ">= 50",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -121,7 +121,7 @@ window.AchievementAudit = [
     "description": "100戦する",
     "condition": "st => (st.games || 0) >= 100",
     "numbers": ">= 100",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -130,7 +130,7 @@ window.AchievementAudit = [
     "judge": "index.html:7402",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7786; index.html:7402",
+    "writers": "index.html:7786; index.html:7777; index.html:7402",
     "relation": "単条件"
   },
   {
@@ -140,7 +140,7 @@ window.AchievementAudit = [
     "description": "同じ相手と20戦",
     "condition": "st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20)",
     "numbers": ">= 20",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -149,7 +149,7 @@ window.AchievementAudit = [
     "judge": "index.html:7403",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7403",
+    "writers": "index.html:7790; index.html:7777; index.html:7403",
     "relation": "単条件"
   },
   {
@@ -159,7 +159,7 @@ window.AchievementAudit = [
     "description": "10人以上と対戦",
     "condition": "st => Object.keys(st.vs || {}).length >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -168,7 +168,7 @@ window.AchievementAudit = [
     "judge": "index.html:7404",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7404",
+    "writers": "index.html:7790; index.html:7777; index.html:7404",
     "relation": "単条件"
   },
   {
@@ -178,7 +178,7 @@ window.AchievementAudit = [
     "description": "A・Bそれぞれで10勝",
     "condition": "st => ((st.A || {}).w || 0) >= 10 && ((st.B || {}).w || 0) >= 10",
     "numbers": ">= 10／>= 10",
-    "mode": "A／B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "A／B（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -197,7 +197,7 @@ window.AchievementAudit = [
     "description": "10連勝する",
     "condition": "st => (st.maxStreak || 0) >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -206,7 +206,7 @@ window.AchievementAudit = [
     "judge": "index.html:7406",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7406",
+    "writers": "index.html:7802; index.html:7777; index.html:7406",
     "relation": "単条件"
   },
   {
@@ -216,7 +216,7 @@ window.AchievementAudit = [
     "description": "30連勝する",
     "condition": "st => (st.maxStreak || 0) >= 30",
     "numbers": ">= 30",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -225,7 +225,7 @@ window.AchievementAudit = [
     "judge": "index.html:7407",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7407",
+    "writers": "index.html:7802; index.html:7777; index.html:7407",
     "relation": "単条件"
   },
   {
@@ -235,7 +235,7 @@ window.AchievementAudit = [
     "description": "50連勝する",
     "condition": "st => (st.maxStreak || 0) >= 50",
     "numbers": ">= 50",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -244,7 +244,7 @@ window.AchievementAudit = [
     "judge": "index.html:7408",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7408",
+    "writers": "index.html:7802; index.html:7777; index.html:7408",
     "relation": "単条件"
   },
   {
@@ -254,7 +254,7 @@ window.AchievementAudit = [
     "description": "Perfect を通算50回",
     "condition": "st => (st.perfects || 0) >= 50",
     "numbers": ">= 50",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -263,7 +263,7 @@ window.AchievementAudit = [
     "judge": "index.html:7409",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7409",
+    "writers": "index.html:7804; index.html:7777; index.html:7409",
     "relation": "単条件"
   },
   {
@@ -273,7 +273,7 @@ window.AchievementAudit = [
     "description": "Perfect を通算100回",
     "condition": "st => (st.perfects || 0) >= 100",
     "numbers": ">= 100",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -282,7 +282,7 @@ window.AchievementAudit = [
     "judge": "index.html:7410",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7410",
+    "writers": "index.html:7804; index.html:7777; index.html:7410",
     "relation": "単条件"
   },
   {
@@ -292,7 +292,7 @@ window.AchievementAudit = [
     "description": "Perfect を通算300回",
     "condition": "st => (st.perfects || 0) >= 300",
     "numbers": ">= 300",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -301,7 +301,7 @@ window.AchievementAudit = [
     "judge": "index.html:7411",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7411",
+    "writers": "index.html:7804; index.html:7777; index.html:7411",
     "relation": "単条件"
   },
   {
@@ -311,7 +311,7 @@ window.AchievementAudit = [
     "description": "Perfect を通算500回",
     "condition": "st => (st.perfects || 0) >= 500",
     "numbers": ">= 500",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -320,7 +320,7 @@ window.AchievementAudit = [
     "judge": "index.html:7412",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7412",
+    "writers": "index.html:7804; index.html:7777; index.html:7412",
     "relation": "単条件"
   },
   {
@@ -330,7 +330,7 @@ window.AchievementAudit = [
     "description": "Perfect を通算1000回",
     "condition": "st => (st.perfects || 0) >= 1000",
     "numbers": ">= 1000",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -339,7 +339,7 @@ window.AchievementAudit = [
     "judge": "index.html:7413",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7413",
+    "writers": "index.html:7804; index.html:7777; index.html:7413",
     "relation": "単条件"
   },
   {
@@ -349,7 +349,7 @@ window.AchievementAudit = [
     "description": "不利な展開からひっくり返して勝つ",
     "condition": "st => (st.comebacks || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -358,7 +358,7 @@ window.AchievementAudit = [
     "judge": "index.html:7414",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7805; index.html:7414",
+    "writers": "index.html:7805; index.html:7777; index.html:7414",
     "relation": "単条件"
   },
   {
@@ -368,7 +368,7 @@ window.AchievementAudit = [
     "description": "逆転勝ち10回",
     "condition": "st => (st.comebacks || 0) >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -377,7 +377,7 @@ window.AchievementAudit = [
     "judge": "index.html:7415",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7805; index.html:7415",
+    "writers": "index.html:7805; index.html:7777; index.html:7415",
     "relation": "単条件"
   },
   {
@@ -387,7 +387,7 @@ window.AchievementAudit = [
     "description": "レート1700に到達",
     "condition": "st => (st.maxRating || 0) >= 1700",
     "numbers": ">= 1700",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -396,7 +396,7 @@ window.AchievementAudit = [
     "judge": "index.html:7416",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7416",
+    "writers": "index.html:7820; index.html:7777; index.html:7416",
     "relation": "単条件"
   },
   {
@@ -406,7 +406,7 @@ window.AchievementAudit = [
     "description": "クラス大会で優勝",
     "condition": "st => (st.tourWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -415,7 +415,7 @@ window.AchievementAudit = [
     "judge": "index.html:7417",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7417",
+    "writers": "index.html:7821; index.html:7777; index.html:7417",
     "relation": "単条件"
   },
   {
@@ -425,7 +425,7 @@ window.AchievementAudit = [
     "description": "クラス大会で3回優勝",
     "condition": "st => (st.tourWins || 0) >= 3",
     "numbers": ">= 3",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -434,7 +434,7 @@ window.AchievementAudit = [
     "judge": "index.html:7418",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7418",
+    "writers": "index.html:7821; index.html:7777; index.html:7418",
     "relation": "単条件"
   },
   {
@@ -444,7 +444,7 @@ window.AchievementAudit = [
     "description": "1問を1秒以内に正解",
     "condition": "st => st.bestMs != null && st.bestMs <= 1000",
     "numbers": "<= 1000",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -453,7 +453,7 @@ window.AchievementAudit = [
     "judge": "index.html:7419",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9894; index.html:9911; index.html:7419",
+    "writers": "index.html:9894; index.html:9911; index.html:7777; index.html:7419",
     "relation": "AND"
   },
   {
@@ -463,7 +463,7 @@ window.AchievementAudit = [
     "description": "1試合で20コンボ",
     "condition": "st => (st.maxCombo || 0) >= 20",
     "numbers": ">= 20",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -472,7 +472,7 @@ window.AchievementAudit = [
     "judge": "index.html:7420",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9895; index.html:9912; index.html:7420",
+    "writers": "index.html:9895; index.html:9912; index.html:7777; index.html:7420",
     "relation": "単条件"
   },
   {
@@ -482,7 +482,7 @@ window.AchievementAudit = [
     "description": "Bでミス・時間切れ0のまま勝つ",
     "condition": "st => (st.nomissWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "戦績保存対象のB／C（集計条件isBm(mode)）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -490,8 +490,8 @@ window.AchievementAudit = [
     "definition": "index.html:7421",
     "judge": "index.html:7421",
     "availability": "取得可能",
-    "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9898; index.html:7421",
+    "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
+    "writers": "index.html:9898; index.html:7777; index.html:7421",
     "relation": "単条件"
   },
   {
@@ -501,7 +501,7 @@ window.AchievementAudit = [
     "description": "Bで体力5%以下になってから勝つ",
     "condition": "st => (st.clutchWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "戦績保存対象のB／C（集計条件isBm(mode)）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -509,8 +509,8 @@ window.AchievementAudit = [
     "definition": "index.html:7422",
     "judge": "index.html:7422",
     "availability": "取得可能",
-    "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9899; index.html:7422",
+    "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
+    "writers": "index.html:9899; index.html:7777; index.html:7422",
     "relation": "単条件"
   },
   {
@@ -520,7 +520,7 @@ window.AchievementAudit = [
     "description": "相殺で打ち消した量が通算500",
     "condition": "st => (st.cancelTotal || 0) >= 500",
     "numbers": ">= 500",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -529,7 +529,7 @@ window.AchievementAudit = [
     "judge": "index.html:7423",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8258; index.html:9896; index.html:7423",
+    "writers": "index.html:8258; index.html:9896; index.html:7777; index.html:7423",
     "relation": "単条件"
   },
   {
@@ -539,7 +539,7 @@ window.AchievementAudit = [
     "description": "おじゃまタイルを通算100枚送る",
     "condition": "st => (st.ojSent || 0) >= 100",
     "numbers": ">= 100",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -548,7 +548,7 @@ window.AchievementAudit = [
     "judge": "index.html:7424",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8255; index.html:9896; index.html:7424",
+    "writers": "index.html:8255; index.html:9896; index.html:7777; index.html:7424",
     "relation": "単条件"
   },
   {
@@ -558,7 +558,7 @@ window.AchievementAudit = [
     "description": "必殺技を通算50回使う",
     "condition": "st => (st.spUsed || 0) >= 50",
     "numbers": ">= 50",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -567,7 +567,7 @@ window.AchievementAudit = [
     "judge": "index.html:7425",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9896; index.html:7425",
+    "writers": "index.html:9896; index.html:7777; index.html:7425",
     "relation": "単条件"
   },
   {
@@ -577,7 +577,7 @@ window.AchievementAudit = [
     "description": "自分よりレートが200以上高い相手に勝つ",
     "condition": "st => (st.giantWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -586,7 +586,7 @@ window.AchievementAudit = [
     "judge": "index.html:7426",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9920; index.html:7426",
+    "writers": "index.html:9920; index.html:7777; index.html:7426",
     "relation": "単条件"
   },
   {
@@ -596,7 +596,7 @@ window.AchievementAudit = [
     "description": "4人戦（B）で最後の1人まで生き残って勝つ",
     "condition": "st => (st.survivors || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "B（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -605,7 +605,7 @@ window.AchievementAudit = [
     "judge": "index.html:7427",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9906; index.html:7427",
+    "writers": "index.html:9906; index.html:7777; index.html:7427",
     "relation": "単条件"
   },
   {
@@ -615,7 +615,7 @@ window.AchievementAudit = [
     "description": "Aで相手を0点にして勝つ",
     "condition": "st => (st.shutouts || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "A（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "A（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -624,7 +624,7 @@ window.AchievementAudit = [
     "judge": "index.html:7428",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9915; index.html:7428",
+    "writers": "index.html:9915; index.html:7777; index.html:7428",
     "relation": "単条件"
   },
   {
@@ -634,7 +634,7 @@ window.AchievementAudit = [
     "description": "Lv.9の問題を Perfect で正解",
     "condition": "st => (st.lv9p || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -643,7 +643,7 @@ window.AchievementAudit = [
     "judge": "index.html:7429",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9897; index.html:9914; index.html:7429",
+    "writers": "index.html:9897; index.html:9914; index.html:7777; index.html:7429",
     "relation": "単条件"
   },
   {
@@ -653,7 +653,7 @@ window.AchievementAudit = [
     "description": "Aでお手つき通算100回",
     "condition": "st => (st.otetsuki || 0) >= 100",
     "numbers": ">= 100",
-    "mode": "A（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "A（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -662,7 +662,7 @@ window.AchievementAudit = [
     "judge": "index.html:7430",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9913; index.html:9917; index.html:7430",
+    "writers": "index.html:9913; index.html:9917; index.html:7777; index.html:7430",
     "relation": "単条件"
   },
   {
@@ -672,7 +672,7 @@ window.AchievementAudit = [
     "description": "ハンデ★★★の相手に勝つ",
     "condition": "st => (st.handiWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -681,7 +681,7 @@ window.AchievementAudit = [
     "judge": "index.html:7431",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9921; index.html:7431",
+    "writers": "index.html:9921; index.html:7777; index.html:7431",
     "relation": "単条件"
   },
   {
@@ -691,7 +691,7 @@ window.AchievementAudit = [
     "description": "300戦する",
     "condition": "st => (st.games || 0) >= 300",
     "numbers": ">= 300",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -700,7 +700,7 @@ window.AchievementAudit = [
     "judge": "index.html:7432",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7786; index.html:7432",
+    "writers": "index.html:7786; index.html:7777; index.html:7432",
     "relation": "単条件"
   },
   {
@@ -710,7 +710,7 @@ window.AchievementAudit = [
     "description": "レート1600に到達",
     "condition": "st => (st.maxRating || 0) >= 1600",
     "numbers": ">= 1600",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -719,7 +719,7 @@ window.AchievementAudit = [
     "judge": "index.html:7433",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7433",
+    "writers": "index.html:7820; index.html:7777; index.html:7433",
     "relation": "単条件"
   },
   {
@@ -729,7 +729,7 @@ window.AchievementAudit = [
     "description": "レート1900に到達",
     "condition": "st => (st.maxRating || 0) >= 1900",
     "numbers": ">= 1900",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -738,7 +738,7 @@ window.AchievementAudit = [
     "judge": "index.html:7434",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7434",
+    "writers": "index.html:7820; index.html:7777; index.html:7434",
     "relation": "単条件"
   },
   {
@@ -748,7 +748,7 @@ window.AchievementAudit = [
     "description": "1試合で30コンボ",
     "condition": "st => (st.maxCombo || 0) >= 30",
     "numbers": ">= 30",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -757,7 +757,7 @@ window.AchievementAudit = [
     "judge": "index.html:7435",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9895; index.html:9912; index.html:7435",
+    "writers": "index.html:9895; index.html:9912; index.html:7777; index.html:7435",
     "relation": "単条件"
   },
   {
@@ -767,7 +767,7 @@ window.AchievementAudit = [
     "description": "相殺で打ち消した量が通算2000",
     "condition": "st => (st.cancelTotal || 0) >= 2000",
     "numbers": ">= 2000",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -776,7 +776,7 @@ window.AchievementAudit = [
     "judge": "index.html:7436",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8258; index.html:9896; index.html:7436",
+    "writers": "index.html:8258; index.html:9896; index.html:7777; index.html:7436",
     "relation": "単条件"
   },
   {
@@ -786,7 +786,7 @@ window.AchievementAudit = [
     "description": "おじゃまタイルを通算500枚送る",
     "condition": "st => (st.ojSent || 0) >= 500",
     "numbers": ">= 500",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -795,7 +795,7 @@ window.AchievementAudit = [
     "judge": "index.html:7437",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8255; index.html:9896; index.html:7437",
+    "writers": "index.html:8255; index.html:9896; index.html:7777; index.html:7437",
     "relation": "単条件"
   },
   {
@@ -805,7 +805,7 @@ window.AchievementAudit = [
     "description": "ノーミス完走で10回勝つ",
     "condition": "st => (st.nomissWins || 0) >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "戦績保存対象のB／C（集計条件isBm(mode)）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -814,7 +814,7 @@ window.AchievementAudit = [
     "judge": "index.html:7438",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9898; index.html:7438",
+    "writers": "index.html:9898; index.html:7777; index.html:7438",
     "relation": "単条件"
   },
   {
@@ -824,7 +824,7 @@ window.AchievementAudit = [
     "description": "30人以上と対戦",
     "condition": "st => Object.keys(st.vs || {}).length >= 30",
     "numbers": ">= 30",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -833,7 +833,7 @@ window.AchievementAudit = [
     "judge": "index.html:7439",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7439",
+    "writers": "index.html:7790; index.html:7777; index.html:7439",
     "relation": "単条件"
   },
   {
@@ -843,7 +843,7 @@ window.AchievementAudit = [
     "description": "クラス大会で10回優勝",
     "condition": "st => (st.tourWins || 0) >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -852,7 +852,7 @@ window.AchievementAudit = [
     "judge": "index.html:7440",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7440",
+    "writers": "index.html:7821; index.html:7777; index.html:7440",
     "relation": "単条件"
   },
   {
@@ -862,7 +862,7 @@ window.AchievementAudit = [
     "description": "Bで体力1%以下になってから勝つ",
     "condition": "st => (st.miracleWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "戦績保存対象のB／C（集計条件isBm(mode)）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -870,8 +870,8 @@ window.AchievementAudit = [
     "definition": "index.html:7441",
     "judge": "index.html:7441",
     "availability": "取得可能",
-    "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9900; index.html:7441",
+    "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
+    "writers": "index.html:9900; index.html:7777; index.html:7441",
     "relation": "単条件"
   },
   {
@@ -881,7 +881,7 @@ window.AchievementAudit = [
     "description": "出場者の中でレートがいちばん低いのに大会で優勝（記録ありの人が4人以上）",
     "condition": "st => (st.darkHorse || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -890,7 +890,7 @@ window.AchievementAudit = [
     "judge": "index.html:7442",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9928; index.html:7442",
+    "writers": "index.html:9928; index.html:7777; index.html:7442",
     "relation": "単条件"
   },
   {
@@ -900,7 +900,7 @@ window.AchievementAudit = [
     "description": "7日続けて対戦する",
     "condition": "st => (st.maxDayStreak || 0) >= 7",
     "numbers": ">= 7",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -909,7 +909,7 @@ window.AchievementAudit = [
     "judge": "index.html:7443",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7801; index.html:7443",
+    "writers": "index.html:7801; index.html:7777; index.html:7443",
     "relation": "単条件"
   },
   {
@@ -919,7 +919,7 @@ window.AchievementAudit = [
     "description": "30日続けて対戦する",
     "condition": "st => (st.maxDayStreak || 0) >= 30",
     "numbers": ">= 30",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -928,7 +928,7 @@ window.AchievementAudit = [
     "judge": "index.html:7444",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7801; index.html:7444",
+    "writers": "index.html:7801; index.html:7777; index.html:7444",
     "relation": "単条件"
   },
   {
@@ -938,7 +938,7 @@ window.AchievementAudit = [
     "description": "1試合で必殺技を3回使う",
     "condition": "st => (st.maxSpMatch || 0) >= 3",
     "numbers": ">= 3",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -947,7 +947,7 @@ window.AchievementAudit = [
     "judge": "index.html:7445",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9902; index.html:7445",
+    "writers": "index.html:9902; index.html:7777; index.html:7445",
     "relation": "単条件"
   },
   {
@@ -957,7 +957,7 @@ window.AchievementAudit = [
     "description": "前の試合で負けた相手に勝つ",
     "condition": "st => (st.revenges || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -966,7 +966,7 @@ window.AchievementAudit = [
     "judge": "index.html:7446",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7794; index.html:7446",
+    "writers": "index.html:7794; index.html:7777; index.html:7446",
     "relation": "単条件"
   },
   {
@@ -976,7 +976,7 @@ window.AchievementAudit = [
     "description": "Aでお手つき0のまま、6問以上取って勝つ",
     "condition": "st => (st.calmWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "A（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "A（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -985,7 +985,7 @@ window.AchievementAudit = [
     "judge": "index.html:7447",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9917; index.html:7447",
+    "writers": "index.html:9917; index.html:7777; index.html:7447",
     "relation": "単条件"
   },
   {
@@ -995,7 +995,7 @@ window.AchievementAudit = [
     "description": "Bで攻撃を一度も受けずに勝つ",
     "condition": "st => (st.flawlessWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "戦績保存対象のB／C（集計条件isBm(mode)）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1003,8 +1003,8 @@ window.AchievementAudit = [
     "definition": "index.html:7448",
     "judge": "index.html:7448",
     "availability": "取得可能",
-    "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9901; index.html:7448",
+    "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。 新B2のdmgTakenは誤答のHP罰で増え、お邪魔カードの受信では増えない。説明と指標の対応を要確認。",
+    "writers": "index.html:9901; index.html:7777; index.html:7448",
     "relation": "単条件"
   },
   {
@@ -1014,7 +1014,7 @@ window.AchievementAudit = [
     "description": "B方式で必殺技を一度も使わずに勝つ",
     "condition": "st => (st.noSpWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "B（ルーム・CPU等。記録条件は下記判定式）",
+    "mode": "B（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1023,7 +1023,7 @@ window.AchievementAudit = [
     "judge": "index.html:7449",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9904; index.html:7449",
+    "writers": "index.html:9904; index.html:7777; index.html:7449",
     "relation": "単条件"
   },
   {
@@ -1033,7 +1033,7 @@ window.AchievementAudit = [
     "description": "ランク帯ゴールド（レート1580）に到達",
     "condition": "st => (st.maxRating || 0) >= 1580",
     "numbers": ">= 1580",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1042,7 +1042,7 @@ window.AchievementAudit = [
     "judge": "index.html:7450",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7450",
+    "writers": "index.html:7820; index.html:7777; index.html:7450",
     "relation": "単条件"
   },
   {
@@ -1052,7 +1052,7 @@ window.AchievementAudit = [
     "description": "ランク帯マスター（レート1820）に到達",
     "condition": "st => (st.maxRating || 0) >= 1820",
     "numbers": ">= 1820",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1061,7 +1061,7 @@ window.AchievementAudit = [
     "judge": "index.html:7451",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7451",
+    "writers": "index.html:7820; index.html:7777; index.html:7451",
     "relation": "単条件"
   },
   {
@@ -1071,7 +1071,7 @@ window.AchievementAudit = [
     "description": "懸賞金がかかった相手に勝つ",
     "condition": "st => (st.bountyWins || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1080,7 +1080,7 @@ window.AchievementAudit = [
     "judge": "index.html:7452",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9925; index.html:7452",
+    "writers": "index.html:9925; index.html:7777; index.html:7452",
     "relation": "単条件"
   },
   {
@@ -1090,7 +1090,7 @@ window.AchievementAudit = [
     "description": "懸賞金がかかった相手に通算10回勝つ",
     "condition": "st => (st.bountyWins || 0) >= 10",
     "numbers": ">= 10",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1099,7 +1099,7 @@ window.AchievementAudit = [
     "judge": "index.html:7453",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9925; index.html:7453",
+    "writers": "index.html:9925; index.html:7777; index.html:7453",
     "relation": "単条件"
   },
   {
@@ -1109,7 +1109,7 @@ window.AchievementAudit = [
     "description": "懸賞金50以上がかかる（7連勝）",
     "condition": "st => (st.maxStreak || 0) >= 7",
     "numbers": ">= 7",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1118,7 +1118,7 @@ window.AchievementAudit = [
     "judge": "index.html:7454",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7454",
+    "writers": "index.html:7802; index.html:7777; index.html:7454",
     "relation": "単条件"
   },
   {
@@ -1147,7 +1147,7 @@ window.AchievementAudit = [
     "description": "クラス協力レイドでボスにとどめを刺す",
     "condition": "st => (st.lastHits || 0) >= 1",
     "numbers": ">= 1",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1156,7 +1156,7 @@ window.AchievementAudit = [
     "judge": "index.html:7456",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5223; index.html:7456",
+    "writers": "index.html:5223; index.html:7777; index.html:7456",
     "relation": "単条件"
   },
   {
@@ -1736,7 +1736,7 @@ window.AchievementAudit = [
     "description": "Lv.1〜Lv.9 すべてで Perfect を取る",
     "condition": "st => ((st.lvP || 0) & 1022) === 1022",
     "numbers": "=== 1022",
-    "mode": "対戦（recordMatch）",
+    "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
     "secret": true,
@@ -1745,7 +1745,7 @@ window.AchievementAudit = [
     "judge": "index.html:7488",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9927; index.html:7488",
+    "writers": "index.html:9927; index.html:7777; index.html:7488",
     "relation": "単条件"
   }
 ];

@@ -2390,10 +2390,10 @@
       var epoch = (t) => Math.floor((t + SHIFT) / DAY);
       var date = (d) => new Date(d * DAY).toISOString().slice(0, 10);
       function sortKey(r) {
-        return `${2e6 - r.score}:${r.cleared ? "0" : "1"}:${1e9 + (r.cleared ? r.elapsed : 100 - r.correct)}:${1e13 + r.confirmedAt}`;
+        return `${2e6 - r.score}:${r.cleared ? "0" : "1"}:${1e9 + (r.cleared ? r.elapsed : 100 - r.correct)}:${1e13 + r.confirmedAt}:${r.key || ""}`;
       }
       function compare(a, b) {
-        return b.score - a.score || Number(b.cleared) - Number(a.cleared) || (a.cleared && b.cleared ? a.elapsed - b.elapsed : b.correct - a.correct) || a.confirmedAt - b.confirmedAt;
+        return b.score - a.score || Number(b.cleared) - Number(a.cleared) || (a.cleared && b.cleared ? a.elapsed - b.elapsed : b.correct - a.correct) || a.confirmedAt - b.confirmedAt || ((a.key || "") < (b.key || "") ? -1 : (a.key || "") > (b.key || "") ? 1 : 0);
       }
       function best(previous, next) {
         return !previous || compare(next, previous) < 0 ? next : previous;
@@ -2626,7 +2626,9 @@
         async function rankings(day, difficulty) {
           const s = await ref(`boards/${day}/${difficulty}/records`).orderByChild("sortKey").limitToFirst(10).get();
           const rows = [];
-          s.forEach((x) => rows.push(x.val()));
+          s.forEach((x) => {
+            rows.push(x.val());
+          });
           return rows.sort(D.compare);
         }
         async function awards() {

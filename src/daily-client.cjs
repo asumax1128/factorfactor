@@ -39,7 +39,7 @@ function create({db,uid,account,storage=globalThis.localStorage}){
   await tx(ref(`attempts/${key}/${attempt.day}/slots/${attempt.slot}/result`),old=>old||result);
   const record=await publish(attempt,result);storage?.removeItem(draftKey);return record;
  }
- async function rankings(day,difficulty){const s=await ref(`boards/${day}/${difficulty}/records`).orderByChild('sortKey').limitToFirst(10).get();const rows=[];s.forEach(x=>rows.push(x.val()));return rows.sort(D.compare)}
+ async function rankings(day,difficulty){const s=await ref(`boards/${day}/${difficulty}/records`).orderByChild('sortKey').limitToFirst(10).get();const rows=[];s.forEach(x=>{rows.push(x.val())});return rows.sort(D.compare)}
  async function awards(){
   const now=await clock(),days=(await ref(`playedDays/${key}`).get()).val()||{},had=(await ref(`titles/${key}`).get()).val()||{};
   const cursor=(await ref(`awardCursor/${key}`).get()).val()||0;
