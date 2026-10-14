@@ -9194,7 +9194,6 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
   const [nameOf, setNameOf] = useState({});
   const [showVs, setShowVs] = useState(false);
   const [allAcc, setAllAcc] = useState(null);     // 登録している全員の成績（だれでも見られる）
-  const [openKey, setOpenKey] = useState(null);   // 成績を開いている人
   const [bountyCooldowns,setBountyCooldowns]=useState({});
   useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/ghostV1/users/${acct.key}/bountyCooldowns`),f=s=>setBountyCooldowns(s.val()||{});r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
   const [q, setQ] = useState('');
@@ -9217,7 +9216,22 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
   const inputStyle = { background: '#FBFAF7', color: '#1D2633', border: '1.5px solid #E4DED3', fontSize: '16px' };
   const lbl = t => <div className="text-[11px] font-black mt-2 mb-1" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>{t}</div>;
   const cap = (t, right) => <div className="v7-cap" style={{ marginBottom: 8 }}><span>{t}</span>{right}</div>;
-  const [win, setWin] = useState(null);   // 'rank' | 'bounty' | 'all' | 'vs'
+  const [win, setWin] = useState(null); // 一覧名、または { type: 'profile', key, origin }
+  const profile = win && win.type === 'profile' ? win : null;
+  const openProfile = (key, origin = 'profile') => {
+    setWin({ type: 'profile', key, origin });
+  };
+  const modalOpen = !!win;
+  useEffect(() => {
+    if (!modalOpen) return;
+    const html = document.documentElement, body = document.body;
+    const previous = [html.style.overflow, body.style.overflow, body.style.overscrollBehavior];
+    html.style.overflow = body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    return () => {
+      [html.style.overflow, body.style.overflow, body.style.overscrollBehavior] = previous;
+    };
+  }, [modalOpen]);
   const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st) && r.k!==acct?.key && (bountyCooldowns[r.k]||0)<=fbNow()).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
   return (<>
     <div className="v7-bhome">
@@ -9279,7 +9293,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
             </div>
 
             <div className="flex gap-1.5 mt-2 flex-wrap">
-              <button onClick={() => setOpenKey(acct.key)} className="v7-pill v7-cur"><V7Icon name="stats" />称号とくわしい成績</button>
+              <button onClick={() => openProfile(acct.key)} className="v7-pill v7-cur"><V7Icon name="stats" />称号とくわしい成績</button>
               {stats && stats.vs && Object.keys(stats.vs).length > 0 && <button onClick={() => setWin('vs')} className="v7-pill v7-cur"><V7Icon name="list" />相手ごと</button>}
             </div>
           </>) : (<>
@@ -9300,7 +9314,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
     {win === 'bounty' && <V7Modal title="賞金首リスト" onClose={() => setWin(null)}>
       <div className="text-xs font-black mb-1" style={{ color: '#9a6a12' }}>3連勝から懸賞金。倒すと経験値ボーナス</div>
       {bountyRows.map(r => (
-        <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
+        <div key={r.k} onClick={() => openProfile(r.k, 'bounty')} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
           <span className="text-lg">📜</span>
           <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-black block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
           <span className="text-[11px] font-bold" style={{ color: COLORS.coral }}>{r.st.streak}連勝中</span>
@@ -9322,7 +9336,7 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
           if (!rows.length) return <p className="text-xs" style={{ color: COLORS.inkSoft }}>見つかりません</p>;
           return (<div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
             {rows.map(r => (
-              <div key={r.k} onClick={() => setOpenKey(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)', background: acct && acct.key === r.k ? 'var(--v7-accent-soft)' : 'transparent' }}>
+              <div key={r.k} onClick={() => openProfile(r.k)} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px solid var(--v7-line)', background: acct && acct.key === r.k ? 'var(--v7-accent-soft)' : 'transparent' }}>
                 <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-bold underline decoration-dotted" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span> <BadgeIcons st={r.st} max={3} /></span>
                 <span className="text-[11px] font-black" style={{ color: 'var(--v7-ink)', minWidth: '2.4rem', textAlign: 'right' }}>{r.g ? r.rt : ''}</span>
                 <span className="text-[11px] font-bold" style={{ color: COLORS.inkSoft, minWidth: '2.2rem', textAlign: 'right' }}>{r.g}戦</span>
@@ -9334,11 +9348,12 @@ function BattleHome({ fb, acct, who, err, setErr, onCreate, onJoin, onPractice, 
         })()}
       </>)}
     </V7Modal>}
-    {openKey && (() => {
+    {profile && (() => {
+      const openKey = profile.key;
       const r = (allAcc || []).find(x => x.k === openKey);
       const st = openKey === (acct && acct.key) ? (stats || (r && r.st) || {}) : r && r.st;
       if (!st) return null;
-      return <PlayerProfile hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={openKey} ghostOrigin={win==='bounty'?'bounty':'profile'} onClose={() => setOpenKey(null)} />;
+      return <PlayerProfile key={profile.key} hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={openKey} ghostOrigin={profile.origin} onClose={() => setWin(null)} />;
     })()}
   </>);
 }
