@@ -517,17 +517,20 @@ assert.deepEqual(restored, original);
             touchPoints: [],
           });
           await touch.detach();
+          // Timed B2 has no fixed 15-question denominator. Wait for its
+          // rendered solved count, then verify the actual SDK-confirmed answer.
           await p.waitForFunction(() =>
-            document
-              .querySelector(".or-stat-grid")
-              ?.textContent.includes("1/15"),
+            document.querySelectorAll(".or-stat-grid .v7-st b")[1]?.textContent === "1問",
           );
           const real = (
             await a.db
               .ref(`games/factor/onlineSparkV1/matches/${mid}/game`)
               .get()
           ).val();
+          assert.equal(real.rules, "b2");
           assert.equal(real.states[a.uid].c, 1);
+          assert(real.states[a.uid].score > 0);
+          assert.equal(real.seq[a.uid], 1);
           for (const t of humanScreens) {
             assert.deepEqual(t.errors, []);
             await t.ctx.close();
