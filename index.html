@@ -3497,6 +3497,50 @@ function skinOpen(need, info) {
   return false;
 }
 const skinNeedText = need => !need ? '' : need.tower ? `数理の塔の${need.tower}階を突破すると解放` : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+// Read-only history: no current-rating/default-1500 substitution and no migration.
+// HARD can be added explicitly to difficulties when its independent history exists.
+const RatingHistory = (() => {
+  const difficulties = ['easy', 'normal'];
+  const number = v => {
+    if (typeof v === 'string') { if (!/^\s*\d+(?:\.\d+)?\s*$/.test(v)) return null; v = Number(v); }
+    return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+  };
+  const peak = r => {
+    const values = [r?.maxRating, r?.seasonMax, ...Object.values(r?.seasonHist || {}).map(x => x?.max)].map(number).filter(v => v !== null);
+    return values.length ? Math.max(...values) : null;
+  };
+  const highest = (profile, legacy, ds = difficulties) => {
+    const values = ds.map(d => {
+      // Read-only rankings previews synthesize maxima from current ratings.
+      if (profile?.statsKnown === false) return null;
+      const r = profile?.[d], v = peak(r);
+      // A freshly initialized, unplayed 1500 is not a recorded match history.
+      return r?.games === 0 && v === 1500 ? null : v;
+    });
+    if (ds.includes('easy')) values.push(peak(legacy), peak(profile?.legacy?.stats));
+    const valid = values.filter(v => v !== null);
+    return valid.length ? Math.max(...valid) : null;
+  };
+  const master = (profile, legacy, threshold) => {
+    const v = highest(profile, legacy);
+    return (v !== null && v >= threshold) || profile?.badges?.easy_master === true || profile?.badges?.normal_master === true || profile?.badges?.dual_master === true || legacy?.skin?.tile === 'master';
+  };
+  return { number, highest, master, difficulties };
+})();
+function useRatingHistoryProfile(account) {
+  const fb = useFbReady(), db = dbOf();
+  const [snapshot, setSnapshot] = useState({ account: null, profile: null });
+  useEffect(() => {
+    if (!fb.ready || !db || !account) return;
+    const ref = db.ref(`games/factor/onlineSparkV1/profiles/${account}`);
+    let active = true;
+    const read = s => { if (active) setSnapshot({ account, profile: s.val() }); };
+    ref.on('value', read, () => {});
+    return () => { active = false; ref.off('value', read); };
+  }, [fb.ready, db, account]);
+  // Never reuse the previous student's snapshot while the next read is pending.
+  return snapshot.account === account ? snapshot.profile : null;
+}
 function skinInfo(st, exp) {
   st = st || {};
   return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0, tower: (st.tower && st.tower.best) || 0 };
@@ -3504,13 +3548,17 @@ function skinInfo(st, exp) {
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose }) {
   useSkin();
+  const historicalProfile = useRatingHistoryProfile(isReal(acct) ? acct.key : null);
+  const masterReached = RatingHistory.master(historicalProfile, st, RANKS[5].min);
   const [tab, setTab] = useState('tile');
   const info = skinInfo(st, exp);
+  // Only the requested master tile changes. All other cosmetic conditions stay intact.
+  const available = x => skinOpen(x.need, info) || (tab === 'tile' && x.id === 'master' && masterReached);
   const list = tab === 'tile' ? SKIN_TILES : tab === 'bg' ? SKIN_BGS : SKIN_FX;
   const cur = SKIN[tab] || list[0].id;
-  const openN = list.filter(x => skinOpen(x.need, info)).length;
+  const openN = list.filter(x => available(x)).length;
   const pick = x => {
-    if (!skinOpen(x.need, info)) return;
+    if (!available(x)) return;
     setSkin({ [tab]: x.id }, acct);
     fxSound('badge');
     FX.text(window.innerWidth / 2, window.innerHeight / 2, `${x.name} にきせかえ！`, '#d4a017', 24);
@@ -3531,7 +3579,7 @@ function Wardrobe({ acct, st, exp, onClose }) {
         <div className="mb-2"><Seg items={[['tile', 'タイル'], ['bg', '背景'], ['fx', 'エフェクト']]} cur={tab} onPick={setTab} /></div>
         <div className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>解放 {openN}/{list.length} ・ レベル・ランク帯・称号で増えていきます{isReal(acct) ? '' : '（ゲストはこの端末だけ）'}</div>
         <div className="grid grid-cols-3 gap-2">
-          {list.map(x => { const ok = skinOpen(x.need, info), on = cur === x.id; return (
+          {list.map(x => { const ok = available(x), on = cur === x.id; return (
             <button key={x.id} onClick={() => pick(x)} className="rounded-xl p-2 text-center transition-transform active:scale-95" style={{ background: on ? `${COLORS.amber}33` : COLORS.paperDark, outline: on ? `3px solid ${COLORS.amber}` : 'none', opacity: ok ? 1 : 0.5 }}>
               <div style={{ filter: ok ? 'none' : 'grayscale(1)' }}>{preview(x)}</div>
               <div className="text-[11px] font-black mt-1" style={{ color: COLORS.ink }}>{ok ? '' : '🔒'}{x.name}</div>
@@ -9394,6 +9442,9 @@ function GhostHistory({acct,stats={}}) {
 
 /* ---------- だれかの成績（みんなが見られる） ---------- */
 function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
+  st = st || {};
+  const historicalProfile = useRatingHistoryProfile(acctKey);
+  const highestRating = RatingHistory.highest(historicalProfile, st);
   const g = st.games || 0;
   const [ghostEligible,setGhostEligible]=useState(null),[ghostFight,setGhostFight]=useState(null);
   const self=loadLS(ACCT_LS,null);
@@ -9437,12 +9488,13 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
           <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
           <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}でゴースト対戦</BigBtn>)}</div>
         </div>}
+        <div className="flex gap-2 mb-3" data-highest-rating>{box('最高レート', highestRating === null ? '―' : Math.round(highestRating))}</div>
         {g === 0 ? <p className="text-sm font-bold" style={{ color: COLORS.inkSoft }}>まだ対戦の記録がありません</p> : (<>
           <div className="flex gap-2 mb-2">
             {!hideLegacyRating && box(<>レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
           </div>
           <div className="flex gap-2 mb-3">
-            {box('成績', recordText(st))}{!hideLegacyRating && box('最高レート', Math.round(st.maxRating || RATING_INIT))}{box('最高連勝', st.maxStreak || 0)}
+            {box('成績', recordText(st))}{box('最高連勝', st.maxStreak || 0)}
           </div>
           <div className="flex gap-2 mb-3">
             {box('Perfect', `${st.perfects || 0}回`, '#c99a00')}{box('逆転勝ち', `${st.comebacks || 0}回`)}{box('大会優勝', `${st.tourWins || 0}回`, COLORS.coral)}

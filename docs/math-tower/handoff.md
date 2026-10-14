@@ -166,3 +166,7 @@ BattleHomeは選択時にopenProfileでwinを{type:'profile',key,origin}へ置�
 ## Ver.5.19 Chromebook互換性調査
 
 683×325の縦積みで問題切断・カード高さ4pxを再現。index.htmlのcompat-playだけ短い横画面の2列/低画面スクロールを追加。数学の塔の外枠と入力処理、Ver.5.17の同期、カードのドラッグ方式、数式設定は変更しない。通常タッチ不能はChromiumで未再現。学校の実機確認と匿名診断は[Chromebook確認手順](../ui-reference/chromebook-check.md)。tests/chromebook-browser.cjsをCIに追加。次の通常公開はVer.5.20。
+
+## Ver.5.20 最高レートとマスタータイル
+
+index.htmlのRatingHistoryでEASY/NORMALのmaxRating・seasonMax・seasonHist/maxと旧EASY履歴を共通集計。現在レート/初期1500で歴代最高を作らない。PlayerProfileは旧対戦数0/オンライン経路でも最高を表示。Wardrobeのmasterタイルだけ、履歴>=1820/既存永久達成フラグ/保存済みmaster装備を解放根拠にする。他の条件は既存skinOpen/skinInfoを維持。画面表示中だけ対象プロフィールを1件監視し、アカウント切替の古い値・閉じた後の通知は使わない。マイグレーション/新フラグ保存/ルール変更/全件監視は追加しない。test:rating-historyをCIへ追加。詳細はreports/2026-10-14_rating-history-v520.md。次の通常公開は5.21。指定asumax1128/factorはREADMEだけの初期コミット12d6eceのため、実コードと公開はfactorfactorで保守した。
