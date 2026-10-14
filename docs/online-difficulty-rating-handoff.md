@@ -47,3 +47,5 @@ BattleHomeは選択時にopenProfileでwinを{type:'profile',key,origin}へ置�
 ## Ver.5.20 最高レートとマスタータイル
 
 index.htmlのRatingHistoryでEASY/NORMALのmaxRating・seasonMax・seasonHist/maxと旧EASY履歴を共通集計。現在レート/初期1500で歴代最高を作らない。PlayerProfileは旧対戦数0/オンライン経路でも最高を表示。Wardrobeのmasterタイルだけ、履歴>=1820/既存永久達成フラグ/保存済みmaster装備を解放根拠にする。他の条件は既存skinOpen/skinInfoを維持。画面表示中だけ対象プロフィールを1件監視し、アカウント切替の古い値・閉じた後の通知は使わない。マイグレーション/新フラグ保存/ルール変更/全件監視は追加しない。test:rating-historyをCIへ追加。詳細はreports/2026-10-14_rating-history-v520.md。次の通常公開は5.21。指定asumax1128/factorはREADMEだけの初期コミット12d6eceのため、実コードと公開はfactorfactorで保守した。
+
+Ver.5.21追補: 初期1500の未記録判定では人間gamesだけでなくghost.gamesも確認する。乱入戦は公式レートを更新するため、人間games=0でも履歴がある。32件の単体テストでこの境界を保護。次の通常公開は5.22。

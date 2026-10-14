@@ -3515,7 +3515,7 @@ const RatingHistory = (() => {
       if (profile?.statsKnown === false) return null;
       const r = profile?.[d], v = peak(r);
       // A freshly initialized, unplayed 1500 is not a recorded match history.
-      return r?.games === 0 && v === 1500 ? null : v;
+      return (r?.games === 0 || r?.games === '0') && number(r?.ghost?.games) === null && v === 1500 ? null : v;
     });
     if (ds.includes('easy')) values.push(peak(legacy), peak(profile?.legacy?.stats));
     const valid = values.filter(v => v !== null);

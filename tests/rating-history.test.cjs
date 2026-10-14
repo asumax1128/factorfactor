@@ -15,6 +15,8 @@ const cases=[
  ['legacy season',null,{seasonMax:'1902'},1902],
  ['migrated embedded legacy',{easy:{maxRating:1700},legacy:{stats:{maxRating:1903}}},null,1903],
  ['unplayed initial',{easy:{games:0,maxRating:1500},normal:{games:0,maxRating:1500}},null,null],
+ ['rated ghost-only history',{easy:{games:0,ghost:{games:1},maxRating:1500}},null,1500],
+ ['rated bot-only string counts',{normal:{games:'0',ghost:{games:'1'},maxRating:'1500'}},null,1500],
  ['read-only preview',{statsKnown:false,easy:{maxRating:2000}},null,null],
  ['hard ignored',{easy:{maxRating:1700},hard:{maxRating:2200}},null,1700]
 ];
