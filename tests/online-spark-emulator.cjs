@@ -542,7 +542,7 @@ assert.deepEqual(restored, original);
         for (const u of [a, b])
           await u.client.request({ type: "ackReceipt", matchId: mid });
       }
-      const ranking = await a.client.request({ type: "status" });
+      const ranking = await a.client.request({ type: "ratings" });
       assert(
         ranking.rankings.easy.some((r) => r.key === "aa") &&
           ranking.rankings.easy.some((r) => r.key === "ab"),

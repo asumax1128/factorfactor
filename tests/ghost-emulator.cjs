@@ -126,6 +126,7 @@ assert.deepEqual(
     s = await a.client.request({ type: "vote", matchId: mid, mode: "A" });
     assert.equal(s.match.mode, "A");
     clock += 5000;
+    await a.client.flush();
     // Use a verified engine game to produce a real final result quickly (no fabricated receipt).
     let stored = (
       await a.db.ref(`games/factor/ghostV1/users/aa/matches/${mid}`).get()
@@ -154,6 +155,15 @@ assert.deepEqual(
     // Clock restored to actual time; initial future start can be settled after without reversing.
     clock = Math.max(Date.now(), stored.game.time);
     await a.db.ref(`games/factor/ghostV1/users/aa/matches/${mid}`).set(stored);
+    // The fixture writes a completed engine snapshot externally. Reopen the client
+    // to exercise durable recovery rather than bypass its live local simulation.
+    a.client.close();
+    a.client = Spark.create({
+      db: a.db,
+      uid: a.uid,
+      account: { key: a.key, name: accounts[a.key].name },
+      now: () => clock,
+    });
     s = await a.client.request({ type: "heartbeat", matchId: mid });
     assert.equal(s.match.phase, "settled");
     assert.equal(s.ratings.normal.games, 0);
@@ -209,6 +219,7 @@ assert.deepEqual(
       "lost response must resume the same directed match",
     );
     await c.client.request({ type: "vote", matchId: bid, mode: "A" });
+    await c.client.flush();
     const br = c.db.ref(`games/factor/ghostV1/users/ac/matches/${bid}`);
     let bm = (await br.get()).val();
     bm.game = E.begin(
@@ -240,6 +251,13 @@ assert.deepEqual(
       );
     }
     await br.set(bm);
+    c.client.close();
+    c.client = Spark.create({
+      db: c.db,
+      uid: c.uid,
+      account: { key: c.key, name: accounts[c.key].name },
+      now: () => clock,
+    });
     directed = await c.client.request({ type: "heartbeat", matchId: bid });
     assert.equal(directed.match.outcome, "win");
     assert.equal(directed.ratings.easy.rating, 1500);

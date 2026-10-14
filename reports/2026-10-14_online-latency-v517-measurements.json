@@ -1,0 +1,126 @@
+{
+  "browser": {
+    "before": {
+      "firstCountdown": "4",
+      "countdownValues": [
+        "7",
+        "4",
+        "3",
+        "2",
+        "1"
+      ],
+      "latency": {
+        "releaseToFeedbackMs": 1258.2000000029802
+      },
+      "writes": [
+        {
+          "kind": "set",
+          "bytes": 1344
+        },
+        {
+          "kind": "set",
+          "bytes": 1506
+        }
+      ]
+    },
+    "after": {
+      "firstCountdown": "READY",
+      "countdownValues": [
+        "READY",
+        "3",
+        "2",
+        "1"
+      ],
+      "latency": {
+        "releaseToFeedbackMs": 3.5,
+        "events": [
+          {
+            "kind": "release",
+            "t": 9143.29999999702
+          },
+          {
+            "kind": "local-verdict",
+            "t": 9143.79999999702,
+            "question": "0",
+            "seq": 1,
+            "ok": true
+          },
+          {
+            "kind": "feedback-frame",
+            "t": 9163.60000000149
+          }
+        ]
+      },
+      "writes": [
+        {
+          "kind": "set",
+          "bytes": 1413
+        }
+      ]
+    }
+  },
+  "sdk": [
+    {
+      "environment": "Ver5.17 SDK/Auth/RTDB Emulator; injected 400ms get/ACK delay; offline first eight answers",
+      "first14LocalResponsesMs": [
+        4.665354999999977,
+        3.7356949999999642,
+        3.6830770000000257,
+        3.6531119999999646,
+        3.574326000000042,
+        3.690747999999985,
+        4.340862999999899,
+        5.38807799999995,
+        3.561335999999983,
+        13.481820999999968,
+        3.326917999999978,
+        3.673803000000021,
+        3.314420000000041,
+        3.1977769999999737
+      ],
+      "finalDurableSettlementMs": 2103.416647,
+      "gets": 0,
+      "transactions": 9,
+      "listeners": 9,
+      "events": 17,
+      "applicationBytes": 16637,
+      "lastWriteMs": 405.13806900000054
+    },
+    {
+      "environment": "Ver5.16 SDK/Auth/RTDB Emulator; injected 400ms get/ACK delay; online",
+      "first14LocalResponsesMs": [
+        2021.8812260000002,
+        2029.6276879999996,
+        2022.3570769999997,
+        2024.442355000001,
+        2024.1548669999993,
+        2034.1734730000007,
+        2027.6309419999998,
+        2017.6936219999989,
+        2015.5841249999976,
+        2018.0859469999996,
+        2021.6649099999995,
+        2033.6418430000012,
+        2029.6390059999976,
+        2027.111101999999
+      ],
+      "finalDurableSettlementMs": 4446.471139999998,
+      "gets": 74,
+      "transactions": 23,
+      "listeners": 23,
+      "events": 42,
+      "applicationBytes": 142293,
+      "lastWriteMs": 404.7011029999994
+    }
+  ],
+  "usageOwnerScreenshot": {
+    "connectionsDisplay": 58,
+    "connectionsLimit": 100,
+    "storageKB": 712.9,
+    "downloadMB": 333.5,
+    "loadPeakPercent": 8,
+    "rulesAllowedApprox": 190000,
+    "rulesDenied": 924
+  },
+  "environment": "synthetic delays / local Chromium 390x844 / actual Firebase SDK Emulator; NOT production Safari measurements"
+}

@@ -2,6 +2,8 @@
 (function (root) {
   root.OnlineRatedFactory = function (H) {
     const { useState, useRef, useEffect, useMemo, useCallback } = React;
+    const trace = (kind, detail) =>
+      root.OnlineSpark?.performance?.mark(kind, detail);
     const label = (d) => H.DIFFICULTY_CONFIG[d]?.label || d;
     const titles = {
       easy_adept: "EASYの達人",
@@ -91,6 +93,18 @@
             H.CombatFX.ring(el, "#8FB8FF");
         }
       }, [g.visualEvents, m.selfUid]);
+      useEffect(() => {
+        if (!disabled && !ready && !g.result)
+          trace("input-ready", { match: m.id, question: g.question });
+      }, [disabled, ready, g.question]);
+      useEffect(() => {
+        if (counting)
+          trace("countdown-display", {
+            match: m.id,
+            plannedAt: (m.gameStartAt || g.startAt) - 3800,
+            actualAt: Date.now() + (H.FB.off || 0),
+          });
+      }, [counting, m.id]);
       const N = H.DIFFICULTY_CONFIG[m.difficulty].clearCount;
       return (
         <H.BattleSurface>
@@ -239,10 +253,12 @@
             </div>
             {counting && (
               <div className="or-countdown" aria-label="開始カウントダウン">
-                {Math.max(
-                  1,
-                  Math.ceil(((m.gameStartAt || g.startAt) - time) / 1000),
-                )}
+                {(m.gameStartAt || g.startAt) - time > 3000
+                  ? "READY"
+                  : Math.max(
+                      1,
+                      Math.ceil(((m.gameStartAt || g.startAt) - time) / 1000),
+                    )}
               </div>
             )}
           </div>
@@ -396,6 +412,10 @@
           retry.current = null;
           if (badgesBefore.current === null)
             badgesBefore.current = { ...v.badges };
+          const old = current.current?.match,
+            next = v.match;
+          // A delayed acknowledgement must never roll back a newer board/result.
+          if (root.OnlineSpark.olderView(old, next)) return current.current;
           setState(v);
           current.current = v;
           if (v.match?.game) seq.current = v.match.game.acceptedSeq;
@@ -462,15 +482,18 @@
       }, []);
       useEffect(() => {
         if (!["wait", "vote", "play"].includes(screen)) return;
-        const id = setInterval(() => {
-          if (retry.current || pollingPaused.current) return;
-          const s = current.current,
-            m = s?.match;
-          requestRef.current({
-            type: "heartbeat",
-            ...(m ? { matchId: m.id } : {}),
-          });
-        }, 1000);
+        const id = setInterval(
+          () => {
+            if (retry.current || pollingPaused.current) return;
+            const s = current.current,
+              m = s?.match;
+            requestRef.current({
+              type: "heartbeat",
+              ...(m ? { matchId: m.id } : {}),
+            });
+          },
+          screen === "play" && current.current?.match?.opponent ? 100 : 1000,
+        );
         return () => clearInterval(id);
       }, [screen]);
       useEffect(() => {
@@ -484,8 +507,10 @@
         const timer = setInterval(() => setLocalTime(Date.now()), 100);
         return () => clearInterval(timer);
       }, [screen]);
-      const time = localTime + (H.FB.off || 0);
+      // Read the clock on the transition render too; vote renders must not reuse a stopped timer.
+      const time = Date.now() + (H.FB.off || 0);
       const answer = useCallback((a, b) => {
+        trace("release");
         const m = current.current?.match,
           g = m?.game;
         if (actionPending.current || retry.current || !g) return;
@@ -500,41 +525,46 @@
           [a, b].map((id) => document.querySelector(`[data-btile="${id}"]`)),
           document.querySelector("[data-online-opponent]"),
         );
-        const prior = g.live[m.selfUid];
-        send(command).then((v) => {
-          if (!v?.match || !life.current) return;
-          const next = v.match.game?.live[m.selfUid];
-          const won =
-            v.match.outcome === "win" ||
-            (typeof prior === "number" ? next > prior : next?.c > prior?.c);
-          const moved =
-            v.match.phase === "settled" ||
-            v.match.game?.question !== g.question;
-          const record = v.match.lastAnswer;
-          const judge = won
-            ? H.timingVisual(
-                record?.ok === false
-                  ? { label: "Bad", color: "#FF5C5C" }
-                  : H.getJudgment(record?.ms ?? Math.max(0, time - g.startAt)),
-              )
-            : moved
-              ? { label: "次の問題へ", color: "#6BD4E8", small: true }
-              : H.timingVisual({ label: "Bad", color: "#FF5C5C" });
-          if (won && record?.ok !== false) {
-            H.CombatFX.merge(captured, judge.color);
-            sound.play("ok");
-          } else if (!moved) sound.play("buzz");
-          setFeedback({
-            judge,
-            flash: {
-              [a]: won ? "correct" : "wrong",
-              [b]: won ? "correct" : "wrong",
-            },
-          });
-          clearTimeout(feedbackTimer.current);
-          feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+        // Preview the same polynomial check as CPU practice. No official score is
+        // awarded here: RTDB/engine acceptance remains the authority for progression.
+        const factors = [a, b].map(
+          (id) => g.tiles.find((t) => t.id === id)?.factor,
+        );
+        if (factors.some((f) => !f)) return;
+        const ok = H.polyEqual(H.multiply(...factors), g.poly);
+        trace("local-verdict", {
+          match: m.id,
+          question: g.question,
+          seq: command.seq,
+          ok,
         });
+        const judge = H.timingVisual(
+          ok
+            ? H.getJudgment(
+                Math.max(0, Date.now() + (H.FB.off || 0) - g.startAt),
+              )
+            : { label: "Bad", color: "#FF5C5C" },
+        );
+        if (ok) {
+          H.CombatFX.merge(captured, judge.color);
+          sound.play("ok");
+        } else sound.play("buzz");
+        setFeedback({
+          judge,
+          flash: {
+            [a]: ok ? "correct" : "wrong",
+            [b]: ok ? "correct" : "wrong",
+          },
+        });
+        clearTimeout(feedbackTimer.current);
+        feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+        send(command);
       }, []);
+      useEffect(() => {
+        if (!feedback) return;
+        const frame = requestAnimationFrame(() => trace("feedback-frame"));
+        return () => cancelAnimationFrame(frame);
+      }, [feedback]);
       useEffect(() => {
         seq.current = g?.acceptedSeq || 0;
       }, [m?.id]);

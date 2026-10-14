@@ -3,6 +3,7 @@ const fs = require("node:fs"),
 const source = fs.readFileSync(require.resolve("./engine-source.js"), "utf8");
 const script = new vm.Script(source);
 const clone = (x) => JSON.parse(JSON.stringify(x));
+const banks = new Map();
 function runtime(match) {
   match.seq ||= {};
   match.claims ||= [];
@@ -48,7 +49,13 @@ function runtime(match) {
     { timeout: 1000 },
   );
   const conf = api.DIFFICULTY_CONFIG[match.difficulty],
+    bankKey = `${match.seed}:${conf.tileCount}`;
+  let bank = banks.get(bankKey);
+  if (!bank) {
     bank = api.makeBank(match.seed, conf.tileCount);
+    banks.set(bankKey, bank);
+    if (banks.size > 32) banks.delete(banks.keys().next().value);
+  }
   let winner = null;
   let visualReady = false;
   for (const uid of match.ids) {

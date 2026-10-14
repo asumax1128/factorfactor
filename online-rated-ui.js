@@ -5,6 +5,10 @@
   (function(root) {
     root.OnlineRatedFactory = function(H) {
       const { useState, useRef, useEffect, useMemo, useCallback } = React;
+      const trace = (kind, detail) => {
+        var _a, _b;
+        return (_b = (_a = root.OnlineSpark) == null ? void 0 : _a.performance) == null ? void 0 : _b.mark(kind, detail);
+      };
       const label = (d) => {
         var _a;
         return ((_a = H.DIFFICULTY_CONFIG[d]) == null ? void 0 : _a.label) || d;
@@ -85,6 +89,18 @@
               H2.CombatFX.ring(el, "#8FB8FF");
           }
         }, [g.visualEvents, m.selfUid]);
+        useEffect(() => {
+          if (!disabled && !ready && !g.result)
+            trace("input-ready", { match: m.id, question: g.question });
+        }, [disabled, ready, g.question]);
+        useEffect(() => {
+          if (counting)
+            trace("countdown-display", {
+              match: m.id,
+              plannedAt: (m.gameStartAt || g.startAt) - 3800,
+              actualAt: Date.now() + (H2.FB.off || 0)
+            });
+        }, [counting, m.id]);
         const N = H2.DIFFICULTY_CONFIG[m.difficulty].clearCount;
         return /* @__PURE__ */ React.createElement(H2.BattleSurface, null, /* @__PURE__ */ React.createElement(
           "div",
@@ -164,7 +180,7 @@
               v7: true
             }
           ), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
-          counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, Math.max(
+          counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, (m.gameStartAt || g.startAt) - time > 3e3 ? "READY" : Math.max(
             1,
             Math.ceil(((m.gameStartAt || g.startAt) - time) / 1e3)
           ))
@@ -237,7 +253,7 @@
           return task;
         }
         async function perform(command, background) {
-          var _a2, _b2, _c2, _d2, _e2;
+          var _a2, _b2, _c2, _d2, _e2, _f2;
           if (!life.current) return;
           inFlight.current = true;
           if (!background) setError("");
@@ -268,15 +284,17 @@
             retry.current = null;
             if (badgesBefore.current === null)
               badgesBefore.current = { ...v.badges };
+            const old = (_a2 = current.current) == null ? void 0 : _a2.match, next = v.match;
+            if (root.OnlineSpark.olderView(old, next)) return current.current;
             setState(v);
             current.current = v;
-            if ((_a2 = v.match) == null ? void 0 : _a2.game) seq.current = v.match.game.acceptedSeq;
+            if ((_b2 = v.match) == null ? void 0 : _b2.game) seq.current = v.match.game.acceptedSeq;
             if (view === "ratings") setScreen("ratings");
-            else if (((_b2 = v.match) == null ? void 0 : _b2.phase) === "settled")
+            else if (((_c2 = v.match) == null ? void 0 : _c2.phase) === "settled")
               setScreen(
                 initializing.current && !initialGhost ? "select" : "result"
               );
-            else if (((_c2 = v.match) == null ? void 0 : _c2.phase) === "cancelled") {
+            else if (((_d2 = v.match) == null ? void 0 : _d2.phase) === "cancelled") {
               setScreen("select");
               setError("\u5BFE\u6226\u958B\u59CB\u524D\u306B\u76F8\u624B\u304C\u9000\u51FA\u3057\u307E\u3057\u305F");
             } else if (v.match) setScreen(v.match.phase);
@@ -288,7 +306,7 @@
               if (["STALE_QUESTION", "SEQUENCE_GAP"].includes(e.message)) {
                 retry.current = {
                   type: "status",
-                  matchId: (_e2 = (_d2 = current.current) == null ? void 0 : _d2.match) == null ? void 0 : _e2.id
+                  matchId: (_f2 = (_e2 = current.current) == null ? void 0 : _e2.match) == null ? void 0 : _f2.id
                 };
                 setError("\u554F\u984C\u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\u3002\u6700\u65B0\u306E\u554F\u984C\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026");
                 setTimeout(() => {
@@ -326,15 +344,19 @@
           })();
         }, []);
         useEffect(() => {
+          var _a2, _b2;
           if (!["wait", "vote", "play"].includes(screen)) return;
-          const id = setInterval(() => {
-            if (retry.current || pollingPaused.current) return;
-            const s = current.current, m2 = s == null ? void 0 : s.match;
-            requestRef.current({
-              type: "heartbeat",
-              ...m2 ? { matchId: m2.id } : {}
-            });
-          }, 1e3);
+          const id = setInterval(
+            () => {
+              if (retry.current || pollingPaused.current) return;
+              const s = current.current, m2 = s == null ? void 0 : s.match;
+              requestRef.current({
+                type: "heartbeat",
+                ...m2 ? { matchId: m2.id } : {}
+              });
+            },
+            screen === "play" && ((_b2 = (_a2 = current.current) == null ? void 0 : _a2.match) == null ? void 0 : _b2.opponent) ? 100 : 1e3
+          );
           return () => clearInterval(id);
         }, [screen]);
         useEffect(() => {
@@ -347,9 +369,10 @@
           const timer = setInterval(() => setLocalTime(Date.now()), 100);
           return () => clearInterval(timer);
         }, [screen]);
-        const time = localTime + (H.FB.off || 0);
+        const time = Date.now() + (H.FB.off || 0);
         const answer = useCallback((a, b) => {
           var _a2;
+          trace("release");
           const m2 = (_a2 = current.current) == null ? void 0 : _a2.match, g2 = m2 == null ? void 0 : m2.game;
           if (actionPending.current || retry.current || !g2) return;
           const command = {
@@ -363,32 +386,45 @@
             [a, b].map((id) => document.querySelector(`[data-btile="${id}"]`)),
             document.querySelector("[data-online-opponent]")
           );
-          const prior = g2.live[m2.selfUid];
-          send(command).then((v) => {
-            var _a3, _b2, _c2;
-            if (!(v == null ? void 0 : v.match) || !life.current) return;
-            const next = (_a3 = v.match.game) == null ? void 0 : _a3.live[m2.selfUid];
-            const won = v.match.outcome === "win" || (typeof prior === "number" ? next > prior : (next == null ? void 0 : next.c) > (prior == null ? void 0 : prior.c));
-            const moved = v.match.phase === "settled" || ((_b2 = v.match.game) == null ? void 0 : _b2.question) !== g2.question;
-            const record = v.match.lastAnswer;
-            const judge = won ? H.timingVisual(
-              (record == null ? void 0 : record.ok) === false ? { label: "Bad", color: "#FF5C5C" } : H.getJudgment((_c2 = record == null ? void 0 : record.ms) != null ? _c2 : Math.max(0, time - g2.startAt))
-            ) : moved ? { label: "\u6B21\u306E\u554F\u984C\u3078", color: "#6BD4E8", small: true } : H.timingVisual({ label: "Bad", color: "#FF5C5C" });
-            if (won && (record == null ? void 0 : record.ok) !== false) {
-              H.CombatFX.merge(captured, judge.color);
-              sound.play("ok");
-            } else if (!moved) sound.play("buzz");
-            setFeedback({
-              judge,
-              flash: {
-                [a]: won ? "correct" : "wrong",
-                [b]: won ? "correct" : "wrong"
-              }
-            });
-            clearTimeout(feedbackTimer.current);
-            feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+          const factors = [a, b].map(
+            (id) => {
+              var _a3;
+              return (_a3 = g2.tiles.find((t) => t.id === id)) == null ? void 0 : _a3.factor;
+            }
+          );
+          if (factors.some((f) => !f)) return;
+          const ok = H.polyEqual(H.multiply(...factors), g2.poly);
+          trace("local-verdict", {
+            match: m2.id,
+            question: g2.question,
+            seq: command.seq,
+            ok
           });
+          const judge = H.timingVisual(
+            ok ? H.getJudgment(
+              Math.max(0, Date.now() + (H.FB.off || 0) - g2.startAt)
+            ) : { label: "Bad", color: "#FF5C5C" }
+          );
+          if (ok) {
+            H.CombatFX.merge(captured, judge.color);
+            sound.play("ok");
+          } else sound.play("buzz");
+          setFeedback({
+            judge,
+            flash: {
+              [a]: ok ? "correct" : "wrong",
+              [b]: ok ? "correct" : "wrong"
+            }
+          });
+          clearTimeout(feedbackTimer.current);
+          feedbackTimer.current = setTimeout(() => setFeedback(null), 650);
+          send(command);
         }, []);
+        useEffect(() => {
+          if (!feedback) return;
+          const frame = requestAnimationFrame(() => trace("feedback-frame"));
+          return () => cancelAnimationFrame(frame);
+        }, [feedback]);
         useEffect(() => {
           seq.current = (g == null ? void 0 : g.acceptedSeq) || 0;
         }, [m == null ? void 0 : m.id]);

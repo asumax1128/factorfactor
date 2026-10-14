@@ -26,7 +26,8 @@
     "test:ghost": "node --test tests/ghost-learning.test.cjs && node tests/ghost-ui-browser.cjs",
     "test:online-playability": "node tests/online-playability-browser.cjs",
     "test:online-presentation": "node --test tests/combat-events-v514.test.cjs && node tests/online-ui-v514.cjs",
-    "test:ui-font": "node tests/ui-font-v515.cjs"
+    "test:ui-font": "node tests/ui-font-v515.cjs",
+    "test:online-latency": "node --test tests/online-state-order.test.cjs && node tests/online-latency-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

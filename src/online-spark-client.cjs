@@ -3,6 +3,7 @@
 const C = require("../server/online-rated/core.cjs"),
   E = require("../server/online-rated/engine.cjs"),
   G = require("./ghost-model.cjs");
+const Perf = require("./online-performance.cjs");
 const ROOT = "games/factor/onlineSparkV1";
 const copy = C.copy;
 const id = () => {
@@ -14,12 +15,33 @@ const id = () => {
 };
 const clean = (x) => JSON.parse(JSON.stringify(x));
 async function tx(ref, fn) {
-  const listener = () => {};
-  ref.on("value", listener);
+  let ready, failed;
+  const initial = new Promise((resolve, reject) => {
+    ready = resolve;
+    failed = reject;
+  });
+  const listener = () => ready();
+  ref.on("value", listener, failed);
   try {
-    await ref.get();
-    const r = await ref.transaction(fn, undefined, false);
-    if (!r.committed) throw Error("SAVE_NOT_COMMITTED");
+    // Prime the transaction cache once via this listener instead of an extra get.
+    await initial;
+    let failure;
+    const r = await ref.transaction(
+      (value) => {
+        failure = null;
+        try {
+          return fn(value);
+        } catch (e) {
+          failure = e;
+          return undefined;
+        }
+      },
+      undefined,
+      false,
+    );
+    // Returning undefined aborts through the SDK's normal promise path. Throwing
+    // inside a rerun callback can escape exceptionGuard and strand the request.
+    if (!r.committed) throw failure || Error("SAVE_NOT_COMMITTED");
     return r.snapshot.val();
   } finally {
     ref.off("value", listener);
@@ -53,23 +75,65 @@ function create({
   bot = () => ({ name: "CPU", rt: 1500 }),
   learning = async () => {},
   random = Math.random,
+  storage = typeof sessionStorage !== "undefined" ? sessionStorage : null,
 }) {
-  const key = account?.key;
+  db = Perf.instrument(db);
+  const key = account?.key,
+    writerSession = id();
   let profiles = {},
-    closed = false;
+    closed = false,
+    ownProfile = null,
+    ensured = false,
+    localGhost = null,
+    savedRevision = 0,
+    checkpoint = null,
+    checkpointTask = null,
+    checkpointError = null,
+    lastCheckpoint = 0;
   const pr = db.ref(`${ROOT}/profiles`),
     profileRef = db.ref(`${ROOT}/profiles/${key}`);
-  const listen = (s) => {
-    profiles = s.val() || {};
+  const ownListen = (s) => {
+    ownProfile = s.val();
   };
-  pr.on("value", listen, () => {});
+  profileRef.on("value", ownListen, () => {});
   let ticket = null,
     difficulty = null,
     currentMatch = null,
     searchStarted = null,
     ghostReady = false,
     ghostActive = null;
+  let connected = false;
+  const reconnects = new Set();
+  const connectionRef = db.ref(".info/connected");
+  const connectionListen = (s) => {
+    connected = !!s.val();
+    if (connected) {
+      for (const resume of reconnects) resume();
+      reconnects.clear();
+    }
+  };
+  connectionRef.on("value", connectionListen);
+  const waitConnection = () =>
+    connected
+      ? Promise.resolve()
+      : new Promise((resolve) => reconnects.add(resolve));
   const ghostRoot = `games/factor/ghostV1/users/${key}`;
+  const draftKey = `fxf_ghost_checkpoint_v517:${key}:${uid}`;
+  const remember = () => {
+    if (closed) return;
+    try {
+      storage?.setItem(
+        draftKey,
+        JSON.stringify({ base: savedRevision, match: localGhost }),
+      );
+    } catch (_) {}
+  };
+  const forget = () => {
+    try {
+      storage?.removeItem(draftKey);
+    } catch (_) {}
+  };
+
   async function checkGhost() {
     try {
       const active = (await db.ref(`${ghostRoot}/activeMatch`).get()).val();
@@ -87,8 +151,13 @@ function create({
   async function ensure() {
     if (!uid || !key || !/^a[a-z0-9_]+$/.test(key))
       throw Error("登録アカウントでログインしてください");
+    if (ensured && ownProfile) return ownProfile;
     let p = (await profileRef.get()).val();
-    if (p) return p;
+    if (p) {
+      ownProfile = p;
+      ensured = true;
+      return p;
+    }
     const legacy = (await db.ref(`games/factor/accounts/${key}`).get()).val();
     if (!legacy?.name)
       throw Error("アカウントを確認できません。ログインし直してください");
@@ -117,7 +186,9 @@ function create({
           at: next.initializedAt,
         },
       });
-      return (await profileRef.get()).val();
+      ownProfile = (await profileRef.get()).val();
+      ensured = true;
+      return ownProfile;
     } catch (e) {
       const latest = (await profileRef.get()).val();
       if (latest) return latest;
@@ -130,8 +201,32 @@ function create({
   }
   async function getMatch(matchId) {
     if (!matchId) return null;
-    if (String(matchId).startsWith("ghost-"))
-      return (await db.ref(`${ghostRoot}/matches/${matchId}`).get()).val();
+    if (String(matchId).startsWith("ghost-")) {
+      if (localGhost?.id === matchId) return copy(localGhost);
+      const remote = (
+        await db.ref(`${ghostRoot}/matches/${matchId}`).get()
+      ).val();
+      if (remote) {
+        localGhost = copy(remote);
+        savedRevision = remote.revision || 0;
+        try {
+          const draft = JSON.parse(storage?.getItem(draftKey) || "null");
+          if (
+            draft?.match?.id === matchId &&
+            (draft.base === savedRevision ||
+              (remote.writerSession === draft.match.writerSession &&
+                savedRevision <= draft.match.revision)) &&
+            draft.match.revision > savedRevision &&
+            remote.phase !== "settled"
+          ) {
+            localGhost = draft.match;
+            checkpoint = copy(localGhost);
+            flushCheckpoint();
+          }
+        } catch (_) {}
+      }
+      return copy(localGhost);
+    }
     return (await db.ref(`${ROOT}/matches/${matchId}`).get()).val();
   }
   async function apply(m) {
@@ -139,7 +234,7 @@ function create({
     if (!m.members.some((u) => u.key === key)) throw Error("NOT_PARTICIPANT");
     const mine = m.receipt.players[key];
     if (!mine) throw Error("INVALID_RECEIPT");
-    await tx(profileRef, (p) => {
+    ownProfile = await tx(profileRef, (p) => {
       if (!p) throw Error("PROFILE_REQUIRED");
       if (p.processed?.[m.id]) return p;
       const r = C.ratingView(p[m.difficulty], m.receipt.at);
@@ -187,8 +282,9 @@ function create({
           : m.learning?.[playUid] || [];
       await learning(m.id, rows);
     }
-    let p = (await profileRef.get()).val();
+    let p = ownProfile || (await profileRef.get()).val();
     profiles[key] = p;
+    let accounts = {};
     const players = { ...profiles };
     if (withLegacy) {
       const [profileSnapshot, legacySnapshot] = await Promise.all([
@@ -198,6 +294,7 @@ function create({
       Object.assign(players, profileSnapshot.val() || {});
       p = players[key];
       const legacy = legacySnapshot.val() || {};
+      accounts = legacy;
       for (const [k, a] of Object.entries(legacy)) {
         if (
           players[k] ||
@@ -235,8 +332,6 @@ function create({
       }
     }
     if (withLegacy) {
-      const accounts =
-        (await db.ref("games/factor/accounts").get()).val() || {};
       for (const [k, player] of Object.entries(players)) {
         player.cosmetics = {
           stats: accounts[k]?.stats || {},
@@ -246,8 +341,8 @@ function create({
       }
     }
     const ranks = {
-      easy: C.rankings({ players }, "easy", now()),
-      normal: C.rankings({ players }, "normal", now()),
+      easy: withLegacy ? C.rankings({ players }, "easy", now()) : [],
+      normal: withLegacy ? C.rankings({ players }, "normal", now()) : [],
     };
     return {
       ticket: m ? null : ticket,
@@ -256,6 +351,8 @@ function create({
       match: m
         ? {
             id: m.id,
+            revision: m.revision || 0,
+            serverTime: m.game?.time || 0,
             selfUid: m.members.find((u) => u.key === key)?.uid || uid,
             gameStartAt: m.game?.startAt,
             members: m.members.map((x) => ({ uid: x.uid, name: x.name })),
@@ -523,6 +620,7 @@ function create({
     if (cur?.id !== ticket || cur.claim || cur.fallback !== gid) return find();
     const all = (await db.ref("games/factor/accounts").get()).val() || {},
       p = (await profileRef.get()).val();
+    profiles = (await pr.get()).val() || {};
     const opponent = G.select({
       accounts: all,
       profiles,
@@ -602,14 +700,75 @@ function create({
           },
       );
   }
+  function flushCheckpoint() {
+    if (checkpointTask) return checkpointTask;
+    checkpointTask = (async () => {
+      while (checkpoint) {
+        const next = checkpoint;
+        checkpoint = null;
+        await waitConnection();
+        if (closed) throw Error("CHECKPOINT_CLOSED");
+        try {
+          await tx(db.ref(`${ghostRoot}/matches/${next.id}`), (remote) => {
+            if (
+              remote?.revision === next.revision &&
+              remote.writerSession === next.writerSession
+            )
+              return remote;
+            if (
+              !remote ||
+              ((remote.revision || 0) !== savedRevision &&
+                !(
+                  remote.writerSession === next.writerSession &&
+                  (remote.revision || 0) >= savedRevision &&
+                  remote.revision <= next.revision
+                ))
+            )
+              throw Error("GHOST_CONFLICT_RESYNC");
+            return clean(next);
+          });
+        } catch (e) {
+          if (/disconnect|unavailable|network/i.test(e.message) && !closed) {
+            checkpoint ||= next;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            // The SDK's connection listener releases the retry after reconnect.
+            await waitConnection();
+            continue;
+          }
+          throw e;
+        }
+        Perf.mark("checkpoint-confirmed", {
+          match: next.id,
+          revision: next.revision,
+          question:
+            next.game?.mode === "A"
+              ? String(next.game.claims?.length || 0)
+              : undefined,
+        });
+        savedRevision = next.revision || 0;
+        remember();
+      }
+    })()
+      .catch((e) => {
+        checkpointError = e;
+        throw e;
+      })
+      .finally(() => {
+        checkpointTask = null;
+      });
+    // A background save failure is surfaced by the next action/status, not hidden.
+    checkpointTask.catch(() => {});
+    return checkpointTask;
+  }
   async function ghostRequest(m, command) {
-    const ref = db.ref(`${ghostRoot}/matches/${m.id}`),
-      playUid = m.members[0].uid;
-    m = await tx(ref, (raw) => {
+    const playUid = m.members[0].uid;
+    const raw = copy(localGhost?.id === m.id ? localGhost : m);
+    const issuedAt = now();
+    m = ((raw) => {
       if (!raw) throw Error("MATCH_NOT_FOUND");
       if (["settled", "cancelled"].includes(raw.phase)) return raw;
       let n = copy(raw),
-        ts = Math.max(now(), n.game?.time || 0);
+        ts = Math.max(issuedAt, n.game?.time || 0);
       n.votes ||= {};
       const beforeStart = n.phase === "play" && now() < n.game.startAt;
       if (command.type === "abortInitialization") {
@@ -688,11 +847,36 @@ function create({
         };
         n.exp = o === "win" ? 8 : 0;
       }
+      n.revision = (raw.revision || 0) + 1;
       return clean(n);
-    });
+    })(raw);
+    m.revision = (raw.revision || 0) + 1;
+    m.writerSession = writerSession;
+    localGhost = copy(m);
+    // Only this account owns a simulated opponent. Display/physics run locally;
+    // checkpoints are coalesced while a write is in flight. Receipts await durability.
+    if (checkpointError) {
+      const e = checkpointError;
+      checkpointError = null;
+      localGhost = null;
+      throw e;
+    }
+    if (
+      command.type !== "heartbeat" ||
+      issuedAt - lastCheckpoint >= 1000 ||
+      m.phase !== "play"
+    ) {
+      checkpoint = copy(m);
+      remember();
+      lastCheckpoint = issuedAt;
+      flushCheckpoint();
+    }
+    if (["settled", "cancelled"].includes(m.phase)) await checkpointTask;
     if (m.phase === "cancelled") {
       await tx(db.ref(ghostRoot), (u) => ({ ...u, activeMatch: null }));
       ghostActive = null;
+      localGhost = null;
+      forget();
     }
     return response(m.phase === "cancelled" ? null : m);
   }
@@ -781,6 +965,8 @@ function create({
           activeMatch: null,
         }));
       ghostActive = null;
+      localGhost = null;
+      forget();
       currentMatch = null;
       return response();
     }
@@ -864,16 +1050,30 @@ function create({
         next.learning[uid] ||= [];
         next.learning[uid].push(rec);
       }
+      next.revision = (raw.revision || 0) + 1;
       return clean(next);
     });
     return response(m);
   }
   return {
     request,
+    async flush() {
+      if (checkpointTask) await checkpointTask;
+      if (checkpointError) throw checkpointError;
+    },
     close() {
       closed = true;
-      pr.off("value", listen);
+      for (const resume of reconnects) resume();
+      reconnects.clear();
+      connectionRef.off("value", connectionListen);
+      profileRef.off("value", ownListen);
     },
   };
 }
-module.exports = { create, ROOT, tx };
+module.exports = {
+  create,
+  ROOT,
+  tx,
+  performance: Perf,
+  olderView: require("./online-state-order.cjs").older,
+};
