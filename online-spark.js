@@ -190,13 +190,15 @@
         if (!s) throw Error("NOT_PARTICIPANT");
         if (cmd.type === "heartbeat") return m;
         if (cmd.type === "cheer") {
-          if (m.ids.includes(cmd.viewer)) throw Error("PLAYER_CANNOT_CHEER");
+          const actor = cmd.actor || cmd.viewer;
+          if (m.ids.includes(actor) || m.ids.includes(cmd.viewer)) throw Error("PLAYER_CANNOT_CHEER");
           m.cheerReceipts || (m.cheerReceipts = {});
-          const id = cmd.viewer + ":" + cmd.seq;
+          const id = actor + ":" + cmd.seq;
           if (m.cheerReceipts[id]) return m;
           const used = Object.values(m.cheerReceipts).filter((x) => x.viewer === cmd.viewer).length;
-          if (used >= 3 || cmd.seq !== used + 1) throw Error("CHEER_LIMIT");
-          m.cheerReceipts[id] = { viewer: cmd.viewer, target: uid };
+          const actorUsed = Object.values(m.cheerReceipts).filter((x) => (x.actor || x.viewer) === actor).length;
+          if (used >= 3 || actorUsed >= 3 || !Number.isInteger(cmd.seq) || cmd.seq < 1 || cmd.seq > 3) throw Error("CHEER_LIMIT");
+          m.cheerReceipts[id] = { viewer: cmd.viewer, actor, target: uid };
           s.cheerPoints = Math.min(30, s.cheerPoints + 10);
           return m;
         }
@@ -1241,7 +1243,15 @@
           m.handled[uid][id] = true;
           if (m.game.result) continue;
           if (!m.game.ids.includes(uid)) {
-            if (c.at >= m.game.startAt && c.type === "cheer" && m.game.ids.includes(c.target) && !Object.values(m.accounts || {}).includes(c.account)) m.game = E.step(m.game, c.target, { type: "cheer", viewer: c.account || uid, seq: c.seq }, Math.max(c.at, m.game.time));
+            if (c.at >= m.game.startAt && c.type === "cheer" && m.game.ids.includes(c.target) && !uid.startsWith("cheer_") && !Object.values(m.accounts || {}).includes(c.account)) {
+              try {
+                m.game = E.step(m.game, c.target, { type: "cheer", viewer: c.account, actor: uid, seq: c.seq }, Math.max(c.at, m.game.time));
+              } catch (e) {
+                if (!["CHEER_LIMIT", "PLAYER_CANNOT_CHEER"].includes(e.message)) throw e;
+                m.rejected || (m.rejected = {});
+                m.rejected[uid] = { seq: c.seq, code: e.message };
+              }
+            }
             continue;
           }
           if (c.type === "leave") {
@@ -2704,6 +2714,7 @@
           try {
             await ref.child("clock").set(stamp());
             const clock = (await ref.child("clock").get()).val();
+            if (closed) return;
             await tx(ref, (raw) => {
               if (!(raw == null ? void 0 : raw.game)) return raw;
               const n = pump(raw, Math.max(clock, raw.game.time));
@@ -2711,7 +2722,7 @@
               return clean(n);
             });
           } catch (e) {
-            onError == null ? void 0 : onError(e);
+            if (!closed) onError == null ? void 0 : onError(e);
           } finally {
             busy = false;
           }
@@ -2719,7 +2730,7 @@
         const timer = isHost ? setInterval(process, 500) : null;
         async function request(command) {
           const input = command.type === "cheer" ? `c${command.seq}` : command.type === "answer" ? `a${command.seq}` : "leave";
-          await tx(ref.child(`inputs/${command.type === "cheer" ? "cheer_" + command.account : uid}/${input}`), (old) => old || clean({ ...command, at: stamp() }));
+          await tx(ref.child(`inputs/${uid}/${input}`), (old) => old || clean({ ...command, at: stamp() }));
           await process();
           return current;
         }

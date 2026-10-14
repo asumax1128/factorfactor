@@ -258,7 +258,7 @@
               "$gid": {
                 ".read": "auth != null",
                 ".write": "auth != null && root.child('games/factor/rooms/' + $code + '/meta/host').val() === auth.uid && newData.exists()",
-                ".validate": "!data.child('game').exists() || newData.child('game').exists() && newData.child('game/id').val() === data.child('game/id').val() && newData.child('game/seed').val() === data.child('game/seed').val() && newData.child('game/startAt').val() === data.child('game/startAt').val() && newData.child('game/endAt').val() === data.child('game/endAt').val()",
+                ".validate": "(!newData.child('game').exists() || newData.child('game/ids').hasChildren(['0','1']) && !newData.child('game/ids/4').exists()) && (!data.child('game').exists() || newData.child('game').exists() && newData.child('game/id').val() === data.child('game/id').val() && newData.child('game/seed').val() === data.child('game/seed').val() && newData.child('game/startAt').val() === data.child('game/startAt').val() && newData.child('game/endAt').val() === data.child('game/endAt').val() && newData.child('game/ids/0').val() === data.child('game/ids/0').val() && newData.child('game/ids/1').val() === data.child('game/ids/1').val() && newData.child('game/ids/2').val() === data.child('game/ids/2').val() && newData.child('game/ids/3').val() === data.child('game/ids/3').val())",
                 "clock": {
                   ".write": "auth != null && root.child('games/factor/rooms/' + $code + '/meta/host').val() === auth.uid",
                   ".validate": "newData.isNumber() && (newData.val() === data.val() || newData.val() === now)"
@@ -266,8 +266,41 @@
                 "inputs": {
                   "$uid": {
                     "$input": {
-                      ".write": "auth != null && (auth.uid === $uid || $uid === ('cheer_' + newData.child('account').val()) && root.child('games/factor/logins/' + newData.child('account').val() + '/' + auth.uid).exists()) && newData.exists()",
-                      ".validate": "newData.hasChildren(['type','at']) && (!data.exists() && (auth.uid === $uid || $uid === ('cheer_' + newData.child('account').val())) && newData.child('at').val() === now && (newData.child('type').val() === 'answer' && root.child('games/factor/rooms/' + $code + '/state/players').hasChild('0') && root.child('games/factor/rooms/' + $code + '/players/' + $uid).exists() || newData.child('type').val() === 'leave' && root.child('games/factor/rooms/' + $code + '/players/' + $uid).exists() || newData.child('type').val() === 'cheer' && root.child('games/factor/logins/' + newData.child('account').val() + '/' + auth.uid).exists() && (!root.child('games/factor/rooms/' + $code + '/state/players/0').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/0').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/1').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/1').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/2').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/2').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/3').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/3').val()).val()) && newData.child('seq').isNumber() && newData.child('seq').val() >= 1 && newData.child('seq').val() <= 3 && newData.child('target').isString()) || data.exists() && newData.child('at').val() === data.child('at').val() && newData.child('type').val() === data.child('type').val() && newData.child('seq').val() === data.child('seq').val() && newData.child('account').val() === data.child('account').val() && newData.child('target').val() === data.child('target').val() && newData.child('question').val() === data.child('question').val() && newData.child('tiles/0').val() === data.child('tiles/0').val() && newData.child('tiles/1').val() === data.child('tiles/1').val())"
+                      "type": {
+                        ".validate": true
+                      },
+                      "at": {
+                        ".validate": true
+                      },
+                      "seq": {
+                        ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 512"
+                      },
+                      "account": {
+                        ".validate": "newData.isString() && newData.val().length <= 80"
+                      },
+                      "target": {
+                        ".validate": "newData.isString() && newData.val().length <= 128"
+                      },
+                      "question": {
+                        ".validate": "newData.isString() && newData.val().length <= 64"
+                      },
+                      "tiles": {
+                        "0": {
+                          ".validate": true
+                        },
+                        "1": {
+                          ".validate": true
+                        },
+                        "$other": {
+                          ".validate": false
+                        },
+                        ".validate": "newData.hasChildren(['0','1']) && newData.child('0').isString() && newData.child('1').isString() && newData.child('0').val().length <= 80 && newData.child('1').val().length <= 80"
+                      },
+                      "$other": {
+                        ".validate": false
+                      },
+                      ".write": "auth != null && auth.uid === $uid && newData.exists()",
+                      ".validate": "newData.hasChildren(['type','at']) && (!data.exists() && auth.uid === $uid && newData.child('at').val() === now && (newData.child('type').val() === 'answer' && (root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/0').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/1').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/2').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/3').val() === auth.uid) && $input === ('a' + newData.child('seq').val()) && now >= root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('startAt').val() || newData.child('type').val() === 'leave' && (root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/0').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/1').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/2').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/3').val() === auth.uid) && $input === 'leave' || newData.child('type').val() === 'cheer' && !(root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/0').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/1').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/2').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('ids/3').val() === auth.uid) && root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').exists() && now >= root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('startAt').val() && now < root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('endAt').val() && !root.child('games/factor/rooms/' + $code + '/b2/' + $gid + '/game').child('result').exists() && $input === ('c' + newData.child('seq').val()) && root.child('games/factor/logins/' + newData.child('account').val() + '/' + auth.uid).exists() && (!root.child('games/factor/rooms/' + $code + '/state/players/0').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/0').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/1').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/1').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/2').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/2').val()).val()) && (!root.child('games/factor/rooms/' + $code + '/state/players/3').exists() || newData.child('account').val() !== root.child('games/factor/rooms/' + $code + '/state/accts/' + root.child('games/factor/rooms/' + $code + '/state/players/3').val()).val()) && newData.child('seq').isNumber() && newData.child('seq').val() >= 1 && newData.child('seq').val() <= 3 && newData.child('target').isString()) || data.exists() && newData.child('at').val() === data.child('at').val() && newData.child('type').val() === data.child('type').val() && newData.child('seq').val() === data.child('seq').val() && newData.child('account').val() === data.child('account').val() && newData.child('target').val() === data.child('target').val() && newData.child('question').val() === data.child('question').val() && newData.child('tiles/0').val() === data.child('tiles/0').val() && newData.child('tiles/1').val() === data.child('tiles/1').val())"
                     }
                   }
                 }

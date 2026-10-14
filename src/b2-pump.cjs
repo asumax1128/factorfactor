@@ -14,7 +14,10 @@ function pump(raw,clock){
    m.handled ||= {};m.handled[uid] ||= {};m.handled[uid][id]=true;
    if(m.game.result)continue;
    if(!m.game.ids.includes(uid)){
-    if(c.at>=m.game.startAt&&c.type==='cheer'&&m.game.ids.includes(c.target)&&!Object.values(m.accounts||{}).includes(c.account))m.game=E.step(m.game,c.target,{type:'cheer',viewer:c.account||uid,seq:c.seq},Math.max(c.at,m.game.time));
+    if(c.at>=m.game.startAt&&c.type==='cheer'&&m.game.ids.includes(c.target)&&!uid.startsWith('cheer_')&&!Object.values(m.accounts||{}).includes(c.account)){
+     try{m.game=E.step(m.game,c.target,{type:'cheer',viewer:c.account,actor:uid,seq:c.seq},Math.max(c.at,m.game.time))}
+     catch(e){if(!['CHEER_LIMIT','PLAYER_CANNOT_CHEER'].includes(e.message))throw e;m.rejected ||= {};m.rejected[uid]={seq:c.seq,code:e.message}}
+    }
     continue;
    }
    if(c.type==='leave'){

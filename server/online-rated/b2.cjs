@@ -75,9 +75,9 @@ function step(raw,uid,cmd,now,bank,api){
   if(!s)throw Error('NOT_PARTICIPANT');
   if(cmd.type==='heartbeat')return m;
   if(cmd.type==='cheer'){
-    if(m.ids.includes(cmd.viewer))throw Error('PLAYER_CANNOT_CHEER');m.cheerReceipts ||= {};const id=cmd.viewer+':'+cmd.seq;
+    const actor=cmd.actor||cmd.viewer;if(m.ids.includes(actor)||m.ids.includes(cmd.viewer))throw Error('PLAYER_CANNOT_CHEER');m.cheerReceipts ||= {};const id=actor+':'+cmd.seq;
     if(m.cheerReceipts[id])return m;const used=Object.values(m.cheerReceipts).filter(x=>x.viewer===cmd.viewer).length;
-    if(used>=3 || cmd.seq!==used+1)throw Error('CHEER_LIMIT');m.cheerReceipts[id]={viewer:cmd.viewer,target:uid};s.cheerPoints=Math.min(30,s.cheerPoints+10);return m;
+    const actorUsed=Object.values(m.cheerReceipts).filter(x=>(x.actor||x.viewer)===actor).length;if(used>=3||actorUsed>=3||!Number.isInteger(cmd.seq)||cmd.seq<1||cmd.seq>3)throw Error('CHEER_LIMIT');m.cheerReceipts[id]={viewer:cmd.viewer,actor,target:uid};s.cheerPoints=Math.min(30,s.cheerPoints+10);return m;
   }
   if(cmd.type==='special')throw Error('FREEZE_IS_AUTOMATIC');
   if(s.hp<=0)throw Error('KO');

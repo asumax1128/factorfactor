@@ -34,6 +34,7 @@ try{
  for(const d of ['normal','hard']){const older={...historical,day:yesterday-1,confirmedAt:historical.confirmedAt-D.DAY};older.sortKey=D.sortKey(older);await env.withSecurityRulesDisabled(ctx=>set(ref(ctx.database(),`${Daily.ROOT}/finals/${yesterday-1}/${d}`),older));await a.db.ref(`${Daily.ROOT}/titles/${a.key}/${D.awardIds[d]}`).set({day:yesterday-1});}
  await a.db.ref(`${Daily.ROOT}/titles/${a.key}/daily_king`).set(true);await a.db.ref(`games/factor/accounts/${a.key}/stats/nick`).set('daily_king');
  // Native SDK room: immutable server timestamps, actual start, input and spectator cap.
+ await env.withSecurityRulesDisabled(ctx=>Promise.all([set(ref(ctx.database(),`games/factor/logins/alias/${a.uid}`),'fixture'),set(ref(ctx.database(),'games/factor/accounts/alias'),{name:'alias'})]));
  const state={gid:'room-test',diff:'easy',seed:'fixture',players:[a.uid,b.uid],accts:{[a.uid]:a.key,[b.uid]:b.key},duration:60};state.startAt=await Room.prepare({db:a.db,code:'1234',state});
  await a.db.ref('games/factor/rooms/1234/state').set({...state,phase:'play',mode:'B',rules:'b2'});
  let av,bv;const host=Room.create({db:a.db,code:'1234',state,uid:a.uid,isHost:true,onView:m=>av=m,onError:e=>{throw e}}),guest=Room.create({db:b.db,code:'1234',state,uid:b.uid,isHost:false,onView:m=>bv=m,onError:e=>{throw e}});
@@ -41,9 +42,13 @@ try{
  const view=E.view(av.game,a.uid),api=E.runtime(av.game).api;let tiles;for(let i=0;i<view.tiles.length;i++)for(let j=i+1;j<view.tiles.length;j++)if(api.polyEqual(api.multiply(view.tiles[i].factor,view.tiles[j].factor),view.poly))tiles=[view.tiles[i].id,view.tiles[j].id];
  await host.request({type:'answer',seq:1,question:view.question,tiles});await sleep(100);assert.equal(av.game.states[a.uid].c,1);assert.equal(bv.game.states[a.uid].score,av.game.states[a.uid].score);
  const inputRef=a.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${a.uid}/a1`);const saved=(await inputRef.get()).val();await assertFails(inputRef.set({...saved,at:saved.at+1000}));
- for(let seq=1;seq<=3;seq++)await v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/cheer_${v.key}/c${seq}`).set({type:'cheer',account:v.key,target:a.uid,seq,at:firebase.database.ServerValue.TIMESTAMP});await sleep(250);await host.process();assert.equal(av.game.states[a.uid].cheerPoints,30);
- await assertFails(v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/cheer_${v.key}/c4`).set({type:'cheer',account:v.key,target:a.uid,seq:4,at:firebase.database.ServerValue.TIMESTAMP}));
- await assertFails(a.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/cheer_${a.key}/c1`).set({type:'cheer',account:a.key,target:b.uid,seq:1,at:firebase.database.ServerValue.TIMESTAMP}));host.close();guest.close();
- console.log('v5.24 actual Firebase SDK: daily concurrency, immutable proofs, awards, room sync and spectator denial passed');
+ for(const seq of [3,1,2])await v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/c${seq}`).set({type:'cheer',account:v.key,target:a.uid,seq,at:firebase.database.ServerValue.TIMESTAMP});await sleep(250);await host.process();assert.equal(av.game.states[a.uid].cheerPoints,30);
+ await assertFails(v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/c4`).set({type:'cheer',account:v.key,target:a.uid,seq:4,at:firebase.database.ServerValue.TIMESTAMP}));
+ await assertFails(a.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${a.uid}/c1`).set({type:'cheer',account:a.key,target:b.uid,seq:1,at:firebase.database.ServerValue.TIMESTAMP}));host.close();guest.close();
+ await assertFails(a.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${a.uid}/c1`).set({type:'cheer',account:'alias',target:b.uid,seq:1,at:firebase.database.ServerValue.TIMESTAMP}));
+ await assertFails(v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/other`).set({type:'cheer',account:v.key,target:a.uid,seq:1,at:firebase.database.ServerValue.TIMESTAMP}));
+ await assertFails(v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/c1`).update({payload:'not-an-input-field'}));
+ console.log('PASS participant alias/UID spoof and surplus spectator payload denial');
+ console.log('v5.25 actual Firebase SDK: daily concurrency, immutable proofs, awards, room sync and spectator denial passed');
 }finally{await Promise.all(users.map(u=>u.app.delete()));await env.cleanup()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>setTimeout(()=>process.exit(process.exitCode||0),100));

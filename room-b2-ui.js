@@ -3,14 +3,15 @@
     root.RoomB2Factory = function(H) {
       const { useState, useRef, useEffect } = React;
       function App(props) {
+        var _a;
         const { code, state, players, isHost, acct, spectator, onLeave, muted, setMuted } = props, uid = H.FB.uid;
         const [raw, setRaw] = useState(null), [time, setTime] = useState(H.now()), [err, setErr] = useState(""), [feedback, setFeedback] = useState(null), [pending, setPending] = useState(false), [target, setTarget] = useState(state.players.find((u) => u !== uid));
         const transport = useRef(null), sequence = useRef(0), pendingSeq = useRef(0), answerLock = useRef(false), feedbackTimer = useRef(null);
         useEffect(() => {
           const c = root.RoomB2.create({ db: H.FB.db, code, state, uid, isHost, onView: (r) => {
-            var _a;
+            var _a2;
             setRaw(r);
-            sequence.current = ((_a = r.game.seq) == null ? void 0 : _a[uid]) || 0;
+            sequence.current = ((_a2 = r.game.seq) == null ? void 0 : _a2[uid]) || 0;
             if (sequence.current >= pendingSeq.current) {
               answerLock.current = false;
               setPending(false);
@@ -30,8 +31,8 @@
         const g = raw.game;
         if (raw.phase === "cancelled") return /* @__PURE__ */ React.createElement("main", { className: "or-app" }, /* @__PURE__ */ React.createElement("p", null, "\u958B\u59CB\u524D\u306B\u4E2D\u6B62\u3057\u307E\u3057\u305F\u3002\u6557\u5317\u306B\u306F\u306A\u308A\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("button", { onClick: onLeave }, "\u623B\u308B"));
         if (spectator) {
-          const used = Object.values(g.cheerReceipts || {}).filter((r) => r.viewer === (acct == null ? void 0 : acct.key)).length;
-          return /* @__PURE__ */ React.createElement("main", { className: "or-app" }, /* @__PURE__ */ React.createElement("h1", null, "\u89B3\u6226\u30FBB\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "\u6B8B\u308A", Math.max(0, (g.endAt - time) / 1e3).toFixed(1), "\u79D2"), g.ids.map((u) => /* @__PURE__ */ React.createElement("section", { key: u }, /* @__PURE__ */ React.createElement("h2", null, state.names[u]), /* @__PURE__ */ React.createElement("p", null, g.states[u].score, "\u70B9\u30FBHP ", Math.round(g.states[u].hp), "%\u30FB\u304A\u90AA\u9B54", g.states[u].cur.oj, "\u679A\u30FB\u5FDC\u63F4", g.states[u].cheerPoints, "pt"), /* @__PURE__ */ React.createElement("button", { disabled: !(acct == null ? void 0 : acct.key) || used >= 3 || !!g.result || time < g.startAt, onClick: () => transport.current.request({ type: "cheer", account: acct.key, target: u, seq: used + 1 }).catch((e) => setErr(e.message)) }, "\u5FDC\u63F4\uFF0B10pt\uFF08\u6B8B\u308A", 3 - used, "\u56DE\uFF09"))), g.result && /* @__PURE__ */ React.createElement("p", null, g.result.draw ? "\u5F15\u304D\u5206\u3051" : `${state.names[g.result.winner]}\u306E\u52DD\u5229`), err && /* @__PURE__ */ React.createElement("p", { role: "alert" }, err), /* @__PURE__ */ React.createElement("button", { onClick: onLeave }, "\u89B3\u6226\u3092\u7D42\u4E86"));
+          const slots = Object.keys(((_a = raw.inputs) == null ? void 0 : _a[uid]) || {}).filter((k) => /^c[1-3]$/.test(k)), used = Math.max(slots.length, Object.values(g.cheerReceipts || {}).filter((r) => r.viewer === (acct == null ? void 0 : acct.key)).length), next = [1, 2, 3].find((n) => !slots.includes("c" + n));
+          return /* @__PURE__ */ React.createElement("main", { className: "or-app" }, /* @__PURE__ */ React.createElement("h1", null, "\u89B3\u6226\u30FBB\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "\u6B8B\u308A", Math.max(0, (g.endAt - time) / 1e3).toFixed(1), "\u79D2"), g.ids.map((u) => /* @__PURE__ */ React.createElement("section", { key: u }, /* @__PURE__ */ React.createElement("h2", null, state.names[u]), /* @__PURE__ */ React.createElement("p", null, g.states[u].score, "\u70B9\u30FBHP ", Math.round(g.states[u].hp), "%\u30FB\u304A\u90AA\u9B54", g.states[u].cur.oj, "\u679A\u30FB\u5FDC\u63F4", g.states[u].cheerPoints, "pt"), /* @__PURE__ */ React.createElement("button", { disabled: !(acct == null ? void 0 : acct.key) || used >= 3 || g.states[u].hp <= 0 || !!g.result || time < g.startAt, onClick: () => transport.current.request({ type: "cheer", account: acct.key, target: u, seq: next }).catch((e) => setErr(e.message)) }, "\u5FDC\u63F4\uFF0B10pt\uFF08\u6B8B\u308A", 3 - used, "\u56DE\uFF09"))), g.result && /* @__PURE__ */ React.createElement("p", null, g.result.draw ? "\u5F15\u304D\u5206\u3051" : `${state.names[g.result.winner]}\u306E\u52DD\u5229`), err && /* @__PURE__ */ React.createElement("p", { role: "alert" }, err), /* @__PURE__ */ React.createElement("button", { onClick: onLeave }, "\u89B3\u6226\u3092\u7D42\u4E86"));
         }
         if (g.result) return /* @__PURE__ */ React.createElement(H.Final, { ...props, state: { ...state, b2Final: g } });
         const view = transport.current.view(raw);

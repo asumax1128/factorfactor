@@ -8,8 +8,8 @@
   if(!raw?.game)return <main className="or-app"><p>対戦を同期しています…</p><button onClick={onLeave}>戻る</button>{err&&<p role="alert">{err}</p>}</main>;
   const g=raw.game;
   if(raw.phase==='cancelled')return <main className="or-app"><p>開始前に中止しました。敗北にはなりません。</p><button onClick={onLeave}>戻る</button></main>;
-  if(spectator){const used=Object.values(g.cheerReceipts||{}).filter(r=>r.viewer===acct?.key).length;
-   return <main className="or-app"><h1>観戦・B方式</h1><p>残り{Math.max(0,(g.endAt-time)/1000).toFixed(1)}秒</p>{g.ids.map(u=><section key={u}><h2>{state.names[u]}</h2><p>{g.states[u].score}点・HP {Math.round(g.states[u].hp)}%・お邪魔{g.states[u].cur.oj}枚・応援{g.states[u].cheerPoints}pt</p><button disabled={!acct?.key||used>=3||!!g.result||time<g.startAt} onClick={()=>transport.current.request({type:'cheer',account:acct.key,target:u,seq:used+1}).catch(e=>setErr(e.message))}>応援＋10pt（残り{3-used}回）</button></section>)}{g.result&&<p>{g.result.draw?'引き分け':`${state.names[g.result.winner]}の勝利`}</p>}{err&&<p role="alert">{err}</p>}<button onClick={onLeave}>観戦を終了</button></main>;
+  if(spectator){const slots=Object.keys(raw.inputs?.[uid]||{}).filter(k=>/^c[1-3]$/.test(k)),used=Math.max(slots.length,Object.values(g.cheerReceipts||{}).filter(r=>r.viewer===acct?.key).length),next=[1,2,3].find(n=>!slots.includes('c'+n));
+   return <main className="or-app"><h1>観戦・B方式</h1><p>残り{Math.max(0,(g.endAt-time)/1000).toFixed(1)}秒</p>{g.ids.map(u=><section key={u}><h2>{state.names[u]}</h2><p>{g.states[u].score}点・HP {Math.round(g.states[u].hp)}%・お邪魔{g.states[u].cur.oj}枚・応援{g.states[u].cheerPoints}pt</p><button disabled={!acct?.key||used>=3||g.states[u].hp<=0||!!g.result||time<g.startAt} onClick={()=>transport.current.request({type:'cheer',account:acct.key,target:u,seq:next}).catch(e=>setErr(e.message))}>応援＋10pt（残り{3-used}回）</button></section>)}{g.result&&<p>{g.result.draw?'引き分け':`${state.names[g.result.winner]}の勝利`}</p>}{err&&<p role="alert">{err}</p>}<button onClick={onLeave}>観戦を終了</button></main>;
   }
   if(g.result)return <H.Final {...props} state={{...state,b2Final:g}}/>;
   const view=transport.current.view(raw);
