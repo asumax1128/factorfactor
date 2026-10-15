@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "所有者提供 全100称号 2026-10-15",
-  "status": "pending-reveal-approval",
+  "status": "blocked-star-count",
   "expectedNormalCount": 100,
   "expectedFiveStarCount": 26,
   "excludedAwardModes": [
@@ -660,7 +660,7 @@
       "legacyNumber": 22,
       "name": "勝利の王冠",
       "condition": "クラス大会で初優勝",
-      "stars": 5,
+      "stars": 4,
       "id": "tour1",
       "legacyId": "tour1",
       "category": "大会"
@@ -668,7 +668,7 @@
     {
       "number": 66,
       "legacyNumber": 97,
-      "name": "王座防衛",
+      "name": "王者防衛",
       "condition": "クラス大会2大会連続優勝（欠場で連覇が途切れる）",
       "stars": 5,
       "id": "tour_streak2",
@@ -1019,6 +1019,9 @@
   "ownerClarifications": {
     "attackNullificationMetric": "distinct-attack-events",
     "legacyNullificationAmountsMustNotBecomeEventCounts": true,
-    "promotedToFiveStar": 65
+    "withdrawnFiveStarPromotion": 65,
+    "nameCorrections": {
+      "66": "王者防衛"
+    }
   }
 }
