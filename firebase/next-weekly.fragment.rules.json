@@ -1,0 +1,58 @@
+{
+  ".read": false,
+  ".write": false,
+  "clock": {
+    "$uid": {
+      ".read": "auth != null && auth.uid === $uid",
+      ".write": "auth != null && auth.uid === $uid && newData.exists()",
+      ".validate": "newData.isNumber() && newData.val() === now"
+    }
+  },
+  "attempts": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      "$day": {
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['slots']) && (!data.child('slots/0').exists() || newData.child('slots/0').exists()) && (!data.child('slots/1').exists() || newData.child('slots/1').exists()) && (!data.child('slots/2').exists() || newData.child('slots/2').exists()) && (!data.child('slots/3').exists() || newData.child('slots/3').exists()) && (!data.child('slots/4').exists() || newData.child('slots/4').exists()) && (!newData.child('slots/0/id').exists() || !newData.child('slots/1/id').exists() || newData.child('slots/0/id').val() !== newData.child('slots/1/id').val()) && (!newData.child('slots/0/id').exists() || !newData.child('slots/2/id').exists() || newData.child('slots/0/id').val() !== newData.child('slots/2/id').val()) && (!newData.child('slots/0/id').exists() || !newData.child('slots/3/id').exists() || newData.child('slots/0/id').val() !== newData.child('slots/3/id').val()) && (!newData.child('slots/0/id').exists() || !newData.child('slots/4/id').exists() || newData.child('slots/0/id').val() !== newData.child('slots/4/id').val()) && (!newData.child('slots/1/id').exists() || !newData.child('slots/2/id').exists() || newData.child('slots/1/id').val() !== newData.child('slots/2/id').val()) && (!newData.child('slots/1/id').exists() || !newData.child('slots/3/id').exists() || newData.child('slots/1/id').val() !== newData.child('slots/3/id').val()) && (!newData.child('slots/1/id').exists() || !newData.child('slots/4/id').exists() || newData.child('slots/1/id').val() !== newData.child('slots/4/id').val()) && (!newData.child('slots/2/id').exists() || !newData.child('slots/3/id').exists() || newData.child('slots/2/id').val() !== newData.child('slots/3/id').val()) && (!newData.child('slots/2/id').exists() || !newData.child('slots/4/id').exists() || newData.child('slots/2/id').val() !== newData.child('slots/4/id').val()) && (!newData.child('slots/3/id').exists() || !newData.child('slots/4/id').exists() || newData.child('slots/3/id').val() !== newData.child('slots/4/id').val())",
+        "slots": {
+          "$slot": {
+            ".validate": "($slot === '0' || $slot === '1' || $slot === '2' || $slot === '3' || $slot === '4') && newData.hasChildren(['id','uid','role','at']) && newData.child('id').isString() && newData.child('id').val().matches(/^[A-Za-z0-9_-]{1,64}$/) && (newData.child('role').val() === 'atk' || newData.child('role').val() === 'sup') && (data.exists() && newData.child('id').val() === data.child('id').val() && newData.child('uid').val() === data.child('uid').val() && newData.child('role').val() === data.child('role').val() && newData.child('at').val() === data.child('at').val() && (!data.child('finish').exists() || newData.child('finish').exists()) || !data.exists() && $day === (((now + 32400000 - (now + 32400000) % 86400000) / 86400000) + '') && newData.child('uid').val() === auth.uid && newData.child('at').val() === now)",
+            "finish": {
+              ".validate": "newData.hasChildren(['id','at','completed']) && newData.child('id').val() === newData.parent().child('id').val() && newData.child('completed').val() === true && (data.exists() && newData.child('id').val() === data.child('id').val() && newData.child('at').val() === data.child('at').val() || !data.exists() && newData.child('at').val() === now && now >= newData.parent().child('at').val())",
+              "id": {
+                ".validate": true
+              },
+              "at": {
+                ".validate": true
+              },
+              "completed": {
+                ".validate": true
+              },
+              "$other": {
+                ".validate": false
+              }
+            },
+            "$other": {
+              ".validate": false
+            },
+            "id": {
+              ".validate": true
+            },
+            "uid": {
+              ".validate": true
+            },
+            "role": {
+              ".validate": true
+            },
+            "at": {
+              ".validate": true
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

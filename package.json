@@ -44,7 +44,8 @@
     "test:next-results": "node --test tests/b-result.test.cjs && node tests/next-results-browser.cjs && node tests/b-result-flow-browser.cjs",
     "test:local-b2": "node --test tests/local-b2-bots.test.cjs && node tests/local-b2-browser.cjs",
     "test:next-spectator": "node tests/next-spectator-browser.cjs",
-    "test:next-menus": "node tests/next-menu-shell-browser.cjs"
+    "test:next-menus": "node tests/next-menu-shell-browser.cjs",
+    "test:weekly-next": "node --test tests/weekly-next.test.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
