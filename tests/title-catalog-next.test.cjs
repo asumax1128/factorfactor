@@ -18,8 +18,12 @@ test('owner supplied normal catalog has exactly 1..100, distinct old numbers and
   assert.equal(catalog.titles.filter(t => t.legacyId).length, 90);
   assert(!catalog.titles.some(t => /^tw\d+$/.test(t.id)));
 });
-test('25 supplied five-star titles are reported as a blocking mismatch, never silently promoted', () => {
-  const r = validateCatalog(catalog);
+test('approved No.65 promotion yields 26 five-star titles; an incorrect roster is still blocked', () => {
+  assert.equal(validateCatalog(catalog).valid, true);
+  assert.equal(validateCatalog(catalog).fiveStarCount, 26);
+  assert.equal(catalog.titles.find(t => t.number === 65).stars, 5);
+  const invalid = copy(catalog); invalid.titles.find(t => t.number === 65).stars = 4;
+  const r = validateCatalog(invalid);
   assert.equal(r.fiveStarCount, 25);
   assert.equal(r.valid, false);
   assert.deepEqual(r.errors, ['FIVE_STAR_COUNT']);
@@ -39,8 +43,8 @@ test('unknown parents, duplicate plans, missing stages and cycles are rejected',
   assert(validateRevealPlan(catalog, [...plan, plan[0]]).errors.includes('REVEAL_ID'));
 });
 test('review gate requires both the corrected roster and explicit reveal approval', () => {
-  // Synthetic fixture only; it does not modify the owner catalog or select a real promotion.
-  const c = copy(catalog), p = copy(plan); c.titles.find(t => t.id === 'dual50').stars = 5;
+  // Approval fixture only; it does not modify the owner catalog or approve real reveal rules.
+  const c = copy(catalog), p = copy(plan);
   assert.equal(validateCatalog(c).valid, true);
   assert.throws(() => assertReady(c, p), /TITLE_SPEC_NOT_APPROVED/);
   c.status = 'approved'; p.forEach(x => { x.status = 'approved'; });
