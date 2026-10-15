@@ -41,6 +41,7 @@ try{
  await sleep(Math.max(0,state.startAt-Date.now())+50);await host.process();await sleep(100);
  const view=E.view(av.game,a.uid),api=E.runtime(av.game).api;let tiles;for(let i=0;i<view.tiles.length;i++)for(let j=i+1;j<view.tiles.length;j++)if(api.polyEqual(api.multiply(view.tiles[i].factor,view.tiles[j].factor),view.poly))tiles=[view.tiles[i].id,view.tiles[j].id];
  await host.request({type:'answer',seq:1,question:view.question,tiles});await sleep(100);assert.equal(av.game.states[a.uid].c,1);assert.equal(bv.game.states[a.uid].score,av.game.states[a.uid].score);
+ assert.deepEqual(av.game.scoreTrace,bv.game.scoreTrace,'both SDK clients see the same committed score revision');assert.equal(av.game.scoreTrace.seq,1);assert.equal(av.game.scoreTrace.events[1].scores[a.uid],av.game.states[a.uid].score);
  const inputRef=a.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${a.uid}/a1`);const saved=(await inputRef.get()).val();await assertFails(inputRef.set({...saved,at:saved.at+1000}));
  for(const seq of [3,1,2])await v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/c${seq}`).set({type:'cheer',account:v.key,target:a.uid,seq,at:firebase.database.ServerValue.TIMESTAMP});await sleep(250);await host.process();assert.equal(av.game.states[a.uid].cheerPoints,30);
  await assertFails(v.db.ref(`games/factor/rooms/1234/b2/room-test/inputs/${v.uid}/c4`).set({type:'cheer',account:v.key,target:a.uid,seq:4,at:firebase.database.ServerValue.TIMESTAMP}));

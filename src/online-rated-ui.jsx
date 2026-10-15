@@ -318,6 +318,7 @@
               獲得EXP <b>+{m.exp || 0}</b>
             </div>
           )}
+          {m.rules === "b2" && root.NextResults && <root.NextResults.BDetails report={m.bResult} me={m.selfUid} names={Object.fromEntries((m.members||[]).map(u=>[u.uid,u.uid==='_ghost'?m.opponent?.name:u.name]))}/>}
           {m.mode === "A" && <H.AResultDetails report={m.aResult} me={m.selfUid} names={Object.fromEntries((m.members||[]).map(u=>[u.uid,u.uid==='_ghost'?m.opponent?.name:u.name]))} />}
           {badges.length > 0 && (
             <div className="or-new-title" data-new-title="1">

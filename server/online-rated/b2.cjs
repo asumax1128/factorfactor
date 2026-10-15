@@ -4,6 +4,8 @@ const POINTS = {1:10,2:12,3:14,4:16,5:18,6:20,7:30,8:40,9:50};
 const heal = ms => ms<=2000?25:ms<=3000?20:ms<=5000?15:ms<=10000?10:ms<=15000?5:2;
 const cap = d => d==='easy'?6:3;
 function event(m,uid,type,payload){m.visualEvents ||= [];m.visualSeq=(m.visualSeq||0)+1;m.visualEvents.push({id:m.visualSeq,uid,type,payload});m.visualEvents=m.visualEvents.slice(-32)}
+// Additive, match-scoped record; old in-flight games deliberately remain without a trace.
+function scoreEvent(m,uid,gain){if(!m.scoreTrace)return;const t=m.scoreTrace;t.seq++;t.events.push({id:t.seq,at:m.time,uid,gain,scores:Object.fromEntries(m.ids.map(u=>[u,m.states[u].score]))});}
 function board(m,s,bank,api,at){
   const lv=bank.level(s.c+1),k=s.served[lv]||0;s.served[lv]=k+1;
   const b=bank.get(lv,k),tiles=copy(b.tiles);
@@ -24,6 +26,7 @@ function begin(base,duration,bank,api){
   const m=copy(base);m.rules='b2';m.duration=duration;m.endAt=m.startAt+duration*1000;m.visualEvents=[];
   m.states=Object.fromEntries(m.ids.map(u=>[u,{hp:100,c:0,score:0,combo:0,best:0,gauge:0,sp:0,freezeUntil:0,oj:0,queued:0,pending:0,counterUntil:0,cheerPoints:0,cheerRemoved:0,serial:0,served:{},hist:[],resolving:false,nextAt:null}]));
   for(const u of m.ids)board(m,m.states[u],bank,api,m.startAt);
+  m.scoreTrace={version:1,complete:true,seq:0,events:[{id:0,at:m.startAt,scores:Object.fromEntries(m.ids.map(u=>[u,0]))}]};
   return m;
 }
 function finish(m,reason){
@@ -96,6 +99,7 @@ function step(raw,uid,cmd,now,bank,api){
     if(arrived){s.ojSent=(s.ojSent||0)+arrived;if(!o.pending)o.counterUntil=now+3000;o.pending+=arrived;event(m,to,'incoming',{oj:arrived,until:o.counterUntil})}
     if(s.combo>=2&&s.gauge<100)s.gauge=Math.min(100,s.gauge+s.cur.level*3);s.sp=s.gauge;
     s.hist.push({lv:s.cur.level,k:s.cur.k,ok:true,ms,j:api.getJudgment(ms).label,gain:P+bonus,base:P,bonus,oj:s.cur.oj});
+    scoreEvent(m,uid,P+bonus);
     if(ms<=2000)s.perfects=(s.perfects||0)+1;
     automatic(m);
   }else{s.combo=0;const dmg=m.difficulty==='easy'?20:25;s.dmgTaken=(s.dmgTaken||0)+dmg;s.hp=Math.max(0,s.hp-dmg);s.minHp=Math.min(s.minHp??100,s.hp);s.hist.push({lv:s.cur.level,k:s.cur.k,ok:false,ms});}

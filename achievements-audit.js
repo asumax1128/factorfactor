@@ -12,11 +12,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7397",
-    "judge": "index.html:7397; src/daily-client.cjs:43",
+    "definition": "index.html:7403",
+    "judge": "index.html:7403; src/daily-client.cjs:43",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7397; src/daily-client.cjs:43",
+    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7403; src/daily-client.cjs:43",
     "relation": "単条件"
   },
   {
@@ -31,11 +31,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7397",
-    "judge": "index.html:7397; src/daily-client.cjs:43",
+    "definition": "index.html:7403",
+    "judge": "index.html:7403; src/daily-client.cjs:43",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7397; src/daily-client.cjs:43",
+    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7403; src/daily-client.cjs:43",
     "relation": "単条件"
   },
   {
@@ -50,11 +50,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7397",
-    "judge": "index.html:7397; src/daily-client.cjs:43",
+    "definition": "index.html:7403",
+    "judge": "index.html:7403; src/daily-client.cjs:43",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7397; src/daily-client.cjs:43",
+    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7403; src/daily-client.cjs:43",
     "relation": "単条件"
   },
   {
@@ -69,11 +69,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7397",
-    "judge": "index.html:7397; src/daily-client.cjs:43",
+    "definition": "index.html:7403",
+    "judge": "index.html:7403; src/daily-client.cjs:43",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7397; src/daily-client.cjs:43",
+    "writers": "firebase/daily-v2-rules.cjs（順位証明）; index.html:7403; src/daily-client.cjs:43",
     "relation": "単条件"
   },
   {
@@ -88,11 +88,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7400",
-    "judge": "index.html:7400",
+    "definition": "index.html:7406",
+    "judge": "index.html:7406",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10304; index.html:10305; index.html:7777; index.html:7400",
+    "writers": "index.html:10310; index.html:10311; index.html:7783; index.html:7406",
     "relation": "単条件"
   },
   {
@@ -107,11 +107,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7401",
-    "judge": "index.html:7401",
+    "definition": "index.html:7407",
+    "judge": "index.html:7407",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7777; index.html:7401",
+    "writers": "index.html:7783; index.html:7407",
     "relation": "単条件"
   },
   {
@@ -126,11 +126,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7402",
-    "judge": "index.html:7402",
+    "definition": "index.html:7408",
+    "judge": "index.html:7408",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7786; index.html:7777; index.html:7402",
+    "writers": "index.html:7792; index.html:7783; index.html:7408",
     "relation": "単条件"
   },
   {
@@ -145,11 +145,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7403",
-    "judge": "index.html:7403",
+    "definition": "index.html:7409",
+    "judge": "index.html:7409",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7777; index.html:7403",
+    "writers": "index.html:7796; index.html:7783; index.html:7409",
     "relation": "単条件"
   },
   {
@@ -164,11 +164,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7404",
-    "judge": "index.html:7404",
+    "definition": "index.html:7410",
+    "judge": "index.html:7410",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7777; index.html:7404",
+    "writers": "index.html:7796; index.html:7783; index.html:7410",
     "relation": "単条件"
   },
   {
@@ -183,11 +183,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7405",
-    "judge": "index.html:7405",
+    "definition": "index.html:7411",
+    "judge": "index.html:7411",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7777; index.html:7405",
+    "writers": "index.html:7783; index.html:7411",
     "relation": "AND"
   },
   {
@@ -202,11 +202,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7406",
-    "judge": "index.html:7406",
+    "definition": "index.html:7412",
+    "judge": "index.html:7412",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7777; index.html:7406",
+    "writers": "index.html:7808; index.html:7783; index.html:7412",
     "relation": "単条件"
   },
   {
@@ -221,11 +221,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7407",
-    "judge": "index.html:7407",
+    "definition": "index.html:7413",
+    "judge": "index.html:7413",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7777; index.html:7407",
+    "writers": "index.html:7808; index.html:7783; index.html:7413",
     "relation": "単条件"
   },
   {
@@ -240,11 +240,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7408",
-    "judge": "index.html:7408",
+    "definition": "index.html:7414",
+    "judge": "index.html:7414",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7777; index.html:7408",
+    "writers": "index.html:7808; index.html:7783; index.html:7414",
     "relation": "単条件"
   },
   {
@@ -259,11 +259,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7409",
-    "judge": "index.html:7409",
+    "definition": "index.html:7415",
+    "judge": "index.html:7415",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7777; index.html:7409",
+    "writers": "index.html:7810; index.html:7783; index.html:7415",
     "relation": "単条件"
   },
   {
@@ -278,11 +278,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7410",
-    "judge": "index.html:7410",
+    "definition": "index.html:7416",
+    "judge": "index.html:7416",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7777; index.html:7410",
+    "writers": "index.html:7810; index.html:7783; index.html:7416",
     "relation": "単条件"
   },
   {
@@ -297,11 +297,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7411",
-    "judge": "index.html:7411",
+    "definition": "index.html:7417",
+    "judge": "index.html:7417",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7777; index.html:7411",
+    "writers": "index.html:7810; index.html:7783; index.html:7417",
     "relation": "単条件"
   },
   {
@@ -316,11 +316,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7412",
-    "judge": "index.html:7412",
+    "definition": "index.html:7418",
+    "judge": "index.html:7418",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7777; index.html:7412",
+    "writers": "index.html:7810; index.html:7783; index.html:7418",
     "relation": "単条件"
   },
   {
@@ -335,11 +335,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7413",
-    "judge": "index.html:7413",
+    "definition": "index.html:7419",
+    "judge": "index.html:7419",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7804; index.html:7777; index.html:7413",
+    "writers": "index.html:7810; index.html:7783; index.html:7419",
     "relation": "単条件"
   },
   {
@@ -354,11 +354,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7414",
-    "judge": "index.html:7414",
+    "definition": "index.html:7420",
+    "judge": "index.html:7420",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7805; index.html:7777; index.html:7414",
+    "writers": "index.html:7811; index.html:7783; index.html:7420",
     "relation": "単条件"
   },
   {
@@ -373,11 +373,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7415",
-    "judge": "index.html:7415",
+    "definition": "index.html:7421",
+    "judge": "index.html:7421",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7805; index.html:7777; index.html:7415",
+    "writers": "index.html:7811; index.html:7783; index.html:7421",
     "relation": "単条件"
   },
   {
@@ -392,11 +392,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7416",
-    "judge": "index.html:7416",
+    "definition": "index.html:7422",
+    "judge": "index.html:7422",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7777; index.html:7416",
+    "writers": "index.html:7826; index.html:7783; index.html:7422",
     "relation": "単条件"
   },
   {
@@ -411,11 +411,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7417",
-    "judge": "index.html:7417",
+    "definition": "index.html:7423",
+    "judge": "index.html:7423",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7777; index.html:7417",
+    "writers": "index.html:7827; index.html:7783; index.html:7423",
     "relation": "単条件"
   },
   {
@@ -430,11 +430,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7418",
-    "judge": "index.html:7418",
+    "definition": "index.html:7424",
+    "judge": "index.html:7424",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7777; index.html:7418",
+    "writers": "index.html:7827; index.html:7783; index.html:7424",
     "relation": "単条件"
   },
   {
@@ -449,11 +449,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7419",
-    "judge": "index.html:7419",
+    "definition": "index.html:7425",
+    "judge": "index.html:7425",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9894; index.html:9911; index.html:7777; index.html:7419",
+    "writers": "index.html:9900; index.html:9917; index.html:7783; index.html:7425",
     "relation": "AND"
   },
   {
@@ -468,11 +468,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7420",
-    "judge": "index.html:7420",
+    "definition": "index.html:7426",
+    "judge": "index.html:7426",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9895; index.html:9912; index.html:7777; index.html:7420",
+    "writers": "index.html:9901; index.html:9918; index.html:7783; index.html:7426",
     "relation": "単条件"
   },
   {
@@ -487,11 +487,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7421",
-    "judge": "index.html:7421",
+    "definition": "index.html:7427",
+    "judge": "index.html:7427",
     "availability": "取得可能",
     "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
-    "writers": "index.html:9898; index.html:7777; index.html:7421",
+    "writers": "index.html:9904; index.html:7783; index.html:7427",
     "relation": "単条件"
   },
   {
@@ -506,11 +506,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7422",
-    "judge": "index.html:7422",
+    "definition": "index.html:7428",
+    "judge": "index.html:7428",
     "availability": "取得可能",
     "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
-    "writers": "index.html:9899; index.html:7777; index.html:7422",
+    "writers": "index.html:9905; index.html:7783; index.html:7428",
     "relation": "単条件"
   },
   {
@@ -525,11 +525,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7423",
-    "judge": "index.html:7423",
+    "definition": "index.html:7429",
+    "judge": "index.html:7429",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8258; index.html:9896; index.html:7777; index.html:7423",
+    "writers": "index.html:8264; index.html:9902; index.html:7783; index.html:7429",
     "relation": "単条件"
   },
   {
@@ -544,11 +544,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7424",
-    "judge": "index.html:7424",
+    "definition": "index.html:7430",
+    "judge": "index.html:7430",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8255; index.html:9896; index.html:7777; index.html:7424",
+    "writers": "index.html:8261; index.html:9902; index.html:7783; index.html:7430",
     "relation": "単条件"
   },
   {
@@ -563,11 +563,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7425",
-    "judge": "index.html:7425",
+    "definition": "index.html:7431",
+    "judge": "index.html:7431",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9896; index.html:7777; index.html:7425",
+    "writers": "index.html:9902; index.html:7783; index.html:7431",
     "relation": "単条件"
   },
   {
@@ -582,11 +582,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7426",
-    "judge": "index.html:7426",
+    "definition": "index.html:7432",
+    "judge": "index.html:7432",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9920; index.html:7777; index.html:7426",
+    "writers": "index.html:9926; index.html:7783; index.html:7432",
     "relation": "単条件"
   },
   {
@@ -601,11 +601,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7427",
-    "judge": "index.html:7427",
+    "definition": "index.html:7433",
+    "judge": "index.html:7433",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9906; index.html:7777; index.html:7427",
+    "writers": "index.html:9912; index.html:7783; index.html:7433",
     "relation": "単条件"
   },
   {
@@ -620,11 +620,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7428",
-    "judge": "index.html:7428",
+    "definition": "index.html:7434",
+    "judge": "index.html:7434",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9915; index.html:7777; index.html:7428",
+    "writers": "index.html:9921; index.html:7783; index.html:7434",
     "relation": "単条件"
   },
   {
@@ -639,11 +639,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7429",
-    "judge": "index.html:7429",
+    "definition": "index.html:7435",
+    "judge": "index.html:7435",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9897; index.html:9914; index.html:7777; index.html:7429",
+    "writers": "index.html:9903; index.html:9920; index.html:7783; index.html:7435",
     "relation": "単条件"
   },
   {
@@ -658,11 +658,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7430",
-    "judge": "index.html:7430",
+    "definition": "index.html:7436",
+    "judge": "index.html:7436",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9913; index.html:9917; index.html:7777; index.html:7430",
+    "writers": "index.html:9919; index.html:9923; index.html:7783; index.html:7436",
     "relation": "単条件"
   },
   {
@@ -677,11 +677,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7431",
-    "judge": "index.html:7431",
+    "definition": "index.html:7437",
+    "judge": "index.html:7437",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9921; index.html:7777; index.html:7431",
+    "writers": "index.html:9927; index.html:7783; index.html:7437",
     "relation": "単条件"
   },
   {
@@ -696,11 +696,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7432",
-    "judge": "index.html:7432",
+    "definition": "index.html:7438",
+    "judge": "index.html:7438",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7786; index.html:7777; index.html:7432",
+    "writers": "index.html:7792; index.html:7783; index.html:7438",
     "relation": "単条件"
   },
   {
@@ -715,11 +715,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7433",
-    "judge": "index.html:7433",
+    "definition": "index.html:7439",
+    "judge": "index.html:7439",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7777; index.html:7433",
+    "writers": "index.html:7826; index.html:7783; index.html:7439",
     "relation": "単条件"
   },
   {
@@ -734,11 +734,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7434",
-    "judge": "index.html:7434",
+    "definition": "index.html:7440",
+    "judge": "index.html:7440",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7777; index.html:7434",
+    "writers": "index.html:7826; index.html:7783; index.html:7440",
     "relation": "単条件"
   },
   {
@@ -753,11 +753,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7435",
-    "judge": "index.html:7435",
+    "definition": "index.html:7441",
+    "judge": "index.html:7441",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9895; index.html:9912; index.html:7777; index.html:7435",
+    "writers": "index.html:9901; index.html:9918; index.html:7783; index.html:7441",
     "relation": "単条件"
   },
   {
@@ -772,11 +772,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7436",
-    "judge": "index.html:7436",
+    "definition": "index.html:7442",
+    "judge": "index.html:7442",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8258; index.html:9896; index.html:7777; index.html:7436",
+    "writers": "index.html:8264; index.html:9902; index.html:7783; index.html:7442",
     "relation": "単条件"
   },
   {
@@ -791,11 +791,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7437",
-    "judge": "index.html:7437",
+    "definition": "index.html:7443",
+    "judge": "index.html:7443",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:8255; index.html:9896; index.html:7777; index.html:7437",
+    "writers": "index.html:8261; index.html:9902; index.html:7783; index.html:7443",
     "relation": "単条件"
   },
   {
@@ -810,11 +810,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7438",
-    "judge": "index.html:7438",
+    "definition": "index.html:7444",
+    "judge": "index.html:7444",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9898; index.html:7777; index.html:7438",
+    "writers": "index.html:9904; index.html:7783; index.html:7444",
     "relation": "単条件"
   },
   {
@@ -829,11 +829,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7439",
-    "judge": "index.html:7439",
+    "definition": "index.html:7445",
+    "judge": "index.html:7445",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7790; index.html:7777; index.html:7439",
+    "writers": "index.html:7796; index.html:7783; index.html:7445",
     "relation": "単条件"
   },
   {
@@ -848,11 +848,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7440",
-    "judge": "index.html:7440",
+    "definition": "index.html:7446",
+    "judge": "index.html:7446",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7821; index.html:7777; index.html:7440",
+    "writers": "index.html:7827; index.html:7783; index.html:7446",
     "relation": "単条件"
   },
   {
@@ -867,11 +867,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7441",
-    "judge": "index.html:7441",
+    "definition": "index.html:7447",
+    "judge": "index.html:7447",
     "availability": "取得可能",
     "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。",
-    "writers": "index.html:9900; index.html:7777; index.html:7441",
+    "writers": "index.html:9906; index.html:7783; index.html:7447",
     "relation": "単条件"
   },
   {
@@ -886,11 +886,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7442",
-    "judge": "index.html:7442",
+    "definition": "index.html:7448",
+    "judge": "index.html:7448",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9928; index.html:7777; index.html:7442",
+    "writers": "index.html:9934; index.html:7783; index.html:7448",
     "relation": "単条件"
   },
   {
@@ -905,11 +905,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7443",
-    "judge": "index.html:7443",
+    "definition": "index.html:7449",
+    "judge": "index.html:7449",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7801; index.html:7777; index.html:7443",
+    "writers": "index.html:7807; index.html:7783; index.html:7449",
     "relation": "単条件"
   },
   {
@@ -924,11 +924,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7444",
-    "judge": "index.html:7444",
+    "definition": "index.html:7450",
+    "judge": "index.html:7450",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7801; index.html:7777; index.html:7444",
+    "writers": "index.html:7807; index.html:7783; index.html:7450",
     "relation": "単条件"
   },
   {
@@ -943,11 +943,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7445",
-    "judge": "index.html:7445",
+    "definition": "index.html:7451",
+    "judge": "index.html:7451",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9902; index.html:7777; index.html:7445",
+    "writers": "index.html:9908; index.html:7783; index.html:7451",
     "relation": "単条件"
   },
   {
@@ -962,11 +962,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7446",
-    "judge": "index.html:7446",
+    "definition": "index.html:7452",
+    "judge": "index.html:7452",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7794; index.html:7777; index.html:7446",
+    "writers": "index.html:7800; index.html:7783; index.html:7452",
     "relation": "単条件"
   },
   {
@@ -981,11 +981,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7447",
-    "judge": "index.html:7447",
+    "definition": "index.html:7453",
+    "judge": "index.html:7453",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9917; index.html:7777; index.html:7447",
+    "writers": "index.html:9923; index.html:7783; index.html:7453",
     "relation": "単条件"
   },
   {
@@ -1000,11 +1000,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7448",
-    "judge": "index.html:7448",
+    "definition": "index.html:7454",
+    "judge": "index.html:7454",
     "availability": "取得可能",
     "consistency": "説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。 新B2のdmgTakenは誤答のHP罰で増え、お邪魔カードの受信では増えない。説明と指標の対応を要確認。",
-    "writers": "index.html:9901; index.html:7777; index.html:7448",
+    "writers": "index.html:9907; index.html:7783; index.html:7454",
     "relation": "単条件"
   },
   {
@@ -1019,11 +1019,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7449",
-    "judge": "index.html:7449",
+    "definition": "index.html:7455",
+    "judge": "index.html:7455",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9904; index.html:7777; index.html:7449",
+    "writers": "index.html:9910; index.html:7783; index.html:7455",
     "relation": "単条件"
   },
   {
@@ -1038,11 +1038,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7450",
-    "judge": "index.html:7450",
+    "definition": "index.html:7456",
+    "judge": "index.html:7456",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7777; index.html:7450",
+    "writers": "index.html:7826; index.html:7783; index.html:7456",
     "relation": "単条件"
   },
   {
@@ -1057,11 +1057,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7451",
-    "judge": "index.html:7451",
+    "definition": "index.html:7457",
+    "judge": "index.html:7457",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7820; index.html:7777; index.html:7451",
+    "writers": "index.html:7826; index.html:7783; index.html:7457",
     "relation": "単条件"
   },
   {
@@ -1076,11 +1076,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7452",
-    "judge": "index.html:7452",
+    "definition": "index.html:7458",
+    "judge": "index.html:7458",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9925; index.html:7777; index.html:7452",
+    "writers": "index.html:9931; index.html:7783; index.html:7458",
     "relation": "単条件"
   },
   {
@@ -1095,11 +1095,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7453",
-    "judge": "index.html:7453",
+    "definition": "index.html:7459",
+    "judge": "index.html:7459",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9925; index.html:7777; index.html:7453",
+    "writers": "index.html:9931; index.html:7783; index.html:7459",
     "relation": "単条件"
   },
   {
@@ -1114,11 +1114,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7454",
-    "judge": "index.html:7454",
+    "definition": "index.html:7460",
+    "judge": "index.html:7460",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:7802; index.html:7777; index.html:7454",
+    "writers": "index.html:7808; index.html:7783; index.html:7460",
     "relation": "単条件"
   },
   {
@@ -1133,11 +1133,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7455",
-    "judge": "index.html:7455",
+    "definition": "index.html:7461",
+    "judge": "index.html:7461",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:4129; index.html:7455",
+    "writers": "index.html:4134; index.html:7461",
     "relation": "単条件"
   },
   {
@@ -1152,11 +1152,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7456",
-    "judge": "index.html:7456",
+    "definition": "index.html:7462",
+    "judge": "index.html:7462",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5223; index.html:7777; index.html:7456",
+    "writers": "index.html:5228; index.html:7783; index.html:7462",
     "relation": "単条件"
   },
   {
@@ -1171,11 +1171,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7458",
-    "judge": "index.html:7458",
+    "definition": "index.html:7464",
+    "judge": "index.html:7464",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7458",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7464",
     "relation": "単条件"
   },
   {
@@ -1190,11 +1190,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7459",
-    "judge": "index.html:7459",
+    "definition": "index.html:7465",
+    "judge": "index.html:7465",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7459",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7465",
     "relation": "単条件"
   },
   {
@@ -1209,11 +1209,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7460",
-    "judge": "index.html:7460",
+    "definition": "index.html:7466",
+    "judge": "index.html:7466",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7460",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7466",
     "relation": "単条件"
   },
   {
@@ -1228,11 +1228,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7461",
-    "judge": "index.html:7461",
+    "definition": "index.html:7467",
+    "judge": "index.html:7467",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7461",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7467",
     "relation": "単条件"
   },
   {
@@ -1247,11 +1247,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7462",
-    "judge": "index.html:7462",
+    "definition": "index.html:7468",
+    "judge": "index.html:7468",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7462",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7468",
     "relation": "単条件"
   },
   {
@@ -1266,11 +1266,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7463",
-    "judge": "index.html:7463",
+    "definition": "index.html:7469",
+    "judge": "index.html:7469",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7463",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7469",
     "relation": "単条件"
   },
   {
@@ -1285,11 +1285,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7464",
-    "judge": "index.html:7464",
+    "definition": "index.html:7470",
+    "judge": "index.html:7470",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7464",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7470",
     "relation": "単条件"
   },
   {
@@ -1304,11 +1304,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7465",
-    "judge": "index.html:7465",
+    "definition": "index.html:7471",
+    "judge": "index.html:7471",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7465",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7471",
     "relation": "単条件"
   },
   {
@@ -1323,11 +1323,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7466",
-    "judge": "index.html:7466",
+    "definition": "index.html:7472",
+    "judge": "index.html:7472",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7466",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7472",
     "relation": "単条件"
   },
   {
@@ -1342,11 +1342,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7467",
-    "judge": "index.html:7467",
+    "definition": "index.html:7473",
+    "judge": "index.html:7473",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7467",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7473",
     "relation": "単条件"
   },
   {
@@ -1361,11 +1361,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7468",
-    "judge": "index.html:7468",
+    "definition": "index.html:7474",
+    "judge": "index.html:7474",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7468",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7474",
     "relation": "単条件"
   },
   {
@@ -1380,11 +1380,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7469",
-    "judge": "index.html:7469",
+    "definition": "index.html:7475",
+    "judge": "index.html:7475",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7469",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7475",
     "relation": "単条件"
   },
   {
@@ -1399,11 +1399,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7470",
-    "judge": "index.html:7470",
+    "definition": "index.html:7476",
+    "judge": "index.html:7476",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7470",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7476",
     "relation": "単条件"
   },
   {
@@ -1418,11 +1418,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7471",
-    "judge": "index.html:7471",
+    "definition": "index.html:7477",
+    "judge": "index.html:7477",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5566; index.html:5577; index.html:5573; index.html:7471",
+    "writers": "index.html:5571; index.html:5582; index.html:5578; index.html:7477",
     "relation": "単条件"
   },
   {
@@ -1437,11 +1437,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7472",
-    "judge": "index.html:7472",
+    "definition": "index.html:7478",
+    "judge": "index.html:7478",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5566; index.html:5577; index.html:5573; index.html:7472",
+    "writers": "index.html:5571; index.html:5582; index.html:5578; index.html:7478",
     "relation": "単条件"
   },
   {
@@ -1456,11 +1456,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7473",
-    "judge": "index.html:7473",
+    "definition": "index.html:7479",
+    "judge": "index.html:7479",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5566; index.html:5577; index.html:5573; index.html:7473",
+    "writers": "index.html:5571; index.html:5582; index.html:5578; index.html:7479",
     "relation": "単条件"
   },
   {
@@ -1475,11 +1475,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7474",
-    "judge": "index.html:7474",
+    "definition": "index.html:7480",
+    "judge": "index.html:7480",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7474",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7480",
     "relation": "単条件"
   },
   {
@@ -1494,11 +1494,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7475",
-    "judge": "index.html:7475",
+    "definition": "index.html:7481",
+    "judge": "index.html:7481",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7475",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7481",
     "relation": "単条件"
   },
   {
@@ -1513,11 +1513,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7476",
-    "judge": "index.html:7476",
+    "definition": "index.html:7482",
+    "judge": "index.html:7482",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7476",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7482",
     "relation": "単条件"
   },
   {
@@ -1532,11 +1532,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7477",
-    "judge": "index.html:7477",
+    "definition": "index.html:7483",
+    "judge": "index.html:7483",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7477",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7483",
     "relation": "単条件"
   },
   {
@@ -1551,11 +1551,11 @@ window.AchievementAudit = [
     "reason": "数学の塔公開まで一時非表示。旧塔の達成履歴は保持。",
     "secret": true,
     "tower": true,
-    "definition": "index.html:7478",
-    "judge": "index.html:7478",
+    "definition": "index.html:7484",
+    "judge": "index.html:7484",
     "availability": "要確認",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:6660; index.html:6631; index.html:7478",
+    "writers": "index.html:6665; index.html:6636; index.html:7484",
     "relation": "単条件"
   },
   {
@@ -1570,11 +1570,11 @@ window.AchievementAudit = [
     "reason": "数学の塔公開まで一時非表示。旧塔の達成履歴は保持。",
     "secret": true,
     "tower": true,
-    "definition": "index.html:7479",
-    "judge": "index.html:7479",
+    "definition": "index.html:7485",
+    "judge": "index.html:7485",
     "availability": "要確認",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:6660; index.html:6631; index.html:7479",
+    "writers": "index.html:6665; index.html:6636; index.html:7485",
     "relation": "単条件"
   },
   {
@@ -1589,11 +1589,11 @@ window.AchievementAudit = [
     "reason": "数学の塔公開まで一時非表示。旧塔の達成履歴は保持。",
     "secret": true,
     "tower": true,
-    "definition": "index.html:7480",
-    "judge": "index.html:7480",
+    "definition": "index.html:7486",
+    "judge": "index.html:7486",
     "availability": "要確認",
     "consistency": "説明はボス撃破。判定はbest >= 50のみ。",
-    "writers": "index.html:6660; index.html:6631; index.html:7480",
+    "writers": "index.html:6665; index.html:6636; index.html:7486",
     "relation": "単条件"
   },
   {
@@ -1608,11 +1608,11 @@ window.AchievementAudit = [
     "reason": "数学の塔公開まで一時非表示。旧塔の達成履歴は保持。",
     "secret": true,
     "tower": true,
-    "definition": "index.html:7481",
-    "judge": "index.html:7481",
+    "definition": "index.html:7487",
+    "judge": "index.html:7487",
     "availability": "要確認",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:6660; index.html:6631; index.html:7481",
+    "writers": "index.html:6665; index.html:6636; index.html:7487",
     "relation": "単条件"
   },
   {
@@ -1627,11 +1627,11 @@ window.AchievementAudit = [
     "reason": "数学の塔公開まで一時非表示。旧塔の達成履歴は保持。",
     "secret": true,
     "tower": true,
-    "definition": "index.html:7482",
-    "judge": "index.html:7482",
+    "definition": "index.html:7488",
+    "judge": "index.html:7488",
     "availability": "要確認",
     "consistency": "説明は第一部3回。実装はendN >= 3 OR best >= 100。",
-    "writers": "index.html:6660; index.html:6631; index.html:7482",
+    "writers": "index.html:6665; index.html:6636; index.html:7488",
     "relation": "OR"
   },
   {
@@ -1646,11 +1646,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7483",
-    "judge": "index.html:7483; src/ghost-model.cjs:130",
+    "definition": "index.html:7489",
+    "judge": "index.html:7489; src/ghost-model.cjs:130",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "src/online-spark-client.cjs:668; index.html:7483; src/ghost-model.cjs:130",
+    "writers": "src/online-spark-client.cjs:670; index.html:7489; src/ghost-model.cjs:130",
     "relation": "単条件"
   },
   {
@@ -1665,11 +1665,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7484",
-    "judge": "index.html:7484; src/ghost-model.cjs:130",
+    "definition": "index.html:7490",
+    "judge": "index.html:7490; src/ghost-model.cjs:130",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "src/online-spark-client.cjs:668; index.html:7484; src/ghost-model.cjs:130",
+    "writers": "src/online-spark-client.cjs:670; index.html:7490; src/ghost-model.cjs:130",
     "relation": "単条件"
   },
   {
@@ -1684,11 +1684,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7485",
-    "judge": "index.html:7485; src/ghost-model.cjs:130",
+    "definition": "index.html:7491",
+    "judge": "index.html:7491; src/ghost-model.cjs:130",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "src/online-spark-client.cjs:668; index.html:7485; src/ghost-model.cjs:130",
+    "writers": "src/online-spark-client.cjs:670; index.html:7491; src/ghost-model.cjs:130",
     "relation": "単条件"
   },
   {
@@ -1703,11 +1703,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7486",
-    "judge": "index.html:7486",
+    "definition": "index.html:7492",
+    "judge": "index.html:7492",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7486",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7492",
     "relation": "単条件"
   },
   {
@@ -1722,11 +1722,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7487",
-    "judge": "index.html:7487",
+    "definition": "index.html:7493",
+    "judge": "index.html:7493",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:5538; index.html:5541; index.html:5526; index.html:7487",
+    "writers": "index.html:5543; index.html:5546; index.html:5531; index.html:7493",
     "relation": "単条件"
   },
   {
@@ -1741,11 +1741,11 @@ window.AchievementAudit = [
     "reason": "",
     "secret": true,
     "tower": false,
-    "definition": "index.html:7488",
-    "judge": "index.html:7488",
+    "definition": "index.html:7494",
+    "judge": "index.html:7494",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:9927; index.html:7777; index.html:7488",
+    "writers": "index.html:9933; index.html:7783; index.html:7494",
     "relation": "単条件"
   }
 ];

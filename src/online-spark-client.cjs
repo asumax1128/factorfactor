@@ -4,6 +4,7 @@ const C = require("../server/online-rated/core.cjs"),
   E = require("../server/online-rated/engine.cjs"),
   G = require("./ghost-model.cjs");
 const Perf = require("./online-performance.cjs");
+const BResult = require('./b-result.cjs');
 const B2Pump = require('./b2-pump.cjs');
 const ROOT = "games/factor/onlineSparkV1";
 const copy = C.copy;
@@ -373,6 +374,7 @@ function create({
             origin: m.origin || "human",
             selfPractice,
             aResult: m.phase === "settled" && m.mode === "A" ? (m.game.aResult || E.reportA(m.game)) : null,
+            bResult: m.phase === 'settled' && m.game?.rules === 'b2' ? BResult.build(m.game) : null,
             exp: m.exp || 0,
             lastAnswer:
               m.mode === "B"

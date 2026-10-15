@@ -227,6 +227,10 @@
           /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)),
           /* @__PURE__ */ React.createElement("p", null, m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
           m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0)),
+          m.rules === "b2" && root.NextResults && /* @__PURE__ */ React.createElement(root.NextResults.BDetails, { report: m.bResult, me: m.selfUid, names: Object.fromEntries((m.members || []).map((u) => {
+            var _a2;
+            return [u.uid, u.uid === "_ghost" ? (_a2 = m.opponent) == null ? void 0 : _a2.name : u.name];
+          })) }),
           m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names: Object.fromEntries((m.members || []).map((u) => {
             var _a2;
             return [u.uid, u.uid === "_ghost" ? (_a2 = m.opponent) == null ? void 0 : _a2.name : u.name];

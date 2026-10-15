@@ -31,6 +31,8 @@
 <script src="math-tower-release.js"></script>
 <script src="math-tower-ui.js"></script>
 <script src="online-spark.js"></script>
+<script src="next-results-ui.js"></script>
+<link rel="stylesheet" href="ui-next/results.css" />
 <script src="online-rated-ui.js"></script>
 <script src="daily-ui.js"></script>
 <script src="room-b2-ui.js"></script>
@@ -9527,7 +9529,7 @@ function AResultDetails({ report, me, names = {} }) {
   });
   const max = Math.max(1,...Object.values(report.scores)), n = Math.max(1,rows.length);
   const x = q => 28 + q / n * 276, y = v => 140 - v / max * 115;
-  return <section className="v7-panel my-3" data-a-result>
+  return <section className="v7-panel my-3 next-a-details" data-a-result>
     <h3 className="font-black" style={{fontSize:18,color:COLORS.ink}}>A方式 得点のふり返り</h3>
     <div className="flex flex-wrap gap-2 my-2">{ids.map((u,i)=><div key={u} className="flex-1 rounded-xl p-2" style={{background:COLORS.paperDark,minWidth:100,color:colors[i%4]}}><b>{label(u)}</b><div>{report.scores[u]||0}点</div><small>最高 {report.best[u]||0}コンボ</small></div>)}</div>
     {!report.consistent ? <p role="status">得点記録が不足しているため、推移は表示できません。</p> : <>
@@ -10473,6 +10475,8 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
       </div>
       {rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}
       <Card className="mb-3">{order.map(row)}</Card>
+      {mode==='C'&&window.NextResults&&<window.NextResults.CDetails ids={ids} records={live} names={names} teams={state.tm} teamLabels={Object.fromEntries(Object.entries(TEAM_INFO_C).map(([k,v])=>[k,v.name]))}/>}
+      {state.b2Final&&window.NextResults&&<window.NextResults.BDetails game={state.b2Final} me={me} names={names}/>}
       {mode === 'A' && <AResultDetails report={result.aResult || window.OnlineSpark?.buildAResult?.(scA,claims,ids,state.startAt,A_NEXT_DELAY)} me={me} names={names} />}
       {rec && rec.exp && <div className="mb-3 v7-panel"><ExpGain before={rec.exp.before} after={rec.exp.after} label={practice ? 'CPU練習の経験値' : acct ? 'この試合の経験値' : 'この試合の経験値（ゲスト：この端末に保存）'} /></div>}
       {practice ? <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>CPU練習の勝敗は記録されません（経験値は入ります）</p>

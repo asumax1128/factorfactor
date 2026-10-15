@@ -50,6 +50,12 @@
         m.visualEvents.push({ id: m.visualSeq, uid, type, payload });
         m.visualEvents = m.visualEvents.slice(-32);
       }
+      function scoreEvent(m, uid, gain) {
+        if (!m.scoreTrace) return;
+        const t = m.scoreTrace;
+        t.seq++;
+        t.events.push({ id: t.seq, at: m.time, uid, gain, scores: Object.fromEntries(m.ids.map((u) => [u, m.states[u].score])) });
+      }
       function board(m, s, bank, api, at) {
         const lv = bank.level(s.c + 1), k = s.served[lv] || 0;
         s.served[lv] = k + 1;
@@ -84,6 +90,7 @@
         m.visualEvents = [];
         m.states = Object.fromEntries(m.ids.map((u) => [u, { hp: 100, c: 0, score: 0, combo: 0, best: 0, gauge: 0, sp: 0, freezeUntil: 0, oj: 0, queued: 0, pending: 0, counterUntil: 0, cheerPoints: 0, cheerRemoved: 0, serial: 0, served: {}, hist: [], resolving: false, nextAt: null }]));
         for (const u of m.ids) board(m, m.states[u], bank, api, m.startAt);
+        m.scoreTrace = { version: 1, complete: true, seq: 0, events: [{ id: 0, at: m.startAt, scores: Object.fromEntries(m.ids.map((u) => [u, 0])) }] };
         return m;
       }
       function finish(m, reason) {
@@ -240,6 +247,7 @@
           if (s.combo >= 2 && s.gauge < 100) s.gauge = Math.min(100, s.gauge + s.cur.level * 3);
           s.sp = s.gauge;
           s.hist.push({ lv: s.cur.level, k: s.cur.k, ok: true, ms, j: api.getJudgment(ms).label, gain: P + bonus, base: P, bonus, oj: s.cur.oj });
+          scoreEvent(m, uid, P + bonus);
           if (ms <= 2e3) s.perfects = (s.perfects || 0) + 1;
           automatic(m);
         } else {
@@ -1221,6 +1229,47 @@
     }
   });
 
+  // src/b-result.cjs
+  var require_b_result = __commonJS({
+    "src/b-result.cjs"(exports, module) {
+      "use strict";
+      var finite = (n) => typeof n === "number" && Number.isFinite(n);
+      function build(game) {
+        var _a;
+        const bad = (reason) => ({ consistent: false, reason });
+        if (!(game == null ? void 0 : game.result)) return bad("\u7D50\u679C\u306F\u307E\u3060\u78BA\u5B9A\u3057\u3066\u3044\u307E\u305B\u3093\u3002");
+        const t = game.scoreTrace, ids = game.ids;
+        if (!t || t.version !== 1 || !t.complete || !Array.isArray(ids) || ids.length < 2) return bad("\u3053\u306E\u8A66\u5408\u306B\u306F\u5B8C\u5168\u306A\u5F97\u70B9\u5C65\u6B74\u304C\u3042\u308A\u307E\u305B\u3093\u3002");
+        const events = Array.isArray(t.events) ? t.events : Object.values(t.events || {}), rows = [];
+        let previous = null;
+        for (const e of events) {
+          if (previous && e.id === previous.id) {
+            if (JSON.stringify(e) !== JSON.stringify(previous)) return bad("\u5C65\u6B74\u306E\u91CD\u8907\u5185\u5BB9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093\u3002");
+            continue;
+          }
+          if (!Number.isInteger(e.id) || e.id !== (previous ? previous.id + 1 : 0) || !finite(e.at) || e.at < ((_a = previous == null ? void 0 : previous.at) != null ? _a : game.startAt) || e.at > game.result.at || ids.some((u) => {
+            var _a2;
+            return !finite((_a2 = e.scores) == null ? void 0 : _a2[u]) || e.scores[u] < 0;
+          })) return bad("\u5F97\u70B9\u5C65\u6B74\u304C\u4E0D\u8DB3\u3057\u3066\u3044\u307E\u3059\u3002");
+          if (!previous && (e.at !== game.startAt || ids.some((u) => e.scores[u] !== 0))) return bad("\u958B\u59CB\u6642\u306E\u8A18\u9332\u304C\u4E0D\u8DB3\u3057\u3066\u3044\u307E\u3059\u3002");
+          if (previous && (!ids.includes(e.uid) || !finite(e.gain) || e.gain < 0 || ids.some((u) => e.scores[u] !== previous.scores[u] + (u === e.uid ? e.gain : 0)))) return bad("\u5F97\u70B9\u5C65\u6B74\u306E\u6574\u5408\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\u3002");
+          rows.push(e);
+          previous = e;
+        }
+        if (!previous || previous.id !== t.seq || ids.some((u) => {
+          var _a2, _b;
+          return previous.scores[u] !== ((_b = (_a2 = game.states) == null ? void 0 : _a2[u]) == null ? void 0 : _b.score);
+        })) return bad("\u6700\u7D42\u5F97\u70B9\u3068\u5C65\u6B74\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093\u3002");
+        return { consistent: true, ids, startAt: game.startAt, endAt: game.result.at, revision: t.seq, rows, final: previous.scores, summary: Object.fromEntries(ids.map((u) => {
+          var _a2, _b, _c, _d;
+          const s = game.states[u], h = s.hist || [];
+          return [u, { correct: s.c, wrong: h.filter((x) => x.ok === false && !x.timeout).length, timeouts: h.filter((x) => x.timeout).length, best: s.best, perfects: (_a2 = s.perfects) != null ? _a2 : h.filter((x) => x.ok && x.j === "Perfect").length, attack: (_b = s.ojSent) != null ? _b : 0, cancel: (_c = s.cancelTotal) != null ? _c : 0, freeze: (_d = s.spUsed) != null ? _d : 0 }];
+        })) };
+      }
+      module.exports = { build };
+    }
+  });
+
   // src/b2-pump.cjs
   var require_b2_pump = __commonJS({
     "src/b2-pump.cjs"(exports, module) {
@@ -1316,6 +1365,7 @@
       var E = require_engine();
       var G = require_ghost_model();
       var Perf = require_online_performance();
+      var BResult = require_b_result();
       var B2Pump = require_b2_pump();
       var ROOT = "games/factor/onlineSparkV1";
       var copy = C.copy;
@@ -1582,7 +1632,7 @@
           });
         }
         async function response(m = null, withLegacy = false) {
-          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+          var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y;
           const selfPractice = ((_a = m == null ? void 0 : m.opponent) == null ? void 0 : _a.key) === key;
           if (m && !selfPractice && (!m.opponent || m.origin === "quick")) await apply(m);
           if ((m == null ? void 0 : m.opponent) && m.phase === "settled") await saveGhostResult(m);
@@ -1667,15 +1717,16 @@
               origin: m.origin || "human",
               selfPractice,
               aResult: m.phase === "settled" && m.mode === "A" ? m.game.aResult || E.reportA(m.game) : null,
+              bResult: m.phase === "settled" && ((_l = m.game) == null ? void 0 : _l.rules) === "b2" ? BResult.build(m.game) : null,
               exp: m.exp || 0,
-              lastAnswer: m.mode === "B" ? ((_p = (_o = (_n = (_l = m.game) == null ? void 0 : _l.states) == null ? void 0 : _n[(_m = m.members.find((u) => u.key === key)) == null ? void 0 : _m.uid]) == null ? void 0 : _o.hist) == null ? void 0 : _p.slice(-1)[0]) || null : ((_s = (_r = m.learning) == null ? void 0 : _r[(_q = m.members.find((u) => u.key === key)) == null ? void 0 : _q.uid]) == null ? void 0 : _s.slice(-1)[0]) || null,
+              lastAnswer: m.mode === "B" ? ((_q = (_p = (_o = (_m = m.game) == null ? void 0 : _m.states) == null ? void 0 : _o[(_n = m.members.find((u) => u.key === key)) == null ? void 0 : _n.uid]) == null ? void 0 : _p.hist) == null ? void 0 : _q.slice(-1)[0]) || null : ((_t = (_s = m.learning) == null ? void 0 : _s[(_r = m.members.find((u) => u.key === key)) == null ? void 0 : _r.uid]) == null ? void 0 : _t.slice(-1)[0]) || null,
               game: m.phase === "play" ? E.view(
                 m.game,
-                ((_t = m.members.find((u) => u.key === key)) == null ? void 0 : _t.uid) || uid
+                ((_u = m.members.find((u) => u.key === key)) == null ? void 0 : _u.uid) || uid
               ) : null,
-              result: ((_u = m.receipt) == null ? void 0 : _u.result) || null,
+              result: ((_v = m.receipt) == null ? void 0 : _v.result) || null,
               receipt: m.receipt || null,
-              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_v = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _v.key) === key ? "win" : "lose" : null
+              outcome: m.receipt ? m.receipt.result.draw ? "draw" : ((_w = m.members.find((u) => u.uid === m.receipt.result.winner)) == null ? void 0 : _w.key) === key ? "win" : "lose" : null
             } : null,
             ratings: {
               easy: C.ratingView(p.easy, now()),
@@ -1688,8 +1739,8 @@
               normal: ranks.normal.slice(0, 10)
             },
             ranks: {
-              easy: ((_w = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _w.rank) || null,
-              normal: ((_x = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _x.rank) || null
+              easy: ((_x = ranks.easy.find((r) => r.key === key)) == null ? void 0 : _x.rank) || null,
+              normal: ((_y = ranks.normal.find((r) => r.key === key)) == null ? void 0 : _y.rank) || null
             }
           };
         }

@@ -21,6 +21,7 @@ fs.writeFileSync(
 const allowed = [
   "index.html",
   "next-home-ui.js",
+  "next-results-ui.js",
   "game-version.js",
   "game-audio.js",
   "online-spark.js",
@@ -54,6 +55,7 @@ fs.writeFileSync(path.join(out, ".nojekyll"), "");
 let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
 for (const file of [
   "next-home-ui.js",
+  "next-results-ui.js",
   "game-version.js",
   "game-audio.js",
   "online-spark.js",
