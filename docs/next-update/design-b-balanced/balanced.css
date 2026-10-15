@@ -1,0 +1,11 @@
+/* Review only: preserve the adopted desktop design and mobile menu order. */
+@media (max-width: 900px) {
+  .boss-stage { min-height: 0; }
+  .boss-label { padding: 12px 19px 0; }
+  .boss-art { min-height: 0; height: 218px; flex: none; }
+  .boss-art img { height: 218px; width: 90%; transform: none; object-fit: contain; }
+  .boss-orbit { width: 184px; height: 184px; top: 12px; }
+  .boss-details { padding: 0 19px 14px; align-items: center; }
+  .boss-details small { display: none; }
+  .page-shell { padding-bottom: calc(105px + env(safe-area-inset-bottom, 0px)); }
+}

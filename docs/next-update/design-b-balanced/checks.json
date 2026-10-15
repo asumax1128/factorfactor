@@ -1,0 +1,508 @@
+{
+  "measurements": [
+    {
+      "viewport": [
+        375,
+        812
+      ],
+      "pageHeight": 1250,
+      "scroll": 438,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 920.15625,
+        "width": 335,
+        "height": 374.890625
+      },
+      "image": {
+        "top": 588.265625,
+        "bottom": 836.265625,
+        "width": 299.6875,
+        "height": 248
+      },
+      "bossButton": {
+        "top": 848.90625,
+        "bottom": 894.5,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 162
+        },
+        {
+          "height": 191,
+          "width": 162
+        }
+      ],
+      "mission": {
+        "top": 937.15625,
+        "bottom": 1021.15625,
+        "width": 335,
+        "height": 84
+      },
+      "nav": {
+        "top": 744,
+        "bottom": 812,
+        "width": 375,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "before"
+    },
+    {
+      "viewport": [
+        375,
+        812
+      ],
+      "pageHeight": 1183,
+      "scroll": 371,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 853.859375,
+        "width": 335,
+        "height": 308.59375
+      },
+      "image": {
+        "top": 575.265625,
+        "bottom": 793.265625,
+        "width": 299.6875,
+        "height": 218
+      },
+      "bossButton": {
+        "top": 793.265625,
+        "bottom": 838.859375,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 162
+        },
+        {
+          "height": 191,
+          "width": 162
+        }
+      ],
+      "mission": {
+        "top": 870.859375,
+        "bottom": 954.859375,
+        "width": 335,
+        "height": 84
+      },
+      "nav": {
+        "top": 744,
+        "bottom": 812,
+        "width": 375,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "after"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "pageHeight": 1250,
+      "scroll": 406,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 920.15625,
+        "width": 350,
+        "height": 374.890625
+      },
+      "image": {
+        "top": 588.265625,
+        "bottom": 836.265625,
+        "width": 313.1875,
+        "height": 248
+      },
+      "bossButton": {
+        "top": 848.90625,
+        "bottom": 894.5,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 169
+        },
+        {
+          "height": 191,
+          "width": 169
+        }
+      ],
+      "mission": {
+        "top": 937.15625,
+        "bottom": 1021.15625,
+        "width": 350,
+        "height": 84
+      },
+      "nav": {
+        "top": 776,
+        "bottom": 844,
+        "width": 390,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "before"
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "pageHeight": 1183,
+      "scroll": 339,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 853.859375,
+        "width": 350,
+        "height": 308.59375
+      },
+      "image": {
+        "top": 575.265625,
+        "bottom": 793.265625,
+        "width": 313.1875,
+        "height": 218
+      },
+      "bossButton": {
+        "top": 793.265625,
+        "bottom": 838.859375,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 169
+        },
+        {
+          "height": 191,
+          "width": 169
+        }
+      ],
+      "mission": {
+        "top": 870.859375,
+        "bottom": 954.859375,
+        "width": 350,
+        "height": 84
+      },
+      "nav": {
+        "top": 776,
+        "bottom": 844,
+        "width": 390,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "after"
+    },
+    {
+      "viewport": [
+        430,
+        932
+      ],
+      "pageHeight": 1250,
+      "scroll": 318,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 920.15625,
+        "width": 390,
+        "height": 374.890625
+      },
+      "image": {
+        "top": 588.265625,
+        "bottom": 836.265625,
+        "width": 349.1875,
+        "height": 248
+      },
+      "bossButton": {
+        "top": 848.90625,
+        "bottom": 894.5,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 189
+        },
+        {
+          "height": 191,
+          "width": 189
+        }
+      ],
+      "mission": {
+        "top": 937.15625,
+        "bottom": 1021.15625,
+        "width": 390,
+        "height": 84
+      },
+      "nav": {
+        "top": 864,
+        "bottom": 932,
+        "width": 430,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "before"
+    },
+    {
+      "viewport": [
+        430,
+        932
+      ],
+      "pageHeight": 1183,
+      "scroll": 251,
+      "boss": {
+        "top": 545.265625,
+        "bottom": 853.859375,
+        "width": 390,
+        "height": 308.59375
+      },
+      "image": {
+        "top": 575.265625,
+        "bottom": 793.265625,
+        "width": 349.1875,
+        "height": 218
+      },
+      "bossButton": {
+        "top": 793.265625,
+        "bottom": 838.859375,
+        "width": 109.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 191,
+          "width": 189
+        },
+        {
+          "height": 191,
+          "width": 189
+        }
+      ],
+      "mission": {
+        "top": 870.859375,
+        "bottom": 954.859375,
+        "width": 390,
+        "height": 84
+      },
+      "nav": {
+        "top": 864,
+        "bottom": 932,
+        "width": 430,
+        "height": 68
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "after"
+    },
+    {
+      "viewport": [
+        1440,
+        1080
+      ],
+      "pageHeight": 1111,
+      "scroll": 31,
+      "boss": {
+        "top": 272,
+        "bottom": 739.390625,
+        "width": 565.75,
+        "height": 467.390625
+      },
+      "image": {
+        "top": 325,
+        "bottom": 645,
+        "width": 529.921875,
+        "height": 320
+      },
+      "bossButton": {
+        "top": 663.390625,
+        "bottom": 708.984375,
+        "width": 113.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 241,
+          "width": 549
+        },
+        {
+          "height": 208,
+          "width": 549
+        }
+      ],
+      "mission": {
+        "top": 758.390625,
+        "bottom": 855.390625,
+        "width": 500.875,
+        "height": 97
+      },
+      "nav": {
+        "top": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "before"
+    },
+    {
+      "viewport": [
+        1440,
+        1080
+      ],
+      "pageHeight": 1111,
+      "scroll": 31,
+      "boss": {
+        "top": 272,
+        "bottom": 739.390625,
+        "width": 565.75,
+        "height": 467.390625
+      },
+      "image": {
+        "top": 325,
+        "bottom": 645,
+        "width": 529.921875,
+        "height": 320
+      },
+      "bossButton": {
+        "top": 663.390625,
+        "bottom": 708.984375,
+        "width": 113.015625,
+        "height": 45.59375
+      },
+      "modes": [
+        {
+          "height": 241,
+          "width": 549
+        },
+        {
+          "height": 208,
+          "width": 549
+        }
+      ],
+      "mission": {
+        "top": 758.390625,
+        "bottom": 855.390625,
+        "width": 500.875,
+        "height": 97
+      },
+      "nav": {
+        "top": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "overflow": false,
+      "fontStatus": "loaded",
+      "variant": "after"
+    }
+  ],
+  "externalRequests": 0,
+  "errors": [],
+  "assetChecks": [
+    {
+      "width": 375,
+      "asset": "dragon",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 375,
+      "asset": "kraken",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 375,
+      "asset": "abs",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 375,
+      "asset": "maou2",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 375,
+      "asset": "king",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 390,
+      "asset": "dragon",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 390,
+      "asset": "kraken",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 390,
+      "asset": "abs",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 390,
+      "asset": "maou2",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 390,
+      "asset": "king",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 430,
+      "asset": "dragon",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 430,
+      "asset": "kraken",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 430,
+      "asset": "abs",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 430,
+      "asset": "maou2",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    },
+    {
+      "width": 430,
+      "asset": "king",
+      "cardHeight": 308.59375,
+      "objectFit": "contain"
+    }
+  ],
+  "desktopPixelIdentical": true,
+  "desktopSha256": "9d2245a97ed7ee1ec5f99fab26535e5c5c29393e2ddde76091231d6eb426b623"
+}
