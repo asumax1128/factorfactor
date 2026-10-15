@@ -37,7 +37,8 @@
     "test:rewards-audit": "node tests/rewards-audit.cjs && node tests/rewards-audit-browser.cjs",
     "test:next-board-visibility": "node tests/next-board-visibility-browser.cjs",
     "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs && npm run test:ranking-hub",
-    "test:ranking-hub": "node tests/ranking-hub-browser.cjs"
+    "test:ranking-hub": "node tests/ranking-hub-browser.cjs",
+    "test:official-logo": "node tests/official-logo-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
