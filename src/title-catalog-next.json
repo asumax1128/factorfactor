@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "所有者提供 全100称号 2026-10-15",
-  "status": "blocked-star-count",
+  "status": "roster-confirmed-reveal-pending",
   "expectedNormalCount": 100,
   "expectedFiveStarCount": 26,
   "excludedAwardModes": [
@@ -660,7 +660,7 @@
       "legacyNumber": 22,
       "name": "勝利の王冠",
       "condition": "クラス大会で初優勝",
-      "stars": 4,
+      "stars": 5,
       "id": "tour1",
       "legacyId": "tour1",
       "category": "大会"

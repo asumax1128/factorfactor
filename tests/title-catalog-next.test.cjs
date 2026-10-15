@@ -18,13 +18,17 @@ test('owner supplied normal catalog has exactly 1..100, distinct old numbers and
   assert.equal(catalog.titles.filter(t => t.legacyId).length, 90);
   assert(!catalog.titles.some(t => /^tw\d+$/.test(t.id)));
 });
-test('latest correction restores No.65 to four stars and exposes the remaining 25/26 mismatch', () => {
+test('final owner approval promotes No.65 with stable ID and resolves 26 five-star titles', () => {
   const r = validateCatalog(catalog);
-  assert.equal(catalog.titles.find(t => t.number === 65).stars, 4);
+  assert.equal(catalog.titles.find(t => t.number === 65).stars, 5);
   assert.equal(catalog.titles.find(t => t.number === 66).name, '王者防衛');
-  assert.equal(r.fiveStarCount, 25);
-  assert.equal(r.valid, false);
-  assert.deepEqual(r.errors, ['FIVE_STAR_COUNT']);
+  assert.equal(r.fiveStarCount, 26);
+  assert.equal(catalog.titles.find(t => t.number === 65).id, 'tour1');
+  assert(r.fiveStarIds.includes('tour1'), 'existing No.65 holders count toward five-star achievements');
+  assert.equal(r.valid, true);
+  assert.deepEqual(r.errors, []);
+  const previous = copy(catalog); previous.titles.find(t => t.number === 65).stars = 4;
+  assert(validateCatalog(previous).errors.includes('FIVE_STAR_COUNT'));
   assert.throws(() => assertReady(catalog, plan), /TITLE_SPEC_NOT_APPROVED/);
 });
 test('every advanced title has a nonempty acyclic reveal proposal and none is approved implicitly', () => {
@@ -43,8 +47,6 @@ test('unknown parents, duplicate plans, missing stages and cycles are rejected',
 test('review gate requires both the corrected roster and explicit reveal approval', () => {
   // Approval fixture only; it does not modify the owner catalog or approve real reveal rules.
   const c = copy(catalog), p = copy(plan);
-  // Synthetic validation fixture, not a difficulty change in the catalog.
-  c.titles.find(t => t.id === 'dual50').stars = 5;
   assert.equal(validateCatalog(c).valid, true);
   assert.throws(() => assertReady(c, p), /TITLE_SPEC_NOT_APPROVED/);
   c.status = 'approved'; p.forEach(x => { x.status = 'approved'; });

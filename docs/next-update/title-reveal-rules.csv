@@ -39,7 +39,7 @@ shutout,絶対支配,4,calm,AND,,proposal,はい
 lv9,限界突破,4,,AND,対象の対戦でLv.9を1問正解,proposal,はい
 alllv,完全制覇,5,lv9,AND,,proposal,はい
 sp3,秘技乱舞,4,,AND,対象対戦で必殺技を1回発動,proposal,はい
-tour1,勝利の王冠,4,,AND,クラス大会を1大会完了,proposal,はい
+tour1,勝利の王冠,5,,AND,クラス大会を1大会完了,proposal,はい
 tour_streak2,王者防衛,5,tour1,AND,,proposal,はい
 tour3,三冠王,5,tour1,AND,,proposal,はい
 tour10,殿堂入り,5,tour3,AND,,proposal,はい
