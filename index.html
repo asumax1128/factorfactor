@@ -8470,7 +8470,7 @@ async function fetchRatings(accts, bty) {
 }
 /* 懸賞金：3連勝から。1連勝ふえるごとに +10（最大100）。倒した人は経験値ボーナス */
 const bountyOf = st => { const k = (st && st.streak) || 0; return k >= 3 ? Math.min(100, (k - 2) * 10) : 0; };
-function BattleApp({ acct: who, onExit, initialScreen = 'home' }) {
+function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNavigate, onProfile }) {
   const fb = useFbReady();
   // The rollout config belongs to Firebase, never to the CPU practice DBX.
   const [configRetry, setConfigRetry] = useState(0);
@@ -8578,7 +8578,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home' }) {
     else if (scr === 'game') setScr('lobby');
   }, [state && state.phase, state && state.gid]);
 
-  async function createRoom(kind) {
+  async function createRoom(kind, preferredMode) {
     setErr('');
     if(kind?.takeover){await joinRoom(kind.takeover,false);return;}
     const tour = kind === true || kind === 'tour', raid = kind === 'raid', fraid = kind === 'fraid';
@@ -8592,7 +8592,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home' }) {
       if (res.committed) {
         if(delegated){try{await FB.db.ref(`games/factor/eventHostRooms/${acct.key}/${c}`).set({at:fbNow()});}catch(e){setErr('開催登録を保存できませんでした。再試行してください');return;}}
         await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer', 'fx'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
-        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: 'B', diff: 'easy', tour: !!tour }).catch(() => {});
+        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: !tour&&['A','B','C'].includes(preferredMode)?preferredMode:'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
         return;
       }
@@ -8945,8 +8945,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home' }) {
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
   if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} acct={acct} onExit={initialScreen==='ratings'?onExit:() => setScr('home')} /> : shell(<Card><p>{ratedMessage || '新しい対戦制度は準備中です。'}</p><button onClick={initialScreen==='ratings'?onExit:() => setScr('home')}>戻る</button></Card>);
-  if (scr === 'home') return shell(
-    <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; ratedEnabled ? setScr('rated') : quickMatch(); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
+  if (scr === 'home') return (renderMenu||shell)(
+    <BattleHome nextUI={!!renderMenu} onNavigate={onNavigate} onProfile={onProfile} fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; ratedEnabled ? setScr('rated') : quickMatch(); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
   if (scr === 'dash') return <TeacherDash acct={acct} onBack={() => setScr('home')} onWatch={c => joinRoom(c, true)} />;
 
@@ -9323,7 +9323,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
 }
 
 /* ---------- 対戦のトップ画面 ---------- */
-function BattleHome({ onGhosts, fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats, quickPending, quickMessage, quickError, onConfigRetry, ratedEnabled }) {
+function BattleHome({ nextUI=false, onNavigate, onProfile, onGhosts, fb, acct, who, err, setErr, onCreate, onJoin, onPractice, onQuick, onExit, onDash, onRatedStats, quickPending, quickMessage, quickError, onConfigRetry, ratedEnabled }) {
   const currentProfile = useRatingHistoryProfile(ratedEnabled ? acct?.key : null);
   const [codeIn, setCodeIn] = useState('');
   const [rank, setRank] = useState(null);
@@ -9370,7 +9370,7 @@ function BattleHome({ onGhosts, fb, acct, who, err, setErr, onCreate, onJoin, on
   }, [modalOpen]);
   const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st) && r.k!==acct?.key && (bountyCooldowns[r.k]||0)<=fbNow()).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
   return (<>
-    <div className="v7-bhome">
+    {nextUI?<NextHome.Lobby onRatedStats={onRatedStats} currentRatings={ratedEnabled&&acct?<CurrentRatings profile={currentProfile} legacy={stats}/>:null} fb={fb} acct={acct} who={who} err={err} onQuick={onQuick} quickPending={quickPending} quickMessage={quickMessage} quickError={quickError} onConfigRetry={onConfigRetry} ratedEnabled={ratedEnabled} onCreate={onCreate} onJoin={onJoin} onPractice={onPractice} onGhosts={onGhosts} onProfile={onProfile||(()=>openProfile(acct?.key))} onNavigate={onNavigate} onExit={onExit} code={codeIn} setCode={setCodeIn} pc={pc} setPc={setPcv} onPlayers={()=>setWin('all')} onBounty={()=>setWin('bounty')} bountyCount={bountyRows.length} onVs={stats?.vs?()=>setWin('vs'):null} teacherArea={<><StudentHostArea fb={fb} acct={acct} onCreate={onCreate}/><TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash}/></>}/>:(<div className="v7-bhome">
       <div className="v7-bhome-head">
         <button onClick={onExit} className="v7-pill v7-cur" data-snd="back">← タイトルへ</button>
         <div className="text-center">
@@ -9446,7 +9446,7 @@ function BattleHome({ onGhosts, fb, acct, who, err, setErr, onCreate, onJoin, on
           <button className="v7-pill v7-cur" onClick={() => setWin('all')}><V7Icon name="list" />みんなの成績</button>
         </div>
       </div>
-    </div>
+    </div>)}
 
     {win === 'vs' && stats && <V7Modal title="相手ごとの成績" onClose={() => setWin(null)}><VsTable vs={stats.vs} nameOf={nameOf} /></V7Modal>}
     {win === 'bounty' && <V7Modal title="賞金首リスト" onClose={() => setWin(null)}>
@@ -10971,7 +10971,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');
@@ -11008,7 +11008,7 @@ function AppRoot() {
         {mode==='ranking-daily'&&<DailyApp acct={acct} rankingsOnly onExit={()=>go('rankings')} onMode={go}/>}
         {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
       </NextHome>
-      : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} />
+      : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="battle" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
       : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
