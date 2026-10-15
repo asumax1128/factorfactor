@@ -11,41 +11,6 @@
     }
   });
 
-  // src/profile-read.cjs
-  var require_profile_read = __commonJS({
-    "src/profile-read.cjs"(exports, module) {
-      "use strict";
-      function number(value) {
-        if (typeof value === "string") {
-          if (!/^\s*\d+(?:\.\d+)?\s*$/.test(value)) return null;
-          value = Number(value);
-        }
-        return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
-      }
-      function record(source) {
-        const r = source || {}, w = number(r.w), l = number(r.l), d = number(r.d), stored = number(r.games);
-        const games = stored !== null ? stored : [w, l, d].every((x) => x !== null) ? w + l + d : null;
-        return { games, w, l, d, winRate: games > 0 && w !== null && w <= games ? 100 * w / games : null };
-      }
-      function read(stats, profile) {
-        const st = stats || {}, wk = st.wk || {};
-        return {
-          exp: number(st.exp),
-          legacy: record(st),
-          modes: Object.fromEntries(["A", "B", "C"].map((m) => [m, record(st[m])])),
-          rated: Object.fromEntries(["easy", "normal"].map((d) => [d, record(profile == null ? void 0 : profile[d])])),
-          ghosts: Object.fromEntries(["easy", "normal"].map((d) => {
-            var _a;
-            return [d, record((_a = profile == null ? void 0 : profile[d]) == null ? void 0 : _a.ghost)];
-          })),
-          metrics: Object.fromEntries(["maxStreak", "perfects", "comebacks", "tourWins", "bestMs", "maxCombo"].map((k) => [k, number(st[k])])),
-          weekly: Object.fromEntries(["weeks", "kills", "best", "maxStreak"].map((k) => [k, number(wk[k])]))
-        };
-      }
-      module.exports = { number, record, read };
-    }
-  });
-
   // src/title-catalog-next.json
   var require_title_catalog_next = __commonJS({
     "src/title-catalog-next.json"(exports, module) {
@@ -1079,6 +1044,64 @@
     }
   });
 
+  // src/title-compat-next.cjs
+  var require_title_compat_next = __commonJS({
+    "src/title-compat-next.cjs"(exports, module) {
+      "use strict";
+      var catalog2 = require_title_catalog_next();
+      var ids = new Set(catalog2.titles.map((t) => t.id));
+      function read({ legacyEarned = [], flags = [], equipped = null } = {}) {
+        var _a;
+        const earned = /* @__PURE__ */ new Map();
+        for (const id of legacyEarned) if (typeof id === "string") earned.set(id, { id, at: null, source: "legacy-evidence" });
+        for (const map of flags) for (const [id, v] of Object.entries(map || {})) {
+          if (v !== true && (v == null ? void 0 : v.earned) !== true) continue;
+          const at = v && typeof v === "object" && Number.isFinite(v.at) && v.at > 0 ? v.at : null;
+          const previous = earned.get(id);
+          earned.set(id, { id, at: (_a = previous == null ? void 0 : previous.at) != null ? _a : at, source: "stored-flag" });
+        }
+        const normal = catalog2.titles.filter((t) => earned.has(t.id)), rare = normal.filter((t) => t.stars === 5).length;
+        return { earned: Object.fromEntries(earned), normal, fiveStarCount: rare, hiddenEligible: rare >= 15, hiddenOwned: earned.has(catalog2.hidden.id), archived: [...earned.keys()].filter((id) => !ids.has(id) && id !== catalog2.hidden.id), equipped };
+      }
+      module.exports = { read };
+    }
+  });
+
+  // src/profile-read.cjs
+  var require_profile_read = __commonJS({
+    "src/profile-read.cjs"(exports, module) {
+      "use strict";
+      function number(value) {
+        if (typeof value === "string") {
+          if (!/^\s*\d+(?:\.\d+)?\s*$/.test(value)) return null;
+          value = Number(value);
+        }
+        return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+      }
+      function record(source) {
+        const r = source || {}, w = number(r.w), l = number(r.l), d = number(r.d), stored = number(r.games);
+        const games = stored !== null ? stored : [w, l, d].every((x) => x !== null) ? w + l + d : null;
+        return { games, w, l, d, winRate: games > 0 && w !== null && w <= games ? 100 * w / games : null };
+      }
+      function read(stats, profile) {
+        const st = stats || {}, wk = st.wk || {};
+        return {
+          exp: number(st.exp),
+          legacy: record(st),
+          modes: Object.fromEntries(["A", "B", "C"].map((m) => [m, record(st[m])])),
+          rated: Object.fromEntries(["easy", "normal"].map((d) => [d, record(profile == null ? void 0 : profile[d])])),
+          ghosts: Object.fromEntries(["easy", "normal"].map((d) => {
+            var _a;
+            return [d, record((_a = profile == null ? void 0 : profile[d]) == null ? void 0 : _a.ghost)];
+          })),
+          metrics: Object.fromEntries(["maxStreak", "perfects", "comebacks", "tourWins", "bestMs", "maxCombo"].map((k) => [k, number(st[k])])),
+          weekly: Object.fromEntries(["weeks", "kills", "best", "maxStreak"].map((k) => [k, number(wk[k])]))
+        };
+      }
+      module.exports = { number, record, read };
+    }
+  });
+
   // src/next-navigation.cjs
   var require_next_navigation = __commonJS({
     "src/next-navigation.cjs"(exports, module) {
@@ -1135,6 +1158,100 @@
     };
   }
 
+  // src/title-inventory-ui.jsx
+  var catalog = require_title_catalog_next();
+  var compat = require_title_compat_next();
+  function TitleCinematic({ muted = false, reducedMotion = false, onFinish = () => {
+  } }) {
+    const [sound, setSound] = React.useState(!muted), finished = React.useRef(false);
+    const audio = React.useRef(null), done = () => {
+      if (finished.current) return;
+      finished.current = true;
+      onFinish();
+    };
+    React.useEffect(() => {
+      const old = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        var _a;
+        document.body.style.overflow = old;
+        (_a = audio.current) == null ? void 0 : _a.close().catch(() => {
+        });
+      };
+    }, []);
+    React.useEffect(() => {
+      var _a;
+      if (!sound) {
+        (_a = audio.current) == null ? void 0 : _a.close().catch(() => {
+        });
+        audio.current = null;
+        return;
+      }
+      try {
+        const C = window.AudioContext || window.webkitAudioContext;
+        if (!C) return;
+        const c = new C();
+        audio.current = c;
+        const gain = c.createGain();
+        gain.gain.value = 0.035;
+        gain.connect(c.destination);
+        for (const [f, i] of [[220, 0], [330, 1], [440, 2], [660, 3]]) {
+          const o = c.createOscillator();
+          o.type = "sine";
+          o.frequency.value = f;
+          o.connect(gain);
+          o.start(c.currentTime + i * 0.2);
+          o.stop(c.currentTime + i * 0.2 + 0.3);
+        }
+      } catch (e) {
+      }
+      return () => {
+        var _a2;
+        (_a2 = audio.current) == null ? void 0 : _a2.close().catch(() => {
+        });
+        audio.current = null;
+      };
+    }, [sound]);
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+      var _a;
+      (_a = ref.current) == null ? void 0 : _a.showModal();
+      return () => {
+        var _a2;
+        return (_a2 = ref.current) == null ? void 0 : _a2.close();
+      };
+    }, []);
+    return /* @__PURE__ */ React.createElement("dialog", { ref, className: "next-title-cinematic " + (reducedMotion ? "reduced" : ""), "aria-label": "\u79F0\u53F7\u7372\u5F97\u6F14\u51FA", onCancel: (e) => {
+      e.preventDefault();
+      done();
+    } }, /* @__PURE__ */ React.createElement("div", { className: "next-title-particles", "aria-hidden": "true" }, Array.from({ length: 18 }, (_, i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { "--i": i } }))), /* @__PURE__ */ React.createElement("div", { className: "next-title-emblem", "aria-hidden": "true" }, "\xD7"), /* @__PURE__ */ React.createElement("div", { className: "next-title-slash", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "next-title-reveal" }, /* @__PURE__ */ React.createElement("p", null, "\u7279\u5225\u79F0\u53F7\u3092\u7372\u5F97"), /* @__PURE__ */ React.createElement("img", { src: "ui-next/logo-official.png", alt: "FACTOR\xD7FACTOR" }), /* @__PURE__ */ React.createElement("strong", null, "FACTOR\xD7FACTOR")), /* @__PURE__ */ React.createElement("div", { className: "next-title-controls" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSound((x) => !x), "aria-pressed": sound }, "\u97F3\u58F0", sound ? "ON" : "OFF"), /* @__PURE__ */ React.createElement("button", { autoFocus: true, onClick: done }, reducedMotion ? "\u9589\u3058\u308B" : "\u30B9\u30AD\u30C3\u30D7\u30FB\u9589\u3058\u308B")));
+  }
+  function TitleInventory({ earnedIds = [], flags = [], equipped, accountKey, muted = true }) {
+    var _a;
+    const state = compat.read({ legacyEarned: earnedIds, flags, equipped }), [filter, setFilter] = React.useState("all"), [scene, setScene] = React.useState(false);
+    const presentationKey = accountKey ? "fxf_title_presentation_v1:" + accountKey : null;
+    React.useEffect(() => {
+      if (!state.hiddenOwned || !presentationKey) return;
+      let seen = false;
+      try {
+        seen = localStorage.getItem(presentationKey) === "seen";
+      } catch (e) {
+      }
+      if (!seen) setScene(true);
+    }, [state.hiddenOwned, presentationKey]);
+    const closeScene = () => {
+      setScene(false);
+      if (presentationKey) try {
+        localStorage.setItem(presentationKey, "seen");
+      } catch (e) {
+      }
+    };
+    return /* @__PURE__ */ React.createElement("section", { className: "next-title-inventory", "data-title-inventory": true }, /* @__PURE__ */ React.createElement("h3", null, "\u79F0\u53F7\u4E00\u89A7"), /* @__PURE__ */ React.createElement("p", null, "\u901A\u5E38\u79F0\u53F7 ", state.normal.length, " / 100"), /* @__PURE__ */ React.createElement("div", { role: "group", "aria-label": "\u79F0\u53F7\u306E\u7D5E\u308A\u8FBC\u307F" }, [["all", "\u3059\u3079\u3066"], ["earned", "\u53D6\u5F97\u6E08\u307F"], ["locked", "\u672A\u53D6\u5F97"]].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, "aria-pressed": filter === id, onClick: () => setFilter(id) }, label))), /* @__PURE__ */ React.createElement("ol", null, catalog.titles.filter((t) => filter === "all" || filter === "earned" === !!state.earned[t.id]).map((t) => {
+      const e = state.earned[t.id];
+      return /* @__PURE__ */ React.createElement("li", { key: t.id, "data-title-id": t.id }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("span", null, "No.", t.number), /* @__PURE__ */ React.createElement("strong", null, t.name), /* @__PURE__ */ React.createElement("span", { "aria-label": `${t.stars}\u3064\u661F` }, "\u2605".repeat(t.stars))), /* @__PURE__ */ React.createElement("p", null, t.stars <= 3 ? t.condition : "\uFF1F\uFF1F\uFF1F"), /* @__PURE__ */ React.createElement("small", null, e ? "\u53D6\u5F97\u6E08\u307F" : "\u672A\u53D6\u5F97", equipped === t.id ? " \u30FB \u88C5\u5099\u4E2D" : "", (e == null ? void 0 : e.at) ? ` \u30FB ${new Date(e.at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}` : e ? " \u30FB \u53D6\u5F97\u65E5\u672A\u8A18\u9332" : ""));
+    })), state.hiddenOwned && /* @__PURE__ */ React.createElement("section", { className: "next-title-special" }, /* @__PURE__ */ React.createElement("h4", null, "FACTOR\xD7FACTOR"), /* @__PURE__ */ React.createElement("p", null, "\u7279\u5225\u79F0\u53F7\u30FB\u53D6\u5F97\u6E08\u307F"), /* @__PURE__ */ React.createElement("button", { onClick: () => setScene(true) }, "\u7372\u5F97\u6F14\u51FA\u3092\u518D\u8996\u8074")), /* @__PURE__ */ React.createElement("p", null, "\u672A\u516C\u958B\u306E\u53D6\u5F97\u6761\u4EF6\u306F\uFF1F\uFF1F\uFF1F\u3068\u8868\u793A\u3057\u307E\u3059\u3002"), scene && state.hiddenOwned && /* @__PURE__ */ React.createElement(TitleCinematic, { muted, reducedMotion: (_a = window.matchMedia) == null ? void 0 : _a.call(window, "(prefers-reduced-motion: reduce)").matches, onFinish: closeScene }));
+  }
+
   // src/next-profile-ui.jsx
   var model = require_profile_read();
   var titles = require_title_catalog_next();
@@ -1146,6 +1263,7 @@
     }
     return function Profile({ acct, stats, profile, onBack, onLegacy, onWardrobe }) {
       var _a, _b;
+      const [muted] = H.useGameMute();
       const fb = useFbReady(), real = isReal(acct), daily = useDailyTitles(real ? acct.key : null);
       const mine = useFbValue(fb.ready && real ? `raidw/${weekKey(now())}/dmg/${acct.key}` : null);
       const data = model.read(stats, profile), L = data.exp === null ? null : levelOf(data.exp);
@@ -1174,7 +1292,7 @@
       } }, label))), /* @__PURE__ */ React.createElement("div", { role: "tabpanel", id: "profile-" + tab, "aria-labelledby": "profile-tab-" + tab }, tab === "summary" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => {
         const r = real ? profile === null && d === "normal" ? { value: null, note: "\u672A\u8A18\u9332" } : RatingDisplay.current(profile, stats, d) : { value: null, note: "" };
         return /* @__PURE__ */ React.createElement(Panel, { key: d, title: d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB" }, /* @__PURE__ */ React.createElement(MetricGrid, null, /* @__PURE__ */ React.createElement(Stat, { label: "\u73FE\u5728\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: RatingDisplay.format(r.value), note: r.note }), /* @__PURE__ */ React.createElement(Stat, { label: "\u6B74\u4EE3\u6700\u9AD8\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: real ? RatingDisplay.format(RatingHistory.highest(profile, stats, [d])) : "\u2015" })));
-      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, /* @__PURE__ */ React.createElement("ul", { className: "next-title-list" }, [...earned].map(([id, name]) => /* @__PURE__ */ React.createElement("li", { key: id }, name))), !earned.size && /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u78BA\u8A8D\u3067\u304D\u308B\u53D6\u5F97\u79F0\u53F7\u306F\u3042\u308A\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u65E2\u5B58\u306E\u53D6\u5F97\u6839\u62E0\u3067\u78BA\u8A8D\u3067\u304D\u308B\u79F0\u53F7\u3092\u8868\u793A\u3057\u307E\u3059\u3002\u672A\u627F\u8A8D\u306E\u516C\u958B\u6761\u4EF6\u3084\u65B0\u3057\u3044\u53D6\u5F97\u5224\u5B9A\u306F\u9069\u7528\u3057\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
+      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, /* @__PURE__ */ React.createElement(TitleInventory, { accountKey: acct.key, muted, earnedIds: [...earned.keys()], flags: [profile == null ? void 0 : profile.badges], equipped: stats == null ? void 0 : stats.nick })), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
         const id = skin == null ? void 0 : skin[key], item = skinCatalog[key].find((x) => x.id === id);
         return /* @__PURE__ */ React.createElement(Stat, { key, label, value: id ? (item == null ? void 0 : item.name) || id : "\u672A\u8A18\u9332" });
       }))))));
@@ -1256,12 +1374,12 @@
       const brand = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("img", { src: "ui-next/logo-official.png", alt: "FACTOR \xD7 FACTOR", width: "1774", height: "887" }));
       const hp = boss.info ? Math.max(0, boss.info.hp) : null, max = (_b = boss.info) == null ? void 0 : _b.hpMax, pct = max ? Math.min(100, hp / max * 100) : 0;
       const statusText = { loading: "HP\u60C5\u5831\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026", preparing: "\u6B21\u306E\u30DC\u30B9\u3092\u6E96\u5099\u4E2D", error: "HP\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093", denied: "HP\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\uFF08\u6A29\u9650\u4E0D\u8DB3\uFF09" }[boss.status];
-      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/home.css" }), /* @__PURE__ */ React.createElement("div", { className: "next-home", "data-next-home": true }, acct && page === "home" && /* @__PURE__ */ React.createElement(LoginBonus, { acct }), /* @__PURE__ */ React.createElement(Frame, { sidebar: /* @__PURE__ */ React.createElement("aside", { className: "sidebar" }, /* @__PURE__ */ React.createElement("button", { className: "brand-slot", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "side-divider" }), /* @__PURE__ */ React.createElement("nav", { "aria-label": "PC\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, nav.map(([k, n]) => navButton(k, n))), /* @__PURE__ */ React.createElement("div", { className: "sidebar-account" }, /* @__PURE__ */ React.createElement(Icon2, { name: "account" }), /* @__PURE__ */ React.createElement("button", { onClick: () => go("profile") }, acct.name, /* @__PURE__ */ React.createElement("small", null, "Lv.", L.lv)))), mobileHeader: /* @__PURE__ */ React.createElement("header", { className: "mobile-top" }, /* @__PURE__ */ React.createElement("button", { className: "mobile-brand", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "header-tools" }, /* @__PURE__ */ React.createElement("button", { "aria-label": muted ? "\u97F3\u58F0\u3092\u30AA\u30F3" : "\u97F3\u58F0\u3092\u30AA\u30D5", onClick: () => setMuted(!muted) }, /* @__PURE__ */ React.createElement(Icon2, { name: "sound" })), /* @__PURE__ */ React.createElement("button", { "aria-label": "\u8A2D\u5B9A", onClick: () => setPanel("settings") }, /* @__PURE__ */ React.createElement(Icon2, { name: "settings" })))), title: page === "home" ? "\u30DB\u30FC\u30E0" : page === "profile" ? "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u30FB\u6210\u7E3E" : { battle: "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226", solo: "\u30BD\u30ED\u30E2\u30FC\u30C9", daily: "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3" }[page] || "\u30E9\u30F3\u30AD\u30F3\u30B0", actions: /* @__PURE__ */ React.createElement("button", { className: "pc-settings", onClick: () => setPanel("settings"), "aria-label": "\u8A2D\u5B9A" }, /* @__PURE__ */ React.createElement(Icon2, { name: "settings" })), bottomNav: /* @__PURE__ */ React.createElement("nav", { className: "bottom-nav", "aria-label": "\u30B9\u30DE\u30DB\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, [["home", "\u30DB\u30FC\u30E0"], ["online", "\u5BFE\u6226"], ["solo", "\u30BD\u30ED"], ["rank", "\u9806\u4F4D"]].map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item " + (page === "profile" ? "selected" : ""), "aria-current": page === "profile" ? "page" : void 0, "aria-label": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", "aria-expanded": panel === "menu", onClick: () => setPanel("menu") }, /* @__PURE__ */ React.createElement(Icon2, { name: "more" }), /* @__PURE__ */ React.createElement("span", null, "\u30E1\u30CB\u30E5\u30FC"))) }, page === "home" ? /* @__PURE__ */ React.createElement(React.Fragment, null, "   ", /* @__PURE__ */ React.createElement("div", { className: "account-row" }, /* @__PURE__ */ React.createElement("button", { className: "account-main", onClick: () => go("profile") }, /* @__PURE__ */ React.createElement("span", { className: "avatar" }, /* @__PURE__ */ React.createElement(Icon2, { name: "account" })), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("small", null, ((_c = nickOf(st == null ? void 0 : st.nick)) == null ? void 0 : _c.label) || "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u306A\u3057"), /* @__PURE__ */ React.createElement("strong", null, acct.name), /* @__PURE__ */ React.createElement("span", { className: "level" }, "Lv. ", /* @__PURE__ */ React.createElement("b", null, L.lv), /* @__PURE__ */ React.createElement("span", { className: "xp" }, /* @__PURE__ */ React.createElement("i", { style: { width: `${L.cur / L.need * 100}%` } }))))), /* @__PURE__ */ React.createElement("div", { className: "ratings" }, ["easy", "normal"].map((d) => {
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/home.css" }), /* @__PURE__ */ React.createElement("div", { className: "next-home", "data-next-home": true }, acct && page === "home" && /* @__PURE__ */ React.createElement(LoginBonus, { acct }), /* @__PURE__ */ React.createElement(Frame, { sidebar: /* @__PURE__ */ React.createElement("aside", { className: "sidebar" }, /* @__PURE__ */ React.createElement("button", { className: "brand-slot", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "side-divider" }), /* @__PURE__ */ React.createElement("nav", { "aria-label": "PC\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, nav.map(([k, n]) => navButton(k, n))), /* @__PURE__ */ React.createElement("div", { className: "sidebar-account" }, /* @__PURE__ */ React.createElement(Icon2, { name: "account" }), /* @__PURE__ */ React.createElement("button", { onClick: () => go("profile") }, acct.name, /* @__PURE__ */ React.createElement("small", null, "Lv.", L.lv)))), mobileHeader: /* @__PURE__ */ React.createElement("header", { className: "mobile-top" }, /* @__PURE__ */ React.createElement("button", { className: "mobile-brand", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "header-tools" }, /* @__PURE__ */ React.createElement("button", { "aria-label": muted ? "\u97F3\u58F0\u3092\u30AA\u30F3" : "\u97F3\u58F0\u3092\u30AA\u30D5", onClick: () => setMuted(!muted) }, /* @__PURE__ */ React.createElement(Icon2, { name: "sound" })), /* @__PURE__ */ React.createElement("button", { "aria-label": "\u8A2D\u5B9A", onClick: () => setPanel("settings") }, /* @__PURE__ */ React.createElement(Icon2, { name: "settings" })))), title: page === "home" ? "\u30DB\u30FC\u30E0" : page === "profile" ? "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u30FB\u6210\u7E3E" : { battle: "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226", solo: "\u30BD\u30ED\u30E2\u30FC\u30C9", daily: "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3", help: "\u3042\u305D\u3073\u304B\u305F" }[page] || "\u30E9\u30F3\u30AD\u30F3\u30B0", actions: /* @__PURE__ */ React.createElement("button", { className: "pc-settings", onClick: () => setPanel("settings"), "aria-label": "\u8A2D\u5B9A" }, /* @__PURE__ */ React.createElement(Icon2, { name: "settings" })), bottomNav: /* @__PURE__ */ React.createElement("nav", { className: "bottom-nav", "aria-label": "\u30B9\u30DE\u30DB\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, [["home", "\u30DB\u30FC\u30E0"], ["online", "\u5BFE\u6226"], ["solo", "\u30BD\u30ED"], ["rank", "\u9806\u4F4D"]].map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item " + (page === "profile" ? "selected" : ""), "aria-current": page === "profile" ? "page" : void 0, "aria-label": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", "aria-expanded": panel === "menu", onClick: () => setPanel("menu") }, /* @__PURE__ */ React.createElement(Icon2, { name: "more" }), /* @__PURE__ */ React.createElement("span", null, "\u30E1\u30CB\u30E5\u30FC"))) }, page === "home" ? /* @__PURE__ */ React.createElement(React.Fragment, null, "   ", /* @__PURE__ */ React.createElement("div", { className: "account-row" }, /* @__PURE__ */ React.createElement("button", { className: "account-main", onClick: () => go("profile") }, /* @__PURE__ */ React.createElement("span", { className: "avatar" }, /* @__PURE__ */ React.createElement(Icon2, { name: "account" })), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("small", null, ((_c = nickOf(st == null ? void 0 : st.nick)) == null ? void 0 : _c.label) || "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u306A\u3057"), /* @__PURE__ */ React.createElement("strong", null, acct.name), /* @__PURE__ */ React.createElement("span", { className: "level" }, "Lv. ", /* @__PURE__ */ React.createElement("b", null, L.lv), /* @__PURE__ */ React.createElement("span", { className: "xp" }, /* @__PURE__ */ React.createElement("i", { style: { width: `${L.cur / L.need * 100}%` } }))))), /* @__PURE__ */ React.createElement("div", { className: "ratings" }, ["easy", "normal"].map((d) => {
         const r = RatingDisplay.current(profile, st, d);
         return /* @__PURE__ */ React.createElement("div", { key: d }, /* @__PURE__ */ React.createElement("small", null, d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB"), /* @__PURE__ */ React.createElement("strong", null, isReal(acct) ? RatingDisplay.format(r.value) : "\u2015"));
       })), /* @__PURE__ */ React.createElement("button", { className: "account-link", onClick: () => go("profile") }, "\u6210\u7E3E\u78BA\u8A8D ", /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" }))), /* @__PURE__ */ React.createElement("main", null, /* @__PURE__ */ React.createElement("div", { className: "home-content" }, /* @__PURE__ */ React.createElement("div", { className: "home-actions" }, [["online", "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226", ["\u3059\u3050\u904A\u3076\u30FB\u30EB\u30FC\u30E0", "\u30B4\u30FC\u30B9\u30C8\u30FB\u30EC\u30A4\u30C9"], "\u5BFE\u6226\u30ED\u30D3\u30FC\u3078"], ["solo", "\u30BD\u30ED\u30E2\u30FC\u30C9", ["\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB", "\u30CF\u30FC\u30C9"], "\u96E3\u6613\u5EA6\u3092\u9078\u3076"]].map(([k, n, desc, foot]) => /* @__PURE__ */ React.createElement("button", { key: k, className: "action-card " + k, "aria-label": k === "online" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226\u30FBCPU\u7DF4\u7FD2" : void 0, onClick: () => go(k) }, /* @__PURE__ */ React.createElement("span", { className: "action-icon" }, /* @__PURE__ */ React.createElement(Icon2, { name: k })), /* @__PURE__ */ React.createElement("span", { className: "surface-lines" }), /* @__PURE__ */ React.createElement("span", { className: "action-text" }, /* @__PURE__ */ React.createElement("strong", null, n), /* @__PURE__ */ React.createElement("small", null, desc.map((t) => /* @__PURE__ */ React.createElement("span", { key: t }, t)))), /* @__PURE__ */ React.createElement("span", { className: "action-foot" }, foot, /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" }))))), /* @__PURE__ */ React.createElement("section", { className: "boss-stage", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9" }, /* @__PURE__ */ React.createElement("div", { className: "boss-label" }, /* @__PURE__ */ React.createElement("span", { className: "status-dot" }), "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("div", { className: "boss-art" }, /* @__PURE__ */ React.createElement("div", { className: "boss-orbit" }), boss.boss && /* @__PURE__ */ React.createElement("img", { key: boss.boss.id, src: suriImg(boss.boss.id), alt: boss.boss.name, width: "512", height: "512", onError: (e) => {
         e.currentTarget.hidden = true;
-      } })), /* @__PURE__ */ React.createElement("div", { className: "boss-hp", "aria-live": "polite" }, statusText ? /* @__PURE__ */ React.createElement("p", { role: ["error", "denied"].includes(boss.status) ? "alert" : "status" }, statusText, boss.retry && ["error", "denied"].includes(boss.status) && /* @__PURE__ */ React.createElement("button", { onClick: boss.retry }, "\u518D\u8A66\u884C")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "hp-numbers" }, /* @__PURE__ */ React.createElement("span", null, "HP ", /* @__PURE__ */ React.createElement("b", null, hp.toLocaleString("ja-JP")), " / ", max.toLocaleString("ja-JP")), /* @__PURE__ */ React.createElement("strong", null, boss.info.dead ? "\u8A0E\u4F10\u6E08\u307F" : `${pct.toFixed(1)}%`)), /* @__PURE__ */ React.createElement("div", { className: "hp-track", role: "progressbar", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u6B8B\u308AHP", "aria-valuemin": 0, "aria-valuemax": max, "aria-valuenow": hp }, /* @__PURE__ */ React.createElement("i", { style: { width: `${pct}%` } })))), /* @__PURE__ */ React.createElement("div", { className: "boss-details" }, /* @__PURE__ */ React.createElement("h2", null, ((_d = boss.boss) == null ? void 0 : _d.name) || "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("button", { className: "small-button", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u6311\u3080", onClick: () => go("boss") }, "\u30DC\u30B9\u306B\u6311\u3080 ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"))))), /* @__PURE__ */ React.createElement("div", { className: "home-support" }, /* @__PURE__ */ React.createElement("button", { className: "mission-strip", onClick: () => go("daily") }, /* @__PURE__ */ React.createElement(Icon2, { name: "daily" }), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3"), /* @__PURE__ */ React.createElement("small", null, "\u4ECA\u65E5\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u30FB\u30C7\u30A4\u30EA\u30FC\u30C1\u30E3\u30EC\u30F3\u30B8")), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })), [["rank", "\u30E9\u30F3\u30AD\u30F3\u30B0"], ["help", "\u3042\u305D\u3073\u304B\u305F"]].map(([k, n]) => /* @__PURE__ */ React.createElement("button", { className: "support-link", key: k, onClick: () => go(k) }, /* @__PURE__ */ React.createElement(Icon2, { name: k }), /* @__PURE__ */ React.createElement("strong", null, n), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })))))) : page === "profile" ? /* @__PURE__ */ React.createElement(Profile, { acct, stats: isReal(acct) ? st : loadGuest(), profile, onBack: () => go("back"), onLegacy: () => setPanel("profile"), onWardrobe: () => setPanel("wardrobe") }) : ["battle", "solo", "daily"].includes(page) ? /* @__PURE__ */ React.createElement("div", { className: "next-route-content" }, children) : /* @__PURE__ */ React.createElement("main", { className: "ranking-content" }, /* @__PURE__ */ React.createElement("button", { className: "small-button", onClick: () => go(page === "rankings" ? "home" : "rank") }, page === "rankings" ? "\u30DB\u30FC\u30E0\u3078\u623B\u308B" : "\u30E9\u30F3\u30AD\u30F3\u30B0\u7DCF\u5408\u3078\u623B\u308B"), page === "rankings" ? /* @__PURE__ */ React.createElement("div", { className: "ranking-grid" }, [["solo", "\u30BD\u30ED\u30E9\u30F3\u30AD\u30F3\u30B0", "\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB\u30FB\u30CF\u30FC\u30C9", "solo"], ["daily", "\u30C7\u30A4\u30EA\u30FC\u30E9\u30F3\u30AD\u30F3\u30B0", "\u4ECA\u65E5\u30FB\u6628\u65E5\u306E\u90E8\u9580\u5225\u30E9\u30F3\u30AD\u30F3\u30B0", "daily"], ["rating", "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30E9\u30F3\u30AD\u30F3\u30B0", "\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB", "online"]].map(([k, label, note, icon]) => /* @__PURE__ */ React.createElement("button", { key: k, className: "ranking-entry", onClick: () => go("ranking-" + k) }, /* @__PURE__ */ React.createElement("span", { className: "ranking-icon" }, /* @__PURE__ */ React.createElement(Icon2, { name: icon })), /* @__PURE__ */ React.createElement("strong", null, label), /* @__PURE__ */ React.createElement("small", null, note), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })))) : /* @__PURE__ */ React.createElement("section", { className: "ranking-view", "aria-label": "\u30E9\u30F3\u30AD\u30F3\u30B0\u8868\u793A" }, children))), /* @__PURE__ */ React.createElement("dialog", { ref: dialog, className: "home-menu", "aria-label": panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC", onCancel: () => setPanel(null) }, /* @__PURE__ */ React.createElement("div", { className: "sheet-title" }, /* @__PURE__ */ React.createElement("h2", null, panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30CB\u30E5\u30FC"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel(null), "aria-label": "\u9589\u3058\u308B" }, "\xD7")), panel === "settings" ? /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement("button", { onClick: () => setMuted(!muted) }, "\u97F3\u58F0\uFF1A", muted ? "\u30AA\u30D5" : "\u30AA\u30F3"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel("wardrobe") }, "\u304D\u305B\u304B\u3048"), /* @__PURE__ */ React.createElement("button", { onClick: onLogout }, isReal(acct) ? "\u30ED\u30B0\u30A2\u30A6\u30C8" : "\u767B\u9332\u30FB\u30ED\u30B0\u30A4\u30F3")) : /* @__PURE__ */ React.createElement("nav", null, nav.map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item", onClick: () => go("learn") }, "\u5B66\u3073\u306E\u90E8\u5C4B")))), panel === "profile" && /* @__PURE__ */ React.createElement(PlayerProfile, { name: acct.name, st: st || loadGuest() || {}, nameOf: {}, me: true, acctKey: isReal(acct) ? acct.key : null, onClose: () => setPanel(null) }), panel === "wardrobe" && /* @__PURE__ */ React.createElement(Wardrobe, { acct, st: st || loadGuest(), exp: ((_e = isReal(acct) ? st : loadGuest()) == null ? void 0 : _e.exp) || 0, onClose: () => setPanel(null) }));
+      } })), /* @__PURE__ */ React.createElement("div", { className: "boss-hp", "aria-live": "polite" }, statusText ? /* @__PURE__ */ React.createElement("p", { role: ["error", "denied"].includes(boss.status) ? "alert" : "status" }, statusText, boss.retry && ["error", "denied"].includes(boss.status) && /* @__PURE__ */ React.createElement("button", { onClick: boss.retry }, "\u518D\u8A66\u884C")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "hp-numbers" }, /* @__PURE__ */ React.createElement("span", null, "HP ", /* @__PURE__ */ React.createElement("b", null, hp.toLocaleString("ja-JP")), " / ", max.toLocaleString("ja-JP")), /* @__PURE__ */ React.createElement("strong", null, boss.info.dead ? "\u8A0E\u4F10\u6E08\u307F" : `${pct.toFixed(1)}%`)), /* @__PURE__ */ React.createElement("div", { className: "hp-track", role: "progressbar", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u6B8B\u308AHP", "aria-valuemin": 0, "aria-valuemax": max, "aria-valuenow": hp }, /* @__PURE__ */ React.createElement("i", { style: { width: `${pct}%` } })))), /* @__PURE__ */ React.createElement("div", { className: "boss-details" }, /* @__PURE__ */ React.createElement("h2", null, ((_d = boss.boss) == null ? void 0 : _d.name) || "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("button", { className: "small-button", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u6311\u3080", onClick: () => go("boss") }, "\u30DC\u30B9\u306B\u6311\u3080 ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"))))), /* @__PURE__ */ React.createElement("div", { className: "home-support" }, /* @__PURE__ */ React.createElement("button", { className: "mission-strip", onClick: () => go("daily") }, /* @__PURE__ */ React.createElement(Icon2, { name: "daily" }), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3"), /* @__PURE__ */ React.createElement("small", null, "\u4ECA\u65E5\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u30FB\u30C7\u30A4\u30EA\u30FC\u30C1\u30E3\u30EC\u30F3\u30B8")), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })), [["rank", "\u30E9\u30F3\u30AD\u30F3\u30B0"], ["help", "\u3042\u305D\u3073\u304B\u305F"]].map(([k, n]) => /* @__PURE__ */ React.createElement("button", { className: "support-link", key: k, onClick: () => go(k) }, /* @__PURE__ */ React.createElement(Icon2, { name: k }), /* @__PURE__ */ React.createElement("strong", null, n), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })))))) : page === "profile" ? /* @__PURE__ */ React.createElement(Profile, { acct, stats: isReal(acct) ? st : loadGuest(), profile, onBack: () => go("back"), onLegacy: () => setPanel("profile"), onWardrobe: () => setPanel("wardrobe") }) : ["battle", "solo", "daily", "help"].includes(page) ? /* @__PURE__ */ React.createElement("div", { className: "next-route-content" }, children) : /* @__PURE__ */ React.createElement("main", { className: "ranking-content" }, /* @__PURE__ */ React.createElement("button", { className: "small-button", onClick: () => go(page === "rankings" ? "home" : "rank") }, page === "rankings" ? "\u30DB\u30FC\u30E0\u3078\u623B\u308B" : "\u30E9\u30F3\u30AD\u30F3\u30B0\u7DCF\u5408\u3078\u623B\u308B"), page === "rankings" ? /* @__PURE__ */ React.createElement("div", { className: "ranking-grid" }, [["solo", "\u30BD\u30ED\u30E9\u30F3\u30AD\u30F3\u30B0", "\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB\u30FB\u30CF\u30FC\u30C9", "solo"], ["daily", "\u30C7\u30A4\u30EA\u30FC\u30E9\u30F3\u30AD\u30F3\u30B0", "\u4ECA\u65E5\u30FB\u6628\u65E5\u306E\u90E8\u9580\u5225\u30E9\u30F3\u30AD\u30F3\u30B0", "daily"], ["rating", "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30E9\u30F3\u30AD\u30F3\u30B0", "\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB", "online"]].map(([k, label, note, icon]) => /* @__PURE__ */ React.createElement("button", { key: k, className: "ranking-entry", onClick: () => go("ranking-" + k) }, /* @__PURE__ */ React.createElement("span", { className: "ranking-icon" }, /* @__PURE__ */ React.createElement(Icon2, { name: icon })), /* @__PURE__ */ React.createElement("strong", null, label), /* @__PURE__ */ React.createElement("small", null, note), /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" })))) : /* @__PURE__ */ React.createElement("section", { className: "ranking-view", "aria-label": "\u30E9\u30F3\u30AD\u30F3\u30B0\u8868\u793A" }, children))), /* @__PURE__ */ React.createElement("dialog", { ref: dialog, className: "home-menu", "aria-label": panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC", onCancel: () => setPanel(null) }, /* @__PURE__ */ React.createElement("div", { className: "sheet-title" }, /* @__PURE__ */ React.createElement("h2", null, panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30CB\u30E5\u30FC"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel(null), "aria-label": "\u9589\u3058\u308B" }, "\xD7")), panel === "settings" ? /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement("button", { onClick: () => setMuted(!muted) }, "\u97F3\u58F0\uFF1A", muted ? "\u30AA\u30D5" : "\u30AA\u30F3"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel("wardrobe") }, "\u304D\u305B\u304B\u3048"), /* @__PURE__ */ React.createElement("button", { onClick: onLogout }, isReal(acct) ? "\u30ED\u30B0\u30A2\u30A6\u30C8" : "\u767B\u9332\u30FB\u30ED\u30B0\u30A4\u30F3")) : /* @__PURE__ */ React.createElement("nav", null, nav.map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item", onClick: () => go("learn") }, "\u5B66\u3073\u306E\u90E8\u5C4B")))), panel === "profile" && /* @__PURE__ */ React.createElement(PlayerProfile, { name: acct.name, st: st || loadGuest() || {}, nameOf: {}, me: true, acctKey: isReal(acct) ? acct.key : null, onClose: () => setPanel(null) }), panel === "wardrobe" && /* @__PURE__ */ React.createElement(Wardrobe, { acct, st: st || loadGuest(), exp: ((_e = isReal(acct) ? st : loadGuest()) == null ? void 0 : _e.exp) || 0, onClose: () => setPanel(null) }));
     }
     Home.Lobby = createLobby(H);
     return Home;

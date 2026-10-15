@@ -36,7 +36,7 @@
     "test:online-v524": "node --test tests/b2.test.cjs tests/daily-model.test.cjs tests/daily-play.test.cjs tests/hyper-top10.test.cjs && node tests/v524-browser.cjs",
     "test:rewards-audit": "node tests/rewards-audit.cjs && node tests/rewards-audit-browser.cjs",
     "test:next-board-visibility": "node tests/next-board-visibility-browser.cjs",
-    "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs && npm run test:ranking-hub && npm run test:next-profile && npm run test:next-lobby && npm run test:next-menus",
+    "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs && npm run test:ranking-hub && npm run test:next-profile && npm run test:next-lobby && npm run test:next-menus && npm run test:title-next && npm run test:next-help",
     "test:ranking-hub": "node tests/ranking-hub-browser.cjs",
     "test:official-logo": "node tests/official-logo-browser.cjs",
     "test:next-profile": "node --test tests/profile-read.test.cjs && node tests/next-profile-browser.cjs",
@@ -45,7 +45,9 @@
     "test:local-b2": "node --test tests/local-b2-bots.test.cjs && node tests/local-b2-browser.cjs",
     "test:next-spectator": "node tests/next-spectator-browser.cjs",
     "test:next-menus": "node tests/next-menu-shell-browser.cjs",
-    "test:weekly-next": "node --test tests/weekly-next.test.cjs"
+    "test:weekly-next": "node --test tests/weekly-next.test.cjs",
+    "test:title-next": "node --test tests/title-compat-next.test.cjs && node tests/title-next-browser.cjs",
+    "test:next-help": "node tests/next-help-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

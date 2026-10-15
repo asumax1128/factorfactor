@@ -73,7 +73,7 @@ jobs:
         id: release
         run: node -e 'const fs=require("fs"),v=require("./version.json");fs.appendFileSync(process.env.GITHUB_OUTPUT,"version="+v.major+"."+v.minor+"\n")'
       - name: Check committed generated UI
-        run: git diff --exit-code -- game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
+        run: git diff --exit-code -- next-home-ui.js next-results-ui.js game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
       - run: npm run test:version
       - run: npm run test:tower
       - name: Actual emulator rules and compatibility
@@ -109,7 +109,7 @@ jobs:
           "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-spark-emulator.cjs"
       - name: Ghost history, rating isolation and limited-host authorization
         run: |
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs && HTTP_PROXY= http_proxy= node tests/v524-emulator.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs && HTTP_PROXY= http_proxy= node tests/v524-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs"
       - run: npm run test:accounts
       - name: Recheck final public payload after tests
         run: node scripts/build-pages.cjs

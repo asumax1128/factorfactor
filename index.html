@@ -2714,6 +2714,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
      画面: チュートリアル
      ============================================================ */
   if (screen === 'tutorial') {
+    if(window.NextResults?.Help){const help=<window.NextResults.Help tiers={JUDGE_TIERS} difficulties={DIFFICULTY_CONFIG} aLockMs={A_LOCK_MS} onClose={()=>setScreen('menu')}/>;return renderMenu?renderMenu(help,'help'):help;}
     return <TutorialV7 step={tutorialStep} setStep={setTutorialStep} onClose={() => setScreen('menu')} />;
   }
 
@@ -11017,7 +11018,7 @@ function AppRoot() {
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
       : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
-      : <FactorHunt renderMenu={NextHome.Lobby?children=><NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-menu">{children}</div></NextHome>:undefined} initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
+      : <FactorHunt renderMenu={NextHome.Lobby?(children,page="solo")=><NextHome page={page} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-menu">{children}</div></NextHome>:undefined} initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
   </>);
 }
 
