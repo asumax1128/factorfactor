@@ -1,0 +1,57 @@
+name: Next major development checks (no deployment)
+on:
+  push:
+    branches: [dev/next-major-20261015]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'server/**'
+      - 'firebase/**'
+      - 'package*.json'
+      - '.github/workflows/next-major-checks.yml'
+permissions:
+  contents: read
+concurrency:
+  group: next-major-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - name: Check generated engine and UI
+        run: |
+          node scripts/build-online-rated.cjs
+          git diff --exit-code -- online-spark.js online-rated-ui.js room-b2-ui.js next-home-ui.js next-results-ui.js server/online-rated/engine-source.js achievements-audit.js reports/
+      - name: Confirmed results and protected data units
+        run: node --test tests/b2.test.cjs tests/b-result.test.cjs tests/weekly-next.test.cjs tests/tournament-b2.test.cjs tests/title-compat-next.test.cjs
+      - name: Install official Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Select Chromium
+        run: node -e 'require("fs").appendFileSync(process.env.GITHUB_ENV,"CHROMIUM_PATH="+require("playwright").chromium.executablePath()+"\n")'
+      - name: Actual UI and legacy regression (mocks only)
+        run: |
+          node tests/weekly-run-browser.cjs
+          node tests/tournament-b2-browser.cjs
+          node tests/local-b2-browser.cjs
+          node tests/next-board-visibility-browser.cjs
+          node tests/legacy-regression.cjs
+      - name: Isolated demo SDK and authorization checks
+        run: |
+          npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/weekly-run-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tournament-b2-emulator.cjs"

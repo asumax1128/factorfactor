@@ -7312,6 +7312,11 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
   );
 }
 /* 大会：選んだ試合を分割画面で見る */
+function TournamentB2Watch({code,state,m,onClose}) {
+ const [raw,setRaw]=useState(null),[time,setTime]=useState(fbNow());
+ useEffect(()=>{const r=FB.db.ref(`games/factor/rooms/${code}/b2/${m.gid}`),f=x=>setRaw(x.val());r.on('value',f);const t=setInterval(()=>setTime(fbNow()),100);return()=>{r.off('value',f);clearInterval(t)}},[code,m.gid]);
+ return raw?.game ? <window.NextResults.Spectator H={{TargetCard,BattleBoard}} g={raw.game} time={time} names={state.names} onLeave={onClose}/> : <div className="or-app"><p>大会B2を同期しています…</p><button onClick={onClose}>大会の表にもどる</button></div>;
+}
 function TourSplit({ code, state, m, onClose }) {
   const mode = state.mode || 'B', diff = state.diff || 'easy';
   const live = useFbValue(`rooms/${code}/live/${m.gid}`) || {};
@@ -8587,6 +8592,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const isTour = !!(state && state.tour);
   const isRaid = !!(state && state.raid);
   const isFriend = !!(state && state.friend);   // フレンドレイド（ホストもいっしょに戦う）
+  useEffect(()=>{if(!isHost||!window.TournamentB2?.active(state)||!code)return;const c=window.TournamentB2.coordinate({db:FB.db,code,state,uid:FB.uid,onError:e=>setErr('大会B2の同期に失敗しました：'+e.message)});c.ready.catch(e=>setErr(e.message));return()=>c.close();},[code,isHost,state?.tournamentId,state?.round,state?.champion]);
+
   // 先生用ダッシュボードに「いま何をしているか」を知らせる
   useEffect(() => {
     let act = 'bhome', detail = '', room = '';
@@ -8920,6 +8927,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   /* ---- 大会（トーナメント） ---- */
   async function tourStart() {
     const st = state || {};
+    const nextTournament = (st.mode||'B')==='B' ? {tournamentVersion:2,tournamentId:FB.db.ref('games/factor/rooms').push().key,duration:st.duration||90} : {};
     const ids = shuffleArr(Object.entries(players).filter(([k, p]) => p && p.name && k !== FB.uid).map(([k]) => k)).slice(0, TOUR_MAX);
     if (ids.length < 2) return;
     const names = {}, accts = {}, nicks = {};
@@ -8931,7 +8939,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       const swissRounds = swissEst(ids.length);   // 見込み（実際は全勝が1人になるまで）
       const pairs = swissPair(ids, [], 0);
       await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
-      await fref(`rooms/${code}/state`).set({ phase: 'tour', tour: true, fmt: 'swiss', swissRounds, topSize: topSizeFor(ids.length), mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(pairs, 0)] });
+      await fref(`rooms/${code}/state`).set({ ...nextTournament, phase: 'tour', tour: true, fmt: 'swiss', swissRounds, topSize: topSizeFor(ids.length), mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(pairs, 0)] });
       return;
     }
     let P = 1; while (P < ids.length) P *= 2;
@@ -8944,7 +8952,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     // 不戦勝を散らす（上と下に交互）
     const ordered = []; ms.forEach((m, k) => { if (k % 2 === 0) ordered.push(m); else ordered.unshift(m); });
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
-    await fref(`rooms/${code}/state`).set({ phase: 'tour', tour: true, mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(ordered, 0)] });
+    await fref(`rooms/${code}/state`).set({ ...nextTournament, phase: 'tour', tour: true, mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(ordered, 0)] });
   }
   function tourRound(pairs, r) {
     const startAt = fbNow() + BATTLE_START_DELAY + 1500;
@@ -8952,6 +8960,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   }
   async function tourAdvance(outs) {
     const st = state;
+    const commit = patch => window.TournamentB2?.active(st) ? window.TournamentB2.advance({db:FB.db,code,state:st,patch}) : fref(`rooms/${code}/state`).update(patch);
     const rounds = toArrB(st.rounds).map(toArrB);
     const cur = rounds[st.round];
     const done = cur.map((m, k) => ({ ...m, w: outs[k].w || '', draw: !!outs[k].draw, done: true }));
@@ -8968,19 +8977,19 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
         pairs = TOP_SEEDS[size].map(([x, y]) => ({ a: seed(x), b: seed(y) || '' }));
         const seeds = {}; table.slice(0, size).forEach((x, i) => { seeds[x.u] = i + 1; });
         rounds.push(tourRound(pairs, next));
-        await fref(`rooms/${code}/state`).update({ rounds, round: next, seeds, topStart: next, swissRounds: next });
+        await commit({ rounds, round: next, seeds, topStart: next, swissRounds: next });
         return;
       }
       rounds.push(tourRound(pairs, next));
-      await fref(`rooms/${code}/state`).update({ rounds, round: next });
+      await commit({ rounds, round: next });
       return;
     }
     const ws = done.map(m => m.w);
-    if (ws.length === 1) { await fref(`rooms/${code}/state`).update({ rounds, champion: ws[0] }); return; }
+    if (ws.length === 1) { await commit({ rounds, champion: ws[0] }); return; }
     const pairs = [];
     for (let k = 0; k < ws.length; k += 2) pairs.push({ a: ws[k], b: ws[k + 1] || '' });
     rounds.push(tourRound(pairs, st.round + 1));
-    await fref(`rooms/${code}/state`).update({ rounds, round: st.round + 1 });
+    await commit({ rounds, round: st.round + 1 });
   }
 
   // ver.7：対戦のメニュー・ロビーは明るいノート＋FF風カーソル（中の Card・BigBtn・Seg も新しい見た目）
@@ -9034,6 +9043,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     if (m && m.b && !seenGid[m.gid]) {
       const ms = { phase: 'play', mode: state.mode, diff: state.diff, gid: m.gid, seed: m.seed, startAt: m.startAt, players: [m.a, m.b],
         names: { [m.a]: state.names[m.a], [m.b]: state.names[m.b] }, accts: state.accts || {}, nicks: state.nicks || {}, rt: state.rt || {}, handi: {}, tour: true, fmt: state.fmt || 'single', swissStage: isSwissRound(state, state.round), final: cur.length === 1 && !isSwissRound(state, state.round), roundLabel: tourRoundLabel(state.round, rounds, state) };
+      if(window.TournamentB2?.active(state)&&RoomB2App)return <RoomB2App key={m.gid} code={code} state={{...ms,...window.TournamentB2.matchState(state,m)}} players={players} isHost={false} acct={acct} who={who} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onBack={()=>setSeenGid(s=>({...s,[m.gid]:1}))}/>;
       return <BattleGame key={m.gid} code={code} state={ms} players={players} isHost={false} acct={acct} who={who}
         sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onBack={() => setSeenGid(s => ({ ...s, [m.gid]: 1 }))} />;
     }
@@ -10694,6 +10704,13 @@ function SpectatorView({ code, state, players, onLeave }) {
 /* =====================================================================
    クラス大会（トーナメント）：ホストは進行役（プロジェクターに映す）
    ===================================================================== */
+function TournamentB2Final({code,state,game,acct,onBack,onLeave}) {
+  const [error,setError]=useState(''),[saved,setSaved]=useState(false),me=FB.uid;
+  useEffect(()=>{if(!isReal(acct)||!game.result)return;let active=true;const ref=FB.db.ref(`games/factor/accounts/${acct.key}/stats`);
+    ref.transaction(s=>window.TournamentB2.record(s,{tournamentId:state.tournamentId,game,uid:me})).then(()=>{if(active)setSaved(true)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false};
+  },[game.id,acct?.key]);
+  return <div className="or-app"><h1>{game.result.draw?'引き分け':game.result.winner===me?'勝利':'敗北'}</h1><p>大会B方式・公式レーティング対象外</p><window.NextResults.BDetails game={game} names={state.names} me={me}/><p role="status">{saved?'大会記録・EXPを保存しました':isReal(acct)?'大会記録を保存しています…':'ゲストの大会結果'}</p>{error&&<p role="alert">{error}</p>}<button onClick={onBack||onLeave}>大会の表にもどる</button></div>;
+}
 function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStart, onLeave }) {
   const list = Object.entries(players).filter(([k, p]) => p && p.name && k !== me).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
   const mode = state.mode || 'B', diff = state.diff || 'easy';
@@ -10810,7 +10827,9 @@ const topSizeFor = n => n > 32 ? 8 : n >= 4 ? 4 : 2;
 function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, onWatch, r }) {
   const mode = state.mode || 'B', diff = state.diff || 'easy';
   const N = DIFFICULTY_CONFIG[diff].clearCount;
-  const live = useFbValue(m.b ? `rooms/${code}/live/${m.gid}` : null) || {};
+  const legacyLive = useFbValue(m.b && state.tournamentVersion!==2 ? `rooms/${code}/live/${m.gid}` : null) || {};
+  const modern = useFbValue(m.b && state.tournamentVersion===2 ? `rooms/${code}/b2/${m.gid}` : null);
+  const live = modern?.game?.states || legacyLive;
   const ko = useFbValue(m.b ? `rooms/${code}/ko/${m.gid}` : null) || {};
   const feed = useCommentary(m.b ? [m.a, m.b] : [], live, ko, state.names || {}, isBm(mode) ? N : null);
   useEffect(() => { const f = feed[feed.length - 1]; if (f && onFeed) onFeed(f); }, [feed]);
@@ -10831,7 +10850,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
         <span className={`flex-1 font-black truncate ${big ? 'text-base' : 'text-sm'}`} style={{ color: u === me ? COLORS.sky : COLORS.ink, ...bFont }}>{won ? '👑' : ''}{!isSwissRound(state, r || 0) && seeds[u] ? <span className="text-[9px] mr-0.5" style={{ color: COLORS.inkSoft }}>[{seeds[u]}]</span> : null}{names[u]}{players[u] ? '' : <span className="text-[9px] ml-1" style={{ color: COLORS.coral }}>切断</span>}</span>
         {isBm(mode) ? (<>
           <div style={{ width: big ? '5rem' : '3.6rem' }}><HpBar hp={w ? (l.hp || 0) : l.hp == null ? 100 : l.hp} height={8} label={false} /></div>
-          <span className="text-[10px] font-bold w-9 text-right" style={{ color: COLORS.inkSoft }}>{l.c || 0}/{N}</span>
+          {state.tournamentVersion===2 ? <span className="text-[10px] font-bold text-right" style={{ color: COLORS.inkSoft }}>{l.c||0}問・{l.score||0}点</span> : <span className="text-[10px] font-bold w-9 text-right" style={{ color: COLORS.inkSoft }}>{l.c || 0}/{N}</span>}
         </>) : <span className="text-xs font-black w-12 text-right" style={{ color: col }}>{(sc && sc.sc[u]) || 0}点</span>}
         {ko[u] && <span className="text-[9px] font-black" style={{ color: COLORS.coral }}>{ko[u].left ? '退出' : 'KO'}</span>}
       </div>
@@ -10840,6 +10859,7 @@ function TourMatchCard({ code, m, state, players, res, isHost, me, big, onFeed, 
   const force = () => {
     const on = [m.a, m.b].filter(u => players[u]);
     const winner = on.length === 1 ? on[0] : (hashSeed(m.gid) % 2 ? m.b : m.a);
+    if(state.tournamentVersion===2){window.TournamentB2.adjudicate({db:FB.db,code,gid:m.gid,winner}).catch(()=>{});return;}
     fref(`rooms/${code}/result/${m.gid}`).transaction(cur => cur ? undefined : { winner, reason: 'judge', rank: { [winner]: 1, [winner === m.a ? m.b : m.a]: 2 }, at: TSV() }).catch(() => {});
   };
   return (
@@ -10878,6 +10898,10 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
   const topN = state.topSize || 4;
   const names = state.names || {};
   const champion = state.champion;
+  useEffect(()=>{if(state.tournamentVersion!==2||champion!==me||!FB.db)return;const key=state.accts?.[me];if(!key)return;const rounds=toArrB(state.rounds).map(toArrB),m=rounds.flat().find(m=>m.b&&(m.a===me||m.b===me));if(!m)return;
+    FB.db.ref(`games/factor/rooms/${code}/b2/${m.gid}/game`).get().then(x=>{const game=x.val();return FB.db.ref(`games/factor/accounts/${key}/stats`).transaction(s=>window.TournamentB2.record(s,{tournamentId:state.tournamentId,game,uid:me,champion:true,at:TSV()}));}).catch(()=>{});
+  },[state.tournamentId,champion,me]);
+
   const label = k => tourRoundLabel(k, rounds, state);
   const nh = winners.length / 2;
   const nextLabel = swissNow ? (!swissEnds ? `予選 第${r + 2}回戦` : `決勝トーナメント（上位${Math.min(topN, Object.keys(names).length >= 4 ? topN : 2)}人）`) : (isSwiss ? '決勝T ' : '') + (nh === 1 ? '決勝' : nh === 2 ? '準決勝' : nh === 4 ? '準々決勝' : `${r + 2}回戦`);
@@ -10919,6 +10943,7 @@ function TourBoard({ code, state, players, isHost, me, onAdvance, onLeave, onLob
     if (autoFinal.current !== cur[0].gid) { autoFinal.current = cur[0].gid; setTimeout(() => setWatch(cur[0].gid), 2200); }
   }, [r, champion]);
   const watchM = watch && cur.find(m => m.gid === watch);
+  if (watchM && watchM.b && state.tournamentVersion===2) return <TournamentB2Watch code={code} state={state} m={watchM} onClose={()=>setWatch(null)}/>;
   if (watchM && watchM.b) return <TourSplit code={code} state={state} m={watchM} onClose={() => setWatch(null)} />;
   const liveMatches = cur.filter((m, k) => m.b && !outs[k].done);
   return (<>
@@ -11018,7 +11043,7 @@ async function completeDailySolo(acct,attempt,game){
  await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.dailySoloSeen ||= {};submit=!p.dailySoloSeen[attempt.id];if(submit){p.dailySoloSeen[attempt.id]=true;applyLearn(p,game.hist||[]);}return p;});
  if(submit){await missionEvent(acct,{daily:1,ok:game.correct,pf:game.hist.filter(h=>h.j==='Perfect').length});if(entry.score>0&&GAS_ENDPOINT_URL)await submitNetScore(entry);}
 }
-const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame}).App : null;
+const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame,TournamentFinal:TournamentB2Final}).App : null;
 const NewDailyApp = window.DailyFactory && OnlineComponents ? window.DailyFactory({FB,DIFFICULTY_CONFIG,useGameMute,getJudgment,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,RatingDisplay,MathText,formatFactorTile,timingVisual,useBattleSound,Missions:DailyMissionsView,onCompleted:completeDailySolo,BattleView:OnlineComponents.BattleView}).App : null;
 function DailyApp(props){
  const fb=useFbReady(),[ready,setReady]=useState(null);
