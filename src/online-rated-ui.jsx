@@ -74,6 +74,8 @@
       const frozen = g.rules === "b2" && time < g.freezeUntil;
       const counting = time < (m.gameStartAt || g.startAt),
         ready = !!g.resolving || time < Math.max(g.startAt, g.readyAt || 0);
+      // Do not mount the next board until the authoritative input window opens.
+      const boardHidden = counting || frozen || ready || !!g.result;
       const score = typeof self === "number" ? self : self?.score || 0,
         combo = typeof self === "object" ? self.combo : g.combo || 0;
       const seenVisual = useRef(g.visualEvents?.slice(-1)[0]?.id || 0);
@@ -97,9 +99,9 @@
         }
       }, [g.visualEvents, m.selfUid]);
       useEffect(() => {
-        if (!disabled && !ready && !g.result)
+        if (!disabled && !boardHidden)
           trace("input-ready", { match: m.id, question: g.question });
-      }, [disabled, ready, g.question]);
+      }, [disabled, boardHidden, g.question]);
       useEffect(() => {
         if (counting)
           trace("countdown-display", {
@@ -233,7 +235,7 @@
                 />
                 <H.ComboDisplay combo={combo} />
               </div>
-              {!counting && !frozen && <><div className="relative" style={{ flexShrink: 0 }}>
+              {!boardHidden && <><div className="relative" style={{ flexShrink: 0 }}>
                 <H.TargetCard
                   poly={g.poly}
                   level={g.level}

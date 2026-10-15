@@ -10199,9 +10199,9 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
           <TimingJudgment judge={judge} at="ph" />
-          {cur && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
+          {cur && !s.resolving && !s.over && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
         </div>
-        {cur && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
+        {cur && !s.resolving && !s.over && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
         <p className="v7-hint" style={{ flexShrink: 0 }}>{TC ? '仲間の予告も正解でカバー・2人で3コンボ以上を同時に→合体攻撃' : <>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</>}</p>
       </div>
     </div>
@@ -10325,9 +10325,9 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
           <TimingJudgment judge={judge} at="ph" />
-          {prob && <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
+          {prob && !waiting && !ended && <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
         </div>
-        {prob && <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
+        {prob && !waiting && !ended && <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
         <p className="v7-hint" style={{ flexShrink: 0 }}>先に正解した人だけ得点 ・ まちがえると{lockMs / 1000}秒お手つき ・ 最後の{A_LASTSPURT}問は2倍</p>
       </div>
     </div>

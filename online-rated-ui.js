@@ -74,6 +74,7 @@
         )) == null ? void 0 : _a[1];
         const frozen = g.rules === "b2" && time < g.freezeUntil;
         const counting = time < (m.gameStartAt || g.startAt), ready = !!g.resolving || time < Math.max(g.startAt, g.readyAt || 0);
+        const boardHidden = counting || frozen || ready || !!g.result;
         const score = typeof self === "number" ? self : (self == null ? void 0 : self.score) || 0, combo = typeof self === "object" ? self.combo : g.combo || 0;
         const seenVisual = useRef(((_c = (_b = g.visualEvents) == null ? void 0 : _b.slice(-1)[0]) == null ? void 0 : _c.id) || 0);
         useEffect(() => {
@@ -93,9 +94,9 @@
           }
         }, [g.visualEvents, m.selfUid]);
         useEffect(() => {
-          if (!disabled && !ready && !g.result)
+          if (!disabled && !boardHidden)
             trace("input-ready", { match: m.id, question: g.question });
-        }, [disabled, ready, g.question]);
+        }, [disabled, boardHidden, g.question]);
         useEffect(() => {
           if (counting)
             trace("countdown-display", {
@@ -172,7 +173,7 @@
               judge: feedback == null ? void 0 : feedback.judge,
               className: "or-timing"
             }
-          ), /* @__PURE__ */ React.createElement(H2.ComboDisplay, { combo })), !counting && !frozen && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "relative", style: { flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
+          ), /* @__PURE__ */ React.createElement(H2.ComboDisplay, { combo })), !boardHidden && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "relative", style: { flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
             H2.TargetCard,
             {
               poly: g.poly,
