@@ -2796,6 +2796,213 @@
     }
   });
 
+  // src/weekly-next.cjs
+  var require_weekly_next = __commonJS({
+    "src/weekly-next.cjs"(exports, module) {
+      "use strict";
+      var { tx } = require_online_spark_client();
+      var queues = /* @__PURE__ */ new WeakMap();
+      async function serial(db, path, fn) {
+        let q = queues.get(db);
+        if (!q) {
+          q = /* @__PURE__ */ new Map();
+          queues.set(db, q);
+        }
+        const task = (q.get(path) || Promise.resolve()).catch(() => {
+        }).then(fn);
+        q.set(path, task);
+        try {
+          return await task;
+        } finally {
+          if (q.get(path) === task) q.delete(path);
+        }
+      }
+      var ROOT = "games/factor/weeklyNextV1";
+      var DAY = 864e5;
+      var SHIFT = 324e5;
+      var day = (at) => Math.floor((at + SHIFT) / DAY);
+      function monday(s) {
+        const t = Date.parse(s + "T00:00:00Z");
+        return /^\d{4}-\d{2}-\d{2}$/.test(s || "") && Number.isFinite(t) && new Date(t).getUTCDay() === 1 && new Date(t).toISOString().slice(0, 10) === s;
+      }
+      function baseHP(week, meta, approval) {
+        if (meta) return meta.policyVersion === 1 && meta.hpBase === 9e4 ? 9e4 : 3e4;
+        return (approval == null ? void 0 : approval.status) === "approved" && monday(approval.firstWeek) && monday(week) && week >= approval.firstWeek ? 9e4 : 3e4;
+      }
+      function create({ db, uid, account }) {
+        if (!db || !uid || !(account == null ? void 0 : account.key)) throw Error("REGISTERED_ACCOUNT_REQUIRED");
+        const clock = async () => {
+          const r = db.ref(`${ROOT}/clock/${uid}`);
+          await r.set({ ".sv": "timestamp" });
+          const n = (await r.get()).val();
+          if (typeof n !== "number") throw Error("SERVER_CLOCK_UNAVAILABLE");
+          return n;
+        };
+        async function reserve(id, role = "atk") {
+          if (!/^[A-Za-z0-9_-]{1,64}$/.test(id) || !["atk", "sup"].includes(role)) throw Error("INVALID_RESERVATION");
+          const at = await clock(), d = day(at), r = db.ref(`${ROOT}/attempts/${account.key}/${d}`);
+          const out = await serial(db, account.key + "/" + d, () => tx(r, (cur) => {
+            const n = cur || { slots: {} };
+            n.slots || (n.slots = {});
+            if (Object.values(n.slots).some((s2) => s2.id === id)) return n;
+            const slot2 = [0, 1, 2, 3, 4].find((i) => !n.slots[i]);
+            if (slot2 === void 0) throw Error("WEEKLY_DAILY_LIMIT");
+            n.slots[slot2] = { id, uid, role, at: { ".sv": "timestamp" } };
+            return n;
+          }));
+          const slots = (await r.get()).val().slots, [slot, s] = Object.entries(slots).find(([, s2]) => s2.id === id);
+          return { ...s, day: d, slot };
+        }
+        async function resume(r) {
+          const s = (await db.ref(`${ROOT}/attempts/${account.key}/${r.day}/slots/${r.slot}`).get()).val();
+          if ((s == null ? void 0 : s.id) !== r.id) throw Error("RESERVATION_NOT_FOUND");
+          return { ...s, day: r.day, slot: r.slot };
+        }
+        async function finish(r, { completed = false } = {}) {
+          if (!completed) throw Error("RUN_NOT_COMPLETED");
+          const saved = await resume(r), ref = db.ref(`${ROOT}/attempts/${account.key}/${saved.day}/slots/${saved.slot}/finish`);
+          await tx(ref, (old) => old || { id: saved.id, at: { ".sv": "timestamp" }, completed: true });
+          return (await ref.get()).val();
+        }
+        return { reserve, resume, finish };
+      }
+      module.exports = { ROOT, DAY, SHIFT, day, monday, baseHP, create };
+    }
+  });
+
+  // src/weekly-run-next.cjs
+  var require_weekly_run_next = __commonJS({
+    "src/weekly-run-next.cjs"(exports, module) {
+      "use strict";
+      var W = require_weekly_next();
+      var { tx } = require_online_spark_client();
+      var clone = (x) => JSON.parse(JSON.stringify(x));
+      var queues = /* @__PURE__ */ new WeakMap();
+      function canonical(x) {
+        const norm = (v) => {
+          if (v && typeof v === "object") {
+            const entries = Object.entries(v).map(([k, x2]) => [k, norm(x2)]).filter(([, x2]) => x2 !== null).sort(([a], [b]) => a.localeCompare(b));
+            return entries.length ? Object.fromEntries(entries) : null;
+          }
+          return v == null ? null : v;
+        };
+        return JSON.stringify(norm(x));
+      }
+      function enabled(db, location2) {
+        try {
+          const u = new URL(db.ref().toString());
+          return ["localhost", "127.0.0.1", "[::1]"].includes(location2.hostname) && ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) && db.app.options.projectId === "demo-factorfactor-tower";
+        } catch {
+          return false;
+        }
+      }
+      function create({ db, uid, account, validateBoard, initialStats = {} }) {
+        const api = W.create({ db, uid, account }), root = `${W.ROOT}/games/${account.key}`, ref = db.ref(root);
+        function serial(fn) {
+          const last = queues.get(db) || Promise.resolve(), next = last.catch(() => {
+          }).then(fn);
+          queues.set(db, next);
+          return next;
+        }
+        const read = async (id) => (await db.ref(root + "/runs/" + id).get()).val();
+        async function start({ id, week, role, duration, board }) {
+          if (!W.monday(week) || ![6e4, 9e4].includes(duration) || !validateBoard(board)) throw Error("INVALID_INITIAL_STATE");
+          const reservation = await api.reserve(id, role);
+          await serial(() => tx(ref, (data) => {
+            const n = data || { stats: clone(typeof initialStats === "function" ? initialStats() : initialStats), runs: {} };
+            n.runs || (n.runs = {});
+            if (!n.runs[id]) n.runs[id] = { id, week, role, reservation, startAt: reservation.at + 600, duration, status: "play", seq: 0, session: { d: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, absExt: 0 } };
+            return n;
+          }));
+          return resume({ id, reservation });
+        }
+        async function resume(pointer) {
+          await api.resume(pointer.reservation);
+          const r = await read(pointer.id);
+          if (!r || r.reservation.id !== pointer.reservation.id) throw Error("RUN_NOT_FOUND");
+          return r;
+        }
+        async function checkpoint(id, seq, session) {
+          const payload = clone(session);
+          if (!Number.isInteger(seq) || seq < 1 || !Number.isFinite(payload.d) || payload.d < 0 || !Number.isFinite(payload.absExt || 0) || (payload.absExt || 0) > 15e3) throw Error("INVALID_CHECKPOINT");
+          await serial(() => tx(ref, (data) => {
+            var _a;
+            const r = (_a = data == null ? void 0 : data.runs) == null ? void 0 : _a[id];
+            if (!r) throw Error("RUN_NOT_FOUND");
+            if (seq <= r.seq) {
+              if (seq === r.seq && canonical(r.session) !== canonical(payload)) throw Error("CONFLICTING_CHECKPOINT");
+              return data;
+            }
+            if (r.status !== "play" || seq !== r.seq + 1) throw Error("RUN_NOT_WRITABLE");
+            if (payload.d < r.session.d) throw Error("NON_MONOTONIC_DAMAGE");
+            r.seq = seq;
+            r.session = payload;
+            return data;
+          }));
+          return read(id);
+        }
+        async function abandon(id) {
+          await serial(() => tx(ref, (data) => {
+            var _a;
+            const r = (_a = data == null ? void 0 : data.runs) == null ? void 0 : _a[id];
+            if (!r) throw Error("RUN_NOT_FOUND");
+            if (r.status === "play") r.status = "abandoned";
+            return data;
+          }));
+          return read(id);
+        }
+        async function finish(id, award) {
+          let r = await read(id);
+          if (!r || r.status === "abandoned") throw Error("RUN_NOT_COMPLETABLE");
+          const cr = db.ref(`${W.ROOT}/clock/${uid}`);
+          await cr.set({ ".sv": "timestamp" });
+          const now = (await cr.get()).val();
+          if (now < r.startAt + r.duration + (r.session.absExt || 0)) throw Error("RUN_NOT_COMPLETED");
+          await serial(() => tx(ref, (data) => {
+            var _a;
+            const cur = (_a = data == null ? void 0 : data.runs) == null ? void 0 : _a[id];
+            if (!cur || cur.status === "abandoned") throw Error("RUN_NOT_COMPLETABLE");
+            if (now < cur.startAt + cur.duration + (cur.session.absExt || 0)) throw Error("RUN_NOT_COMPLETED");
+            if (cur.status === "play") cur.status = "settling";
+            return data;
+          }));
+          const receipt = await api.finish(r.reservation, { completed: true });
+          await serial(() => tx(ref, (data) => {
+            var _a;
+            const cur = (_a = data == null ? void 0 : data.runs) == null ? void 0 : _a[id];
+            if (!cur || cur.status === "abandoned") throw Error("RUN_NOT_COMPLETABLE");
+            if (cur.receipt) return data;
+            const s = data.stats || (data.stats = clone(typeof initialStats === "function" ? initialStats() : initialStats)), out = award(s, clone(cur.session), cur);
+            cur.reward = out;
+            cur.receipt = receipt;
+            cur.status = "done";
+            return data;
+          }));
+          return read(id);
+        }
+        function subscribe(callback) {
+          const listener = (s) => callback(s.val());
+          ref.on("value", listener);
+          return () => ref.off("value", listener);
+        }
+        return { start, resume, checkpoint, abandon, finish, subscribe, read };
+      }
+      function damage(data, week) {
+        return Object.values((data == null ? void 0 : data.runs) || {}).filter((r) => r.week === week).reduce((n, r) => {
+          var _a, _b, _c;
+          n.d += ((_a = r.session) == null ? void 0 : _a.d) || 0;
+          n.p += ((_b = r.session) == null ? void 0 : _b.sp) || 0;
+          if (r.receipt) {
+            n.s++;
+            n.b = Math.max(n.b, ((_c = r.session) == null ? void 0 : _c.d) || 0);
+          }
+          return n;
+        }, { d: 0, p: 0, s: 0, b: 0 });
+      }
+      module.exports = { enabled, create, damage };
+    }
+  });
+
   // src/local-b2-bots.cjs
   var require_local_b2_bots = __commonJS({
     "src/local-b2-bots.cjs"(exports, module) {
@@ -2836,5 +3043,6 @@
   window.EventHost = require_event_host_client();
   window.DailyV2 = require_daily_client();
   window.RoomB2 = require_room_b2_client();
+  window.WeeklyRunNext = require_weekly_run_next();
   window.LocalB2Bots = require_local_b2_bots();
 })();
