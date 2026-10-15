@@ -1,0 +1,80 @@
+[
+  {
+    "design": "a",
+    "device": "mobile",
+    "font": "ReviewDela",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      390,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  },
+  {
+    "design": "a",
+    "device": "pc",
+    "font": "ReviewDela",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      1440,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  },
+  {
+    "design": "b",
+    "device": "mobile",
+    "font": "ReviewKaku",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      390,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  },
+  {
+    "design": "b",
+    "device": "pc",
+    "font": "ReviewKaku",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      1440,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  },
+  {
+    "design": "c",
+    "device": "mobile",
+    "font": "ReviewMincho",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      390,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  },
+  {
+    "design": "c",
+    "device": "pc",
+    "font": "ReviewMincho",
+    "loaded": true,
+    "noExternalRequests": true,
+    "noHorizontalOverflow": [
+      1440,
+      320,
+      768
+    ],
+    "dialog": "passed"
+  }
+]

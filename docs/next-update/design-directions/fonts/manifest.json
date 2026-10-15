@@ -1,0 +1,37 @@
+[
+  {
+    "source": "dela",
+    "family": "ReviewDela",
+    "bytes": 29324,
+    "sourceSha256": "4ff87a0965f1b0505e5a2c58424bc6ad3cff27e56a82f21c2fc9d6b0e3857ee2",
+    "subsetSha256": "dfefa96ee8dce2e11f7146de2554443a32a862ae93acb1c193c2ad386b66ea69"
+  },
+  {
+    "source": "zen",
+    "family": "ReviewMaru",
+    "bytes": 36524,
+    "sourceSha256": "fe24426b9c8b5523a0146a8235c8674eccf0493af354a53ec895c3596d9eb745",
+    "subsetSha256": "f07d8e25ffb958db80b29af69d385a06c4257021f190e8148a7024158438f2be"
+  },
+  {
+    "source": "zenkaku",
+    "family": "ReviewKaku",
+    "bytes": 28732,
+    "sourceSha256": "795819a979184981842994d8f4eb9e14ce443d687bd5e731d6ca67ded8f92261",
+    "subsetSha256": "ec7f8d12fa4b300ee116e728e0519bf08d4eb6b7434ff55cbc9d9b70ea844b13"
+  },
+  {
+    "source": "shippori",
+    "family": "ReviewMincho",
+    "bytes": 48620,
+    "sourceSha256": "63bc4eddc74793f671c3ab827c5175e773ffbe569d0bf50ee65375ea9e3bc286",
+    "subsetSha256": "ebf24ef93c97ff9d04c5483480384fc8c97cd92075620d032cb7d9ac5615f486"
+  },
+  {
+    "source": "rajdhani",
+    "family": "ReviewDigits",
+    "bytes": 11620,
+    "sourceSha256": "691470dd3286a14e9677940d0bf75796179841ba5215cbda1a2c8910a3226afd",
+    "subsetSha256": "b0b6e709e3bd040532f5acdffc0456eeccb4c92d4d78354d85a1836dae9d6031"
+  }
+]

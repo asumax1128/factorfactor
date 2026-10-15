@@ -17,7 +17,7 @@
 |最新基準確認/独立ブランチ/旧資料継承|完了|本書、../handover/|
 |要件と現行実装の対応表|作成済み|requirements.md|
 |データ移行方式|設計案、未実行・承認待ち|data-migration.md|
-|共通UIの方向性|静的レビュー案、承認待ち|ui-review.html / screenshots/|
+|共通UIの方向性|前案は不採用。ホームA/B/C各スマホ/PCの再提案を作成、選択待ち|design-directions/README.md|
 |先行表示防止・Spark共通View|実装、対象テスト結果は下記|src/online-rated-ui.jsx、生成online-rated-ui.js|
 |先行表示防止・旧ルーム/CPU A/B/C|実装、対象テスト結果は下記|index.html GameA/GameB|
 |観戦側の先行表示対策・全同期経路|未完了|PlayerMirror/SplitView等は別途改修・検証が必要|
@@ -59,3 +59,7 @@
 [TITLE_SPEC_REVIEW.md](TITLE_SPEC_REVIEW.md)に確認結果を記録。通常100件・★5は25件（最新指定で新No.65を★★★★へ復元）。100件を機械可読データへ転記し、既存ID90件/新設ID案10件、公開条件案52件を照合。レビュー用ユニットテスト6件成功。まだ現行UIへ接続せず、取得/装備/本番データは変更していない。
 
 最新の仕様再照合・直前26件一覧・前提52件・UI画像6枚：[TITLE_RECONCILIATION.md](TITLE_RECONCILIATION.md)。No.66は最新指定の「王者防衛」。
+
+## UI再検討 — 前案不採用
+
+所有者の指示により前のUI案を不採用として記録。既存タイトルPNGを無変更で使用し、A現行進化・B競技ゲーム・C日本製RPGのホーム3案×スマホ/PCを作成した。[比較と画像6枚](design-directions/README.md)を参照。新フォント/線画アイコン/構成はプロトタイプ内に限定。選択されるまで実ゲームへ接続せず、本番/ルール/版番号は未変更。
