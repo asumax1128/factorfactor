@@ -1455,7 +1455,7 @@ async function decodeDataUriToAudioBuffer(dataUri) {
 /* ============================================================
    メインコンポーネント
    ============================================================ */
-function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu }) {
+function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly = false, onRankExit }) {
   useEffect(()=>()=>CombatFX.cancel(),[]);
   const [screen, setScreen] = useState(initialMenu === 'help' ? 'tutorial' : 'menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
@@ -2437,16 +2437,17 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu }) {
      画面: メニュー
      ============================================================ */
   if (screen === 'menu') {
+    const RankingFrame = rankingOnly ? RankingPanel : V7Modal;
     const soloBest = ((loadLS(ghostKey, {}) || {})[menuDiff] || {}).score || 0;
     const goSolo = () => {
       try { Tone.start(); } catch (e) {}   // 音の許可はタップの瞬間に（iPad対策）
       v7Wipe(() => startGame(menuDiff));
     };
     return (
-      <div className="v7-menu" ref={menuRef}>
+      <div className={rankingOnly ? "next-solo-ranking" : "v7-menu"} ref={menuRef}>
         <FontImport />
-        {acct && <LoginBonus acct={acct} />}
-        <div className="v7-menu-in v7-open">
+        {!rankingOnly && acct && <LoginBonus acct={acct} />}
+        {!rankingOnly && <div className="v7-menu-in v7-open">
           <button className="v7-pill" onClick={()=>onMode?.('home')}>ホームへ</button>
           <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
           <div className="v7-col">
@@ -2523,8 +2524,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu }) {
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
-        </div>
-        {menuWin === 'rank' && <V7Modal title="ランキング" wide onClose={() => setMenuWin(null)}>
+        </div>}
+        {menuWin === 'rank' && <RankingFrame title={rankingOnly ? "ソロランキング" : "ランキング"} wide onClose={rankingOnly ? onRankExit : () => setMenuWin(null)}>
           <div className="v7-tabs">
             {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'best'} onClick={() => setRankTab('best')}>みんなのベスト</button>}
             {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'total'} onClick={() => setRankTab('total')}>みんなの総得点</button>}
@@ -2684,7 +2685,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu }) {
           </div>
 
           </>)}
-        </V7Modal>}
+        </RankingFrame>}
         {menuWin === 'lv' && <V7Modal title="レベル表" onClose={() => setMenuWin(null)}>
           <div className="mb-1">
             <p className="text-xs font-bold mb-3" style={{ color: COLORS.inkSoft }}>正解するごとに、だんだん難しくなるよ！</p>
@@ -8468,7 +8469,7 @@ async function fetchRatings(accts, bty) {
 }
 /* 懸賞金：3連勝から。1連勝ふえるごとに +10（最大100）。倒した人は経験値ボーナス */
 const bountyOf = st => { const k = (st && st.streak) || 0; return k >= 3 ? Math.min(100, (k - 2) * 10) : 0; };
-function BattleApp({ acct: who, onExit }) {
+function BattleApp({ acct: who, onExit, initialScreen = 'home' }) {
   const fb = useFbReady();
   // The rollout config belongs to Firebase, never to the CPU practice DBX.
   const [configRetry, setConfigRetry] = useState(0);
@@ -8497,7 +8498,7 @@ function BattleApp({ acct: who, onExit }) {
   const ratedEnabled = ratedStatus.state === 'ready' && ratedConfig?.enabled === true;
   const ratedUnavailable = ratedEnabled && !OnlineRatedApp;
   const ratedMessage = ratedStatus.error || (ratedUnavailable ? '新しい対戦画面を読み込めませんでした。ページを再読み込みしてください。' : ratedStatus.state === 'loading' ? '対戦設定を確認しています…' : '');
-  const [scr, setScr] = useState('home');           // home | lobby | game
+  const [scr, setScr] = useState(initialScreen);           // home | lobby | game
   const [code, setCode] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [spectator, setSpectator] = useState(false);
@@ -8942,7 +8943,7 @@ function BattleApp({ acct: who, onExit }) {
   if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })))} onCancel={() => { cancelQm(); setScr('home'); }} />);
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
-  if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} acct={acct} onExit={() => setScr('home')} /> : shell(<Card><p>新しい対戦制度は準備中です。</p><button onClick={() => setScr('home')}>戻る</button></Card>);
+  if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} acct={acct} onExit={initialScreen==='ratings'?onExit:() => setScr('home')} /> : shell(<Card><p>{ratedMessage || '新しい対戦制度は準備中です。'}</p><button onClick={initialScreen==='ratings'?onExit:() => setScr('home')}>戻る</button></Card>);
   if (scr === 'home') return shell(
     <BattleHome fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; ratedEnabled ? setScr('rated') : quickMatch(); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
@@ -10966,10 +10967,11 @@ function DailyApp(props){
  const fb=useFbReady(),[ready,setReady]=useState(null);
  useEffect(()=>{if(!fb.ready)return;let active=true;FB.db.ref('games/factor/dailyV2/ready').get().then(()=>active&&setReady(true)).catch(()=>active&&setReady(false));return()=>{active=false}},[fb.ready]);
  if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
- return ready&&NewDailyApp?<NewDailyApp {...props}/>:<LegacyDailyApp {...props}/>;
+ return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
 const NextHome = window.NextHomeFactory ? window.NextHomeFactory({FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');
   const [modeArg, setModeArg] = useState(null);
@@ -10994,7 +10996,12 @@ function AppRoot() {
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
   return (<>
     <FxLayer />
-    {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={key => key === 'home' ? go('home') : key === 'online' ? go('battle') : key === 'boss' ? go('raidw') : ['rank','help'].includes(key) ? go('solo',{menu:key}) : go(key)} />
+    {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={key => key === 'home' ? go('home') : key === 'online' ? go('battle') : key === 'boss' ? go('raidw') : key === 'rank' ? go('rankings') : key === 'help' ? go('solo',{menu:key}) : go(key)} />
+      : ['rankings','ranking-solo','ranking-daily','ranking-rating'].includes(mode) ? <NextHome page={mode} acct={acct} onLogout={()=>setAcct(null)} onGo={key=>key==='rank'?go('rankings'):key==='online'?go('battle'):key==='help'?go('solo',{menu:'help'}):go(key)}>
+        {mode==='ranking-solo'&&<FactorHunt acct={acct} initialMenu="rank" rankingOnly onRankExit={()=>go('rankings')} onMode={go}/>}
+        {mode==='ranking-daily'&&<DailyApp acct={acct} rankingsOnly onExit={()=>go('rankings')} onMode={go}/>}
+        {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
+      </NextHome>
       : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} />
       : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />

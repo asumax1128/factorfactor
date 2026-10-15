@@ -37,8 +37,8 @@ try{for(const width of [375,390,430,1440]){
  await nav.getByRole('button',{name:width>900?'ソロモード':'ソロ',exact:true}).click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
  assert.equal(await p.locator('link[href="ui-next/home.css"]').count(),0,'home stylesheet unmounts for solo');
  await p.getByRole('button',{name:'ホームへ',exact:true}).click();await p.locator('[data-next-home]').waitFor();
- await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();
- await p.locator('.v7-modal').getByRole('button',{name:'とじる',exact:true}).click();await p.getByRole('button',{name:'ホームへ',exact:true}).click();await p.locator('.support-link').filter({hasText:'あそびかた'}).click();await p.locator('.v7-tut-head').getByText('あそびかた',{exact:true}).waitFor();
+ await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.locator('.ranking-entry').filter({hasText:'ソロランキング'}).click();await p.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();
+ await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await p.getByRole('button',{name:'ホームへ戻る',exact:true}).click();await p.locator('.support-link').filter({hasText:'あそびかた'}).click();await p.locator('.v7-tut-head').getByText('あそびかた',{exact:true}).waitFor();
  // Return by root callback through exposed helpers is unnecessary: reloading tests listener cleanup too.
  await p.reload();await p.locator('[data-next-home]').waitFor();await p.locator('.action-card.online').click();await p.getByRole('button',{name:'オンラインレーティング',exact:true}).waitFor();
  assert.deepEqual(t.errors,[]);results.push({width,cardHeight:card.height,realtime:true,defeated:true,weekRollover:true,permissionAndRetry:true,navigation:true,safeArea34:width<900,bossWrites:0,errors:t.errors});await t.ctx.close();
