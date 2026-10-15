@@ -1,0 +1,7 @@
+@font-face{font-family:BHeading;src:url(fonts/heading.woff) format('woff');font-weight:900;font-display:swap}
+@font-face{font-family:BBody;src:url(fonts/body.woff) format('woff');font-weight:500;font-display:swap}
+@font-face{font-family:BNumber;src:url(fonts/number.woff) format('woff');font-weight:700;font-display:swap}
+.next-home{--bg:#101720;--panel:#192430;--text:#e8f0f5;--muted:#9daebd;--accent:#72dfce;--line:#324354;--nav:228px;--heading:BHeading,'Yu Gothic',sans-serif;--body:BBody,'Yu Gothic',sans-serif;--number:BNumber,sans-serif}
+
+/* Semantic tokens shared by menus and profiles; math and combat remain separate. */
+.next-home{--next-gap:20px;--next-radius:8px;--next-touch:44px;--next-panel:#192b38;--next-shadow:0 8px 24px #0002}

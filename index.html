@@ -2451,7 +2451,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           <button className="v7-pill" onClick={()=>onMode?.('home')}>ホームへ</button>
           <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
           <div className="v7-col">
-            {acct && <AccountPanelV7 acct={acct} onLogout={onLogout} />}
+            {acct && <AccountPanelV7 acct={acct} onLogout={onLogout} onProfile={()=>onMode?.('profile')} />}
             <div className="v7-panel">
               <div className="v7-cap"><span>ソロで遊ぶ</span><span className="flex items-center gap-2">{soloBest > 0 && <span>ベスト {soloBest.toLocaleString()}点</span>}<button className="v7-link" onClick={() => setMenuWin('lv')}>レベル表</button></span></div>
               {!isReal(acct) && <input
@@ -7059,7 +7059,7 @@ function LegacyTowerTileV7({ acct, onOpen }) {
 }
 /* タイトル画面の札 */
 /* ---------- ver.7 メニューの部品 ---------- */
-function AccountPanelV7({ acct, onLogout }) {
+function AccountPanelV7({ acct, onLogout, onProfile }) {
   const fb = useFbReady();
   const st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
   const [open, setOpen] = useState(false);
@@ -7072,6 +7072,7 @@ function AccountPanelV7({ acct, onLogout }) {
   const exp = isReal(acct) ? (st && st.exp) || 0 : (g && g.exp) || 0;
   const L = levelOf(exp);
   const openProf = () => {
+    if(onProfile){onProfile();return;}
     setOpen(true);
     fref('accounts').get().then(s => { const nm = {}; Object.entries(s.val() || {}).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm); }).catch(() => {});
   };
@@ -10970,7 +10971,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');
@@ -10987,6 +10988,11 @@ function AppRoot() {
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('touchstart', unlock); window.removeEventListener('keydown', unlock); };
   }, []);
   const go = (m, arg) => { setModeArg(arg || null); setMode(m === 'solo' ? 'solo' : m); window.scrollTo(0, 0); };
+  const navigateNext = key => {
+    if(key==='back'){const back=window.NextNavigation?window.NextNavigation.back(modeArg):{page:'home',arg:null};go(back.page,back.arg);return;}
+    if(key==='profile'||key==='account'){if(mode!=='profile')go('profile',{from:mode,fromArg:modeArg});return;}
+    go(window.NextNavigation?window.NextNavigation.target(key):({online:'battle',rank:'rankings',boss:'raidw',help:'solo'})[key]||key,key==='help'?{menu:'help'}:null);
+  };
   const toSolo = () => go('home');
   usePresenceRoot(acct, mode);
   useEffect(()=>{if(!isReal(acct))return;let stop=false,t;const claim=()=>{if(stop)return;if(!FB.db||!FB.uid){t=setTimeout(claim,500);return;}window.DailyV2?.create({db:FB.db,uid:FB.uid,account:acct}).awards().catch(()=>{});};claim();return()=>{stop=true;clearTimeout(t)}},[acct?.key]);
@@ -10996,8 +11002,8 @@ function AppRoot() {
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
   return (<>
     <FxLayer />
-    {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={key => key === 'home' ? go('home') : key === 'online' ? go('battle') : key === 'boss' ? go('raidw') : key === 'rank' ? go('rankings') : key === 'help' ? go('solo',{menu:key}) : go(key)} />
-      : ['rankings','ranking-solo','ranking-daily','ranking-rating'].includes(mode) ? <NextHome page={mode} acct={acct} onLogout={()=>setAcct(null)} onGo={key=>key==='rank'?go('rankings'):key==='online'?go('battle'):key==='help'?go('solo',{menu:'help'}):go(key)}>
+    {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={navigateNext} />
+      : ['profile','rankings','ranking-solo','ranking-daily','ranking-rating'].includes(mode) ? <NextHome page={mode} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>
         {mode==='ranking-solo'&&<FactorHunt acct={acct} initialMenu="rank" rankingOnly onRankExit={()=>go('rankings')} onMode={go}/>}
         {mode==='ranking-daily'&&<DailyApp acct={acct} rankingsOnly onExit={()=>go('rankings')} onMode={go}/>}
         {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
@@ -11007,7 +11013,7 @@ function AppRoot() {
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
       : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
-      : <FactorHunt initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={go} />}
+      : <FactorHunt initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
   </>);
 }
 

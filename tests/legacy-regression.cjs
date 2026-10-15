@@ -20,6 +20,16 @@ function functions(html) {
   }).ast;
   const normalise = (n) => {
     if (!n || typeof n !== "object") return;
+    // The profile-entry callback is navigation only. Audit its exact two-statement
+    // guard, then compare every original account-read/equipment statement unchanged.
+    if(n.type==='FunctionDeclaration'&&n.id?.name==='AccountPanelV7'&&n.params[0]?.properties?.some(p=>p.key?.name==='onProfile')){
+      n.params[0].properties=n.params[0].properties.filter(p=>p.key?.name!=='onProfile');
+      const open=n.body.body.flatMap(s=>s.declarations||[]).find(d=>d.id?.name==='openProf');
+      const guard=open.init.body.body[0],g=guard.consequent?.body;
+      assert.equal(guard.type,'IfStatement');assert.equal(guard.test.name,'onProfile');assert.equal(guard.alternate,null);
+      assert.equal(g.length,2);assert.equal(g[0].type,'ExpressionStatement');assert.equal(g[0].expression.type,'CallExpression');assert.equal(g[0].expression.callee.name,'onProfile');assert.deepEqual(g[0].expression.arguments,[]);assert.equal(g[1].type,'ReturnStatement');assert.equal(g[1].argument,null);
+      open.init.body.body.shift();
+    }
     if (
       n.type === "CallExpression" &&
       n.callee?.name === "useGameMute" &&
