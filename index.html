@@ -1457,7 +1457,7 @@ async function decodeDataUriToAudioBuffer(dataUri) {
 /* ============================================================
    メインコンポーネント
    ============================================================ */
-function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly = false, onRankExit }) {
+function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly = false, onRankExit, renderMenu }) {
   useEffect(()=>()=>CombatFX.cancel(),[]);
   const [screen, setScreen] = useState(initialMenu === 'help' ? 'tutorial' : 'menu'); // menu | playing | gameover
   const [unlockedLevel, setUnlockedLevel] = useState(1); // 到達したレベル(1〜4)。この範囲から毎問ランダムに出題
@@ -2445,7 +2445,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       try { Tone.start(); } catch (e) {}   // 音の許可はタップの瞬間に（iPad対策）
       v7Wipe(() => startGame(menuDiff));
     };
-    return (
+    return (renderMenu&&!rankingOnly?renderMenu:x=>x)(
       <div className={rankingOnly ? "next-solo-ranking" : "v7-menu"} ref={menuRef}>
         <FontImport />
         {!rankingOnly && acct && <LoginBonus acct={acct} />}
@@ -11013,11 +11013,11 @@ function AppRoot() {
         {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
       </NextHome>
       : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="battle" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
-      : mode === 'daily' ? <DailyApp acct={acct} onExit={toSolo} onMode={go} />
+      : mode === 'daily' ? <DailyApp renderMenu={NextHome.Lobby?children=><NextHome page="daily" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-daily">{children}</div></NextHome>:undefined} acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
       : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
       : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
-      : <FactorHunt initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
+      : <FactorHunt renderMenu={NextHome.Lobby?children=><NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-menu">{children}</div></NextHome>:undefined} initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
   </>);
 }
 

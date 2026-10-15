@@ -36,14 +36,15 @@
     "test:online-v524": "node --test tests/b2.test.cjs tests/daily-model.test.cjs tests/daily-play.test.cjs tests/hyper-top10.test.cjs && node tests/v524-browser.cjs",
     "test:rewards-audit": "node tests/rewards-audit.cjs && node tests/rewards-audit-browser.cjs",
     "test:next-board-visibility": "node tests/next-board-visibility-browser.cjs",
-    "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs && npm run test:ranking-hub && npm run test:next-profile && npm run test:next-lobby",
+    "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs && npm run test:ranking-hub && npm run test:next-profile && npm run test:next-lobby && npm run test:next-menus",
     "test:ranking-hub": "node tests/ranking-hub-browser.cjs",
     "test:official-logo": "node tests/official-logo-browser.cjs",
     "test:next-profile": "node --test tests/profile-read.test.cjs && node tests/next-profile-browser.cjs",
     "test:next-lobby": "node tests/next-lobby-browser.cjs",
     "test:next-results": "node --test tests/b-result.test.cjs && node tests/next-results-browser.cjs && node tests/b-result-flow-browser.cjs",
     "test:local-b2": "node --test tests/local-b2-bots.test.cjs && node tests/local-b2-browser.cjs",
-    "test:next-spectator": "node tests/next-spectator-browser.cjs"
+    "test:next-spectator": "node tests/next-spectator-browser.cjs",
+    "test:next-menus": "node tests/next-menu-shell-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
