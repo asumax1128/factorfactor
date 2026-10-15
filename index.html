@@ -7168,7 +7168,7 @@ function WeeklyCard({ onOpen }) {
 /* =====================================================================
    観戦：対戦中の画面を左右（3〜4人なら4分割）に並べて見る
    ===================================================================== */
-function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, score, combo, lock, probA, big }) {
+function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, score, combo, lock, probA, big, ready = false }) {
   const l = live || {};
   const ref = useRef(null);
   const prev = useRef({});
@@ -7184,7 +7184,7 @@ function PlayerMirror({ idx, name, nick, mode, N, bank, live, ko, won, rank, sco
     if (mode === 'A' && p.s != null && (score || 0) > p.s) { FX.burst(c.x, c.t + c.h * 0.45, { color, n: 16, r: 90 }); FX.text(c.x, c.t + 70, `+${score - p.s}`, color, 28); }
     if (ko && !p.ko) { FX.shards({ ...c, l: c.l + c.w * 0.2, t: c.t + c.h * 0.3, w: c.w * 0.6, h: c.h * 0.3 }, color); fxSound('shatter'); }
   }, [l.c, l.hp, !!ko, score]);
-  const prob = isBm(mode) ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA;
+  const prob = ready ? (isBm(mode) ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA) : null;
   const hp = l.hp == null ? 100 : l.hp;
   const sp = l.sp || 0;
   const rows = prob ? Math.max(1, Math.ceil(prob.tiles.length / 3)) : 2;
@@ -7233,7 +7233,7 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
   const cl = claims || [];
   let q = 0; while (cl[q]) q++;
   const scA = mode === 'A' ? scoreA(bank, cl, ids, N, {}) : null;
-  const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
+  const probA = mode === 'A' && q < N && !result && now >= qStartA(cl, q, startAt) ? problemForA(bank, q) : null;
   const rank = (result && result.rank) || {};
   const two = ids.length === 2;
   const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
@@ -7251,7 +7251,7 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
       </div>}
       <div className="relative flex-1 grid gap-2" style={{ minHeight: 0, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridTemplateRows: two ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
         {ids.map((u, i) => <PlayerMirror key={u} idx={i} name={names[u]} nick={(nicks || {})[u]} mode={mode} N={N} bank={bank} live={(live || {})[u]} ko={(ko || {})[u]}
-          won={result && !result.draw && result.winner === u} rank={result ? rank[u] : null} score={scA ? scA.sc[u] : null} combo={scA ? scA.cb[u] : (live[u] || {}).combo} lock={((live || {})[u] || {}).lock > now} probA={probA} big={two} />)}
+          won={result && !result.draw && result.winner === u} rank={result ? rank[u] : null} score={scA ? scA.sc[u] : null} combo={scA ? scA.cb[u] : (live[u] || {}).combo} lock={((live || {})[u] || {}).lock > now} probA={probA} big={two} ready={!result&&now>=startAt&&(mode==='A'?!!probA:(live[u]||{}).boardReady===true)} />)}
         {two && <div className="absolute pointer-events-none font-black" style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: 'clamp(2rem, 5vw, 4rem)', color: COLORS.coral, textShadow: '0 3px 0 #fff, 0 0 18px #fff', ...bFont }}>VS</div>}
       </div>
       {cheer && <div className="mt-2"><CheerBar code={cheer.code} gid={cheer.gid} ids={ids} names={names} done={!!result} big={two} /></div>}
@@ -8157,7 +8157,7 @@ function createBEngine(o) {
     s.pushT = t;
     const pd = s.pend.reduce((a, p) => a + p.dmg, 0), po = s.pend.reduce((a, p) => a + p.oj, 0);
     fref(`rooms/${o.code}/live/${o.gid}/${o.uid}`).set({ hp: Math.round(s.hp * 10) / 10, c: s.c, score: s.score, combo: s.combo, pd, po, sp: s.sp, sh: E.shield() ? 1 : 0,
-      lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play', ...(TC ? { ok: s.lastOkAt, ms: s.lastMissAt, un: s.uniteAt } : {}) }).catch(() => {});
+      boardReady: !s.resolving && !s.over && !s.ko, lv: s.cur ? s.cur.level : 1, k: s.cur ? s.cur.k : 0, oj: s.cur ? s.cur.oj : 0, st: s.ko ? 'ko' : s.over ? 'over' : 'play', ...(TC ? { ok: s.lastOkAt, ms: s.lastMissAt, un: s.uniteAt } : {}) }).catch(() => {});
     E.flush(force);
   };
   E.knockout = () => {
@@ -8834,11 +8834,11 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko', 'thp'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
     const modeN = opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B'));
     if (modeN === 'C' && ids.length !== 4) return;
-    const modernB=modeN==='B'&&!['local','bot'].includes(c);
+    const modernB=modeN==='B'&&c!=='bot';
     const nextGid=String(Date.now()),nextSeed=Math.random().toString(36).slice(2,10);
     const duration=st.qm?90:([60,90,120,180].includes(st.duration)?st.duration:90);
     let synchronizedStart=fbNow()+BATTLE_START_DELAY;
-    if(modernB){try{synchronizedStart=await window.RoomB2.prepare({db:FB.db,code:c,state:{gid:nextGid,seed:nextSeed,diff:opt.diff||(st.qm?'easy':st.diff||'easy'),duration,players:ids,accts}});}catch(e){setErr('新B方式の開始を確定できませんでした。部屋のデータを残して再試行できます（'+(e.code||e.message)+'）');return;}}
+    if(modernB){try{synchronizedStart=await window.RoomB2.prepare({db:dbOf(),code:c,state:{...(c==='local'?{localPractice:true,cpu}:{}),gid:nextGid,seed:nextSeed,diff:opt.diff||(st.qm?'easy':st.diff||'easy'),duration,players:ids,accts}});}catch(e){setErr('新B方式の開始を確定できませんでした。部屋のデータを残して再試行できます（'+(e.code||e.message)+'）');return;}}
     await fref(`rooms/${c}/state`).set({
       ...(modernB?{rules:'b2',duration}:{}),
       ...(modeN === 'C' ? { tm: teamsOf(ids, st.tm) } : {}),
@@ -8992,7 +8992,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   // 対戦中
   if (!state || state.phase !== 'play') return shell(<Card><p className="text-center font-bold" style={{ color: COLORS.inkSoft }}>受信しています…</p></Card>);
   const amPlayer = !spectator && (state.players || []).includes(myUid());
-  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={acct} who={who} spectator={!amPlayer} practice={false} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onRematch={startMatch} onLobby={backToLobby}/>;
+  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice?null:acct} who={who} spectator={!amPlayer} practice={practice} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onRematch={startMatch} onLobby={practice?()=>leave():backToLobby}/>;
   if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
   return <>{qmChip}<BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
     sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={state.qm ? () => startQmVote(code) : startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;
@@ -9958,7 +9958,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       if (mine.current.aMiss[q]) lrec.push({ lv: p.level, pid, ok: false, ms: 0 });
       else if (c && c.uid === me) lrec.push({ lv: p.level, pid, ok: true, ms: Math.max(0, (c.at || 0) - qStartA(claimsRef.current, q, state.startAt)), j: c.j });
     });
-    if(state.rules==='b2')flushOnlineLearn(who,'room:'+gid,lrec,{battle:1,win:win?1:0,combo:mx.maxCombo||0});else flushLearn(who, lrec, practice ? { combo: mx.maxCombo || 0 } : { battle: 1, win: win ? 1 : 0, combo: mx.maxCombo || 0 });
+    if(state.rules==='b2'&&!practice)flushOnlineLearn(who,'room:'+gid,lrec,{battle:1,win:win?1:0,combo:mx.maxCombo||0});else flushLearn(who, lrec, practice ? { combo: mx.maxCombo || 0 } : { battle: 1, win: win ? 1 : 0, combo: mx.maxCombo || 0 });
   }, [!!result]);
   // すぐ遊ぶの代役：少ししたら「準備OK」を押す
   useEffect(() => {
@@ -10584,7 +10584,7 @@ function SpectatorView({ code, state, players, onLeave }) {
   const claims = claimsArr(claimsV);
   let q = 0; while (claims[q]) q++;
   const sc = mode === 'A' ? scoreA(bank, claims, ids, N, state.handi || {}) : null;
-  const probA = mode === 'A' && q < N ? problemForA(bank, q) : null;
+  const probA = mode === 'A' && q < N && !result && now >= qStartA(claims, q, state.startAt) ? problemForA(bank, q) : null;
   const slots = [0, 1, 2, 3].map(i => ids[i] || null);
   const rank = (result && result.rank) || {};
   const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
@@ -10609,7 +10609,7 @@ function SpectatorView({ code, state, players, onLeave }) {
         if (!uid) return (<div key={i} className="rounded-2xl p-4 flex items-center justify-center text-sm font-bold" style={{ border: `2px dashed ${COLORS.inkSoft}55`, color: COLORS.inkSoft, minHeight: '9rem' }}>空き</div>);
         const l = live[uid] || {};
         const on = !!players[uid];
-        const p = isBm(mode) && l.lv ? bank.get(l.lv, l.k || 0) : null;
+        const p = !result && now >= state.startAt && l.boardReady === true && isBm(mode) && l.lv ? bank.get(l.lv, l.k || 0) : null;
         return (
           <Card key={uid} style={{ borderTop: `6px solid ${PCOLORS[i]}`, opacity: ko[uid] ? 0.6 : 1 }}>
             <div className="flex items-center justify-between mb-1">
@@ -10966,7 +10966,7 @@ async function completeDailySolo(acct,attempt,game){
  await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.dailySoloSeen ||= {};submit=!p.dailySoloSeen[attempt.id];if(submit){p.dailySoloSeen[attempt.id]=true;applyLearn(p,game.hist||[]);}return p;});
  if(submit){await missionEvent(acct,{daily:1,ok:game.correct,pf:game.hist.filter(h=>h.j==='Perfect').length});if(entry.score>0&&GAS_ENDPOINT_URL)await submitNetScore(entry);}
 }
-const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame}).App : null;
+const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame}).App : null;
 const NewDailyApp = window.DailyFactory && OnlineComponents ? window.DailyFactory({FB,DIFFICULTY_CONFIG,useGameMute,getJudgment,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,RatingDisplay,MathText,formatFactorTile,timingVisual,useBattleSound,Missions:DailyMissionsView,onCompleted:completeDailySolo,BattleView:OnlineComponents.BattleView}).App : null;
 function DailyApp(props){
  const fb=useFbReady(),[ready,setReady]=useState(null);

@@ -45,6 +45,21 @@
     }
   });
 
+  // src/next-spectator-ui.jsx
+  function Spectator({ H, g, time, names = {}, onLeave, children }) {
+    var _a, _b;
+    const [selected, setSelected] = React.useState(g.ids[0]), [expanded, setExpanded] = React.useState(false), focus = g.ids.includes(selected) ? selected : g.ids[0];
+    const last = (_b = (_a = g.scoreTrace) == null ? void 0 : _a.events) == null ? void 0 : _b.slice(-1)[0], notice = (last == null ? void 0 : last.uid) ? `${names[last.uid] || "\u30D7\u30EC\u30A4\u30E4\u30FC"}\u304C\u6B63\u89E3\u3002\uFF0B${last.gain}\u70B9` : "\u8A66\u5408\u72B6\u6CC1\u3092\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002";
+    return /* @__PURE__ */ React.createElement("main", { className: "next-spectator " + (expanded ? "expanded" : ""), "data-next-spectator": true }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("h1", null, "\u89B3\u6226\u30FB\u65B0B\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("button", { onClick: onLeave }, "\u89B3\u6226\u3092\u7D42\u4E86")), /* @__PURE__ */ React.createElement("p", null, "\u6B8B\u308A ", Math.max(0, (g.endAt - time) / 1e3).toFixed(1), "\u79D2"), /* @__PURE__ */ React.createElement("div", { className: "next-spectator-hud" }, g.ids.map((u) => {
+      const s = g.states[u];
+      return /* @__PURE__ */ React.createElement("button", { key: u, onClick: () => setSelected(u), "aria-pressed": u === focus }, /* @__PURE__ */ React.createElement("strong", null, names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"), /* @__PURE__ */ React.createElement("span", null, s.score, "\u70B9 \uFF0F HP ", Math.round(s.hp), "%"), /* @__PURE__ */ React.createElement("small", null, "\u6B63\u89E3", s.c, "\u554F \u30FB ", s.combo, "\u30B3\u30F3\u30DC \uFF0F \u304A\u90AA\u9B54", s.cur.oj, "\u679A"));
+    })), /* @__PURE__ */ React.createElement("p", { "aria-live": "polite" }, notice), /* @__PURE__ */ React.createElement("button", { className: "next-view-size", onClick: () => setExpanded((v) => !v) }, expanded ? "\u4E21\u8005\u3092\u4E26\u3079\u308B" : "\u9078\u629E\u3057\u305F\u76E4\u9762\u3092\u62E1\u5927"), /* @__PURE__ */ React.createElement("div", { className: "next-spectator-boards" }, g.ids.map((u) => {
+      const s = g.states[u], visible = time >= g.startAt && !s.resolving && time >= s.qStart && time >= s.freezeUntil && !g.result && s.hp > 0;
+      return /* @__PURE__ */ React.createElement("section", { key: u, "data-spectator-player": u, className: (u === focus ? "focused" : "") + " spectator-board" }, /* @__PURE__ */ React.createElement("h2", null, names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"), visible ? /* @__PURE__ */ React.createElement("div", { className: "next-readonly-board", inert: "" }, /* @__PURE__ */ React.createElement(H.TargetCard, { poly: s.cur.poly, level: s.cur.level, qLabel: `${s.c + 1}\u554F`, v7: true }), /* @__PURE__ */ React.createElement(H.BattleBoard, { tiles: s.cur.tiles, disabled: true, onMatch: () => {
+      }, v7: true })) : /* @__PURE__ */ React.createElement("p", { role: "status" }, g.result ? "\u8A66\u5408\u7D42\u4E86" : time < g.startAt ? "\u958B\u59CB\u5F85\u3061" : time < s.freezeUntil ? "FREEZE\u4E2D" : s.hp <= 0 ? "KO" : "\u6B21\u306E\u554F\u984C\u3092\u5F85\u3063\u3066\u3044\u307E\u3059"));
+    })), children, g.result && /* @__PURE__ */ React.createElement("p", null, g.result.draw ? "\u5F15\u304D\u5206\u3051" : `${names[g.result.winner] || "\u30D7\u30EC\u30A4\u30E4\u30FC"}\u306E\u52DD\u5229`));
+  }
+
   // src/next-results-ui.jsx
   var BResult = require_b_result();
   var palette = ["#71e0cf", "#f6bd62", "#b5a5ff", "#83c8ff"];
@@ -87,5 +102,5 @@
       return /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("div", null, teamLabels[teams[u]] || "\u30C1\u30FC\u30E0\u672A\u8A18\u9332", " \uFF0F ", names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC", " ", /* @__PURE__ */ React.createElement("b", null, known(u, "c") === null ? "\u672A\u8A18\u9332" : known(u, "c") + "\u554F\u6B63\u89E3")), known(u, "c") !== null && /* @__PURE__ */ React.createElement("div", { className: "next-c-bar", role: "img", "aria-label": `${names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"} \u6B63\u89E3${known(u, "c")}\u554F` }, /* @__PURE__ */ React.createElement("span", { style: { width: 100 * known(u, "c") / max + "%", background: palette[i % 4] } })), /* @__PURE__ */ React.createElement("p", null, "\u5F97\u70B9 ", (_a = known(u, "score")) != null ? _a : "\u672A\u8A18\u9332", " \uFF0F \u6700\u7D42\u5831\u544A\u30B3\u30F3\u30DC ", (_b = known(u, "combo")) != null ? _b : "\u672A\u8A18\u9332"));
     })), /* @__PURE__ */ React.createElement("p", null, "\u653B\u6483\u30FB\u76F8\u6BBA\u30FB\u9632\u5FA1\u30FB\u56DE\u5FA9\u30FB\u500B\u4EBA\u5225HP\u5BC4\u4E0E\u306E\u78BA\u5B9A\u5408\u8A08\uFF0F\u6642\u7CFB\u5217\u306F\u672A\u8A18\u9332\u306E\u305F\u3081\u8868\u793A\u3067\u304D\u307E\u305B\u3093\u3002\u30C1\u30FC\u30E0\u5171\u6709HP\u3092\u500B\u4EBA\u306E\u8CA2\u732E\u3078\u63A8\u6E2C\u914D\u5206\u3057\u307E\u305B\u3093\u3002"));
   }
-  window.NextResults = { BDetails, CDetails, buildB: BResult.build };
+  window.NextResults = { BDetails, CDetails, Spectator, buildB: BResult.build };
 })();

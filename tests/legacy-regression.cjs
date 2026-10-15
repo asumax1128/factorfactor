@@ -30,6 +30,34 @@ function functions(html) {
       assert.equal(g.length,2);assert.equal(g[0].type,'ExpressionStatement');assert.equal(g[0].expression.type,'CallExpression');assert.equal(g[0].expression.callee.name,'onProfile');assert.deepEqual(g[0].expression.arguments,[]);assert.equal(g[1].type,'ReturnStatement');assert.equal(g[1].argument,null);
       open.init.body.body.shift();
     }
+    // Compare every original spectator/engine statement after auditing only the
+    // additive visibility guards and presentation metadata exactly.
+    const bare=x=>JSON.stringify(x,(k,v)=>['loc','start','end','extra'].includes(k)?undefined:v);
+    const expr=x=>Babel.transform('const x='+x,{ast:true,code:false}).ast.program.body[0].declarations[0].init;
+    if(n.type==='ObjectExpression'){
+      for(const p of n.properties)if(p.key?.name==='boardReady')assert.equal(bare(p.value),bare(expr('!s.resolving && !s.over && !s.ko')));
+      n.properties=n.properties.filter(p=>{if(p.key?.name==='ready'&&JSON.stringify(p.value).includes('boardReady')){assert.equal(bare(p.value),bare(expr("!result&&now>=startAt&&(mode==='A'?!!probA:(live[u]||{}).boardReady===true)")));return false;}return p.key?.name!=='boardReady';});
+    }
+    if(n.type==='FunctionDeclaration'&&['PlayerMirror','SplitView','SpectatorView'].includes(n.id?.name)){
+      const name=n.id.name;
+      if(name==='PlayerMirror'){
+        const p=n.params[0].properties.find(p=>p.key?.name==='ready');if(p){assert.equal(p.value.type,'AssignmentPattern');assert.equal(p.value.right.value,false);}
+        n.params[0].properties=n.params[0].properties.filter(p=>p.key?.name!=='ready');
+      }
+      for(const stmt of n.body.body)for(const d of stmt.declarations||[]){
+        if(name==='PlayerMirror'&&d.id?.name==='prob'&&d.init.test?.name==='ready'){assert.equal(bare(d.init),bare(expr("ready ? (isBm(mode) ? (l.lv ? bank.get(l.lv, l.k || 0) : null) : probA) : null")));d.init=d.init.consequent;}
+        if(['SplitView','SpectatorView'].includes(name)&&d.id?.name==='probA'&&JSON.stringify(d.init).includes('qStartA')){
+          const q=name==='SplitView'?'cl, q, startAt':'claims, q, state.startAt';
+          assert.equal(bare(d.init),bare(expr("mode === 'A' && q < N && !result && now >= qStartA("+q+") ? problemForA(bank, q) : null")));
+          d.init=expr("mode === 'A' && q < N ? problemForA(bank, q) : null");
+        }
+      }
+      const scrub=x=>{if(!x||typeof x!=='object')return;
+        if(name==='SplitView'&&x.type==='JSXOpeningElement')x.attributes=x.attributes.filter(a=>{if(a.name?.name!=='ready')return true;assert.equal(bare(a.value.expression),bare(expr("!result&&now>=startAt&&(mode==='A'?!!probA:(live[u]||{}).boardReady===true)")));return false});
+        if(name==='SpectatorView'&&x.type==='VariableDeclarator'&&x.id?.name==='p'&&JSON.stringify(x.init).includes('boardReady')){assert.equal(bare(x.init),bare(expr("!result && now >= state.startAt && l.boardReady === true && isBm(mode) && l.lv ? bank.get(l.lv, l.k || 0) : null")));x.init=expr("isBm(mode) && l.lv ? bank.get(l.lv, l.k || 0) : null");}
+        for(const v of Object.values(x))if(v&&typeof v==='object'){if(Array.isArray(v))v.forEach(scrub);else scrub(v)};
+      };scrub(n);
+    }
     if (
       n.type === "CallExpression" &&
       n.callee?.name === "useGameMute" &&

@@ -1,3 +1,4 @@
+import {Spectator} from './next-spectator-ui.jsx';
 const BResult=require('./b-result.cjs');
 const palette=['#71e0cf','#f6bd62','#b5a5ff','#83c8ff'];
 function BDetails({game,report,names={},me}){
@@ -24,4 +25,4 @@ function CDetails({ids=[],records={},names={},teams={},teamLabels={}}){
  const max=Math.max(1,...ids.map(u=>known(u,'c')??0));
  return <section className="next-result-details" data-c-result><h3>C方式 個人別の記録</h3><p>終了画面で取得できた保存済み報告。正解数と得点は別の指標です。総合貢献点には換算しません。</p><ul className="next-c-bars">{ids.map((u,i)=><li key={u}><div>{teamLabels[teams[u]]||'チーム未記録'} ／ {names[u]||'プレイヤー'} <b>{known(u,'c')===null?'未記録':known(u,'c')+'問正解'}</b></div>{known(u,'c')!==null&&<div className="next-c-bar" role="img" aria-label={`${names[u]||'プレイヤー'} 正解${known(u,'c')}問`}><span style={{width:100*known(u,'c')/max+'%',background:palette[i%4]}}/></div>}<p>得点 {known(u,'score')??'未記録'} ／ 最終報告コンボ {known(u,'combo')??'未記録'}</p></li>)}</ul><p>攻撃・相殺・防御・回復・個人別HP寄与の確定合計／時系列は未記録のため表示できません。チーム共有HPを個人の貢献へ推測配分しません。</p></section>;
 }
-window.NextResults={BDetails,CDetails,buildB:BResult.build};
+window.NextResults={BDetails,CDetails,Spectator,buildB:BResult.build};
