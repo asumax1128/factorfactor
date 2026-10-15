@@ -35,7 +35,7 @@ window.NextHomeFactory = H => {
   const go=key=>{setPanel(null);onGo(key)};
   const nav=[['home','ホーム'],['online','オンライン対戦'],['solo','ソロモード'],['daily','デイリーミッション'],['rank','ランキング'],['help','あそびかた']];
   const navButton=(key,label)=><button key={key} className={'nav-item '+(key==='home'?'selected':'')} aria-current={key==='home'?'page':undefined} onClick={()=>go(key)}><Icon name={key}/><span>{label}</span><i aria-hidden="true"/></button>;
-  const brand=<><img src="ui-next/logo-placeholder.png" alt="FACTOR × FACTOR" width="688" height="371"/><span className="logo-note">仮ロゴ</span></>;
+  const brand=<><img src="ui-next/logo-official.jpg" alt="FACTOR × FACTOR" width="1280" height="640"/></>;
   const hp=boss.info?Math.max(0,boss.info.hp):null,max=boss.info?.hpMax,pct=max?Math.min(100,hp/max*100):0;
   const statusText={loading:'HP情報を読み込み中…',preparing:'次のボスを準備中',error:'HP情報を取得できません',denied:'HP情報を取得できません（権限不足）'}[boss.status];
   return <><link rel="stylesheet" href="ui-next/home.css"/><div className="next-home" data-next-home>
