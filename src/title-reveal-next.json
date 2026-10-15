@@ -1,0 +1,559 @@
+[
+  {
+    "id": "daily_easy_king",
+    "requires": [],
+    "relation": "AND",
+    "activity": "daily.easy.completed",
+    "activityDescription": "対象デイリーイージーを1回完走",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "daily_normal_king",
+    "requires": [],
+    "relation": "AND",
+    "activity": "daily.normal.completed",
+    "activityDescription": "対象デイリーノーマルを1回完走",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "daily_hard_king",
+    "requires": [],
+    "relation": "AND",
+    "activity": "daily.hard.completed",
+    "activityDescription": "対象デイリーハードを1回完走",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "daily_king",
+    "requires": [
+      "daily_easy_king",
+      "daily_normal_king",
+      "daily_hard_king"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "dual50",
+    "requires": [
+      "dual"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "streak10",
+    "requires": [
+      "first"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "streak30",
+    "requires": [
+      "streak10"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "streak50",
+    "requires": [
+      "streak30"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "giant",
+    "requires": [
+      "first"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "giant250",
+    "requires": [
+      "giant"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "handi",
+    "requires": [
+      "first"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "master1700",
+    "requires": [
+      "master1600"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "master1900",
+    "requires": [
+      "rmaster"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "rmaster",
+    "requires": [
+      "master1700"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "easy_adept",
+    "requires": [
+      "master1600"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "easy_master",
+    "requires": [
+      "easy_adept"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "normal_adept",
+    "requires": [
+      "master1600"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "normal_master",
+    "requires": [
+      "normal_adept"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "dual_master",
+    "requires": [
+      "easy_master",
+      "normal_master"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "daily30",
+    "requires": [
+      "daily7"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "bounty10",
+    "requires": [
+      "bounty1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "hyper_slayer",
+    "requires": [],
+    "relation": "AND",
+    "activity": "intrusion.ghost.completed",
+    "activityDescription": "通常の乱入ゴースト戦を1試合完了（ハイパー含む）",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "ghost_up2",
+    "requires": [
+      "ghost_up1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "flash",
+    "requires": [
+      "perfect50"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "flash3",
+    "requires": [
+      "flash"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "perfect300",
+    "requires": [
+      "perfect100"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "perfect500",
+    "requires": [
+      "perfect300"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "perfect1000",
+    "requires": [
+      "perfect500"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "combo20",
+    "requires": [],
+    "relation": "AND",
+    "activity": "eligible.combo10",
+    "activityDescription": "対象の1試合で10コンボ",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "combo30",
+    "requires": [
+      "combo20"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "nomiss10",
+    "requires": [
+      "nomiss"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "accuracy10",
+    "requires": [],
+    "relation": "AND",
+    "activity": "eligible.correct5",
+    "activityDescription": "対象の1試合で5問正解",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "clutch",
+    "requires": [
+      "first"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "miracle",
+    "requires": [
+      "clutch"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "flawless",
+    "requires": [
+      "nomiss"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "survivor",
+    "requires": [
+      "first"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "shutout",
+    "requires": [
+      "calm"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "lv9",
+    "requires": [],
+    "relation": "AND",
+    "activity": "eligible.level9.correct",
+    "activityDescription": "対象の対戦でLv.9を1問正解",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "alllv",
+    "requires": [
+      "lv9"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "sp3",
+    "requires": [],
+    "relation": "AND",
+    "activity": "eligible.special.once",
+    "activityDescription": "対象対戦で必殺技を1回発動",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "tour1",
+    "requires": [],
+    "relation": "AND",
+    "activity": "class.tournament.completed",
+    "activityDescription": "クラス大会を1大会完了",
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "tour_streak2",
+    "requires": [
+      "tour1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "tour3",
+    "requires": [
+      "tour1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "tour10",
+    "requires": [
+      "tour3"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "darkhorse",
+    "requires": [
+      "tour1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkst10",
+    "requires": [
+      "wkst5"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkk10",
+    "requires": [
+      "wkk5"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkace",
+    "requires": [
+      "wk1"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkace5",
+    "requires": [
+      "wkace"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkone2",
+    "requires": [
+      "wkone"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "wkdex6",
+    "requires": [
+      "wkdex3"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  },
+  {
+    "id": "cancel2000",
+    "requires": [
+      "cancel500"
+    ],
+    "relation": "AND",
+    "activity": null,
+    "activityDescription": null,
+    "status": "proposal",
+    "earnedAlwaysVisible": true
+  }
+]

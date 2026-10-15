@@ -1,0 +1,1023 @@
+{
+  "schemaVersion": 1,
+  "source": "所有者提供 全100称号 2026-10-15",
+  "status": "blocked-star-count",
+  "expectedNormalCount": 100,
+  "expectedFiveStarCount": 26,
+  "excludedAwardModes": [
+    "cpu",
+    "selfGhost"
+  ],
+  "hidden": {
+    "id": "factor_factor",
+    "name": "FACTOR×FACTOR",
+    "requiredDistinctFiveStar": 15,
+    "visibleBeforeEarned": false
+  },
+  "titles": [
+    {
+      "number": 1,
+      "legacyNumber": 1,
+      "name": "暁の覇者",
+      "condition": "デイリーイージー優勝",
+      "stars": 5,
+      "id": "daily_easy_king",
+      "legacyId": "daily_easy_king",
+      "category": "デイリー"
+    },
+    {
+      "number": 2,
+      "legacyNumber": 2,
+      "name": "蒼穹の覇者",
+      "condition": "デイリーノーマル優勝",
+      "stars": 5,
+      "id": "daily_normal_king",
+      "legacyId": "daily_normal_king",
+      "category": "デイリー"
+    },
+    {
+      "number": 3,
+      "legacyNumber": 3,
+      "name": "深淵の覇王",
+      "condition": "デイリーハード優勝",
+      "stars": 5,
+      "id": "daily_hard_king",
+      "legacyId": "daily_hard_king",
+      "category": "デイリー"
+    },
+    {
+      "number": 4,
+      "legacyNumber": 4,
+      "name": "天下統一",
+      "condition": "同じ日にデイリー全3部門優勝",
+      "stars": 5,
+      "id": "daily_king",
+      "legacyId": "daily_king",
+      "category": "デイリー"
+    },
+    {
+      "number": 5,
+      "legacyNumber": 92,
+      "name": "開戦の狼煙",
+      "condition": "オンライン対戦を初めて1試合完了",
+      "stars": 1,
+      "id": "online_first",
+      "legacyId": null,
+      "category": "オンライン"
+    },
+    {
+      "number": 6,
+      "legacyNumber": 5,
+      "name": "始まりの剣",
+      "condition": "初めて対戦に勝利",
+      "stars": 1,
+      "id": "first",
+      "legacyId": "first",
+      "category": "オンライン"
+    },
+    {
+      "number": 7,
+      "legacyNumber": 91,
+      "name": "百人斬り",
+      "condition": "A・B方式のオンライン対戦合算で通算100勝",
+      "stars": 3,
+      "id": "wins100_ab",
+      "legacyId": null,
+      "category": "オンライン"
+    },
+    {
+      "number": 8,
+      "legacyNumber": 7,
+      "name": "百戦錬磨",
+      "condition": "通算100戦",
+      "stars": 2,
+      "id": "games100",
+      "legacyId": "games100",
+      "category": "オンライン"
+    },
+    {
+      "number": 9,
+      "legacyNumber": 37,
+      "name": "修羅の道",
+      "condition": "通算300戦",
+      "stars": 3,
+      "id": "games300",
+      "legacyId": "games300",
+      "category": "オンライン"
+    },
+    {
+      "number": 10,
+      "legacyNumber": 6,
+      "name": "折れざる刃",
+      "condition": "通算50敗",
+      "stars": 2,
+      "id": "lose50",
+      "legacyId": "lose50",
+      "category": "オンライン"
+    },
+    {
+      "number": 11,
+      "legacyNumber": 8,
+      "name": "永遠のライバル",
+      "condition": "同じ相手と20戦",
+      "stars": 2,
+      "id": "rival20",
+      "legacyId": "rival20",
+      "category": "オンライン"
+    },
+    {
+      "number": 12,
+      "legacyNumber": 9,
+      "name": "交差する運命",
+      "condition": "異なる10人以上と対戦",
+      "stars": 2,
+      "id": "wide10",
+      "legacyId": "wide10",
+      "category": "オンライン"
+    },
+    {
+      "number": 13,
+      "legacyNumber": 44,
+      "name": "人気者",
+      "condition": "異なる30人以上と対戦",
+      "stars": 3,
+      "id": "wide30",
+      "legacyId": "wide30",
+      "category": "オンライン"
+    },
+    {
+      "number": 14,
+      "legacyNumber": 10,
+      "name": "二刀流",
+      "condition": "A・B方式でそれぞれ10勝",
+      "stars": 3,
+      "id": "dual",
+      "legacyId": "dual",
+      "category": "オンライン"
+    },
+    {
+      "number": 15,
+      "legacyNumber": 93,
+      "name": "二刀皆伝",
+      "condition": "A・B方式でそれぞれ通算50勝",
+      "stars": 4,
+      "id": "dual50",
+      "legacyId": null,
+      "category": "オンライン"
+    },
+    {
+      "number": 16,
+      "legacyNumber": 11,
+      "name": "破竹の剣",
+      "condition": "10連勝",
+      "stars": 4,
+      "id": "streak10",
+      "legacyId": "streak10",
+      "category": "オンライン"
+    },
+    {
+      "number": 17,
+      "legacyNumber": 12,
+      "name": "常勝不敗",
+      "condition": "30連勝",
+      "stars": 5,
+      "id": "streak30",
+      "legacyId": "streak30",
+      "category": "オンライン"
+    },
+    {
+      "number": 18,
+      "legacyNumber": 13,
+      "name": "天下無双",
+      "condition": "50連勝",
+      "stars": 5,
+      "id": "streak50",
+      "legacyId": "streak50",
+      "category": "オンライン"
+    },
+    {
+      "number": 19,
+      "legacyNumber": 19,
+      "name": "起死回生",
+      "condition": "初めて逆転勝利",
+      "stars": 2,
+      "id": "comeback",
+      "legacyId": "comeback",
+      "category": "オンライン"
+    },
+    {
+      "number": 20,
+      "legacyNumber": 20,
+      "name": "運命の反逆者",
+      "condition": "逆転勝利10回",
+      "stars": 3,
+      "id": "comeback10",
+      "legacyId": "comeback10",
+      "category": "オンライン"
+    },
+    {
+      "number": 21,
+      "legacyNumber": 51,
+      "name": "リベンジャー",
+      "condition": "直前の試合で負けた相手に勝利",
+      "stars": 2,
+      "id": "revenge",
+      "legacyId": "revenge",
+      "category": "オンライン"
+    },
+    {
+      "number": 22,
+      "legacyNumber": 31,
+      "name": "ジャイアントキラー",
+      "condition": "レーティング200以上高い相手に勝利",
+      "stars": 4,
+      "id": "giant",
+      "legacyId": "giant",
+      "category": "オンライン"
+    },
+    {
+      "number": 23,
+      "legacyNumber": 96,
+      "name": "王者喰らい",
+      "condition": "対戦開始時にレーティング250以上高い相手に勝利",
+      "stars": 5,
+      "id": "giant250",
+      "legacyId": null,
+      "category": "オンライン"
+    },
+    {
+      "number": 24,
+      "legacyNumber": 36,
+      "name": "逆境無双",
+      "condition": "★★★ハンデを背負って勝利",
+      "stars": 5,
+      "id": "handi",
+      "legacyId": "handi",
+      "category": "オンライン"
+    },
+    {
+      "number": 25,
+      "legacyNumber": 38,
+      "name": "才能開花",
+      "condition": "レーティング1600到達",
+      "stars": 3,
+      "id": "master1600",
+      "legacyId": "master1600",
+      "category": "オンライン"
+    },
+    {
+      "number": 26,
+      "legacyNumber": 21,
+      "name": "数式の支配者",
+      "condition": "レーティング1700到達",
+      "stars": 4,
+      "id": "master1700",
+      "legacyId": "master1700",
+      "category": "オンライン"
+    },
+    {
+      "number": 27,
+      "legacyNumber": 39,
+      "name": "真・因数王",
+      "condition": "レーティング1900到達",
+      "stars": 5,
+      "id": "master1900",
+      "legacyId": "master1900",
+      "category": "オンライン"
+    },
+    {
+      "number": 28,
+      "legacyNumber": 54,
+      "name": "黄金騎士",
+      "condition": "ゴールドランク（1580）到達",
+      "stars": 3,
+      "id": "rgold",
+      "legacyId": "rgold",
+      "category": "オンライン"
+    },
+    {
+      "number": 29,
+      "legacyNumber": 55,
+      "name": "因数の覇王",
+      "condition": "マスターランク（1820）到達",
+      "stars": 5,
+      "id": "rmaster",
+      "legacyId": "rmaster",
+      "category": "オンライン"
+    },
+    {
+      "number": 30,
+      "legacyNumber": 86,
+      "name": "初級の覇者",
+      "condition": "イージー1730以上",
+      "stars": 4,
+      "id": "easy_adept",
+      "legacyId": "easy_adept",
+      "category": "オンライン"
+    },
+    {
+      "number": 31,
+      "legacyNumber": 87,
+      "name": "初級の覇王",
+      "condition": "イージー1820以上",
+      "stars": 5,
+      "id": "easy_master",
+      "legacyId": "easy_master",
+      "category": "オンライン"
+    },
+    {
+      "number": 32,
+      "legacyNumber": 88,
+      "name": "中級の覇者",
+      "condition": "ノーマル1730以上",
+      "stars": 4,
+      "id": "normal_adept",
+      "legacyId": "normal_adept",
+      "category": "オンライン"
+    },
+    {
+      "number": 33,
+      "legacyNumber": 89,
+      "name": "中級の覇王",
+      "condition": "ノーマル1820以上",
+      "stars": 5,
+      "id": "normal_master",
+      "legacyId": "normal_master",
+      "category": "オンライン"
+    },
+    {
+      "number": 34,
+      "legacyNumber": 90,
+      "name": "双界の覇王",
+      "condition": "イージー・ノーマル両方1820以上",
+      "stars": 5,
+      "id": "dual_master",
+      "legacyId": "dual_master",
+      "category": "オンライン"
+    },
+    {
+      "number": 35,
+      "legacyNumber": 48,
+      "name": "継続は力なり",
+      "condition": "7日連続で対戦",
+      "stars": 2,
+      "id": "daily7",
+      "legacyId": "daily7",
+      "category": "オンライン"
+    },
+    {
+      "number": 36,
+      "legacyNumber": 49,
+      "name": "皆勤賞",
+      "condition": "30日連続で対戦",
+      "stars": 4,
+      "id": "daily30",
+      "legacyId": "daily30",
+      "category": "オンライン"
+    },
+    {
+      "number": 37,
+      "legacyNumber": 56,
+      "name": "バウンティハンター",
+      "condition": "賞金首を初めて撃破",
+      "stars": 2,
+      "id": "bounty1",
+      "legacyId": "bounty1",
+      "category": "オンライン"
+    },
+    {
+      "number": 38,
+      "legacyNumber": 57,
+      "name": "伝説のハンター",
+      "condition": "賞金首を10回撃破",
+      "stars": 4,
+      "id": "bounty10",
+      "legacyId": "bounty10",
+      "category": "オンライン"
+    },
+    {
+      "number": 39,
+      "legacyNumber": 58,
+      "name": "指名手配",
+      "condition": "自分に50以上の賞金が懸かる（7連勝）",
+      "stars": 3,
+      "id": "wanted",
+      "legacyId": "wanted",
+      "category": "オンライン"
+    },
+    {
+      "number": 40,
+      "legacyNumber": 81,
+      "name": "超影の征服者",
+      "condition": "乱入ハイパーゴーストに初勝利",
+      "stars": 4,
+      "id": "hyper_slayer",
+      "legacyId": "hyper_slayer",
+      "category": "オンライン"
+    },
+    {
+      "number": 41,
+      "legacyNumber": 82,
+      "name": "下克上",
+      "condition": "1ランク上の乱入ゴーストに初勝利",
+      "stars": 3,
+      "id": "ghost_up1",
+      "legacyId": "ghost_up1",
+      "category": "オンライン"
+    },
+    {
+      "number": 42,
+      "legacyNumber": 83,
+      "name": "大番狂わせ",
+      "condition": "2ランク上の乱入ゴーストに初勝利",
+      "stars": 5,
+      "id": "ghost_up2",
+      "legacyId": "ghost_up2",
+      "category": "オンライン"
+    },
+    {
+      "number": 43,
+      "legacyNumber": 24,
+      "name": "雷光一閃",
+      "condition": "1問を1秒以内に正解",
+      "stars": 4,
+      "id": "flash",
+      "legacyId": "flash",
+      "category": "技術"
+    },
+    {
+      "number": 44,
+      "legacyNumber": 94,
+      "name": "神速の領域",
+      "condition": "1試合中に1秒以内の正解を3回",
+      "stars": 5,
+      "id": "flash3",
+      "legacyId": null,
+      "category": "技術"
+    },
+    {
+      "number": 45,
+      "legacyNumber": 14,
+      "name": "白銀の閃光",
+      "condition": "Perfect通算50回",
+      "stars": 3,
+      "id": "perfect50",
+      "legacyId": "perfect50",
+      "category": "技術"
+    },
+    {
+      "number": 46,
+      "legacyNumber": 15,
+      "name": "黄金の閃光",
+      "condition": "Perfect通算100回",
+      "stars": 3,
+      "id": "perfect100",
+      "legacyId": "perfect100",
+      "category": "技術"
+    },
+    {
+      "number": 47,
+      "legacyNumber": 16,
+      "name": "白金の閃光",
+      "condition": "Perfect通算300回",
+      "stars": 4,
+      "id": "perfect300",
+      "legacyId": "perfect300",
+      "category": "技術"
+    },
+    {
+      "number": 48,
+      "legacyNumber": 17,
+      "name": "金剛の閃光",
+      "condition": "Perfect通算500回",
+      "stars": 4,
+      "id": "perfect500",
+      "legacyId": "perfect500",
+      "category": "技術"
+    },
+    {
+      "number": 49,
+      "legacyNumber": 18,
+      "name": "無限の閃光",
+      "condition": "Perfect通算1000回",
+      "stars": 5,
+      "id": "perfect1000",
+      "legacyId": "perfect1000",
+      "category": "技術"
+    },
+    {
+      "number": 50,
+      "legacyNumber": 25,
+      "name": "連鎖の魔術師",
+      "condition": "1試合20コンボ",
+      "stars": 4,
+      "id": "combo20",
+      "legacyId": "combo20",
+      "category": "技術"
+    },
+    {
+      "number": 51,
+      "legacyNumber": 40,
+      "name": "コンボマスター",
+      "condition": "1試合30コンボ",
+      "stars": 5,
+      "id": "combo30",
+      "legacyId": "combo30",
+      "category": "技術"
+    },
+    {
+      "number": 52,
+      "legacyNumber": 26,
+      "name": "完全勝利",
+      "condition": "B方式でミス・時間切れなしで勝利",
+      "stars": 3,
+      "id": "nomiss",
+      "legacyId": "nomiss",
+      "category": "技術"
+    },
+    {
+      "number": 53,
+      "legacyNumber": 43,
+      "name": "正確無比",
+      "condition": "B方式でミス・時間切れなしの勝利10回",
+      "stars": 4,
+      "id": "nomiss10",
+      "legacyId": "nomiss10",
+      "category": "技術"
+    },
+    {
+      "number": 54,
+      "legacyNumber": 95,
+      "name": "百発百中",
+      "condition": "1試合10問以上正解、誤答0・時間切れ0（勝敗不問）",
+      "stars": 4,
+      "id": "accuracy10",
+      "legacyId": null,
+      "category": "技術"
+    },
+    {
+      "number": 55,
+      "legacyNumber": 52,
+      "name": "冷静沈着",
+      "condition": "A方式でお手つき0・6問以上正解して勝利",
+      "stars": 3,
+      "id": "calm",
+      "legacyId": "calm",
+      "category": "技術"
+    },
+    {
+      "number": 56,
+      "legacyNumber": 27,
+      "name": "死地からの帰還",
+      "condition": "B方式でHP5%以下から勝利",
+      "stars": 4,
+      "id": "clutch",
+      "legacyId": "clutch",
+      "category": "技術"
+    },
+    {
+      "number": 57,
+      "legacyNumber": 46,
+      "name": "不死鳥",
+      "condition": "B方式でHP1%以下から勝利",
+      "stars": 5,
+      "id": "miracle",
+      "legacyId": "miracle",
+      "category": "技術"
+    },
+    {
+      "number": 58,
+      "legacyNumber": 53,
+      "name": "絶対回避",
+      "condition": "B方式で攻撃を一度も受けず勝利",
+      "stars": 4,
+      "id": "flawless",
+      "legacyId": "flawless",
+      "category": "技術"
+    },
+    {
+      "number": 59,
+      "legacyNumber": 32,
+      "name": "最後の生存者",
+      "condition": "B方式4人対戦で最後の生存者として勝利",
+      "stars": 4,
+      "id": "survivor",
+      "legacyId": "survivor",
+      "category": "技術"
+    },
+    {
+      "number": 60,
+      "legacyNumber": 33,
+      "name": "絶対支配",
+      "condition": "A方式で相手を0点に抑えて勝利",
+      "stars": 4,
+      "id": "shutout",
+      "legacyId": "shutout",
+      "category": "技術"
+    },
+    {
+      "number": 61,
+      "legacyNumber": 34,
+      "name": "限界突破",
+      "condition": "Lv.9でPerfect",
+      "stars": 4,
+      "id": "lv9",
+      "legacyId": "lv9",
+      "category": "技術"
+    },
+    {
+      "number": 62,
+      "legacyNumber": 85,
+      "name": "完全制覇",
+      "condition": "Lv.1〜9すべてでPerfect",
+      "stars": 5,
+      "id": "alllv",
+      "legacyId": "alllv",
+      "category": "技術"
+    },
+    {
+      "number": 63,
+      "legacyNumber": 35,
+      "name": "制御不能",
+      "condition": "A方式でお手つき通算100回",
+      "stars": 2,
+      "id": "otetsuki100",
+      "legacyId": "otetsuki100",
+      "category": "技術"
+    },
+    {
+      "number": 64,
+      "legacyNumber": 50,
+      "name": "秘技乱舞",
+      "condition": "1試合で必殺技を3回発動",
+      "stars": 4,
+      "id": "sp3",
+      "legacyId": "sp3",
+      "category": "技術"
+    },
+    {
+      "number": 65,
+      "legacyNumber": 22,
+      "name": "勝利の王冠",
+      "condition": "クラス大会で初優勝",
+      "stars": 4,
+      "id": "tour1",
+      "legacyId": "tour1",
+      "category": "大会"
+    },
+    {
+      "number": 66,
+      "legacyNumber": 97,
+      "name": "王座防衛",
+      "condition": "クラス大会2大会連続優勝（欠場で連覇が途切れる）",
+      "stars": 5,
+      "id": "tour_streak2",
+      "legacyId": null,
+      "category": "大会"
+    },
+    {
+      "number": 67,
+      "legacyNumber": 23,
+      "name": "三冠王",
+      "condition": "クラス大会で通算3回優勝",
+      "stars": 5,
+      "id": "tour3",
+      "legacyId": "tour3",
+      "category": "大会"
+    },
+    {
+      "number": 68,
+      "legacyNumber": 45,
+      "name": "殿堂入り",
+      "condition": "クラス大会で通算5回優勝",
+      "stars": 5,
+      "id": "tour10",
+      "legacyId": "tour10",
+      "category": "大会"
+    },
+    {
+      "number": 69,
+      "legacyNumber": 47,
+      "name": "ダークホース",
+      "condition": "大会開始時クラス内レーティング11位以下で優勝",
+      "stars": 5,
+      "id": "darkhorse",
+      "legacyId": "darkhorse",
+      "category": "大会"
+    },
+    {
+      "number": 70,
+      "legacyNumber": 61,
+      "name": "初陣",
+      "condition": "今週のボスに初出撃",
+      "stars": 1,
+      "id": "wk1",
+      "legacyId": "wk1",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 71,
+      "legacyNumber": 62,
+      "name": "討伐隊",
+      "condition": "3週連続で今週のボスに出撃",
+      "stars": 2,
+      "id": "wkst3",
+      "legacyId": "wkst3",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 72,
+      "legacyNumber": 63,
+      "name": "歴戦の勇士",
+      "condition": "5週連続で今週のボスに出撃",
+      "stars": 3,
+      "id": "wkst5",
+      "legacyId": "wkst5",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 73,
+      "legacyNumber": 64,
+      "name": "戦場の守護神",
+      "condition": "10週連続で今週のボスに出撃",
+      "stars": 4,
+      "id": "wkst10",
+      "legacyId": "wkst10",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 74,
+      "legacyNumber": 65,
+      "name": "初討伐",
+      "condition": "今週のボス討伐成功に初めてダメージで貢献",
+      "stars": 2,
+      "id": "wkk1",
+      "legacyId": "wkk1",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 75,
+      "legacyNumber": 66,
+      "name": "討伐隊長",
+      "condition": "今週のボス討伐成功に5回貢献",
+      "stars": 3,
+      "id": "wkk5",
+      "legacyId": "wkk5",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 76,
+      "legacyNumber": 67,
+      "name": "紅蓮の弓矢",
+      "condition": "今週のボス討伐成功に10回貢献",
+      "stars": 4,
+      "id": "wkk10",
+      "legacyId": "wkk10",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 77,
+      "legacyNumber": 68,
+      "name": "一騎当千",
+      "condition": "週間ボスダメージランキング1位を1回",
+      "stars": 4,
+      "id": "wkace",
+      "legacyId": "wkace",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 78,
+      "legacyNumber": 69,
+      "name": "破壊神",
+      "condition": "週間ボスダメージランキング1位を5回",
+      "stars": 5,
+      "id": "wkace5",
+      "legacyId": "wkace5",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 79,
+      "legacyNumber": 70,
+      "name": "一撃必殺",
+      "condition": "今週のボスへの1回の出撃で600ダメージ",
+      "stars": 3,
+      "id": "wkone",
+      "legacyId": "wkone",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 80,
+      "legacyNumber": 71,
+      "name": "神威の一撃",
+      "condition": "今週のボスへの1回の出撃で1200ダメージ",
+      "stars": 5,
+      "id": "wkone2",
+      "legacyId": "wkone2",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 81,
+      "legacyNumber": 72,
+      "name": "モンスターハンター",
+      "condition": "異なる3種類のボス討伐に参加",
+      "stars": 3,
+      "id": "wkdex3",
+      "legacyId": "wkdex3",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 82,
+      "legacyNumber": 73,
+      "name": "モンスターマスター",
+      "condition": "全6種類のボス討伐に参加",
+      "stars": 4,
+      "id": "wkdex6",
+      "legacyId": "wkdex6",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 83,
+      "legacyNumber": 60,
+      "name": "フィニッシャー",
+      "condition": "クラス協力レイドでボスにとどめを刺す",
+      "stars": 3,
+      "id": "lasthit",
+      "legacyId": "lasthit",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 84,
+      "legacyNumber": 28,
+      "name": "絶対防壁",
+      "condition": "攻撃を累計500回無効化",
+      "stars": 3,
+      "id": "cancel500",
+      "legacyId": "cancel500",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 85,
+      "legacyNumber": 41,
+      "name": "難攻不落",
+      "condition": "攻撃を累計2000回無効化",
+      "stars": 4,
+      "id": "cancel2000",
+      "legacyId": "cancel2000",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 86,
+      "legacyNumber": 29,
+      "name": "トリックスター",
+      "condition": "おじゃまタイルを通算100個送る",
+      "stars": 2,
+      "id": "ojama100",
+      "legacyId": "ojama100",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 87,
+      "legacyNumber": 42,
+      "name": "トリックマスター",
+      "condition": "おじゃまタイルを通算500個送る",
+      "stars": 3,
+      "id": "ojama500",
+      "legacyId": "ojama500",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 88,
+      "legacyNumber": 30,
+      "name": "奥義皆伝",
+      "condition": "必殺技を通算50回発動",
+      "stars": 3,
+      "id": "sp50",
+      "legacyId": "sp50",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 89,
+      "legacyNumber": 59,
+      "name": "任務完遂",
+      "condition": "7日連続でデイリーミッションをすべて達成",
+      "stars": 3,
+      "id": "mis7",
+      "legacyId": "mis7",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 90,
+      "legacyNumber": 77,
+      "name": "宝探し",
+      "condition": "今週のボス出撃中に宝箱を開ける",
+      "stars": 1,
+      "id": "wkchest1",
+      "legacyId": "wkchest1",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 91,
+      "legacyNumber": 78,
+      "name": "トレジャーハンター",
+      "condition": "宝箱を通算10個開ける",
+      "stars": 3,
+      "id": "wkchest10",
+      "legacyId": "wkchest10",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 92,
+      "legacyNumber": 79,
+      "name": "縁の下の力持ち",
+      "condition": "今週のボスにサポーターとして出撃",
+      "stars": 1,
+      "id": "wksup1",
+      "legacyId": "wksup1",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 93,
+      "legacyNumber": 80,
+      "name": "影の英雄",
+      "condition": "応援ポイント通算100獲得",
+      "stars": 2,
+      "id": "wksup100",
+      "legacyId": "wksup100",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 94,
+      "legacyNumber": 99,
+      "name": "影の守護神",
+      "condition": "応援ポイント通算500獲得",
+      "stars": 3,
+      "id": "wksup500",
+      "legacyId": null,
+      "category": "ボス・支援"
+    },
+    {
+      "number": 95,
+      "legacyNumber": 98,
+      "name": "戦友の絆",
+      "condition": "今週のボスへの出撃を通算20回完了",
+      "stars": 3,
+      "id": "wk_runs20",
+      "legacyId": null,
+      "category": "ボス・支援"
+    },
+    {
+      "number": 96,
+      "legacyNumber": 84,
+      "name": "怒りを鎮めし者",
+      "condition": "怒って居座ったボスの討伐に参加",
+      "stars": 3,
+      "id": "wkrage",
+      "legacyId": "wkrage",
+      "category": "ボス・支援"
+    },
+    {
+      "number": 97,
+      "legacyNumber": 74,
+      "name": "七つの証",
+      "condition": "ログインボーナスカードを1枚完成",
+      "stars": 1,
+      "id": "lb7",
+      "legacyId": "lb7",
+      "category": "ログイン"
+    },
+    {
+      "number": 98,
+      "legacyNumber": 100,
+      "name": "七つの宝印",
+      "condition": "ログインボーナスカードを通算7枚完成",
+      "stars": 3,
+      "id": "lb_cards7",
+      "legacyId": null,
+      "category": "ログイン"
+    },
+    {
+      "number": 99,
+      "legacyNumber": 75,
+      "name": "馴染みの冒険者",
+      "condition": "通算30日ログイン",
+      "stars": 2,
+      "id": "lb30",
+      "legacyId": "lb30",
+      "category": "ログイン"
+    },
+    {
+      "number": 100,
+      "legacyNumber": 76,
+      "name": "永遠の冒険者",
+      "condition": "通算100日ログイン",
+      "stars": 3,
+      "id": "lb100",
+      "legacyId": "lb100",
+      "category": "ログイン"
+    }
+  ],
+  "ownerClarifications": {
+    "attackNullificationMetric": "distinct-attack-events",
+    "legacyNullificationAmountsMustNotBecomeEventCounts": true
+  }
+}
