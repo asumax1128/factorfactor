@@ -1,0 +1,82 @@
+[
+  {
+    "screen": "home",
+    "device": "pc",
+    "viewport": [
+      1440,
+      1080
+    ],
+    "fontsLoaded": true,
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "widthChecks": [
+      320,
+      768,
+      900,
+      1024,
+      1366
+    ],
+    "externalRequests": 0,
+    "errors": [],
+    "localRequests": 9
+  },
+  {
+    "screen": "home",
+    "device": "mobile",
+    "viewport": [
+      390,
+      844
+    ],
+    "fontsLoaded": true,
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "widthChecks": [
+      320,
+      768,
+      900,
+      1024,
+      1366
+    ],
+    "externalRequests": 0,
+    "errors": [],
+    "localRequests": 9
+  },
+  {
+    "screen": "online",
+    "device": "pc",
+    "viewport": [
+      1440,
+      1080
+    ],
+    "fontsLoaded": true,
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "widthChecks": [
+      320,
+      768,
+      900,
+      1024,
+      1366
+    ],
+    "externalRequests": 0,
+    "errors": [],
+    "localRequests": 8
+  },
+  {
+    "screen": "online",
+    "device": "mobile",
+    "viewport": [
+      390,
+      844
+    ],
+    "fontsLoaded": true,
+    "logoBackground": "rgba(0, 0, 0, 0)",
+    "widthChecks": [
+      320,
+      768,
+      900,
+      1024,
+      1366
+    ],
+    "externalRequests": 0,
+    "errors": [],
+    "localRequests": 8
+  }
+]
