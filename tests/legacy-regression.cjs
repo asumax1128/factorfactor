@@ -155,10 +155,12 @@ console.log(
   try {
     const t = await context(b, { account: { guest: true, name: "Guest" } }),
       p = t.page;
+    await p.locator(".action-card.solo").click();
     await p.getByRole("button", { name: "スタート", exact: true }).click();
     await p.locator("[data-tile-id]").first().waitFor();
     console.log("PASS solo battle");
     await p.reload();
+    await p.getByRole("button", { name: "メニューを開く" }).click();
     await p.getByRole("button", { name: /学びの部屋/ }).click();
     await p.getByText("レベル別の正答率と平均時間", { exact: true }).waitFor();
     console.log("PASS learning room");

@@ -1,0 +1,50 @@
+[
+  {
+    "width": 375,
+    "cardHeight": 323.1875,
+    "realtime": true,
+    "defeated": true,
+    "weekRollover": true,
+    "permissionAndRetry": true,
+    "navigation": true,
+    "safeArea34": true,
+    "bossWrites": 0,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "cardHeight": 323.1875,
+    "realtime": true,
+    "defeated": true,
+    "weekRollover": true,
+    "permissionAndRetry": true,
+    "navigation": true,
+    "safeArea34": true,
+    "bossWrites": 0,
+    "errors": []
+  },
+  {
+    "width": 430,
+    "cardHeight": 323.1875,
+    "realtime": true,
+    "defeated": true,
+    "weekRollover": true,
+    "permissionAndRetry": true,
+    "navigation": true,
+    "safeArea34": true,
+    "bossWrites": 0,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "cardHeight": 494.59375,
+    "realtime": true,
+    "defeated": true,
+    "weekRollover": true,
+    "permissionAndRetry": true,
+    "navigation": true,
+    "safeArea34": false,
+    "bossWrites": 0,
+    "errors": []
+  }
+]

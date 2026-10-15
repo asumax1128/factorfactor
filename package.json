@@ -32,10 +32,11 @@
     "test:chromebook": "node tests/chromebook-browser.cjs",
     "test:rating-history": "node --test tests/rating-history.test.cjs && node tests/rating-history-browser.cjs",
     "test:rating-display": "node --test tests/rating-display.test.cjs && node tests/rating-display-browser.cjs",
-    "test:online-improvements": "node --test tests/online-improvements.test.cjs && node tests/battle-countdown-browser.cjs && node tests/master-effect-browser.cjs && node tests/online-improvements-browser.cjs && npm run test:next-board-visibility",
+    "test:online-improvements": "node --test tests/online-improvements.test.cjs && node tests/battle-countdown-browser.cjs && node tests/master-effect-browser.cjs && node tests/online-improvements-browser.cjs && npm run test:next-board-visibility && npm run test:next-home",
     "test:online-v524": "node --test tests/b2.test.cjs tests/daily-model.test.cjs tests/daily-play.test.cjs tests/hyper-top10.test.cjs && node tests/v524-browser.cjs",
     "test:rewards-audit": "node tests/rewards-audit.cjs && node tests/rewards-audit-browser.cjs",
-    "test:next-board-visibility": "node tests/next-board-visibility-browser.cjs"
+    "test:next-board-visibility": "node tests/next-board-visibility-browser.cjs",
+    "test:next-home": "node tests/next-home-browser.cjs && node tests/next-home-account-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

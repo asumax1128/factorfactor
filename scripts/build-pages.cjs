@@ -20,6 +20,7 @@ fs.writeFileSync(
 );
 const allowed = [
   "index.html",
+  "next-home-ui.js",
   "game-version.js",
   "game-audio.js",
   "online-spark.js",
@@ -46,11 +47,13 @@ for (const name of allowed) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(path.join(root, name), target);
 }
+fs.cpSync(path.join(root, "ui-next"), path.join(out, "ui-next"), { recursive: true });
 fs.cpSync(path.join(root, "img"), path.join(out, "img"), { recursive: true });
 fs.writeFileSync(path.join(out, ".nojekyll"), "");
 // New HTML must not combine new UI with a cached previous store/audio module.
 let html = fs.readFileSync(path.join(out, "index.html"), "utf8");
 for (const file of [
+  "next-home-ui.js",
   "game-version.js",
   "game-audio.js",
   "online-spark.js",

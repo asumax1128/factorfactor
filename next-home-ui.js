@@ -1,0 +1,94 @@
+(() => {
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __commonJS = (cb, mod) => function __require() {
+    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  };
+
+  // src/next-home-icons.json
+  var require_next_home_icons = __commonJS({
+    "src/next-home-icons.json"(exports, module) {
+      module.exports = { home: "m3 10 9-7 9 7v11h-6v-7H9v7H3Z", online: "m4 3 6 6-3 3-6-6M20 3l-6 6 3 3 6-6M8 13l-5 8M16 13l5 8M3 17l4 3M17 20l4-3M9 10l6 6M15 10l-6 6", solo: "M5 3h11l4 4v14H5ZM8 9h8M8 13h3M14 13h2M8 17h3M14 17h2", daily: "M4 5h16v16H4ZM8 2v6M16 2v6M4 10h16m-12 5 3 3 5-5", rank: "M8 3h8v5c0 4-2 6-4 6s-4-2-4-6ZM8 5H3v2c0 3 2 4 5 4M16 5h5v2c0 3-2 4-5 4M12 14v5M7 21h10", help: "M9 8a3 3 0 1 1 5 2c-2 1-2 2-2 4M12 18h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20", account: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0", chevron: "m9 5 7 7-7 7", sound: "M4 10h4l5-5v14l-5-5H4ZM17 8a6 6 0 0 1 0 8M20 5a10 10 0 0 1 0 14", settings: "m9 3-1 3-3 1-2 4 2 2v3l3 2 3-1 3 2 4-2v-3l3-2-1-4-3-1-1-3ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6", more: "M4 6h16M4 12h16M4 18h16", room: "M3 4h18v16H3ZM8 4v16M11 9h6M11 13h6", cpu: "M5 5h14v14H5ZM8 8h8v8H8ZM8 2v3M12 2v3M16 2v3M8 19v3M12 19v3M16 19v3M2 8h3M2 12h3M2 16h3M19 8h3M19 12h3M19 16h3", ghost: "M5 21V10a7 7 0 0 1 14 0v11l-4-3-3 3-3-3ZM9 10v2M15 10v2", raid: "m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6ZM8 12h8M12 8v8", record: "M4 3h16v18H4ZM8 7h8M8 12h2M13 12h3M8 17h2M13 17h3", people: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 15a5 5 0 0 1 5 5", bounty: "M4 3h16v18l-3-1-2 1-3-1-3 1-3-1-2 1ZM12 7l1 3h3l-2 2 1 3-3-2-3 2 1-3-2-2h3Z" };
+    }
+  });
+
+  // src/next-home-ui.jsx
+  var icons = require_next_home_icons();
+  window.NextHomeFactory = (H) => {
+    const { useState, useEffect, useRef } = React;
+    const { FB, useFbReady, weekKey, now, weeklyInfo, bossForm, suriImg, useRatingHistoryProfile, RatingDisplay, levelOf, isReal, loadGuest, nickOf, PlayerProfile, Wardrobe, useFbValue, useGameMute, LoginBonus, syncSkin } = H;
+    const Icon = ({ name }) => /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: icons[name] || icons.home }));
+    function useBoss() {
+      const fb = useFbReady(), [tick, setTick] = useState(0), [retry, setRetry] = useState(0), [data, setData] = useState(null);
+      useEffect(() => {
+        const t = setInterval(() => setTick((x) => x + 1), 1e3);
+        return () => clearInterval(t);
+      }, []);
+      const wk = weekKey(now());
+      useEffect(() => {
+        if (!fb.ready) return;
+        let active = true;
+        const vals = {}, done = /* @__PURE__ */ new Set(), subs = [];
+        setData({ wk, status: "loading" });
+        for (const key of ["meta", "dmg"]) {
+          const ref = FB.db.ref(`games/factor/raidw/${wk}/${key}`);
+          const f = (s) => {
+            if (!active) return;
+            vals[key] = s.val();
+            done.add(key);
+            if (done.size === 2) setData({ wk, status: vals.meta ? "ready" : "preparing", ...vals });
+          };
+          ref.on("value", f, (e) => {
+            if (active) {
+              active = false;
+              setData({ wk, status: (e == null ? void 0 : e.code) === "PERMISSION_DENIED" ? "denied" : "error" });
+            }
+          });
+          subs.push([ref, f]);
+        }
+        return () => {
+          active = false;
+          subs.forEach(([r, f]) => r.off("value", f));
+        };
+      }, [fb.ready, wk, retry]);
+      if (fb.err) return { status: "error", retry: () => setRetry((x) => x + 1) };
+      if (!fb.ready || (data == null ? void 0 : data.wk) !== wk) return { status: "loading" };
+      if (data.status !== "ready") return { ...data, retry: () => setRetry((x) => x + 1) };
+      const info = weeklyInfo(wk, data.dmg, data.meta);
+      if (!Number.isFinite(info.hp) || !Number.isFinite(info.hpMax) || info.hpMax <= 0) return { status: "error", retry: () => setRetry((x) => x + 1) };
+      return { status: "ready", info, boss: bossForm(info.boss, info.revived) };
+    }
+    function Home({ acct, onGo, onLogout }) {
+      var _a, _b, _c, _d, _e;
+      const boss = useBoss(), fb = useFbReady(), st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
+      const profile = useRatingHistoryProfile(isReal(acct) ? acct.key : null), L = levelOf(((_a = isReal(acct) ? st : loadGuest()) == null ? void 0 : _a.exp) || 0);
+      const [panel, setPanel] = useState(null), dialog = useRef(null), [muted, setMuted] = useGameMute(), skinAccount = useRef(null);
+      useEffect(() => {
+        if ((st == null ? void 0 : st.skin) && isReal(acct) && skinAccount.current !== acct.key) {
+          skinAccount.current = acct.key;
+          syncSkin(st.skin);
+        }
+      }, [st, acct.key]);
+      useEffect(() => {
+        var _a2, _b2;
+        if (panel === "menu" || panel === "settings") (_a2 = dialog.current) == null ? void 0 : _a2.showModal();
+        else (_b2 = dialog.current) == null ? void 0 : _b2.close();
+      }, [panel]);
+      const go = (key) => {
+        setPanel(null);
+        onGo(key);
+      };
+      const nav = [["home", "\u30DB\u30FC\u30E0"], ["online", "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226"], ["solo", "\u30BD\u30ED\u30E2\u30FC\u30C9"], ["daily", "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3"], ["rank", "\u30E9\u30F3\u30AD\u30F3\u30B0"], ["help", "\u3042\u305D\u3073\u304B\u305F"]];
+      const navButton = (key, label) => /* @__PURE__ */ React.createElement("button", { key, className: "nav-item " + (key === "home" ? "selected" : ""), "aria-current": key === "home" ? "page" : void 0, onClick: () => go(key) }, /* @__PURE__ */ React.createElement(Icon, { name: key }), /* @__PURE__ */ React.createElement("span", null, label), /* @__PURE__ */ React.createElement("i", { "aria-hidden": "true" }));
+      const brand = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("img", { src: "ui-next/logo-placeholder.png", alt: "FACTOR \xD7 FACTOR", width: "688", height: "371" }), /* @__PURE__ */ React.createElement("span", { className: "logo-note" }, "\u4EEE\u30ED\u30B4"));
+      const hp = boss.info ? Math.max(0, boss.info.hp) : null, max = (_b = boss.info) == null ? void 0 : _b.hpMax, pct = max ? Math.min(100, hp / max * 100) : 0;
+      const statusText = { loading: "HP\u60C5\u5831\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026", preparing: "\u6B21\u306E\u30DC\u30B9\u3092\u6E96\u5099\u4E2D", error: "HP\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093", denied: "HP\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\uFF08\u6A29\u9650\u4E0D\u8DB3\uFF09" }[boss.status];
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/home.css" }), /* @__PURE__ */ React.createElement("div", { className: "next-home", "data-next-home": true }, acct && /* @__PURE__ */ React.createElement(LoginBonus, { acct }), /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement("aside", { className: "sidebar" }, /* @__PURE__ */ React.createElement("button", { className: "brand-slot", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "side-divider" }), /* @__PURE__ */ React.createElement("nav", { "aria-label": "PC\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, nav.map(([k, n]) => navButton(k, n))), /* @__PURE__ */ React.createElement("div", { className: "sidebar-account" }, /* @__PURE__ */ React.createElement(Icon, { name: "account" }), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel("profile") }, acct.name, /* @__PURE__ */ React.createElement("small", null, "Lv.", L.lv)))), /* @__PURE__ */ React.createElement("div", { className: "page-shell" }, /* @__PURE__ */ React.createElement("header", { className: "mobile-top" }, /* @__PURE__ */ React.createElement("button", { className: "mobile-brand", onClick: () => go("home"), "aria-label": "\u30DB\u30FC\u30E0\u3078" }, brand), /* @__PURE__ */ React.createElement("div", { className: "header-tools" }, /* @__PURE__ */ React.createElement("button", { "aria-label": muted ? "\u97F3\u58F0\u3092\u30AA\u30F3" : "\u97F3\u58F0\u3092\u30AA\u30D5", onClick: () => setMuted(!muted) }, /* @__PURE__ */ React.createElement(Icon, { name: "sound" })), /* @__PURE__ */ React.createElement("button", { "aria-label": "\u8A2D\u5B9A", onClick: () => setPanel("settings") }, /* @__PURE__ */ React.createElement(Icon, { name: "settings" })))), /* @__PURE__ */ React.createElement("header", { className: "page-header" }, /* @__PURE__ */ React.createElement("h1", null, "\u30DB\u30FC\u30E0"), /* @__PURE__ */ React.createElement("button", { className: "pc-settings", onClick: () => setPanel("settings"), "aria-label": "\u8A2D\u5B9A" }, /* @__PURE__ */ React.createElement(Icon, { name: "settings" }))), /* @__PURE__ */ React.createElement("div", { className: "account-row" }, /* @__PURE__ */ React.createElement("button", { className: "account-main", onClick: () => setPanel("profile") }, /* @__PURE__ */ React.createElement("span", { className: "avatar" }, /* @__PURE__ */ React.createElement(Icon, { name: "account" })), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("small", null, ((_c = nickOf(st == null ? void 0 : st.nick)) == null ? void 0 : _c.label) || "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u306A\u3057"), /* @__PURE__ */ React.createElement("strong", null, acct.name), /* @__PURE__ */ React.createElement("span", { className: "level" }, "Lv. ", /* @__PURE__ */ React.createElement("b", null, L.lv), /* @__PURE__ */ React.createElement("span", { className: "xp" }, /* @__PURE__ */ React.createElement("i", { style: { width: `${L.cur / L.need * 100}%` } }))))), /* @__PURE__ */ React.createElement("div", { className: "ratings" }, ["easy", "normal"].map((d) => {
+        const r = RatingDisplay.current(profile, st, d);
+        return /* @__PURE__ */ React.createElement("div", { key: d }, /* @__PURE__ */ React.createElement("small", null, d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB"), /* @__PURE__ */ React.createElement("strong", null, isReal(acct) ? RatingDisplay.format(r.value) : "\u2015"));
+      })), /* @__PURE__ */ React.createElement("button", { className: "account-link", onClick: () => setPanel("profile") }, "\u6210\u7E3E\u78BA\u8A8D ", /* @__PURE__ */ React.createElement(Icon, { name: "chevron" }))), /* @__PURE__ */ React.createElement("main", null, /* @__PURE__ */ React.createElement("div", { className: "home-content" }, /* @__PURE__ */ React.createElement("div", { className: "home-actions" }, [["online", "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226", ["\u3059\u3050\u904A\u3076\u30FB\u30EB\u30FC\u30E0", "\u30B4\u30FC\u30B9\u30C8\u30FB\u30EC\u30A4\u30C9"], "\u5BFE\u6226\u30ED\u30D3\u30FC\u3078"], ["solo", "\u30BD\u30ED\u30E2\u30FC\u30C9", ["\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB", "\u30CF\u30FC\u30C9"], "\u96E3\u6613\u5EA6\u3092\u9078\u3076"]].map(([k, n, desc, foot]) => /* @__PURE__ */ React.createElement("button", { key: k, className: "action-card " + k, "aria-label": k === "online" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226\u30FBCPU\u7DF4\u7FD2" : void 0, onClick: () => go(k) }, /* @__PURE__ */ React.createElement("span", { className: "action-icon" }, /* @__PURE__ */ React.createElement(Icon, { name: k })), /* @__PURE__ */ React.createElement("span", { className: "surface-lines" }), /* @__PURE__ */ React.createElement("span", { className: "action-text" }, /* @__PURE__ */ React.createElement("strong", null, n), /* @__PURE__ */ React.createElement("small", null, desc.map((t) => /* @__PURE__ */ React.createElement("span", { key: t }, t)))), /* @__PURE__ */ React.createElement("span", { className: "action-foot" }, foot, /* @__PURE__ */ React.createElement(Icon, { name: "chevron" }))))), /* @__PURE__ */ React.createElement("section", { className: "boss-stage", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9" }, /* @__PURE__ */ React.createElement("div", { className: "boss-label" }, /* @__PURE__ */ React.createElement("span", { className: "status-dot" }), "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("div", { className: "boss-art" }, /* @__PURE__ */ React.createElement("div", { className: "boss-orbit" }), boss.boss && /* @__PURE__ */ React.createElement("img", { key: boss.boss.id, src: suriImg(boss.boss.id), alt: boss.boss.name, width: "512", height: "512", onError: (e) => {
+        e.currentTarget.hidden = true;
+      } })), /* @__PURE__ */ React.createElement("div", { className: "boss-hp", "aria-live": "polite" }, statusText ? /* @__PURE__ */ React.createElement("p", { role: ["error", "denied"].includes(boss.status) ? "alert" : "status" }, statusText, boss.retry && ["error", "denied"].includes(boss.status) && /* @__PURE__ */ React.createElement("button", { onClick: boss.retry }, "\u518D\u8A66\u884C")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "hp-numbers" }, /* @__PURE__ */ React.createElement("span", null, "HP ", /* @__PURE__ */ React.createElement("b", null, hp.toLocaleString("ja-JP")), " / ", max.toLocaleString("ja-JP")), /* @__PURE__ */ React.createElement("strong", null, boss.info.dead ? "\u8A0E\u4F10\u6E08\u307F" : `${pct.toFixed(1)}%`)), /* @__PURE__ */ React.createElement("div", { className: "hp-track", role: "progressbar", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u6B8B\u308AHP", "aria-valuemin": 0, "aria-valuemax": max, "aria-valuenow": hp }, /* @__PURE__ */ React.createElement("i", { style: { width: `${pct}%` } })))), /* @__PURE__ */ React.createElement("div", { className: "boss-details" }, /* @__PURE__ */ React.createElement("h2", null, ((_d = boss.boss) == null ? void 0 : _d.name) || "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("button", { className: "small-button", "aria-label": "\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u6311\u3080", onClick: () => go("boss") }, "\u30DC\u30B9\u306B\u6311\u3080 ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"))))), /* @__PURE__ */ React.createElement("div", { className: "home-support" }, /* @__PURE__ */ React.createElement("button", { className: "mission-strip", onClick: () => go("daily") }, /* @__PURE__ */ React.createElement(Icon, { name: "daily" }), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3"), /* @__PURE__ */ React.createElement("small", null, "\u4ECA\u65E5\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u30FB\u30C7\u30A4\u30EA\u30FC\u30C1\u30E3\u30EC\u30F3\u30B8")), /* @__PURE__ */ React.createElement(Icon, { name: "chevron" })), [["rank", "\u30E9\u30F3\u30AD\u30F3\u30B0"], ["help", "\u3042\u305D\u3073\u304B\u305F"]].map(([k, n]) => /* @__PURE__ */ React.createElement("button", { className: "support-link", key: k, onClick: () => go(k) }, /* @__PURE__ */ React.createElement(Icon, { name: k }), /* @__PURE__ */ React.createElement("strong", null, n), /* @__PURE__ */ React.createElement(Icon, { name: "chevron" }))))), /* @__PURE__ */ React.createElement("footer", { className: "page-footer" }, /* @__PURE__ */ React.createElement("span", null, "FACTOR \xD7 FACTOR"), /* @__PURE__ */ React.createElement("span", null, "\u5148\u751F\u5C02\u7528\u6A5F\u80FD\u306F\u6A29\u9650\u78BA\u8A8D\u5F8C\u306B\u8868\u793A")))), /* @__PURE__ */ React.createElement("nav", { className: "bottom-nav", "aria-label": "\u30B9\u30DE\u30DB\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC" }, [["home", "\u30DB\u30FC\u30E0"], ["online", "\u5BFE\u6226"], ["solo", "\u30BD\u30ED"], ["rank", "\u9806\u4F4D"]].map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item", "aria-label": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", "aria-expanded": panel === "menu", onClick: () => setPanel("menu") }, /* @__PURE__ */ React.createElement(Icon, { name: "more" }), /* @__PURE__ */ React.createElement("span", null, "\u30E1\u30CB\u30E5\u30FC"))), /* @__PURE__ */ React.createElement("dialog", { ref: dialog, className: "home-menu", "aria-label": panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC", onCancel: () => setPanel(null) }, /* @__PURE__ */ React.createElement("div", { className: "sheet-title" }, /* @__PURE__ */ React.createElement("h2", null, panel === "settings" ? "\u8A2D\u5B9A" : "\u30E1\u30CB\u30E5\u30FC"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel(null), "aria-label": "\u9589\u3058\u308B" }, "\xD7")), panel === "settings" ? /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement("button", { onClick: () => setMuted(!muted) }, "\u97F3\u58F0\uFF1A", muted ? "\u30AA\u30D5" : "\u30AA\u30F3"), /* @__PURE__ */ React.createElement("button", { onClick: () => setPanel("wardrobe") }, "\u304D\u305B\u304B\u3048"), /* @__PURE__ */ React.createElement("button", { onClick: onLogout }, isReal(acct) ? "\u30ED\u30B0\u30A2\u30A6\u30C8" : "\u767B\u9332\u30FB\u30ED\u30B0\u30A4\u30F3")) : /* @__PURE__ */ React.createElement("nav", null, nav.map(([k, n]) => navButton(k, n)), /* @__PURE__ */ React.createElement("button", { className: "nav-item", onClick: () => go("learn") }, "\u5B66\u3073\u306E\u90E8\u5C4B")))), panel === "profile" && /* @__PURE__ */ React.createElement(PlayerProfile, { name: acct.name, st: st || loadGuest() || {}, nameOf: {}, me: true, acctKey: isReal(acct) ? acct.key : null, onClose: () => setPanel(null) }), panel === "wardrobe" && /* @__PURE__ */ React.createElement(Wardrobe, { acct, st: st || loadGuest(), exp: ((_e = isReal(acct) ? st : loadGuest()) == null ? void 0 : _e.exp) || 0, onClose: () => setPanel(null) }));
+    }
+    return Home;
+  };
+})();

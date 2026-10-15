@@ -1,0 +1,23 @@
+[
+  {
+    "file": "heading.woff",
+    "family": "BHeading",
+    "bytes": 32676,
+    "sourceSha256": "795819a979184981842994d8f4eb9e14ce443d687bd5e731d6ca67ded8f92261",
+    "subsetSha256": "677d8d639c8c381e6de518c53094091799ab69e98b220e7246c7e7d67c0e825f"
+  },
+  {
+    "file": "body.woff",
+    "family": "BBody",
+    "bytes": 33252,
+    "sourceSha256": "651a3f7280b7f36262601ee76d8388a8dc4372dcc67aff025a608939a562b525",
+    "subsetSha256": "6f994e1f3df8d142a52be5f708acef4c05595b4e1d880afc66e26ecf229de2f1"
+  },
+  {
+    "file": "number.woff",
+    "family": "BNumber",
+    "bytes": 11452,
+    "sourceSha256": "691470dd3286a14e9677940d0bf75796179841ba5215cbda1a2c8910a3226afd",
+    "subsetSha256": "b4eb3272c531724704f3bddbd12ece0bb2925f641cd1d3c8a3e715980302044a"
+  }
+]
