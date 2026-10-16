@@ -2,6 +2,13 @@
 
 作業ブランチ：`dev/next-major-20261015`。本番main=`5584885`、公開Ver.5.25を維持。main統合／本番Firebase・ルール変更／本番移行／公開は行っていない。**全Phaseの完成・公開可能の宣言ではない。**
 
+## C確定writer 最小実装（2026-10-16・作業ブランチ `claude/c-writer-min`）
+
+- 追加：`scripts/build-c-authority.cjs`が`index.html`の`createBEngine`と純粋な依存をそのまま`server/next-authority/c-source.js`へ抽出（生成物・手編集禁止、CIでdrift確認）。`server/next-authority/c-writer.cjs`が、管理側で参加者書込の1 evを元エンジンの`receive`で再生し、適用operationを単調revisionで`games/factor/nextAuthorityV1/c/<code>_<gid>`へ保存。`finish`で終了revision（`c-authority-v1`形式）を保存し以後を拒否。
+- 保証（テスト済）：同一eventIDの再送／同時再送は1回だけ適用（同revision返却）、不正sender・自己・参加者外・負値・未来時刻・敵への「cover」・味方への攻撃は拒否してrevisionを進めない、終了後は新規拒否、クライアントはauthority領域を読書きできない、共有HP(`thp`)へ書かない。
+- 記録するphaseは`received`（受信者のpendに積んだ）と`covered`（実際にpendを減らした量）のみ。**着弾(landed)・相殺・防御・個人回復は未実装で、claimしない。** 読取集計器`c-contribution-next.cjs`は`received`を計上せず不整合として拒否する（接続は次作業）。
+- 残る限界：evの内容（from・dmg）自体は参加者が書くため、`from`の本人性と数値は未検証（候補ルールは`$to/$id`の新規書込のみ`players`所属で許可）。シールド使用はクライアント揮発状態で管理側は知らず、blockedは発行しない。workerループ未接続（テストが`apply/finish`を直接呼ぶ）。本番構成は未承認。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
