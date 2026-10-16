@@ -3274,6 +3274,58 @@
     }
   });
 
+  // src/authority-client-next.cjs
+  var require_authority_client_next = __commonJS({
+    "src/authority-client-next.cjs"(exports, module) {
+      "use strict";
+      var ROOT = "games/factor/nextAuthorityV1";
+      var enabled = require_weekly_run_next().enabled;
+      function weekly({ db, uid, account, week }) {
+        if (!module.exports.enabled(db, globalThis.location) || !(account == null ? void 0 : account.key)) throw Error("EMULATOR_AUTHORITY_ONLY");
+        const path = `${ROOT}/weekly/${week}`;
+        async function submit(type, payload, id) {
+          const r = db.ref(`${path}/requests/${account.key}/${id}`), body = JSON.stringify(payload), old = (await r.get()).val();
+          if (old) {
+            if (old.type !== type || old.payload !== body) throw Error("CONFLICTING_REQUEST_ID");
+          } else await r.set({ uid, type, payload: body, at: { ".sv": "timestamp" } });
+          return new Promise((resolve, reject) => {
+            const target = db.ref(`${path}/processed/${account.key}/${id}`);
+            let timer;
+            const stop = () => {
+              clearTimeout(timer);
+              target.off("value", f);
+            }, f = (s) => {
+              const v = s.val();
+              if (!v) return;
+              stop();
+              if (v.ok) resolve(v);
+              else {
+                const e = Error(v.error);
+                e.confirmed = true;
+                reject(e);
+              }
+            };
+            timer = setTimeout(() => {
+              stop();
+              reject(Error("\u901A\u4FE1\u3092\u78BA\u8A8D\u3057\u3001\u540C\u3058\u64CD\u4F5C\u3092\u518D\u9001\u3057\u3066\u304F\u3060\u3055\u3044"));
+            }, 15e3);
+            target.on("value", f, (e) => {
+              stop();
+              reject(e);
+            });
+          });
+        }
+        function subscribe(fn, onError) {
+          const r = db.ref(`${path}/views/${account.key}`), f = (s) => fn(s.val());
+          r.on("value", f, onError);
+          return () => r.off("value", f);
+        }
+        return { submit, subscribe, newId: () => db.ref(path).push().key };
+      }
+      module.exports = { ROOT, enabled, weekly };
+    }
+  });
+
   // src/local-b2-bots.cjs
   var require_local_b2_bots = __commonJS({
     "src/local-b2-bots.cjs"(exports, module) {
@@ -3317,6 +3369,7 @@
   window.FriendRaidNext = require_friend_raid_next();
   window.TitlePresentationNext = require_title_presentation_next();
   window.TournamentB2 = require_tournament_b2();
+  window.NextAuthority = require_authority_client_next();
   window.WeeklyRunNext = require_weekly_run_next();
   window.LocalB2Bots = require_local_b2_bots();
 })();

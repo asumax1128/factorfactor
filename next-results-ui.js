@@ -1337,6 +1337,69 @@
     }
   });
 
+  // src/authority-weekly-ui.jsx
+  function AuthorityWeekly({ H, acct, onExit }) {
+    var _a;
+    const { useState, useEffect, useMemo } = React, { FB, fbNow, weekKey, useTick, TargetCard, BattleBoard, weeklyInfo, bossForm, MonsterPic } = H;
+    const key = "fxf_weekly_authority:" + acct.key, [week, setWeek] = useState(() => {
+      var _a2;
+      try {
+        return ((_a2 = JSON.parse(localStorage.getItem(key))) == null ? void 0 : _a2.week) || weekKey(fbNow());
+      } catch {
+        return weekKey(fbNow());
+      }
+    }), [view, setView] = useState(null), [shared, setShared] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState(""), [pending, setPending] = useState(() => {
+      var _a2;
+      try {
+        return ((_a2 = JSON.parse(localStorage.getItem(key))) == null ? void 0 : _a2.pending) || null;
+      } catch {
+        return null;
+      }
+    });
+    const client = useMemo(() => window.NextAuthority.weekly({ db: FB.db, uid: FB.uid, account: acct, week }), [acct.key, week]);
+    useEffect(() => {
+      setView(null);
+      setShared(null);
+      const stop = client.subscribe(setView, (e) => setError(e.message)), r = FB.db.ref(`${window.NextAuthority.ROOT}/weekly/${week}/public`), f = (s) => setShared(s.val());
+      r.on("value", f, (e) => setError(e.message));
+      return () => {
+        stop();
+        r.off("value", f);
+      };
+    }, [client]);
+    useTick(200, true);
+    const persist = (p) => {
+      localStorage.setItem(key, JSON.stringify({ week, pending: p }));
+      setPending(p);
+    };
+    async function send(command2) {
+      if (busy) return;
+      const c = command2 || pending;
+      if (!c) return;
+      persist(c);
+      setBusy(true);
+      setError("");
+      try {
+        await client.submit(c.type, c.payload, c.id);
+        persist(null);
+      } catch (e) {
+        if (e.confirmed) persist(null);
+        setError(e.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+    const command = (type, payload) => send({ id: client.newId(), type, payload }), now = fbNow(), runs = Object.values((view == null ? void 0 : view.runs) || {}), run = runs.find((r) => r.status === "play") || runs.sort((a, b) => b.startAt - a.startAt)[0], active = (run == null ? void 0 : run.status) === "play", live = !!view && now - view.serverAt < 4e3 && FB.conn !== false;
+    const board = useMemo(() => run == null ? void 0 : run.prob, [JSON.stringify(run == null ? void 0 : run.prob)]);
+    const ready = active && !!run.prob && !run.pending && !busy && !pending && live && view.revision === (shared == null ? void 0 : shared.revision) && now >= run.startAt && now >= run.stunUntil && now < run.endAt;
+    const info = (shared == null ? void 0 : shared.meta) ? weeklyInfo(week, {}, shared.meta, {}) : null, boss = info && bossForm(info.boss, shared.revived), fmt = (n) => Number.isFinite(n) ? n.toLocaleString() : "\u2014";
+    return /* @__PURE__ */ React.createElement("main", { className: "authority-weekly next-result-details", "data-weekly-authority": true }, /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/home.css" }), /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/weekly.css" }), /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("button", { className: "small-button", onClick: onExit }, "\u30DB\u30FC\u30E0\u3078"), /* @__PURE__ */ React.createElement("h1", null, "\u4ECA\u9031\u306E\u30DC\u30B9")), /* @__PURE__ */ React.createElement("p", { className: "authority-dev-note" }, "Emulator\u5C02\u7528\u30FB\u672C\u756A\u306E\u6226\u7E3E\u3068\u5831\u916C\u306B\u306F\u53CD\u6620\u3055\u308C\u307E\u305B\u3093"), error && /* @__PURE__ */ React.createElement("p", { role: "alert" }, error), pending && /* @__PURE__ */ React.createElement("button", { className: "small-button", disabled: busy, onClick: () => send() }, "\u540C\u3058\u64CD\u4F5C\u3092\u518D\u9001"), (shared == null ? void 0 : shared.enabled) ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", { className: "authority-boss" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", null, (boss == null ? void 0 : boss.name) || "\u4ECA\u9031\u306E\u30DC\u30B9"), /* @__PURE__ */ React.createElement("p", null, "HP ", /* @__PURE__ */ React.createElement("b", { "data-authority-hp": true }, fmt(shared.hp), " / ", fmt(shared.hpMax)), shared.kill ? " \u30FB \u8A0E\u4F10\u6E08\u307F" : ""), /* @__PURE__ */ React.createElement("progress", { "aria-label": "\u30DC\u30B9\u306E\u6B8B\u308AHP", value: shared.hp, max: shared.hpMax }), /* @__PURE__ */ React.createElement("p", null, week, " \u306E\u9031", shared.closed ? " \u30FB \u78BA\u5B9A\u6E08\u307F" : "")), boss && /* @__PURE__ */ React.createElement(MonsterPic, { id: boss.id, icon: boss.icon, size: "8rem" })), active ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("dl", { className: "authority-hud" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "\u6B8B\u308A\u6642\u9593"), /* @__PURE__ */ React.createElement("dd", null, Math.max(0, Math.ceil((run.endAt - now) / 1e3)), "\u79D2")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "\u30C0\u30E1\u30FC\u30B8"), /* @__PURE__ */ React.createElement("dd", null, fmt(run.d))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "\u30B3\u30F3\u30DC"), /* @__PURE__ */ React.createElement("dd", null, run.combo))), /* @__PURE__ */ React.createElement("p", { role: "status" }, now < run.startAt ? "READY" : busy ? "\u89E3\u7B54\u3092\u78BA\u5B9A\u3057\u3066\u3044\u307E\u3059\u2026" : !live ? "\u901A\u4FE1\u30FBworker\u306E\u5FA9\u65E7\u3092\u5F85\u3063\u3066\u3044\u307E\u3059" : run.pending ? "\u6B21\u306E\u554F\u984C\u3092\u5F85\u3063\u3066\u3044\u307E\u3059" : now < run.stunUntil ? "\u53CD\u6483\u3067\u3057\u3073\u308C\u3066\u3044\u307E\u3059" : ((_a = run.chest) == null ? void 0 : _a.on) ? "\u5B9D\u7BB1\uFF1A\u6B21\u306E\u554F\u984C\u3067\u958B\u9320" : "\u56E0\u6570\u30BF\u30A4\u30EB\u30922\u679A\u3064\u306A\u3044\u3067\u89E3\u7B54"), run.lastAnswer && now - run.lastAnswer.at < 1500 && /* @__PURE__ */ React.createElement("p", { "aria-live": "polite" }, run.lastAnswer.ok ? `${run.lastAnswer.judge} \uFF0B${run.lastAnswer.damage}\u30C0\u30E1\u30FC\u30B8` : "\u4E0D\u6B63\u89E3"), /* @__PURE__ */ React.createElement("div", { className: "authority-board" + (now < run.fogUntil ? " fogged" : "") }, ready ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(TargetCard, { v7: true, poly: board.poly, level: board.level, qLabel: board.poly2 ? "\u5F0FA" : void 0, gaugeKey: run.qs, gaugeMs: 2e4 }), board.poly2 && /* @__PURE__ */ React.createElement(TargetCard, { v7: true, poly: board.poly2, level: board.level2 || board.level, qLabel: "\u5F0FB\uFF08\u3069\u3061\u3089\u3082\u89E3\u7B54\u53EF\u80FD\uFF09", gaugeKey: run.qs, gaugeMs: 2e4 }), /* @__PURE__ */ React.createElement(BattleBoard, { v7: true, tiles: Array.isArray(board.tiles) ? board.tiles : Object.values(board.tiles), flash: {}, mirror: (info == null ? void 0 : info.T.gim) === "mirror", disabled: !ready, onMatch: (first, second) => command("answer", { runId: run.id, questionAt: run.qs, first, second }) })) : /* @__PURE__ */ React.createElement("div", { className: "authority-board-wait", "aria-label": "\u76E4\u9762\u306F\u64CD\u4F5C\u89E3\u7981\u307E\u3067\u8868\u793A\u3055\u308C\u307E\u305B\u3093" })), /* @__PURE__ */ React.createElement("button", { className: "small-button", disabled: busy || !!pending, onClick: () => command("quit", { runId: run.id }) }, "\u51FA\u6483\u3092\u7D42\u4E86")) : /* @__PURE__ */ React.createElement(React.Fragment, null, run && /* @__PURE__ */ React.createElement("section", { "data-authority-result": true }, /* @__PURE__ */ React.createElement("h2", null, run.receipt ? "\u51FA\u6483\u304A\u3064\u304B\u308C\u3055\u307E\uFF01" : "\u51FA\u6483\u7D42\u4E86\uFF08\u672A\u5B8C\u8D70\uFF09"), /* @__PURE__ */ React.createElement("p", null, fmt(run.d), "\u30C0\u30E1\u30FC\u30B8 \uFF0F \u6B63\u89E3 ", run.n, "\u554F \uFF0F \u6700\u9AD8 ", run.best, "\u30B3\u30F3\u30DC"), run.reward && /* @__PURE__ */ React.createElement("p", null, "\u7372\u5F97EXP ", run.reward.after - run.reward.before)), /* @__PURE__ */ React.createElement("p", null, "1\u65E55\u56DE\u307E\u3067\u3002\u9014\u4E2D\u9000\u51FA\u30821\u56DE\u3068\u3057\u3066\u6D88\u8CBB\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "authority-actions" }, /* @__PURE__ */ React.createElement("button", { className: "small-button", disabled: busy || !!pending || shared.closed || !!shared.kill, onClick: () => command("start", { role: "atk" }) }, "\u30A2\u30BF\u30C3\u30AB\u30FC\u3067\u51FA\u6483"), /* @__PURE__ */ React.createElement("button", { className: "small-button", disabled: busy || !!pending || shared.closed || !!shared.kill, onClick: () => command("start", { role: "sup" }) }, "\u30B5\u30DD\u30FC\u30BF\u30FC\u3067\u51FA\u6483"))), shared.closed && /* @__PURE__ */ React.createElement("button", { className: "small-button", onClick: () => {
+      localStorage.removeItem(key);
+      setPending(null);
+      setWeek(weekKey(fbNow()));
+    } }, "\u4ECA\u9031\u3078\u5207\u308A\u66FF\u3048"), (view == null ? void 0 : view.awards) && Object.keys(view.awards).length > 0 && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u78BA\u5B9A\u5831\u916C"), /* @__PURE__ */ React.createElement("ul", null, Object.values(view.awards).map((a) => /* @__PURE__ */ React.createElement("li", { key: a.id }, { kill: "\u8A0E\u4F10", lastHit: "\u6700\u7D42\u6253", final: "\u9031\u7DE0\u3081" }[a.kind], "\uFF1A", a.exp, " EXP")))), (view == null ? void 0 : view.ranking) && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u9031\u7DE0\u3081\u9806\u4F4D"), /* @__PURE__ */ React.createElement("ol", null, view.ranking.map((r) => /* @__PURE__ */ React.createElement("li", { key: r.account }, r.account, "\uFF1A", fmt(r.damage), "\u30C0\u30E1\u30FC\u30B8"))))) : /* @__PURE__ */ React.createElement("p", { role: "status" }, error ? "HP\u60C5\u5831\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093" : "\u7BA1\u7406\u5074worker\u306E\u6E96\u5099\u3092\u5F85\u3063\u3066\u3044\u307E\u3059\u2026"));
+  }
+
   // src/legacy-spectator-next.jsx
   function LegacySpectator({ H, ids = [], names = {}, mode, diff, bank, live = {}, ko = {}, result, probA, startAt, time, scoreA, teams = {}, feed = [], onLeave, children }) {
     var _a;
@@ -1491,5 +1554,5 @@
       return /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("div", null, teamLabels[teams[u]] || "\u30C1\u30FC\u30E0\u672A\u8A18\u9332", " \uFF0F ", names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC", " ", /* @__PURE__ */ React.createElement("b", null, known(u, "c") === null ? "\u672A\u8A18\u9332" : known(u, "c") + "\u554F\u6B63\u89E3")), known(u, "c") !== null && /* @__PURE__ */ React.createElement("div", { className: "next-c-bar", role: "img", "aria-label": `${names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"} \u6B63\u89E3${known(u, "c")}\u554F` }, /* @__PURE__ */ React.createElement("span", { style: { width: 100 * known(u, "c") / max + "%", background: palette[i % 4] } })), /* @__PURE__ */ React.createElement("p", null, "\u5F97\u70B9 ", (_a = known(u, "score")) != null ? _a : "\u672A\u8A18\u9332", " \uFF0F \u6700\u7D42\u5831\u544A\u30B3\u30F3\u30DC ", (_b = known(u, "combo")) != null ? _b : "\u672A\u8A18\u9332"));
     })), /* @__PURE__ */ React.createElement("p", null, "\u653B\u6483\u30FB\u76F8\u6BBA\u30FB\u9632\u5FA1\u30FB\u56DE\u5FA9\u30FB\u500B\u4EBA\u5225HP\u5BC4\u4E0E\u306E\u78BA\u5B9A\u5408\u8A08\uFF0F\u6642\u7CFB\u5217\u306F\u672A\u8A18\u9332\u306E\u305F\u3081\u8868\u793A\u3067\u304D\u307E\u305B\u3093\u3002\u30C1\u30FC\u30E0\u5171\u6709HP\u3092\u500B\u4EBA\u306E\u8CA2\u732E\u3078\u63A8\u6E2C\u914D\u5206\u3057\u307E\u305B\u3093\u3002"));
   }
-  window.NextResults = { LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
+  window.NextResults = { AuthorityWeekly, LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
 })();

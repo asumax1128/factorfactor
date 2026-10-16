@@ -5698,6 +5698,12 @@ function BossDex({ st }) {
   );
 }
 
+function WeeklyAuthorityGate({acct,onExit}) {
+ const fb=useFbReady();
+ if(fb.ready&&acct?.key&&window.NextAuthority?.enabled(FB.db,window.location))return <window.NextResults.AuthorityWeekly H={{FB,fbNow,weekKey,useTick,TargetCard,BattleBoard,weeklyInfo,bossForm,MonsterPic}} acct={acct} onExit={onExit}/>;
+ return <WeeklyRaidApp acct={acct} onExit={onExit}/>;
+}
+
 function WeeklyRaidApp({ acct, onExit }) {
   const wk = weekKey(), pwk = prevWeek(wk);
   const fb = useFbReady();
@@ -11154,7 +11160,7 @@ function AppRoot() {
       : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="battle" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
       : mode === 'daily' ? <DailyApp renderMenu={NextHome.Lobby?children=><NextHome page="daily" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-daily">{children}</div></NextHome>:undefined} acct={acct} onExit={toSolo} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
-      : mode === 'raidw' ? <WeeklyRaidApp acct={acct} onExit={toSolo} />
+      : mode === 'raidw' ? <WeeklyAuthorityGate acct={acct} onExit={toSolo} />
       : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
       : <FactorHunt renderMenu={NextHome.Lobby?(children,page="solo")=><NextHome page={page} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-menu">{children}</div></NextHome>:undefined} initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
   </>);

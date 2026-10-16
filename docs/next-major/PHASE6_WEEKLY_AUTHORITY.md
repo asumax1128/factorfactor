@@ -62,3 +62,44 @@ firebase emulators:exec --only auth,database --project demo-factorfactor-tower -
 ## 次回の最初の作業
 
 HEAD／作業ツリー／本資料／CIを確認し、成功済みのSDK試験を理由なく繰り返さない。まず週間authorityの残る全ギミック差分検証とworkerのEmulator限定起動方式を整備し、既存アプリ接続の設計を固める。クライアントcheckpointを正式証拠へ昇格させず、既存の認可・旧データを保持する。本番操作が必要ならここで停止し所有者へ確認する。
+
+## 再開後の実アプリ接続（2026-10-16）
+
+以下の第6次時点の未完成項目を更新する。
+
+- Emulator限定 `worker.cjs` と起動・停止手順を追加。管理側の保存状態を再読取して再起動し、二重workerでも要求receiptを共有。JST週替わり時はauthority内の前週状態と元の週ルール選出式を使い、新週を準備する。本番の旧raidwからコピーしない。
+- `WeeklyAuthorityGate` は**ページとDBの両方がloopback、DBプロジェクトがdemo**の場合だけ新画面へ接続する。新画面は本人viewとpublic状態を読み、同じrevisionのときだけ盤面を出す。停止・切断でheartbeatが古い場合、READY／判定待ち同様に問題・タイルをDOMから外す。
+- 新規要求はIDをlocalStorageに記録してから送信。ACK前に閉じても同じIDで再送できる。解答ごとにダメージを画面で計算し直さない。2式ボスは両式を表示し、旧ドラッグ部品・数学フォントを再利用。
+- ホームHPもEmulator接続時だけ同じpublicのHP／最大HP／metaを使用。本番側の取得先と公開版を変更していない。
+- 元の `fbStart` を変更せず、開発サーバーがHTMLへ `ui-next/emulator-bootstrap.js` を挿入する。公開HTMLからこのスクリプトは参照しない。ローカルサーバーは127.0.0.1にのみbindする。
+
+### 起動・確認・停止
+
+リポジトリルートで、既存依存関係とインストール済みFirebase CLIを使用する。
+
+```bash
+node scripts/build-online-rated.cjs
+# firebaseコマンドがPATHにある場合
+node scripts/start-weekly-dev.cjs
+# CLIを別ディレクトリへインストール済みの場合（パスをその環境へ合わせる）
+FIREBASE_CLI_JS=/workspace/math-tower-tools/node_modules/firebase-tools/lib/bin/firebase.js node scripts/start-weekly-dev.cjs
+```
+
+HTTPはloopbackの4173番、Authは9099番、DBは9000番。ブラウザからローカル4173番を開き、**開発用の新規アカウント**で登録する。本番のアカウント・認証情報を入力しない。ホームのHP→週間出撃→実ドラッグ→再読み込みを確認する。
+
+停止は起動ターミナルのCtrl+C、または起動プロセスへのSIGTERM。今回の環境ではSIGTERM後に4173／9000／9099が閉じることを確認した。再起動でDBを保持したい場合は、Emulatorのexport/importを**demo専用ディレクトリに限って**構成する必要がある。既定起動は永続export/importを付けていないため、Emulator自体の終了後にデータ保持するとは説明しない。workerだけの停止・再起動ではDBを保持する。
+
+### 追加検証
+
+- 管理側計算核＋既存週間13ユニット成功。
+- 実SDK＋実React画面：375／390／430／1440pxで実タイル、1回だけの解答確定、2端末以上の同一出撃、reloadで予約増加なし、worker停止時のDOM非表示、再起動・二重workerで元の問題開始時刻／ダメージ／コンボ維持、退出時に完走報酬なし、旧stats不変、横スクロールなし。
+- 旧週間checkpoint画面の4幅テスト成功。204旧関数AST比較＋ソロ／学び／CPU／週間／デイリー回帰成功。
+- ワンコマンド起動、実HTMLのloopback配信とbootstrap挿入、worker起動、SIGTERM停止を確認。
+- [スマホ画面](phase7-review/weekly-375.png)・[PC画面](phase7-review/weekly-1440.png)。実機Safari／Chromebookではない。
+- 新SDK画面テストを既存デプロイなしCIのEmulator工程へ追加。
+
+### なお未完成
+
+全15ボス／全週間ルールの原版差分、ドラッグ中のwave回転タイミング、既存の部位選択など全演出・操作の互換は未網羅。新画面に接続したことを全週間機能の完成とはしない。正式EXP／称号は専用state.accounts内までで、本番既存statsへの反映・移行は行わない。実アプリの正常完走表示の追加確認、長時間／多人数の性能確認、Emulator全体の永続起動設定は残る。
+
+本番の実行環境・費用・認可方針は [AUTHORITY_OPERATIONS.md](AUTHORITY_OPERATIONS.md)。SparkのDBだけではNode workerを実行できない。本番構成未承認のため、公開可能な完成機能とは数えない。

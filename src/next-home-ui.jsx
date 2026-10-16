@@ -18,6 +18,10 @@ window.NextHomeFactory = H => {
    if(!fb.ready||!enabled)return;
    let active=true;const vals={},done=new Set(),subs=[];
    setData({wk,status:'loading'});
+   if(window.NextAuthority?.enabled(FB.db,window.location)){
+    const r=FB.db.ref(`games/factor/nextAuthorityV1/weekly/${wk}/public`),f=s=>{if(active){const v=s.val();setData(v?.enabled?{wk,status:'authority',authority:v}:{wk,status:'preparing'})}};
+    r.on('value',f,e=>{if(active)setData({wk,status:'error'})});return()=>{active=false;r.off('value',f)};
+   }
    for(const key of ['meta','dmg']){
     const ref=FB.db.ref(`games/factor/raidw/${wk}/${key}`);
     const f=s=>{if(!active)return; vals[key]=s.val();done.add(key);if(done.size===2)setData({wk,status:vals.meta?'ready':'preparing',...vals});};
@@ -27,6 +31,9 @@ window.NextHomeFactory = H => {
   },[fb.ready,wk,retry,enabled]);
   if(fb.err)return {status:'error',retry:()=>setRetry(x=>x+1)};
   if(!fb.ready||data?.wk!==wk)return {status:'loading'};
+  if(data.status==='authority'){
+   const v=data.authority,base=weeklyInfo(wk,{},v.meta,{}),info={...base,hp:v.hp,hpMax:v.hpMax,dead:!!v.kill,revived:!!v.revived};return {status:'ready',info,boss:bossForm(info.boss,info.revived)};
+  }
   if(data.status!=='ready')return {...data,retry:()=>setRetry(x=>x+1)};
   const info=weeklyInfo(wk,data.dmg,data.meta);
   if(!Number.isFinite(info.hp)||!Number.isFinite(info.hpMax)||info.hpMax<=0)return {status:'error',retry:()=>setRetry(x=>x+1)};

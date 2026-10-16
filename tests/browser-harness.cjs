@@ -19,6 +19,7 @@ async function context(
     assetOverrides = null,
     blockedAssets = [],
     firebaseSource = null,
+    emulatorNetwork = false,
     siteRoot = root,
   } = {},
 ) {
@@ -59,6 +60,7 @@ async function context(
   await ctx.route("**/*", async (route) => {
     const u = new URL(route.request().url());
     requests.push(u.href);
+    if(emulatorNetwork&&u.hostname==='127.0.0.1'&&['9000','9099','4173'].includes(u.port))return route.continue();
     if (u.hostname === "localhost") {
       if (blockedAssets.includes(u.pathname)) return route.abort();
       if (assetOverrides?.[u.pathname])
@@ -126,6 +128,7 @@ async function context(
       });
     });
   const page = await ctx.newPage();
+
   peers.push(page);
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url);

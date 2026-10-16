@@ -1338,10 +1338,26 @@
       }, [enabled]);
       const wk = weekKey(now());
       useEffect(() => {
+        var _a;
         if (!fb.ready || !enabled) return;
         let active = true;
         const vals = {}, done = /* @__PURE__ */ new Set(), subs = [];
         setData({ wk, status: "loading" });
+        if ((_a = window.NextAuthority) == null ? void 0 : _a.enabled(FB.db, window.location)) {
+          const r = FB.db.ref(`games/factor/nextAuthorityV1/weekly/${wk}/public`), f = (s) => {
+            if (active) {
+              const v = s.val();
+              setData((v == null ? void 0 : v.enabled) ? { wk, status: "authority", authority: v } : { wk, status: "preparing" });
+            }
+          };
+          r.on("value", f, (e) => {
+            if (active) setData({ wk, status: "error" });
+          });
+          return () => {
+            active = false;
+            r.off("value", f);
+          };
+        }
         for (const key of ["meta", "dmg"]) {
           const ref = FB.db.ref(`games/factor/raidw/${wk}/${key}`);
           const f = (s) => {
@@ -1365,6 +1381,10 @@
       }, [fb.ready, wk, retry, enabled]);
       if (fb.err) return { status: "error", retry: () => setRetry((x) => x + 1) };
       if (!fb.ready || (data == null ? void 0 : data.wk) !== wk) return { status: "loading" };
+      if (data.status === "authority") {
+        const v = data.authority, base = weeklyInfo(wk, {}, v.meta, {}), info2 = { ...base, hp: v.hp, hpMax: v.hpMax, dead: !!v.kill, revived: !!v.revived };
+        return { status: "ready", info: info2, boss: bossForm(info2.boss, info2.revived) };
+      }
       if (data.status !== "ready") return { ...data, retry: () => setRetry((x) => x + 1) };
       const info = weeklyInfo(wk, data.dmg, data.meta);
       if (!Number.isFinite(info.hp) || !Number.isFinite(info.hpMax) || info.hpMax <= 0) return { status: "error", retry: () => setRetry((x) => x + 1) };

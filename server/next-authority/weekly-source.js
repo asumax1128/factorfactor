@@ -455,4 +455,4 @@ function addOjama(tiles, poly, level, n) {
   }
   return out;
 }
-({buildBoard,multiply,polyEqual,getJudgment,raidDamage,weeklyInfo,wkCtrOf,wkWeakOf,ctrOf,RAID_CTR_GUARD,RAID_FAMS,partOfLv,useBossGim,chestRoll,wkSession,hashSeed,addOjama,devAward,weekKey,wkBonus});
+({buildBoard,multiply,polyEqual,getJudgment,raidDamage,weeklyInfo,wkCtrOf,wkWeakOf,ctrOf,RAID_CTR_GUARD,RAID_FAMS,partOfLv,useBossGim,chestRoll,wkSession,hashSeed,addOjama,devAward,weekKey,wkBonus,BOSSES,weeklyBoss,WK_RULES});

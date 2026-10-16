@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 const src = html.match(
   /<script type="text\/plain" id="app-source">([\s\S]*?)<\/script>/,
 )[1];
-const seeds = ['buildBoard','multiply','polyEqual','getJudgment','raidDamage','weeklyInfo','wkCtrOf','wkWeakOf','ctrOf','RAID_CTR_GUARD','RAID_FAMS','partOfLv','useBossGim','chestRoll','wkSession','hashSeed','addOjama','devAward','weekKey','wkBonus'];
+const seeds = ['buildBoard','multiply','polyEqual','getJudgment','raidDamage','weeklyInfo','wkCtrOf','wkWeakOf','ctrOf','RAID_CTR_GUARD','RAID_FAMS','partOfLv','useBossGim','chestRoll','wkSession','hashSeed','addOjama','devAward','weekKey','wkBonus','BOSSES','weeklyBoss','WK_RULES'];
 const injected = new Set(['useRef','FX','rectC','qs']);
 let result;
 Babel.transform(src, {

@@ -1,0 +1,7 @@
+'use strict';
+// Local-only full stack; no production CLI project, credentials, import or deploy.
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawn}=require('node:child_process'),root=path.resolve(__dirname,'..');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fxf-weekly-')),rules=JSON.parse(fs.readFileSync(path.join(root,'firebase/v525.candidate.rules.json')));rules.rules.games.factor.nextAuthorityV1=JSON.parse(fs.readFileSync(path.join(root,'firebase/next-authority.fragment.rules.json')));fs.writeFileSync(path.join(dir,'rules.json'),JSON.stringify(rules));fs.writeFileSync(path.join(dir,'firebase.json'),JSON.stringify({database:{rules:path.join(dir,'rules.json')},emulators:{auth:{host:'127.0.0.1',port:9099},database:{host:'127.0.0.1',port:9000},ui:{enabled:false},singleProjectMode:true}}));
+// FIREBASE_CLI_JS selects an already installed CLI; no npx auto-install.
+const cli=process.env.FIREBASE_CLI_JS,bin=cli?process.execPath:'firebase',prefix=cli?[cli]:[];
+const child=spawn(bin,[...prefix,'emulators:exec','--only','auth,database','--project','demo-factorfactor-tower','--config',path.join(dir,'firebase.json'),'node scripts/weekly-dev-runtime.cjs'],{cwd:root,stdio:'inherit'});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code||0});process.on('SIGINT',()=>child.kill('SIGINT'));process.on('SIGTERM',()=>child.kill('SIGTERM'));
