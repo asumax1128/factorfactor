@@ -374,7 +374,7 @@ async function play(browser, difficulty, mode, kind, origin = "quick") {
       throw e;
     }
   }
-  await p.getByRole("heading", { name: /勝利！|敗北|引き分け/ }).waitFor();
+  await p.getByRole("heading", { name: /勝利|敗北|引き分け/ }).waitFor();
   const result = await p.evaluate(() => window.__onlineState);
   assert.equal(result.match.phase, "settled");
   assert.equal(

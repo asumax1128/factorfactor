@@ -277,7 +277,7 @@
         </H.BattleSurface>
       );
     }
-    function Result({ H, m, state, acct, titles, badgesBefore, busy, onExit }) {
+    function ResultLegacy({ H, m, state, acct, titles, badgesBefore, busy, onExit }) {
       const won = m.outcome === "win",
         r = m.receipt?.players?.[acct.key];
       const badges = Object.keys(state.badges || {}).filter(
@@ -333,6 +333,83 @@
               ? "一覧へ戻る"
               : "オンラインメニューへ戻る"}
           </button>
+        </section>
+      );
+    }
+    // Ver.6.0: random-match result on the shared ResultShell. Display only: the ack / exit callbacks, rating receipt,
+    // EXP and title detection are exactly the original values; comparison and highlights appear only when the settled
+    // match already carries the data (nothing is inferred).
+    function Result(props) {
+      const { H, m, state, acct, titles, badgesBefore, busy, onExit } = props;
+      const NR = root.NextResults;
+      if (!(NR && NR.ResultActions && NR.BattleSummary && NR.MinimalSummary && NR.TitleReveal)) return <ResultLegacy {...props} />;
+      const won = m.outcome === "win",
+        r = m.receipt?.players?.[acct.key];
+      const newTitles = Object.keys(state.badges || {}).filter((k) => !badgesBefore[k] && titles[k]);
+      useEffect(() => {
+        if (won) H.CombatFX.victory();
+        return () => H.CombatFX.cancel();
+      }, [m.id]);
+      const names = useMemo(() => Object.fromEntries((m.members || []).map((u) => [u.uid, u.uid === "_ghost" ? m.opponent?.name : u.name])), [m.id]);
+      const model = useMemo(() => {
+        if (!m.members || !m.selfUid || !(m.mode === "A" || m.rules === "b2")) return null;
+        try {
+          return NR.ResultModel.build({
+            kind: m.mode === "A" ? "A" : "B", me: m.selfUid, ids: m.members.map((u) => u.uid), names,
+            outcome: { win: "w", draw: "d", lose: "l" }[m.outcome] || "l", reasonText: "",
+            A: m.mode === "A" ? { report: m.aResult } : undefined,
+            B: m.mode !== "A" ? { game: m.game, trace: m.bResult } : undefined,
+          });
+        } catch (e) { return null; }
+      }, [m.id, m.outcome]);
+      const note = m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : ["bounty", "profile"].includes(m.origin)
+        ? "指名戦：公式レート・対戦数は変更しません"
+        : `${label(m.difficulty)}のみ更新${m.opponent ? "（変動は人間戦の1/3）" : ""}`;
+      const reveal = (
+        <NR.TitleReveal
+          titles={newTitles.map((k) => ({ id: k, icon: H.nickOf?.(k)?.icon || "🏅", label: titles[k] }))}
+          revealKey={`${acct.key}:${m.id}`}
+          fx={{ sound: () => H.fxSound?.("badge"), confetti: () => H.FX?.confetti?.(30) }}
+        />
+      );
+      const growth = (
+        <>
+          <div className="rs-rate">
+            <strong className="or-delta">
+              レート {Math.round(r?.delta ?? 0) > 0 ? "+" : ""}
+              {formatRating(r?.delta ?? 0)}
+            </strong>
+            <p>
+              {formatRating(r?.before)} → {formatRating(r?.after)}
+            </p>
+            {m.opponent && (
+              <div className="or-exp">
+                獲得EXP <b>+{m.exp || 0}</b>
+              </div>
+            )}
+          </div>
+          {reveal}
+        </>
+      );
+      const notes = <p className="rs-origin">{note}</p>;
+      const outcome = { win: "w", draw: "d", lose: "l" }[m.outcome] || "l";
+      return (
+        <section className={`or-result rs-rated ${won ? "or-victory" : "or-defeat"}`} data-result-kind={m.outcome}>
+          {won && <div className="or-victory-rays" aria-hidden="true" />}
+          <NR.ResultShell kind="R" outcome={m.outcome} busy={busy}>
+            {model ? (
+              <NR.BattleSummary model={model} notes={notes} growth={growth} />
+            ) : (
+              <NR.MinimalSummary outcome={m.outcome} methodLabel={m.mode === "A" ? "A方式" : m.mode === "B" ? "B方式" : "ランダム対戦"} notes={notes} growth={growth} />
+            )}
+            {m.rules === "b2" && <NR.BDetails report={m.bResult} me={m.selfUid} names={names} />}
+            {m.mode === "A" && <H.AResultDetails report={m.aResult} me={m.selfUid} names={names} />}
+            <NR.ResultActions busy={busy}>
+              <NR.ResultButton tone="primary" disabled={busy} onClick={onExit}>
+                {["bounty", "profile"].includes(m.origin) ? "一覧へ戻る" : "オンラインメニューへ戻る"}
+              </NR.ResultButton>
+            </NR.ResultActions>
+          </NR.ResultShell>
         </section>
       );
     }

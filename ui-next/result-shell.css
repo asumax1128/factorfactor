@@ -61,3 +61,13 @@
 .rs-input{flex:1 1 auto;min-width:0;min-height:48px;padding:8px 12px;border-radius:8px;border:1px solid var(--line,#324354);background:#0b141e;color:var(--text,#e8f0f5);font:700 16px var(--body,sans-serif)}
 .rs-input:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .rs-net .rs-quiet{margin-top:8px;width:100%}
+/* random-match result keeps its legacy hooks (.or-result / data-result-kind) but uses the shared dark look */
+.or-app .or-result.rs-rated,.or-menu .or-result.rs-rated{background:transparent;color:var(--text,#e8f0f5);border:0;overflow:visible;padding:0;text-align:left}
+.or-result.rs-rated .or-victory-rays{border-radius:12px;opacity:.5}
+.or-result.rs-rated .rs-rate{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);margin:0 0 12px}
+.or-result.rs-rated .or-delta{font:700 28px/1.3 var(--number);color:var(--accent);margin:0 0 4px;display:block}
+.or-result.rs-rated .rs-rate p{margin:0 0 8px;font:700 18px var(--number);color:var(--text)}
+.or-result.rs-rated .or-exp{padding:10px 14px;border-radius:8px;background:#0b141e;border:1px solid var(--line);margin:8px 0 0;font-size:15px;color:var(--text)}
+.or-result.rs-rated .or-exp b{font:700 24px var(--number);color:var(--gold)}
+.or-result.rs-rated .rs-origin{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.or-result.rs-rated{overflow:visible;background:transparent;border:0;padding:0;text-align:left;color:var(--text,#e8f0f5)}
