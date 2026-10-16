@@ -3589,7 +3589,7 @@ function skinInfo(st, exp) {
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose, appearance }) {
-  const nextWardrobe=appearance==='next',wardrobeRef=useRef(null);
+  const nextWardrobe=appearance!=='legacy',wardrobeRef=useRef(null);
   useEffect(()=>{
     if(!nextWardrobe)return;const previous=document.activeElement,overflow=document.body.style.overflow;document.body.style.overflow='hidden';
     const root=wardrobeRef.current;root?.querySelector('button')?.focus();
@@ -3640,7 +3640,7 @@ function Wardrobe({ acct, st, exp, onClose, appearance }) {
       </div>
     </div>
   );
-  return nextWardrobe ? ReactDOM.createPortal(content,document.body) : content;
+  return nextWardrobe ? ReactDOM.createPortal(<><link rel="stylesheet" href="ui-next/home.css"/>{content}</>,document.body) : content;
 }
 
 /* ---------- 自分のゴーストの活躍（だれかのすぐ遊ぶにゴーストとして出て、戦った結果） ----------
