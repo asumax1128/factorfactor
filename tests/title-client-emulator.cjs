@@ -68,6 +68,30 @@ const T=require('../src/title-client-next.cjs');
   console.log('PASS other accounts, unproven ids, overwrite, delete and strangers are all rejected');
   // 5. a fresh account with no snapshot cannot be awarded first; the snapshot comes first
   await assertFails(o.db.ref(A+'bp/easy_adept').set(rec));
+  // 5b. stats not available yet -> deliberately not frozen; once available it freezes and keeps the legacy titles
+  await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor'),{
+   logins:{ap:{[d1.uid]:'x',[d2.uid]:'x'},bp:{[o.uid]:'x'},cp:{[s.uid]:'x'}},
+   accounts:{ap:{name:'AP',stats},bp:{name:'BP',stats:{}},cp:{name:'CP'}},
+   onlineSparkV1:{profiles:{cp:{easy:{maxRating:1740},normal:{maxRating:1500}}}},
+   titleNextV1:{snapshots:{},awards:{}}
+  }));
+  const rc1=await T.sync({db:s.db,account:{key:'cp'},computeBadgeIds:legacyOf});
+  assert.equal(rc1.status,'deferred');assert.equal(rc1.reason,'STATS_EMPTY');
+  assert.equal((await s.db.ref('games/factor/titleNextV1/snapshots/cp').get()).exists(),false,'nothing frozen yet');
+  await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor/accounts/cp/stats'),{nick:'first',w:4}));
+  const rc2=await T.sync({db:s.db,account:{key:'cp'},computeBadgeIds:legacyOf});
+  assert.equal(rc2.status,'ok');assert.equal(rc2.frozen,true);assert(rc2.snapshot.earned.first&&rc2.snapshot.earned.streak10);assert.deepEqual(rc2.added,['easy_adept']);
+  console.log('PASS deferred freeze retries safely once stats is readable');
+  // 5c. production rules as they are today (titleNextV1 not defined): reported as failed, nothing breaks, nothing written
+  const prod=JSON.parse(fs.readFileSync('firebase/v525.candidate.rules.json'));
+  await env.withSecurityRulesDisabled(async()=>{});
+  const prodEnv=await initializeTestEnvironment({projectId:process.env.GCLOUD_PROJECT,database:{host:'127.0.0.1',port:9000,rules:JSON.stringify(prod)}});
+  await prodEnv.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor/logins/dp'),{[s.uid]:'x'}));
+  await prodEnv.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor/accounts/dp'),{name:'DP',stats:{w:1}}));
+  const rp=await T.sync({db:s.db,account:{key:'dp'},computeBadgeIds:legacyOf});
+  assert.equal(rp.status,'failed');assert.equal(rp.error,'READ_FAILED');
+  await prodEnv.cleanup();
+  console.log('PASS without the new rules the failure is reported and nothing is written');
   // 6. legacy stats/nick untouched
   const st=(await d1.db.ref('games/factor/accounts/ap/stats').get()).val();assert.deepEqual(st,stats);
   console.log('PASS legacy stats and nick untouched');

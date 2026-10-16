@@ -15,10 +15,15 @@ export function createProfile(H){
   const data=model.read(stats,profile),L=data.exp===null?null:levelOf(data.exp);
   const [tab,setTab]=React.useState('summary');
   // Ver.6.0 client-judged titles: freeze legacy once, then add proven titles under the player's own record (add-only).
-  const [clientTitles,setClientTitles]=React.useState(null);
-  React.useEffect(()=>{if(!real||!fb.ready||authority||!H.FB.db)return;let live=true;
-   TitleClient.sync({db:H.FB.db,account:acct,computeBadgeIds:st=>badgesOf(st).map(b=>b.id)}).then(r=>{if(live&&r?.snapshot)setClientTitles(r)}).catch(()=>{});
-   return()=>{live=false};
+  const [clientTitles,setClientTitles]=React.useState(null),[titleSaveFailed,setTitleSaveFailed]=React.useState(false);
+  React.useEffect(()=>{if(!real||!fb.ready||authority||!H.FB.db)return;let live=true,timer=0;
+   const run=(retry)=>TitleClient.sync({db:H.FB.db,account:acct,computeBadgeIds:st=>badgesOf(st).map(b=>b.id)}).then(r=>{if(!live)return;
+    if(r?.snapshot)setClientTitles(r);
+    setTitleSaveFailed(r?.status==='failed');                      // normal and deliberately deferred runs show nothing
+    if(r?.status==='deferred'&&r.reason==='OFFLINE'&&retry)timer=setTimeout(()=>run(false),4000);
+   }).catch(()=>{if(live)setTitleSaveFailed(true)});
+   run(true);
+   return()=>{live=false;clearTimeout(timer)};
   },[real,acct.key,fb.ready,authority,profile?.easy?.maxRating,profile?.normal?.maxRating]);
   const presentationStore=React.useMemo(()=>real&&window.TitlePresentationNext?.enabled(H.FB.db,window.location)?window.TitlePresentationNext.create({db:H.FB.db,account:acct}):null,[real,acct.key,fb.ready]);
   const earned=new Map();
@@ -43,7 +48,7 @@ export function createProfile(H){
     <Panel title="週間ボスの参加・貢献"><MetricGrid>{[['weeks','参加週数'],['kills','討伐貢献'],['best','過去最高ダメージ'],['maxStreak','最高連続参加週']].map(([key,label])=><Stat key={key} label={label} value={integer(data.weekly[key])}/>)}<Stat label="今週のダメージ" value={integer(model.number(mine?.d))}/><Stat label="今週の出撃記録" value={integer(model.number(mine?.s))} note="完走回数とは別の記録です"/></MetricGrid></Panel>
    </>}
    {tab==='records'&&<><p className="next-note">レーティング戦と従来の記録は、同じ試合を含む可能性があるため別々に表示します。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・レーティング対戦'} value={data.rated[d]}/>)}</div><Record label="従来の対戦記録（保存済み通算）" value={data.legacy}/><div className="next-profile-columns">{['A','B','C'].map(m=><Record key={m} label={m+'方式（従来の保存記録）'} value={data.modes[m]}/>)}</div><p className="next-note">B方式は共有するstats.Bを一度だけ表示しています。欠損した勝敗は0と仮定しません。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・ゴースト／BOT記録'} value={data.ghosts[d]}/>)}</div></>}
-   {tab==='rewards'&&<><Panel title="取得称号"><TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={authority?[]:[...earned.keys()]} flags={authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])]} equipped={stats?.nick}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
+   {tab==='rewards'&&<><Panel title="取得称号">{titleSaveFailed&&<p role="status" className="next-note" data-title-save-failed>新称号の保存を確認できませんでした。通信状態をご確認ください。</p>}<TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={authority?[]:[...earned.keys()]} flags={authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])]} equipped={stats?.nick}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
    </div>
   </main>;
  }

@@ -1,5 +1,5 @@
 // Client-judged titles through the real profile screen (mock Firebase, no rules): freeze, award, reload, no stats/nick writes.
-const assert = require('node:assert/strict');
+const assert = require('node:assert/strict'), fs = require('node:fs');
 const { chromium, context } = require('./browser-harness.cjs');
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
@@ -42,6 +42,7 @@ const { chromium, context } = require('./browser-harness.cjs');
     await p.evaluate(() => window.__fbApply({ kind: 'set', path: 'games/factor/onlineSparkV1/profiles/ateacher/normal/maxRating', v: 1821 }));
     await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="normal_master"] small')?.textContent || ''), null, { timeout: 15000 });
     assert.match(await state('dual_master'), /取得済み/);
+    assert.equal(await p.locator('[data-title-save-failed]').count(), 0, 'no warning when saving works');
     assert.deepEqual(t.errors, []);
     await t.ctx.close();
     // guests never write
@@ -50,6 +51,20 @@ const { chromium, context } = require('./browser-harness.cjs');
     await g.page.locator('[data-next-profile]').waitFor();
     assert.equal(g.writes.filter((x) => /titleNextV1/.test(x.path)).length, 0);
     await g.ctx.close();
+    // save failure is announced on the title tab; a normal run shows nothing
+    const mock = fs.readFileSync(require('node:path').join(__dirname, 'firebase-mock.js'), 'utf8');
+    const deny = mock + `
+;(()=>{const d=window.firebase.database;const wrap=(db,p)=>{const r=db.ref(p);const bad=/titleNextV1\\/(snapshots|awards)/.test(p)&&window.__denyTitles;const rej=()=>Promise.reject(Error('PERMISSION_DENIED'));return bad?{...r,get:rej,set:rej,child:k=>wrap(db,p+'/'+k)}:{...r,child:k=>wrap(db,p+'/'+k)}};
+window.firebase.database=Object.assign(()=>{const db=d();return{...db,ref:p=>wrap(db,p)}},d)})();`;
+    const f = await context(b, { firebaseSource: 'window.__denyTitles=true;\n' + deny, tree: structuredClone(tree) });
+    await f.page.locator('.account-main').click();
+    await f.page.locator('[data-next-profile]').waitFor();
+    await f.page.getByRole('tab', { name: '称号・装備' }).click();
+    await f.page.locator('[data-title-save-failed]').getByText('新称号の保存を確認できませんでした。通信状態をご確認ください。').waitFor();
+    assert.match(await f.page.locator('[data-title-id="tour1"] small').innerText(), /取得済み/, 'existing titles are unaffected by the failure');
+    assert.equal(f.writes.filter((x) => /titleNextV1/.test(x.path)).length, 0);
+    await f.ctx.close();
+    console.log('PASS save failure shows the notice; existing titles stay'); 
     console.log('PASS client-judged rate titles: freeze, award, reload, rising peak, no rounding, guest/stats untouched');
   } finally {
     await b.close();

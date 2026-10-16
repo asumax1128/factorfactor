@@ -38,3 +38,63 @@ test('rules fragment authorises exactly the judged ids, each tied to Spark evide
  assert(r.snapshots.$account['.write'].includes('!data.exists()'));
  assert.equal(r['.write'],false);
 });
+
+// ---- sync(): freeze safety, retry, failure reporting (in-memory fake RTDB with failure injection) ----
+function fakeDb(seed,opt={}){
+ const tree=JSON.parse(JSON.stringify(seed));const writes=[];
+ const get=p=>p.split('/').filter(Boolean).reduce((c,k)=>c==null?c:c[k],tree);
+ const setAt=(p,v)=>{const ks=p.split('/').filter(Boolean);let c=tree;for(const k of ks.slice(0,-1))c=c[k]??={};c[ks.at(-1)]=JSON.parse(JSON.stringify(v));};
+ const ref=p=>({
+  get:async()=>{if(opt.failRead?.test(p))throw Error('read failed');const v=p==='.info/connected'?(opt.connected??true):get(p);return{val:()=>v===undefined?null:v,exists:()=>v!=null};},
+  set:async v=>{if(opt.failSet?.test(p))throw Error('PERMISSION_DENIED');if(opt.once?.test(p)&&get(p)!=null)throw Error('PERMISSION_DENIED');writes.push(p);setAt(p,v);},
+  child:k=>ref(p+'/'+k)
+ });
+ return{db:{ref},tree,writes};
+}
+const base=()=>({games:{factor:{accounts:{ap:{name:'AP',stats:{nick:'first',w:2}}},onlineSparkV1:{profiles:{ap:{easy:{maxRating:1735},normal:{maxRating:1500}}}}}}});
+const legacy=st=>st.w>=1?['first']:[];
+test('sync: stats read failure writes nothing and is reported',async()=>{
+ const f=fakeDb(base(),{failRead:/accounts\/ap\/stats$/});const r=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
+ assert.equal(r.status,'failed');assert.equal(r.error,'READ_FAILED');assert.deepEqual(f.writes,[]);
+});
+test('sync: missing / empty stats of a real account, or offline, does not freeze (deferred, silent)',async()=>{
+ for(const[label,mutate,opt,reason]of[
+  ['stats missing',t=>{delete t.games.factor.accounts.ap.stats},{},'STATS_EMPTY'],
+  ['stats empty',t=>{t.games.factor.accounts.ap.stats={}},{},'STATS_EMPTY'],
+  ['account unconfirmed',t=>{delete t.games.factor.accounts.ap},{},'ACCOUNT_UNCONFIRMED'],
+  ['offline',()=>{},{connected:false},'OFFLINE']]){
+  const seed=base();mutate(seed);const f=fakeDb(seed,opt);const r=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
+  assert.equal(r.status,'deferred',label);assert.equal(r.reason,reason,label);assert.deepEqual(f.writes,[],label+': nothing written, snapshot not frozen');
+ }
+});
+test('sync: after a deferred run a later complete read freezes normally and awards the proven title',async()=>{
+ const seed=base();seed.games.factor.accounts.ap.stats={};const f=fakeDb(seed);
+ assert.equal((await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy})).status,'deferred');
+ f.tree.games.factor.accounts.ap.stats={nick:'first',w:2};
+ const r=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
+ assert.equal(r.status,'ok');assert.equal(r.frozen,true);assert.deepEqual(r.added,['easy_adept']);
+ assert(f.tree.games.factor.titleNextV1.snapshots.ap.earned.first,'legacy title frozen');
+ assert.equal(f.tree.games.factor.accounts.ap.stats.nick,'first','stats/nick untouched');
+});
+test('sync: a rejected freeze is reported and retried next time without losing anything',async()=>{
+ const f=fakeDb(base(),{failSet:/titleNextV1\/snapshots/});
+ const r1=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
+ assert.equal(r1.status,'failed');assert.equal(r1.error,'SNAPSHOT_UNAVAILABLE');assert.equal(f.tree.games.factor.titleNextV1,undefined,'no half state');
+ const f2=fakeDb(f.tree);const r2=await T.sync({db:f2.db,account:{key:'ap'},computeBadgeIds:legacy});
+ assert.equal(r2.status,'ok');assert(f2.tree.games.factor.titleNextV1.snapshots.ap.earned.first);
+});
+test('sync: an existing snapshot is never overwritten and new awards are added once',async()=>{
+ const seed=base();seed.games.factor.titleNextV1={snapshots:{ap:{version:1,earned:{old_one:{id:'old_one',at:null}}}}};
+ const f=fakeDb(seed,{once:/titleNextV1\/(snapshots|awards)\//});
+ const r=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:()=>['something_new']});
+ assert.equal(r.status,'ok');assert.equal(r.frozen,false);assert.deepEqual(r.added,['easy_adept']);
+ assert.deepEqual(Object.keys(f.tree.games.factor.titleNextV1.snapshots.ap.earned),['old_one']);
+ const r2=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:()=>[]});assert.deepEqual(r2.added,[]);
+});
+test('sync: a failed award is reported (not silent) while legacy view stays intact',async()=>{
+ const f=fakeDb(base(),{failSet:/titleNextV1\/awards/});
+ const r=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
+ assert.equal(r.status,'failed');assert.equal(r.error,'AWARD_NOT_SAVED');assert.deepEqual(r.failed,['easy_adept']);
+ assert(T.view({snapshot:r.snapshot,awards:r.awards}).earned.first,'frozen legacy title still shown');
+});
+test('sync: guests are skipped',async()=>{assert.equal((await T.sync({db:fakeDb({}).db,account:{guest:true}})).status,'skipped');});
