@@ -1287,7 +1287,7 @@
           if (v !== true && (v == null ? void 0 : v.earned) !== true) continue;
           const at = v && typeof v === "object" && Number.isFinite(v.at) && v.at > 0 ? v.at : null;
           const previous = earned.get(id);
-          earned.set(id, { id, at: (_a = previous == null ? void 0 : previous.at) != null ? _a : at, source: "stored-flag" });
+          earned.set(id, { id, at: (_a = previous == null ? void 0 : previous.at) != null ? _a : at, source: "stored-flag", ...v && typeof v === "object" && v.dateWasUnknown === true ? { dateWasUnknown: true, dateOrigin: v.dateOrigin } : (previous == null ? void 0 : previous.dateWasUnknown) ? { dateWasUnknown: true, dateOrigin: previous.dateOrigin } : {} });
         }
         const normal = catalog2.titles.filter((t) => earned.has(t.id)), rare = normal.filter((t) => t.stars === 5).length;
         return { earned: Object.fromEntries(earned), normal, fiveStarCount: rare, hiddenEligible: rare >= 15, hiddenOwned: earned.has(catalog2.hidden.id), archived: [...earned.keys()].filter((id) => !ids.has(id) && id !== catalog2.hidden.id), equipped };

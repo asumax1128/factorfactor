@@ -10,6 +10,7 @@ export function createProfile(H){
   const [muted]=H.useGameMute();
   const fb=useFbReady(),real=isReal(acct),daily=useDailyTitles(real?acct.key:null);
   const mine=useFbValue(fb.ready&&real?`raidw/${weekKey(now())}/dmg/${acct.key}`:null);
+  const authority=fb.ready&&real&&window.NextAuthority?.enabled(H.FB.db,window.location),authorityAwards=useFbValue(authority?`titleNextV1/awards/${acct.key}`:null),authoritySnapshot=useFbValue(authority?`titleNextV1/snapshots/${acct.key}`:null);
   const data=model.read(stats,profile),L=data.exp===null?null:levelOf(data.exp);
   const [tab,setTab]=React.useState('summary');
   const presentationStore=React.useMemo(()=>real&&window.TitlePresentationNext?.enabled(H.FB.db,window.location)?window.TitlePresentationNext.create({db:H.FB.db,account:acct}):null,[real,acct.key,fb.ready]);
@@ -35,7 +36,7 @@ export function createProfile(H){
     <Panel title="週間ボスの参加・貢献"><MetricGrid>{[['weeks','参加週数'],['kills','討伐貢献'],['best','過去最高ダメージ'],['maxStreak','最高連続参加週']].map(([key,label])=><Stat key={key} label={label} value={integer(data.weekly[key])}/>)}<Stat label="今週のダメージ" value={integer(model.number(mine?.d))}/><Stat label="今週の出撃記録" value={integer(model.number(mine?.s))} note="完走回数とは別の記録です"/></MetricGrid></Panel>
    </>}
    {tab==='records'&&<><p className="next-note">レーティング戦と従来の記録は、同じ試合を含む可能性があるため別々に表示します。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・レーティング対戦'} value={data.rated[d]}/>)}</div><Record label="従来の対戦記録（保存済み通算）" value={data.legacy}/><div className="next-profile-columns">{['A','B','C'].map(m=><Record key={m} label={m+'方式（従来の保存記録）'} value={data.modes[m]}/>)}</div><p className="next-note">B方式は共有するstats.Bを一度だけ表示しています。欠損した勝敗は0と仮定しません。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・ゴースト／BOT記録'} value={data.ghosts[d]}/>)}</div></>}
-   {tab==='rewards'&&<><Panel title="取得称号"><TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={[...earned.keys()]} flags={[profile?.badges]} equipped={stats?.nick}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
+   {tab==='rewards'&&<><Panel title="取得称号"><TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={authority?[]:[...earned.keys()]} flags={authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges]} equipped={stats?.nick}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
    </div>
   </main>;
  }

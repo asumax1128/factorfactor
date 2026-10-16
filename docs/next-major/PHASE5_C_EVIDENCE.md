@@ -21,3 +21,9 @@
 現在の`createBEngine`は攻撃setの失敗をcatchしてもsentを加算し、仲間カバーは要求を送った時点でcoversを加算する。受信者の相殺・防御・着弾は揮発状態で、共有HPにはdqの合算transactionを送る。現行保存値だけでは上表のすべてを復元できない。
 
 次は**Emulator限定**で、受信eventID・適用operation・前後revision・終了バリアを同じ冪等トランザクションへ保存するwriterを追加する必要がある。`committed:true`という自己申告だけを信頼してはならず、ルールまたは信頼されるauthority側の操作結果に結び付けること。集計器はその認可や正当性を代替しない。確定writerがないまま現在のC結果へ推測グラフを追加しない。
+
+## 再開時の認可確認（2026-10-16）
+
+候補本番ルール `firebase/v525.candidate.rules.json` では、`rooms/$code/ev/$gid/$to/$id` は参加者の新規書込、`thp/$gid/$t` は参加者の0〜100数値書込を許す。`createBEngine.E.receive` は入力eventIDを `seenEv` へ記録するが、pendへIDを保持せず、`E.land` は複数攻撃を合算する。`E.flush` は本人の自然減少／回復／被弾のdqを共有HPへ合算する。
+
+したがって既存のev／thpを監視して「committed:true」を付けるだけのwriterは、正式な個人取得証明にならない。受信者の自己申告を管理側の検証済みoperationとみなす実装は行わない。Cの確定writer・実戦／結果接続は未完。本番authorityの環境は [AUTHORITY_OPERATIONS.md](AUTHORITY_OPERATIONS.md) の承認待ち。次の実装では元のCエンジンを管理側で再生し、受信IDを適用operationへ残す必要がある。得点／HPルール変更や共有HPの個人配分を代案にしない。

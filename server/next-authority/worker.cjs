@@ -12,8 +12,8 @@ async function start({database,interval=250,onError=console.error}){
   await worker.ensure(week,{boss,rage,rule:a.WK_RULES[a.hashSeed('rule:'+week)%a.WK_RULES.length].id});weeks.add(week);
  }
  await ensureCurrent(current,now);
- let stopped=false,timer,inflight=Promise.resolve();
- async function tick(){if(stopped)return;try{const at=await worker.clock();await ensureCurrent(Weekly.api({rng:1},at).weekKey(at),at);for(const week of weeks)await worker.process(week)}catch(e){onError(e)}finally{if(!stopped)timer=setTimeout(()=>{inflight=tick()},interval)}}
+ let stopped=false,timer,inflight=Promise.resolve(),lastTitlesAt=0;
+ async function tick(){if(stopped)return;try{const at=await worker.clock();await ensureCurrent(Weekly.api({rng:1},at).weekKey(at),at);for(const week of weeks)await worker.process(week);if(at-lastTitlesAt>=5000){lastTitlesAt=at;const snapshots=(await get(ref(database,'games/factor/titleNextV1/snapshots'))).val()||{};for(const account of Object.keys(snapshots))await require('./titles.cjs').reconcile({database,account})}}catch(e){onError(e)}finally{if(!stopped)timer=setTimeout(()=>{inflight=tick()},interval)}}
  inflight=tick();return{stop:async()=>{stopped=true;clearTimeout(timer);await inflight},worker};
 }
 module.exports={start};
