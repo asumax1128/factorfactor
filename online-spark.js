@@ -2838,7 +2838,8 @@
           if (typeof n !== "number") throw Error("SERVER_CLOCK_UNAVAILABLE");
           return n;
         };
-        async function reserve(id, role = "atk") {
+        async function reserve(id, role = "atk", plan = null) {
+          if (plan && (!monday(plan.week) || ![6e4, 9e4].includes(plan.duration))) throw Error("INVALID_RESERVATION_PLAN");
           if (!/^[A-Za-z0-9_-]{1,64}$/.test(id) || !["atk", "sup"].includes(role)) throw Error("INVALID_RESERVATION");
           const at = await clock(), d = day(at), r = db.ref(`${ROOT}/attempts/${account.key}/${d}`);
           const out = await serial(db, account.key + "/" + d, () => tx(r, (cur) => {
@@ -2847,7 +2848,7 @@
             if (Object.values(n.slots).some((s2) => s2.id === id)) return n;
             const slot2 = [0, 1, 2, 3, 4].find((i) => !n.slots[i]);
             if (slot2 === void 0) throw Error("WEEKLY_DAILY_LIMIT");
-            n.slots[slot2] = { id, uid, role, at: { ".sv": "timestamp" } };
+            n.slots[slot2] = { id, uid, role, at: { ".sv": "timestamp" }, ...plan ? { week: plan.week, duration: plan.duration } : {} };
             return n;
           }));
           const slots = (await r.get()).val().slots, [slot, s] = Object.entries(slots).find(([, s2]) => s2.id === id);
@@ -2905,21 +2906,33 @@
           return next;
         }
         const read = async (id) => (await db.ref(root + "/runs/" + id).get()).val();
-        async function start({ id, week, role, duration, board }) {
-          if (!W.monday(week) || ![6e4, 9e4].includes(duration) || !validateBoard(board)) throw Error("INVALID_INITIAL_STATE");
-          const reservation = await api.reserve(id, role);
+        async function initialize(reservation) {
+          const { id, week, role, duration } = reservation;
+          if (!W.monday(week) || ![6e4, 9e4].includes(duration)) throw Error("RESERVATION_PLAN_MISSING");
           await serial(() => tx(ref, (data) => {
             const n = data || { stats: clone(typeof initialStats === "function" ? initialStats() : initialStats), runs: {} };
             n.runs || (n.runs = {});
             if (!n.runs[id]) n.runs[id] = { id, week, role, reservation, startAt: reservation.at + 600, duration, status: "play", seq: 0, session: { d: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, absExt: 0 } };
             return n;
           }));
-          return resume({ id, reservation });
+          return read(id);
         }
-        async function resume(pointer) {
-          await api.resume(pointer.reservation);
+        async function start({ id, week, role, duration, board, onReserved }) {
+          if (!W.monday(week) || ![6e4, 9e4].includes(duration) || !validateBoard(board)) throw Error("INVALID_INITIAL_STATE");
+          const old = await read(id);
+          if (old) return resume({ id, reservation: old.reservation });
+          const reservation = await api.reserve(id, role, { week, duration });
+          onReserved == null ? void 0 : onReserved(reservation);
+          return initialize(reservation);
+        }
+        async function resume(pointer, { board } = {}) {
+          const reservation = await api.resume(pointer.reservation);
           const r = await read(pointer.id);
-          if (!r || r.reservation.id !== pointer.reservation.id) throw Error("RUN_NOT_FOUND");
+          if (!r) {
+            if (!validateBoard(board)) throw Error("INITIAL_BOARD_REQUIRED_FOR_RECOVERY");
+            return initialize(reservation);
+          }
+          if (r.reservation.id !== pointer.reservation.id) throw Error("RUN_NOT_FOUND");
           return r;
         }
         async function checkpoint(id, seq, session) {

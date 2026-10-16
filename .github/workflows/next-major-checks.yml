@@ -59,4 +59,4 @@ jobs:
       - name: Isolated demo SDK and authorization checks
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/weekly-run-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tournament-b2-emulator.cjs && HTTP_PROXY= http_proxy= node tests/title-presentation-emulator.cjs && HTTP_PROXY= http_proxy= node tests/friend-raid-emulator.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-run-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tournament-b2-emulator.cjs && HTTP_PROXY= http_proxy= node tests/title-presentation-emulator.cjs && HTTP_PROXY= http_proxy= node tests/friend-raid-emulator.cjs"

@@ -8,13 +8,18 @@ function create({db,uid,account,validateBoard,initialStats={}}){
  const api=W.create({db,uid,account}),root=`${W.ROOT}/games/${account.key}`,ref=db.ref(root);
  function serial(fn){const last=queues.get(db)||Promise.resolve(),next=last.catch(()=>{}).then(fn);queues.set(db,next);return next;}
  const read=async id=>(await db.ref(root+'/runs/'+id).get()).val();
- async function start({id,week,role,duration,board}){
-  if(!W.monday(week)||![60000,90000].includes(duration)||!validateBoard(board))throw Error('INVALID_INITIAL_STATE');
-  const reservation=await api.reserve(id,role);
-  await serial(()=>tx(ref,data=>{const n=data||{stats:clone(typeof initialStats==='function'?initialStats():initialStats),runs:{}};n.runs ||= {};if(!n.runs[id])n.runs[id]={id,week,role,reservation,startAt:reservation.at+600,duration,status:'play',seq:0,session:{d:0,sp:0,chests:0,shards:0,chestExp:0,absExt:0}};return n}));
-  return resume({id,reservation});
+ async function initialize(reservation){
+  const {id,week,role,duration}=reservation;
+  if(!W.monday(week)||![60000,90000].includes(duration))throw Error('RESERVATION_PLAN_MISSING');
+  await serial(()=>tx(ref,data=>{const n=data||{stats:clone(typeof initialStats==='function'?initialStats():initialStats),runs:{}};n.runs ||= {};if(!n.runs[id])n.runs[id]={id,week,role,reservation,startAt:reservation.at+600,duration,status:'play',seq:0,session:{d:0,sp:0,chests:0,shards:0,chestExp:0,absExt:0}};return n}));return read(id);
  }
- async function resume(pointer){await api.resume(pointer.reservation);const r=await read(pointer.id);if(!r||r.reservation.id!==pointer.reservation.id)throw Error('RUN_NOT_FOUND');return r;}
+ async function start({id,week,role,duration,board,onReserved}){
+  if(!W.monday(week)||![60000,90000].includes(duration)||!validateBoard(board))throw Error('INVALID_INITIAL_STATE');
+  const old=await read(id);if(old)return resume({id,reservation:old.reservation});
+  const reservation=await api.reserve(id,role,{week,duration});
+  onReserved?.(reservation);return initialize(reservation);
+ }
+ async function resume(pointer,{board}={}){const reservation=await api.resume(pointer.reservation);const r=await read(pointer.id);if(!r){if(!validateBoard(board))throw Error('INITIAL_BOARD_REQUIRED_FOR_RECOVERY');return initialize(reservation);}if(r.reservation.id!==pointer.reservation.id)throw Error('RUN_NOT_FOUND');return r;}
  async function checkpoint(id,seq,session){
   const payload=clone(session);if(!Number.isInteger(seq)||seq<1||!Number.isFinite(payload.d)||payload.d<0||!Number.isFinite(payload.absExt||0)||(payload.absExt||0)>15000)throw Error('INVALID_CHECKPOINT');
   await serial(()=>tx(ref,data=>{const r=data?.runs?.[id];if(!r)throw Error('RUN_NOT_FOUND');

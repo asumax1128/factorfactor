@@ -13,13 +13,14 @@ function baseHP(week,meta,approval){
 function create({db,uid,account}){
  if(!db||!uid||!account?.key)throw Error('REGISTERED_ACCOUNT_REQUIRED');
  const clock=async()=>{const r=db.ref(`${ROOT}/clock/${uid}`);await r.set({'.sv':'timestamp'});const n=(await r.get()).val();if(typeof n!=='number')throw Error('SERVER_CLOCK_UNAVAILABLE');return n};
- async function reserve(id,role='atk'){
+ async function reserve(id,role='atk',plan=null){
+  if(plan&&(!monday(plan.week)||![60000,90000].includes(plan.duration)))throw Error('INVALID_RESERVATION_PLAN');
   if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)||!['atk','sup'].includes(role))throw Error('INVALID_RESERVATION');
   const at=await clock(),d=day(at),r=db.ref(`${ROOT}/attempts/${account.key}/${d}`);
   const out=await serial(db,account.key+'/'+d,()=>tx(r,cur=>{const n=cur||{slots:{}};n.slots ||= {};
    if(Object.values(n.slots).some(s=>s.id===id))return n;
    const slot=[0,1,2,3,4].find(i=>!n.slots[i]);if(slot===undefined)throw Error('WEEKLY_DAILY_LIMIT');
-   n.slots[slot]={id,uid,role,at:{'.sv':'timestamp'}};return n;
+   n.slots[slot]={id,uid,role,at:{'.sv':'timestamp'},...(plan?{week:plan.week,duration:plan.duration}:{})};return n;
   }));
   const slots=(await r.get()).val().slots,[slot,s]=Object.entries(slots).find(([,s])=>s.id===id);return {...s,day:d,slot};
  }

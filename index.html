@@ -5783,14 +5783,14 @@ function WeeklyRaidApp({ acct, onExit }) {
   const devSnapshot = () => { const S = sess.current; return { d:S.d,sp:S.sp,chests:S.chests,shards:S.shards,chestExp:S.chestExp||0,chestLog:S.chestLog||[],absExt:S.absExt||0,fired:S.fired||{},oj:S.oj||0 }; };
   const devCheckpoint = () => { const n=++devSeq.current, data=devSnapshot(), id=devRun.current.id; devQueue.current=devQueue.current.then(()=>dev.checkpoint(id,n,data)); devQueue.current.catch(e=>setDevError('保存できません。再読み込みして復帰してください：'+e.message)); };
   const restoreDev = run => {
-    if(run.week!==wk) { setDevError('前の週の出撃予約は消費済みです。新しい週の出撃を開始できます。'); return; }
+    if(run.week!==wk) { localStorage.removeItem(pointerKey);setDevError('前の週の出撃予約は消費済みです。新しい週の出撃を開始できます。'); return; }
     devRun.current=run; devSeq.current=run.seq; devEnding.current=false; setRole(run.role);
     sess.current={...sess.current,...run.session,t0:Date.now()+(run.startAt-fbNow()),seed:run.startAt,lastOk:0};
     if(run.status==='abandoned'){localStorage.removeItem(pointerKey);return;}
     if(run.receipt){setRes({d:run.session.d,exp:run.reward,dbl:run.reward?.first,sp:run.session.sp,chests:run.session.chestLog||[]});setScr('done');localStorage.removeItem(pointerKey);return;}
     setEndAt(Date.now()+(run.startAt+run.duration+(run.session.absExt||0)-fbNow()));setScr('play');
   };
-  useEffect(()=>{if(!dev)return;const pointer=loadLS(pointerKey,null);if(pointer)dev.resume(pointer).then(restoreDev).catch(e=>setDevError('出撃の復帰に失敗しました：'+e.message));},[dev]);
+  useEffect(()=>{if(!dev)return;const pointer=loadLS(pointerKey,null);if(pointer){const lv=pickLevel(1,'init'),board=gm.buildProb?gm.buildProb(lv,new Set()):{level:lv,...buildBoard(lv,new Set(),6)};devInitial.current=board;dev.resume(pointer,{board}).then(restoreDev).catch(e=>setDevError('出撃の復帰に失敗しました：'+e.message));}},[dev]);
   const devAward = (s,S,run) => {
     const sd=S.d, base=10+Math.min(30,Math.floor(sd/15)), W=wkOf(s), runWeek=run.week;
     if(sd>0&&W.last!==runWeek){W.weeks=(W.weeks||0)+1;W.streak=W.last===prevWeek(runWeek)?(W.streak||0)+1:1;W.maxStreak=Math.max(W.maxStreak||0,W.streak);W.last=runWeek;}
@@ -5808,7 +5808,7 @@ function WeeklyRaidApp({ acct, onExit }) {
     const sd = sess.current.d;
     if (dev) {
       if(devEnding.current)return;devEnding.current=true;
-      devCheckpoint();
+      if(devRun.current.status==='play')devCheckpoint();
       devQueue.current.then(()=>dev.finish(devRun.current.id,devAward)).then(run=>{restoreDev(run);setDevError('');}).catch(e=>{devEnding.current=false;setDevError('完走を確定できません。再読み込みして復帰してください：'+e.message);});
       return;
     }
@@ -5962,7 +5962,7 @@ function WeeklyRaidApp({ acct, onExit }) {
             if(busy)return;setBusy(true);setDevError('');
             try {
               if(dev){const lv=pickLevel(1,'init'),board=gm.buildProb?gm.buildProb(lv,new Set()):{level:lv,...buildBoard(lv,new Set(),6)};const id=FB.db.ref('games/factor/weeklyNextV1').push().key;
-                const run=await dev.start({id,week:wk,role,duration:SESSION,board});devInitial.current=board;devRun.current=run;devSeq.current=run.seq;devQueue.current=Promise.resolve();devEnding.current=false;saveLS(pointerKey,{id:run.id,reservation:run.reservation});
+                let pointer=loadLS(pointerKey,null);if(pointer?.reservation?.week&&pointer.reservation.week!==wk){localStorage.removeItem(pointerKey);pointer=null;}const run=pointer?await dev.resume(pointer,{board}):await dev.start({id,week:wk,role,duration:SESSION,board,onReserved:r=>saveLS(pointerKey,{id:r.id,reservation:r})});devInitial.current=board;devRun.current=run;devSeq.current=run.seq;devQueue.current=Promise.resolve();devEnding.current=false;saveLS(pointerKey,{id:run.id,reservation:run.reservation});
                 gm.reset();restoreDev(run);setRes(null);chest.current={on:false,n:0};setStunUntil(0);setFogUntil(0);
               } else { gm.reset(); sess.current = { absExt: 0, d: 0, t0: Date.now() + 600, seed: Date.now(), lastOk: 0, fired: {}, oj: 0, sp: 0, chests: 0, shards: 0, chestExp: 0, chestLog: [] }; chest.current = { on: false, n: 0 }; setStunUntil(0); setFogUntil(0); setRes(null); setEndAt(Date.now() + SESSION + 600); setScr('play');  }
             }catch(e){setDevError(e.message==='WEEKLY_DAILY_LIMIT'?'本日の出撃は5回までです':e.message);}finally{setBusy(false);}
