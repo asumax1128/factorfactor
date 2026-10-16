@@ -3,7 +3,7 @@
 // legacy write handler is replaced with baseline text.
 module.exports=function project(n){
  if(!n.body.body.some(s=>(s.declarations||[]).some(d=>d.id?.name==='dev')))return n;
- const devNames=new Set(['devStats','dev','devData','setDevData','devError','setDevError','devRun','devInitial','devSeq','devQueue','devEnding','pointerKey','devDmg','v','devSup','devSnapshot','devCheckpoint','restoreDev','devAward']);
+ const devNames=new Set(['devStats','dev','devData','setDevData','devError','setDevError','devRun','devInitial','devSeq','devQueue','devEnding','pointerKey','devDmg','v','devSup','devSnapshot','devCheckpoint','restoreDev','devAward','devCombat','devEnvSaved']);
  const names=d=>d.id?.type==='ArrayPattern'?d.id.elements.map(x=>x?.name):[d.id?.name];
  n.body.body=n.body.body.filter(s=>{
   if(s.type==='VariableDeclaration'&&s.declarations.some(d=>names(d).some(x=>devNames.has(x))))return false;
@@ -15,7 +15,7 @@ module.exports=function project(n){
   if(x.type==='Identifier'&&x.name==='legacyV')x.name='v';
   if(x.type==='Identifier'&&['dev','devError'].includes(x.name))return {type:'BooleanLiteral',value:false};
   if(x.type==='Identifier'&&x.name==='devSup')return {type:'Identifier',name:'sup'};
-  if(x.type==='ObjectProperty'&&['sessionInfo'].includes(x.key?.name)&&JSON.stringify(x.value).includes('devError'))return null;
+  if(x.type==='ObjectProperty'&&['sessionInfo','recovery'].includes(x.key?.name)&&(x.key?.name==='recovery'||JSON.stringify(x.value).includes('devError')))return null;
   // Start wrapper: retain its original legacy branch, including actual reset and
   // timestamps, rather than substituting a remembered/baseline implementation.
   if(x.type==='ArrowFunctionExpression'&&x.async&&JSON.stringify(x).includes('"name":"restoreDev"')){

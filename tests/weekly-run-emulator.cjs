@@ -13,14 +13,21 @@ try{
  await ca.checkpoint(r.id,1,{d:50,sp:2,chests:0,shards:0,chestExp:0,absExt:0});
  await Promise.all([ca.checkpoint(r.id,1,{d:50,sp:2,chests:0,shards:0,chestExp:0,absExt:0}),cb.checkpoint(r.id,1,{d:50,sp:2,chests:0,shards:0,chestExp:0,absExt:0})]);
  await assert.rejects(()=>cb.checkpoint(r.id,1,{d:80}),/CONFLICTING/);await assert.rejects(()=>ca.finish(r.id,()=>{}),/RUN_NOT_COMPLETED/);
+ const combat={version:1,s:{qs:Date.now(),combo:3,dmg:50,dp:{a:50,b:0,c:0}},prob:{level:2,poly:{x:1},tiles:[{id:'a'},{id:'b'}]},seen:['seen'],busy:true,pending:{at:Date.now()+420,lv:3}};
+ const next={...(await ca.read(r.id)).session,combat,environment:{gim:{balLv:2,simG:3,simAcc:20,nextWave:10},chest:{on:true,n:1}}};
+ await ca.checkpoint(r.id,2,next);const restored=await cb.resume(pointer);assert.deepEqual(restored.session.combat,combat);assert.equal(restored.session.environment.gim.simG,3);assert.equal(restored.session.environment.chest.on,true);
+ await assert.rejects(()=>cb.checkpoint(r.id,1,{d:50}),/CONFLICTING/);
+ const branches=await Promise.allSettled([ca.checkpoint(r.id,3,{...next,d:60}),cb.checkpoint(r.id,3,{...next,d:70})]);assert.equal(branches.filter(x=>x.status==='fulfilled').length,1);assert.equal(branches.filter(x=>x.status==='rejected').length,1);assert([60,70].includes((await ca.read(r.id)).session.d));
+ // Restore the expected final damage with a monotonic next revision for existing reward assertions.
+ await ca.checkpoint(r.id,4,{...next,d:70});
  // Time travel only the isolated fixture's start time, never production or client clock.
  await env.withSecurityRulesDisabled(c=>set(ref(c.database(),`${W.ROOT}/games/ar/runs/first/startAt`),Date.now()-61000));
  const award=(s,S)=>{const before=s.exp;s.exp+=2*(10+Math.min(30,Math.floor(S.d/15)))+S.chestExp;return{before,after:s.exp,first:true}};
  await assert.rejects(()=>ca.finish(r.id,()=>{throw Error('INTERRUPTED_AWARD')}),/INTERRUPTED_AWARD/);assert.equal((await cb.resume(pointer)).status,'settling');
- const finished=await Promise.all([ca.finish(r.id,award),cb.finish(r.id,award)]);assert.deepEqual(finished[0].reward,{before:100,after:126,first:true});assert.deepEqual(finished[0],finished[1]);
+ const finished=await Promise.all([ca.finish(r.id,award),cb.finish(r.id,award)]);assert.deepEqual(finished[0].reward,{before:100,after:128,first:true});assert.deepEqual(finished[0],finished[1]);
  assert.deepEqual((await cb.resume(pointer)).receipt,finished[0].receipt);await ca.finish(r.id,()=>{throw Error('must not reaward')});
- const data=(await a.db.ref(W.ROOT+'/games/ar').get()).val();assert.equal(data.stats.exp,126);assert.equal(data.stats.rating,1688);assert.equal(data.stats.nick,'tour1');assert.equal(data.stats.B.w,5);assert.deepEqual(Run.damage(data,'2026-10-12'),{d:50,p:2,s:1,b:50});
- const abandoned=await ca.start({id:'quit',week:'2026-10-12',duration:60000,role:'atk',board:{valid:true}});await ca.abandon(abandoned.id);await assert.rejects(()=>ca.finish(abandoned.id,award),/NOT_COMPLETABLE/);assert.equal((await a.db.ref(W.ROOT+'/games/ar/stats/exp').get()).val(),126);
+ const data=(await a.db.ref(W.ROOT+'/games/ar').get()).val();assert.equal(data.stats.exp,128);assert.equal(data.stats.rating,1688);assert.equal(data.stats.nick,'tour1');assert.equal(data.stats.B.w,5);assert.deepEqual(Run.damage(data,'2026-10-12'),{d:70,p:2,s:1,b:70});
+ const abandoned=await ca.start({id:'quit',week:'2026-10-12',duration:60000,role:'atk',board:{valid:true}});await ca.abandon(abandoned.id);await assert.rejects(()=>ca.finish(abandoned.id,award),/NOT_COMPLETABLE/);assert.equal((await a.db.ref(W.ROOT+'/games/ar/stats/exp').get()).val(),128);
  await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor/logins/ar_recovery'),{[a.uid]:'x'}));const recoveredClient=Run.create({...a,...opts,account:{key:'ar_recovery'}});let orphan;
  await assert.rejects(()=>recoveredClient.start({id:'orphan',week:'2026-10-12',duration:60000,role:'atk',board:{valid:true},onReserved:reservation=>{orphan={id:reservation.id,reservation};throw Error('INTERRUPTED_AFTER_RESERVATION')}}),/INTERRUPTED_AFTER_RESERVATION/);
  assert.equal((await a.db.ref(W.ROOT+'/games/ar_recovery/runs/orphan').get()).val(),null);const recovered=await recoveredClient.resume(orphan,{board:{valid:true}});assert.equal(recovered.startAt,orphan.reservation.at+600);assert.equal(recovered.duration,60000);assert.equal((await a.db.ref(`${W.ROOT}/attempts/ar_recovery/${orphan.reservation.day}/slots`).get()).numChildren(),1);await assertFails(a.db.ref(`${W.ROOT}/attempts/ar_recovery/${orphan.reservation.day}/slots/${orphan.reservation.slot}/duration`).set(90000));

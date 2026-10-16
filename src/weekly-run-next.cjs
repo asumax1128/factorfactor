@@ -21,9 +21,9 @@ function create({db,uid,account,validateBoard,initialStats={}}){
  }
  async function resume(pointer,{board}={}){const reservation=await api.resume(pointer.reservation);const r=await read(pointer.id);if(!r){if(!validateBoard(board))throw Error('INITIAL_BOARD_REQUIRED_FOR_RECOVERY');return initialize(reservation);}if(r.reservation.id!==pointer.reservation.id)throw Error('RUN_NOT_FOUND');return r;}
  async function checkpoint(id,seq,session){
-  const payload=clone(session);if(!Number.isInteger(seq)||seq<1||!Number.isFinite(payload.d)||payload.d<0||!Number.isFinite(payload.absExt||0)||(payload.absExt||0)>15000)throw Error('INVALID_CHECKPOINT');
+  const payload=clone(session);if(payload.combat)shiftCombat(payload.combat,0);if(!Number.isInteger(seq)||seq<1||!Number.isFinite(payload.d)||payload.d<0||!Number.isFinite(payload.absExt||0)||(payload.absExt||0)>15000)throw Error('INVALID_CHECKPOINT');
   await serial(()=>tx(ref,data=>{const r=data?.runs?.[id];if(!r)throw Error('RUN_NOT_FOUND');
-   if(seq<=r.seq){if(seq===r.seq&&canonical(r.session)!==canonical(payload))throw Error('CONFLICTING_CHECKPOINT');return data;}
+   if(seq<=r.seq){if(seq<r.seq||canonical(r.session)!==canonical(payload))throw Error('CONFLICTING_CHECKPOINT');return data;}
    if(r.status!=='play'||seq!==r.seq+1)throw Error('RUN_NOT_WRITABLE');
    if(payload.d<r.session.d)throw Error('NON_MONOTONIC_DAMAGE');r.seq=seq;r.session=payload;return data;}));return read(id);
  }
@@ -44,4 +44,13 @@ function create({db,uid,account,validateBoard,initialStats={}}){
  return{start,resume,checkpoint,abandon,finish,subscribe,read};
 }
 function damage(data,week){return Object.values(data?.runs||{}).filter(r=>r.week===week).reduce((n,r)=>{n.d+=r.session?.d||0;n.p+=r.session?.sp||0;if(r.receipt){n.s++;n.b=Math.max(n.b,r.session?.d||0)}return n},{d:0,p:0,s:0,b:0})}
-module.exports={enabled,create,damage};
+// Persist absolute server timestamps; convert only at the local presentation edge.
+function shiftCombat(input,offset){
+ const c=clone(input);
+ if(c.prob){for(const key of ['tiles','factors','factors2'])if(c.prob[key]&&!Array.isArray(c.prob[key]))c.prob[key]=Object.values(c.prob[key]);}
+ if(c.version!==1||!c.s||!c.prob||!Array.isArray(c.prob.tiles)||c.prob.tiles.length<2||!Number.isFinite(c.s.qs))throw Error('INVALID_COMBAT_CHECKPOINT');
+ c.seen=Array.isArray(c.seen)?c.seen:Object.values(c.seen||{});c.flash ||= {};c.judge ||= null;c.pending ||= null;c.s.dp ||= {a:0,b:0,c:0};
+ c.s.qs+=offset;if(c.s.stunUntil)c.s.stunUntil+=offset;if(c.pending)c.pending.at+=offset;
+ return c;
+}
+module.exports={enabled,create,damage,packCombat:shiftCombat,unpackCombat:shiftCombat};

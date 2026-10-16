@@ -19,6 +19,8 @@ function functions(html) {
     code: false,
   }).ast;
   const normalise = (n) => {
+    if(n?.type==='FunctionDeclaration'&&n.id?.name==='RaidPlay')require('./weekly-combat-projection.cjs')(n);
+    if(n?.type==='FunctionDeclaration'&&n.id?.name==='useBossGim'){for(const stmt of n.body.body)for(const d of stmt.declarations||[])if(d.id?.name==='G')d.init.properties=d.init.properties.filter(p=>!['checkpoint','restore'].includes(p.key?.name));}
     if(n?.type==='FunctionDeclaration'&&n.id?.name==='FriendRaidLobby')require('./friend-legacy-projection.cjs')(n);
     if(n?.type==='FunctionDeclaration'&&['TourBoard','TourMatchCard'].includes(n.id?.name))require('./tournament-legacy-projection.cjs')(n);
     if(n?.type==='FunctionDeclaration'&&n.id?.name==='WeeklyRaidApp')require('./weekly-legacy-projection.cjs')(n);
