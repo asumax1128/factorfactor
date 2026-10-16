@@ -1486,6 +1486,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
   const [soloExp, setSoloExp] = useState(null); // このプレイでもらった経験値 {before, after}
   const learnRef = useRef([]);   // 苦手分析・図鑑用の記録（このプレイ分）
   const soloMaxCombo = useRef(0); // デイリーミッション用：1回のプレイの最大コンボ
+  const runLogRef = useRef([]); // 結果画面の表示専用：全問題（通常＋展開ボーナス・時間切れ含む）の結果。学習記録(learnRef)とは別
+  const [runSummary, setRunSummary] = useState(null); // 表示専用スナップショット（終了処理の直前に取得）
   const splitsRef = useRef([]);  // ゴースト用：何秒の時点で何問解いたか
   const ghostKey = `fxf_solo_ghost_v1_${(acct && acct.key) || 'guest'}`;
   const [ghost, setGhost] = useState(null); // 自分の過去ベスト {score, splits}
@@ -1977,6 +1979,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     const gotExp = finalCaught > 0 ? 5 + finalCaught * 2 + (finalCaught >= DIFFICULTY_CONFIG[difficulty].clearCount ? 20 : 0) : 0;
     setSoloExp(null);
     if (gotExp) addExp(acct, gotExp).then(r => setSoloExp(r));
+    setRunSummary({ maxCombo: soloMaxCombo.current, log: runLogRef.current.slice() }); // 表示専用：リセット前の写し
     flushLearn(acct, learnRef.current, { solo: 1, clear: finalCaught >= DIFFICULTY_CONFIG[difficulty].clearCount ? 1 : 0, combo: soloMaxCombo.current }); learnRef.current = []; soloMaxCombo.current = 0;
     // 自分の過去ベストを更新したら、次からのゴーストにする
     try { const all = loadLS(ghostKey, {}) || {}; const b = all[difficulty]; if (finalScore > 0 && (!b || finalScore > b.score)) { all[difficulty] = { score: finalScore, caught: finalCaught, splits: splitsRef.current.slice() }; saveLS(ghostKey, all); } } catch (e) {}
@@ -2050,6 +2053,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
         const penalty = 0.01 + extra;
         playBuzz();
         setCombo(0);
+        runLogRef.current.push({ ok: false, timeout: true, ms: questionElapsedMs, lv: questionLevel, reverse: isReverseStage });
         if (!isReverseStage) { const pr = pairOf(board, poly); learnRef.current.push({ lv: questionLevel, pid: pr ? patternOf(questionLevel, pr.map(t => t.factor)) : null, ok: false, ms: questionElapsedMs }); }
         setLife(l => Math.max(0, Math.round((l - penalty) * 100) / 100));
         setLastLifeChange({ amount: -penalty });
@@ -2086,7 +2090,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
 
     try { await Tone.start(); } catch (e) { /* audio unlock best-effort */ }
     seenProblemsRef.current = new Set();
-    learnRef.current = []; splitsRef.current = [];
+    learnRef.current = []; splitsRef.current = []; runLogRef.current = []; setRunSummary(null);
     setGhost((loadLS(ghostKey, {}) || {})[chosenDifficulty] || null);
     difficultyRef.current = chosenDifficulty;
     setPendingNetEntry(null); // 前回の送信待ちスコアは破棄
@@ -2215,6 +2219,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       const judge = getJudgment(elapsedMs);
       CombatFX.merge(CombatFX.capture([tileRefs.current[id1],tileRefs.current[id2]]),timingVisual(judge).color); // タイルがお題に吸いこまれて弾ける
       learnRef.current.push({ lv: questionLevel, pid: patternOf(questionLevel, [t1.factor, t2.factor]), ok: true, ms: elapsedMs, j: judge.label });
+      runLogRef.current.push({ ok: true, ms: elapsedMs, j: judge.label, lv: questionLevel });
       splitsRef.current.push(Math.round(elapsedSeconds * 1000));
       if (judge.label === 'Perfect') FX.flash('#fff', 0.3, 160);
       // 体力は100%が上限。超過分は1%=1点としてスコアに変換する
@@ -2273,6 +2278,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       playBuzz();
       setFlashMap({ [id1]: 'wrong', [id2]: 'wrong' });
       FX.shake(gridRef.current); FX.flash('#ff2020', 0.18, 200);
+      runLogRef.current.push({ ok: false, ms: Date.now() - questionStartTimeRef.current, lv: questionLevel });
       { const pr = pairOf(board, poly); learnRef.current.push({ lv: questionLevel, pid: pr ? patternOf(questionLevel, pr.map(t => t.factor)) : null, ok: false, ms: Date.now() - questionStartTimeRef.current }); }
       setCombo(0);
       const penalty = DIFFICULTY_MISS_PENALTY[difficulty] || 20;
@@ -2305,6 +2311,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       const gain = Math.round(REVERSE_STAGE_POINTS * comboMult); // 逆引きは一律50点にコンボ倍率を適用
       const elapsedMs = Date.now() - questionStartTimeRef.current;
       const judge = getJudgment(elapsedMs);
+      runLogRef.current.push({ ok: true, ms: elapsedMs, j: judge.label, reverse: true });
       // 体力は100%が上限。超過分は1%=1点としてスコアに変換する
       const rawLife = life + judge.recover;
       const overflowBonus = Math.max(0, Math.round(rawLife - 100));
@@ -2350,6 +2357,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     } else {
       playBuzz();
       setReverseChoiceState({ [choiceId]: 'wrong' });
+      runLogRef.current.push({ ok: false, ms: Date.now() - questionStartTimeRef.current, reverse: true });
       setCombo(0);
       const penalty = DIFFICULTY_MISS_PENALTY[difficulty] || 20;
       const newLife = Math.max(0, Math.round((life - penalty) * 100) / 100);
@@ -2724,26 +2732,10 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
   if (screen === 'gameover') {
     const isRecord = score >= best && score > 0;
     const diffCfg = DIFFICULTY_CONFIG[difficulty];
-    return (
-      <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center py-6 px-4" style={{ background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
-        <FontImport />
-        <div className="v7-wnd v7-result v7-open">
-          <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 30, letterSpacing: '.06em', color: cleared ? 'var(--v7-gold)' : '#FF8A75', textShadow: '0 3px 0 rgba(0,0,0,.35)' }}>{cleared ? 'CLEAR!' : 'GAME OVER'}</div>
-          <div className="text-xs font-bold mb-1" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{cleared ? `${diffCfg.clearCount}問達成！` : '体力切れ…'}</div>
-          <div className="big">{score}</div>
-          {cleared && <div className="text-xs font-bold mb-2" style={{ color: clearTimeBonus >= 0 ? '#8BE38F' : '#FF8A75' }}>（タイムボーナス {clearTimeBonus >= 0 ? '+' : ''}{clearTimeBonus}）</div>}
-          {(isRecord || rankedIn) && <div className="flex justify-center gap-2 mb-2 flex-wrap">
-            {isRecord && <span className="v7-chip" style={{ background: '#2D6A4F' }}>自己ベスト更新！</span>}
-            {rankedIn && <span className="v7-chip" style={{ background: 'var(--v7-accent)' }}>ランキング入り！</span>}
-          </div>}
-          <div className="text-left mb-3">
-            <div className="row"><span>プレイ時間</span><span>{Math.floor(Math.round(elapsedSeconds) / 60)}分{Math.round(elapsedSeconds) % 60}秒</span></div>
-            <div className="row"><span>捕獲した因数ペア</span><span>{caught}組</span></div>
-            <div className="row"><span>難易度</span><span>{diffCfg.label}</span></div>
-            <div className="row"><span>到達レベル</span><span>Lv.{unlockedLevel} {LEVEL_INFO[unlockedLevel].name}</span></div>
-          </div>
-          {soloExp && <div className="mb-3 text-left rounded-xl p-3" style={{ background: '#fff' }}><ExpGain before={soloExp.before} after={soloExp.after} label={isReal(acct) ? 'プレイの経験値' : 'プレイの経験値（ゲスト：この端末に保存）'} /></div>}
-
+    const NR = window.NextResults;
+    const soloModel = NR && NR.SoloSummary && NR.SoloResultModel ? (() => { try { return NR.SoloResultModel.build({ label: diffCfg.label, clearCount: diffCfg.clearCount, cleared, score, caught, elapsedSeconds, levelText: `Lv.${unlockedLevel} ${LEVEL_INFO[unlockedLevel].name}`, unlockedLevel, clearTimeBonus: cleared ? clearTimeBonus : null, isRecord, rankedIn, snapshot: runSummary }); } catch (e) { return null; } })() : null;
+    const expBlock = soloExp && (<div className="mb-3 text-left rounded-xl p-3" style={{ background: '#fff' }}><ExpGain before={soloExp.before} after={soloExp.after} label={isReal(acct) ? 'プレイの経験値' : 'プレイの経験値（ゲスト：この端末に保存）'} /></div>);
+    const netBlock = (<>
           {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
           {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
             <div className="rounded-xl p-3 mb-3 text-left" style={{ background: '#fff', color: 'var(--v7-ink)' }}>
@@ -2784,12 +2776,45 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
               {netSubmitState === 'sent' && <div className="text-xs font-bold text-center py-1" style={{ color: '#2D6A4F' }}>✅ みんなのランキングに登録しました！</div>}
             </div>
           )}
-
+        </>);
+    const actionBlock = (
           <div className="flex flex-col gap-2">
             <button onClick={() => { uiSnd('ok'); startGame(difficulty); }} className="v7-go">もう一度あそぶ（{diffCfg.label}）</button>
             <button onClick={() => { uiSnd('back'); setScreen('menu'); }} className="v7-btn-w">タイトルにもどる</button>
           </div>
-        </div>
+        );
+    return (
+      <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center py-6 px-4" style={{ background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+        <FontImport />
+        {soloModel ? (<>
+          <div className="w-full" style={{ maxWidth: 'min(1120px, 100%)' }}>
+            <NR.SoloSummary model={soloModel} growth={expBlock || null} CountUp={CountUp}
+              onLearn={soloModel.learnButton && onMode ? () => { uiSnd('ok'); onMode('learn'); } : null} />
+          </div>
+          <div className="v7-wnd v7-result v7-open" style={{ marginTop: 12 }}>
+            {netBlock}
+            {actionBlock}
+          </div>
+        </>) : (
+        <div className="v7-wnd v7-result v7-open">
+          <div style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 30, letterSpacing: '.06em', color: cleared ? 'var(--v7-gold)' : '#FF8A75', textShadow: '0 3px 0 rgba(0,0,0,.35)' }}>{cleared ? 'CLEAR!' : 'GAME OVER'}</div>
+          <div className="text-xs font-bold mb-1" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{cleared ? `${diffCfg.clearCount}問達成！` : '体力切れ…'}</div>
+          <div className="big">{score}</div>
+          {cleared && <div className="text-xs font-bold mb-2" style={{ color: clearTimeBonus >= 0 ? '#8BE38F' : '#FF8A75' }}>（タイムボーナス {clearTimeBonus >= 0 ? '+' : ''}{clearTimeBonus}）</div>}
+          {(isRecord || rankedIn) && <div className="flex justify-center gap-2 mb-2 flex-wrap">
+            {isRecord && <span className="v7-chip" style={{ background: '#2D6A4F' }}>自己ベスト更新！</span>}
+            {rankedIn && <span className="v7-chip" style={{ background: 'var(--v7-accent)' }}>ランキング入り！</span>}
+          </div>}
+          <div className="text-left mb-3">
+            <div className="row"><span>プレイ時間</span><span>{Math.floor(Math.round(elapsedSeconds) / 60)}分{Math.round(elapsedSeconds) % 60}秒</span></div>
+            <div className="row"><span>捕獲した因数ペア</span><span>{caught}組</span></div>
+            <div className="row"><span>難易度</span><span>{diffCfg.label}</span></div>
+            <div className="row"><span>到達レベル</span><span>Lv.{unlockedLevel} {LEVEL_INFO[unlockedLevel].name}</span></div>
+          </div>
+          {expBlock}
+          {netBlock}
+          {actionBlock}
+        </div>)}
 
         {/* エンディングメッセージ: 余韻を感じさせる、控えめで半透明なクレジット表示 */}
         <div className="max-w-sm w-full text-center" style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>
