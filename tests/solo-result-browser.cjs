@@ -9,13 +9,21 @@ const read=p=>p.evaluate(()=>({tiles:Object.fromEntries([...document.querySelect
 (async()=>{const b=await chromium.launch({executablePath:exe});try{
  const tree=()=>({games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{exp:100,rating:1600}}}}}});
  // ===== EASY CLEAR (15 questions), logged in =====
- {const tr=tree(),t=await context(b,{tree:tr}),p=t.page;await start(p,'イージー');await play(p,{right:15});const r=await read(p);
+ {const tr=tree(),t=await context(b,{tree:tr}),p=t.page;await start(p,'イージー');await play(p,{right:15});
+  // LEVEL UP band (shared ExpGain effect) must not cover the hero while it is shown
+  await p.setViewportSize({width:390,height:844});
+  const findBand=()=>[...document.querySelectorAll('*')].find(x=>x.tagName==='DIV'&&x.childElementCount===0&&/LEVEL UP/.test(x.textContent));
+  const band=await p.waitForFunction(()=>{const e=[...document.querySelectorAll('*')].find(x=>x.tagName==='DIV'&&x.childElementCount===0&&/LEVEL UP/.test(x.textContent));return !!e},null,{timeout:6000}).then(()=>true).catch(()=>false);
+  assert(band,'ExpGain still plays its LEVEL UP band (not removed)');
+  const g=await p.evaluate(()=>{const t=[...document.querySelectorAll('*')].find(x=>x.tagName==='DIV'&&x.childElementCount===0&&/LEVEL UP/.test(x.textContent));let c=t;while(c.parentElement&&getComputedStyle(c).position!=='absolute')c=c.parentElement;const br=c.getBoundingClientRect(),hr=document.querySelector('.nbr-hero').getBoundingClientRect();return{bandBottom:br.bottom,heroTop:hr.top}});
+  assert(g.bandBottom<=g.heroTop+1,'LEVEL UP band does not overlap the hero: '+JSON.stringify(g));if(SHOTS)await p.screenshot({path:`${SHOTS}/solo-clear-390-levelup-band.png`});
+  const r=await read(p);
   assert.equal(r.word,'CLEAR!');assert.equal(r.ending,'clear');assert.equal(r.reason,'15問達成！');assert.equal(r.tiles['正解数'],'15');assert.equal(r.tiles['難易度'],'イージー');assert.match(r.tiles['到達レベル'],/^Lv\.\d/);assert.equal(r.tiles['ミス'],'0');assert.equal(r.tiles['最大コンボ'],'15');assert.equal(r.tiles['得点'],r.score);
   assert(r.hl[0].startsWith('クリアタイム'));assert(r.hl.length<=3);assert(r.hl.some(x=>x.startsWith('最大15コンボ'))&&r.hl.some(x=>x.startsWith('最速解答')));assert.equal(r.learn,false,'no mistakes => no 学びの部屋へ');assert(!/復習/.test(r.text.split('Thank you')[0]),'never labelled as reviewing the missed problems');
   assert(r.badges.includes('自己ベスト更新！'));assert(r.conf>0,'gold confetti on CLEAR');assert(r.grow&&/経験値|EXP|Lv/.test(r.growText));
   assert.equal(tr.games.factor.accounts.ateacher.stats.exp-100,5+15*2+20,'EXP formula unchanged');
   const ghost=await p.evaluate(()=>JSON.parse(localStorage.fxf_solo_ghost_v1_ateacher).easy);assert.equal(ghost.score,+r.score);assert.equal(ghost.splits.length,15);
-  for(const w of WIDTHS){await p.setViewportSize({width:w,height:1500});await p.waitForTimeout(250);const x=await read(p);assert(!x.ov,'overflow '+w);assert(x.buttons.some(s=>/もう一度あそぶ（イージー）/.test(s))&&x.buttons.includes('タイトルにもどる'));assert.match(x.text,/Thank you for playing/);
+  for(const w of WIDTHS){await p.setViewportSize({width:w,height:1500});await p.waitForTimeout(250);const x=await read(p);assert(!x.ov,'overflow '+w);assert(x.buttons.some(s=>/もう一度あそぶ（イージー）/.test(s))&&x.buttons.includes('タイトルにもどる'));assert.match(x.text,/Thank you for playing/);assert.equal(await p.evaluate(()=>[...document.querySelectorAll('.nbr-tile')].filter(e=>e.scrollWidth>e.clientWidth+1).length),0,'no clipped tile text at '+w);
    if(w===1440){assert(x.box>900,'wide layout '+x.box);const g=await p.evaluate(()=>{const a=document.querySelector('.nbr-tiles').getBoundingClientRect(),h=document.querySelector('.nbr-hl').getBoundingClientRect();return{sameRow:Math.abs(a.top-h.top)<4&&h.left>a.right-2}});assert(g.sameRow,'tiles and highlights side by side on PC')}
    if(SHOTS&&(w===390||w===1440))await p.screenshot({path:`${SHOTS}/solo-clear-${w}.png`,fullPage:true})}
   assert.deepEqual(t.errors,[]);await t.ctx.close()}
@@ -24,7 +32,7 @@ const read=p=>p.evaluate(()=>({tiles:Object.fromEntries([...document.querySelect
  {const tr=tree(),t=await context(b,{tree:tr}),p=t.page;await start(p,'ノーマル');const w1=await play(p,{right:3,wrong:9});let r=await read(p);
   assert.equal(r.word,'GAME OVER');assert.equal(r.ending,'gameover');assert.equal(r.reason,'体力切れ…');assert.equal(r.tiles['正解数'],'3');assert.equal(r.tiles['ミス'],String(w1),'ミス = every wrong answer of this run');assert.equal(r.tiles['難易度'],'ノーマル');assert(r.learn,'learn button when mistakes exist');assert(r.hl.some(x=>x.startsWith('最速解答')));assert(!r.hl.some(x=>x.startsWith('クリアタイム')));assert.equal(r.conf,0,'no confetti on GAME OVER');
   assert.equal(tr.games.factor.accounts.ateacher.stats.exp-100,5+3*2);
-  if(SHOTS)for(const w of [390,1440]){await p.setViewportSize({width:w,height:1500});await p.waitForTimeout(250);await p.screenshot({path:`${SHOTS}/solo-gameover-${w}.png`,fullPage:true})}
+  if(SHOTS)for(const w of [375,390,1440]){await p.setViewportSize({width:w,height:1500});await p.waitForTimeout(250);await p.screenshot({path:`${SHOTS}/solo-gameover-${w}.png`,fullPage:true})}
   await p.setViewportSize({width:390,height:844});
   await p.getByRole('button',{name:/もう一度あそぶ（ノーマル）/}).click();await p.locator('[data-tile-id]').first().waitFor();
   assert.equal(await p.locator('[data-battle-summary]').count(),0);

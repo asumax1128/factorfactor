@@ -4,7 +4,7 @@ const log=[{ok:true,ms:1800,j:'Perfect',lv:1},{ok:true,ms:4200,j:'Great',lv:1},{
 const snap={maxCombo:2,log};
 test('GAME OVER: facts only from the run; ミス = 誤答+時間切れ; Perfect and fastest come from the full log (bonus stage included)',()=>{
  const m=M.build({...base,caught:5,snapshot:snap}),t=Object.fromEntries(m.tiles.map(x=>[x.id,x]));
- a.equal(m.word,'GAME OVER');a.equal(m.outcome,'lose');a.equal(m.reasonText,'体力切れ…');a.equal(t.score.value,320);a.equal(t.caught.value,5);a.equal(t.combo.value,2);a.equal(t.perfect.value,1);a.equal(t.miss.value,2);a.equal(t.time.value,'1分15秒');a.equal(t.difficulty.value,'イージー');a.equal(t.level.value,'Lv.2 かけ算');
+ a.equal(m.word,'GAME OVER');a.equal(m.outcome,'lose');a.equal(m.reasonText,'体力切れ…');a.equal(t.score.value,320);a.equal(t.caught.value,5);a.equal(t.combo.value,2);a.equal(t.perfect.value,1);a.equal(t.miss.value,2);a.equal(t.time.value,'1分15秒');a.equal(t.difficulty.value,'イージー');a.equal(t.level.value,'Lv.2');a.equal(t.level.note,'かけ算');a.equal(t.miss.note,'誤答・時間切れ');a.equal(t.miss.unit,'回');a.equal(m.highlights[0].title,'最大2コンボ','highlight uses the real number');
  a.deepEqual(m.highlights.map(h=>h.id),['combo','fast']);a.equal(m.highlights[1].tag,'1.8秒');a.match(m.highlights[1].detail,/Perfect/);a.equal(m.learnButton,true);
  a(!JSON.stringify(m).includes('問目')&&!JSON.stringify(m).includes('第'),'no question numbers');
 });
