@@ -25,6 +25,7 @@ function functions(html) {
     if(n?.type==='FunctionDeclaration'&&['TourBoard','TourMatchCard'].includes(n.id?.name))require('./tournament-legacy-projection.cjs')(n);
     if(n?.type==='FunctionDeclaration'&&n.id?.name==='WeeklyRaidApp')require('./weekly-legacy-projection.cjs')(n);
     if (!n || typeof n !== "object") return;
+    if(n.type==='ObjectProperty'&&n.key?.name==='tick'&&n.value?.body?.body)n.value.body.body=n.value.body.body.map(stmt=>stmt.type==='IfStatement'&&stmt.test?.type==='LogicalExpression'&&stmt.test.left?.type==='LogicalExpression'&&stmt.test.left.left?.object?.name==='o'&&stmt.test.left.left?.property?.name==='checkpointRotation'?stmt.alternate:stmt);
     // The profile-entry callback is navigation only. Audit its exact two-statement
     // guard, then compare every original account-read/equipment statement unchanged.
     if(n.type==='FunctionDeclaration'&&n.id?.name==='AccountPanelV7'&&n.params[0]?.properties?.some(p=>p.key?.name==='onProfile')){

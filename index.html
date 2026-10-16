@@ -5768,7 +5768,7 @@ function WeeklyRaidApp({ acct, onExit }) {
   /* ---- 出撃のしかけ（ボスの個性しだい） ---- */
   const sec = scr === 'play' ? (Date.now() - sess.current.t0) / 1000 : 0;
   // ボスのしかけ（塔のボス：絶対値・バランサー・余り・周期・キマイラ・素数・連立・鏡・王）
-  const gm = useBossGim(T.gim || null, { active: scr === 'play', t0: sess.current.t0, hpRatio: hpMax ? Math.max(0, hp) / hpMax : 1,
+  const gm = useBossGim(T.gim || null, { checkpointRotation:!!dev, active: scr === 'play', t0: sess.current.t0, hpRatio: hpMax ? Math.max(0, hp) / hpMax : 1,
     onAbs: () => { const S2 = sess.current; if ((S2.absExt || 0) >= 15000) return false; S2.absExt = (S2.absExt || 0) + 3000; setEndAt(e => e + 3000); return true; } });
   const weakWin = scr === 'play' ? wkWeakOf(boss.id).find(([a, b]) => sec >= a && sec < b) : null;
   const weakFam = gm.chFam || (weakWin ? (T.weakFam ? RAID_FAMS.find(f => f.id === T.weakFam) : RAID_FAMS[hashSeed(`${sess.current.seed}:${weakWin[0]}`) % RAID_FAMS.length]) : null);
@@ -5830,7 +5830,7 @@ function WeeklyRaidApp({ acct, onExit }) {
   });
   const restoreDev = run => {
     if(run.week!==wk) { localStorage.removeItem(pointerKey);setDevError('前の週の出撃予約は消費済みです。新しい週の出撃を開始できます。'); return; }
-    devRun.current=run; devCombat.current=run.session.combat||null; devSeq.current=run.seq; devEnding.current=false; setRole(run.role);
+    devRun.current=run; devCombat.current=run.session.combat||null;if(devCombat.current)devInitial.current=null; devSeq.current=run.seq; devEnding.current=false; setRole(run.role);
     sess.current={...sess.current,...run.session,t0:Date.now()+(run.startAt-fbNow()),seed:run.session.seed||run.startAt,lastOk:run.session.lastOk ? run.session.lastOk+Date.now()-fbNow() : 0};
     const env=run.session.environment;chest.current=env?.chest||{on:false,n:0};gm.restore(env?.gim);setStunUntil(env?.stunUntil ? env.stunUntil+Date.now()-fbNow() : 0);setFogUntil(env?.fogUntil ? env.fogUntil+Date.now()-fbNow() : 0);
     if(run.status==='abandoned'){localStorage.removeItem(pointerKey);return;}
@@ -6221,7 +6221,12 @@ function useBossGim(gim, o) {
       if (!o.active) return;
       if (chFam && !st.fired['h' + Math.floor(sec / 12)]) { st.fired['h' + Math.floor(sec / 12)] = 1; FX.band(`🦁 ${chFam.name}があらわれた！`, { color: '#B7791F', sub: `${chFam.id === 'q2' ? 'たすきがけ・2乗の差' : '3乗の和・差'}が ×${chFam.mul}`, ms: 1300 }); }
       if (kPh && !st.fired['kp' + kPh]) { st.fired['kp' + kPh] = 1; const t = { 1: ['🐾 絶対値の力', 'ミス2倍'], 2: ['🦈 素数の力', '奇数コンボ2倍・偶数コンボ半分'], 3: ['🌱 周期の力', 'タイルの並びがずれていく'] }[kPh]; FX.band(`👑 王が${t[0]}を使った！`, { color: '#b8860b', sub: t[1], ms: 1500 }); }
-      if (waveOn && sec >= (st.nextWave || 5)) { if (ctl.current && ctl.current.rotate && ctl.current.rotate()) st.nextWave = sec + (gim === 'king' ? 7 : 5); }
+      if(o.checkpointRotation && waveOn && sec >= (st.nextWave || 5)) {
+        // The opt-in recovery callback persists the new tile order and wave
+        // deadline together. Failed rotation must retain the previous deadline.
+        const previous=st.nextWave;st.nextWave=sec+(gim==='king'?7:5);
+        if(!(ctl.current && ctl.current.rotate && ctl.current.rotate()))st.nextWave=previous;
+      } else if (waveOn && sec >= (st.nextWave || 5)) { if (ctl.current && ctl.current.rotate && ctl.current.rotate()) st.nextWave = sec + (gim === 'king' ? 7 : 5); }
     },
     // いまの状態の説明（1行）
     line: missText => {

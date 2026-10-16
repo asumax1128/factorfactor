@@ -15,6 +15,7 @@ module.exports=function project(n){
   if(x.type==='Identifier'&&x.name==='legacyV')x.name='v';
   if(x.type==='Identifier'&&['dev','devError'].includes(x.name))return {type:'BooleanLiteral',value:false};
   if(x.type==='Identifier'&&x.name==='devSup')return {type:'Identifier',name:'sup'};
+  if(x.type==='ObjectProperty'&&x.key?.name==='checkpointRotation')return null;
   if(x.type==='ObjectProperty'&&['sessionInfo','recovery'].includes(x.key?.name)&&(x.key?.name==='recovery'||JSON.stringify(x.value).includes('devError')))return null;
   // Start wrapper: retain its original legacy branch, including actual reset and
   // timestamps, rather than substituting a remembered/baseline implementation.
