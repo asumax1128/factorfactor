@@ -9,6 +9,13 @@
 - 記録するphaseは`received`（受信者のpendに積んだ）と`covered`（実際にpendを減らした量）のみ。**着弾(landed)・相殺・防御・個人回復は未実装で、claimしない。** 読取集計器`c-contribution-next.cjs`は`received`を計上せず不整合として拒否する（接続は次作業）。
 - 残る限界：evの内容（from・dmg）自体は参加者が書くため、`from`の本人性と数値は未検証（候補ルールは`$to/$id`の新規書込のみ`players`所属で許可）。シールド使用はクライアント揮発状態で管理側は知らず、blockedは発行しない。workerループ未接続（テストが`apply/finish`を直接呼ぶ）。本番構成は未承認。
 
+## C操作ログ 段階(a)（作業ブランチ `claude/c-input-log`）
+
+- 追加：Emulator専用の候補ルール断片（`firebase/next-authority.fragment.rules.json`の`cInput/$code/$gid/$uid/$seq`）と、管理側の検証・封印`server/next-authority/c-input.cjs`。既存`ev/thp/ko/result`のルールとCの画面・勝敗は未変更。クライアントはまだこのログを書かない（接続は次段階）。
+- ルールが保証：本人のuid配下にだけ追記（`auth.uid===$uid`）、ゲームの`players`所属・`mode=C`・`phase=play`・`gid`一致・CPU/bot不在・開始後・`result`未書込・authority`final`未確定、上書き/削除不可、`seq`は0から連続（`n`==キー）、固定形式（answer:`q`＋因数ID2つ／special:`big|heal|shield`）、余計なフィールド拒否。
+- 時刻：`sat`はサーバー時刻と一致(`===now`)を強制。`ct`は参照用の自己申告で、`now-120秒〜now+3秒`に制限（遅延した正当な書込は通る）し、順序や確定には使わない。`sat`は同一人物内で非減少。
+- 保証できないこと：回答の正誤・ダメージ量・因数の実在は未検証。別プレイヤー間の順序は「サーバー到着順」で、行動順ではない（遅延した書込は後から届く）。ホストは`state.players`を変更できるため、ルールは現在値を読む（writerは開始時に固定）。`finish`はサーバー側のみ。`received/covered`は削除せず、正式貢献としても扱わない。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
