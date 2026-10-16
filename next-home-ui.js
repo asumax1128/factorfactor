@@ -1235,8 +1235,8 @@
       if (!state.hiddenOwned || !presentationKey) return;
       let active = true;
       if (presentationStore) {
-        presentationStore.seen().then((seen) => {
-          if (active && !seen) setScene(true);
+        (presentationStore.claimAutomatic ? presentationStore.claimAutomatic() : presentationStore.seen().then((seen) => !seen)).then((claimed) => {
+          if (active && claimed) setScene(true);
         }).catch(() => {
           if (active) setPresentationError("\u6F14\u51FA\u306E\u95B2\u89A7\u72B6\u6CC1\u3092\u53D6\u5F97\u3067\u304D\u307E\u305B\u3093\u3002\u518D\u8996\u8074\u306F\u5229\u7528\u3067\u304D\u307E\u3059\u3002");
         });

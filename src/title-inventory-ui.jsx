@@ -12,7 +12,7 @@ export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=
  const [presentationError,setPresentationError]=React.useState('');
  const presentationKey=accountKey?'fxf_title_presentation_v1:'+accountKey:null;
  React.useEffect(()=>{if(!state.hiddenOwned||!presentationKey)return;let active=true;
-  if(presentationStore){presentationStore.seen().then(seen=>{if(active&&!seen)setScene(true)}).catch(()=>{if(active)setPresentationError('演出の閲覧状況を取得できません。再視聴は利用できます。')});}
+  if(presentationStore){(presentationStore.claimAutomatic?presentationStore.claimAutomatic():presentationStore.seen().then(seen=>!seen)).then(claimed=>{if(active&&claimed)setScene(true)}).catch(()=>{if(active)setPresentationError('演出の閲覧状況を取得できません。再視聴は利用できます。')});}
   else {let seen=false;try{seen=localStorage.getItem(presentationKey)==='seen'}catch(e){}if(!seen)setScene(true);}
   return()=>{active=false};
  },[state.hiddenOwned,presentationKey,presentationStore]);

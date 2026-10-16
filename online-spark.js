@@ -3155,7 +3155,11 @@
       function create({ db, account }) {
         if (!(account == null ? void 0 : account.key)) throw Error("REGISTERED_ACCOUNT_REQUIRED");
         const ref = db.ref(`${ROOT}/presentations/${account.key}/factor_factor`);
-        return { async seen() {
+        return { async claimAutomatic() {
+          await ref.get();
+          const result = await ref.transaction((old) => old ? void 0 : { seen: true, at: { ".sv": "timestamp" } }, void 0, false);
+          return result.committed;
+        }, async seen() {
           return !!(await ref.get()).val();
         }, async acknowledge() {
           await tx(ref, (old) => old || { seen: true, at: { ".sv": "timestamp" } });

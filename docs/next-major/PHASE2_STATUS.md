@@ -154,3 +154,9 @@ Wardrobeの既定表示を既存B改良版へ統一。旧AccountBar／AccountPan
 CIと同じSDK工程を通して実行し、後続 `weekly-run-emulator.cjs:42` が旧accounts領域の空状態を検査する際、追加した画面テストの `accounts/ar` fixtureが残って失敗することを再現した。新画面SDKテストをdemo Emulatorの前後clearで独立化。後続の「本来書き込まない領域」のassertionは維持。修正後の画面SDK→旧週間SDKは両方成功した。本番データの削除ではなく、明示demoプロジェクト・127.0.0.1の試験データのみ。
 
 4画面幅は2つの実クライアントをresizeして確認する形に整理し、認証／14MBアプリの重複起動を削減した。2端末復帰・4幅・実ドラッグ・称号profileのassertionは保持し、制限時間やテストtimeoutを延長していない。
+
+### 隠し称号の同時初回演出
+
+既存のimmutable seen receiptを、自動演出の開始前にtransactionで一度だけ確保する `claimAutomatic` を追加。2本人端末が同時に開いても開始権は1台。途中で閉じても自動枠は消費するが、再視聴・skip・mute・reduced-motionは維持し、付与処理とは分離する。既存候補ルールと同じseen/at形式で、新たなルール変更・移行は不要。
+
+実SDKで2端末同時claimがtrue1件・false1件、再claim拒否、既存認可／不変receiptを確認。実UIで別端末の自動再演なし・手動再視聴・旧stats／装備不変が成功。
