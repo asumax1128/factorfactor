@@ -31,7 +31,7 @@ function create({database:db}){
  async function room(code){if(!CODE.test(code))throw Error('BAD_ROOM');const s=(await get(ref(db,`games/factor/rooms/${code}/state`))).val();if(!s||s.phase!=='play'||s.mode!=='C'||!KEY.test(s.gid||'')||!Array.isArray(s.players)||new Set(s.players).size!==4||!s.tm)throw Error('NOT_AN_ACTIVE_C_GAME');return s}
  async function open(code){
   const s=await room(code),r=gameRef(db,code,s.gid);
-  await Store.atomic(r,old=>old?.ids?old:{code,gid:s.gid,ids:s.players,tm:s.tm,diff:s.diff||'easy',handi:s.handi||{},startAt:s.startAt,sourceHash,revision:0,log:{},applied:{},recv:Object.fromEntries(s.players.map(u=>[u,{pend:[],ojNext:0}]))});
+  await Store.atomic(r,old=>old?.ids?old:{code,gid:s.gid,mode:'C',ids:s.players,tm:s.tm,diff:s.diff||'easy',handi:s.handi||{},startAt:s.startAt,sourceHash,revision:0,log:{},applied:{},recv:Object.fromEntries(s.players.map(u=>[u,{pend:[],ojNext:0}]))});
   return{s,r};
  }
  // Apply one event exactly once. Duplicates return the original revision unchanged.

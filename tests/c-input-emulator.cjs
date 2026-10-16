@@ -58,7 +58,7 @@ const TS=firebase.database.ServerValue.TIMESTAMP,pause=ms=>new Promise(r=>setTim
    await set(ref(db,root+code+'/'+gid+'/'+Cc.uid+'/5'),{n:5,k:'answer',q:5,a:['x','y'],ct:1,sat:2});v=await r.read(code,gid);a.equal(v.consistent,false);a.equal(v.anomalies[0].problem,'GAP_OR_MISNUMBERED');a.equal(v.players[Cc.uid].count,2,'only the contiguous prefix is ever counted');
    await set(ref(db,root+code+'/'+gid+'/'+Cc.uid+'/5'),null);
    const lastSat=Math.max(...v.ordered.map(e=>e.sat)),fin=await w.finish(code,gid,lastSat-1);
-   const sealed=await r.seal(code,gid);a.equal(sealed.endAt,lastSat-1);a.equal(sealed.excludedAfterEnd>=1,true);a.match(sealed.digest,/^[0-9a-f]{64}$/);
+   const sealed=await r.seal(code,gid);a.equal(sealed.endAt,lastSat-1);a.equal(sealed.excludedAfterEnd>=1,true);a.equal((await r.verifySeal(code,gid)).ok,true);a.match(sealed.digest,/^[0-9a-f]{64}$/);
    a.deepEqual(await r.seal(code,gid),sealed,'seal is idempotent');
    a.equal(fin.revision,0);
   });
