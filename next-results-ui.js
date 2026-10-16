@@ -1383,7 +1383,7 @@
         return on ? /* @__PURE__ */ React.createElement("div", { className: "nbr-confetti", "aria-hidden": "true" }, Array.from({ length: 10 }, (_, i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { left: i * 9.7 + 4 + "%", background: TONE[i % 4], animationDelay: i * 70 + "ms" } }))) : null;
       }
       function Tiles({ tiles }) {
-        return tiles.length > 0 ? /* @__PURE__ */ React.createElement("section", { className: "nbr-tiles", "aria-label": "\u3042\u306A\u305F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement("h3", null, "\u3042\u306A\u305F\u306E\u6210\u7E3E"), /* @__PURE__ */ React.createElement("div", null, tiles.map((t) => /* @__PURE__ */ React.createElement("div", { className: "nbr-tile", key: t.id }, /* @__PURE__ */ React.createElement("small", null, t.label), /* @__PURE__ */ React.createElement("b", { className: t.text ? "num nbr-tt" : "num" }, t.value), /* @__PURE__ */ React.createElement("small", null, t.unit))))) : null;
+        return tiles.length > 0 ? /* @__PURE__ */ React.createElement("section", { className: "nbr-tiles", "aria-label": "\u3042\u306A\u305F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement("h3", null, "\u3042\u306A\u305F\u306E\u6210\u7E3E"), /* @__PURE__ */ React.createElement("div", null, tiles.map((t) => /* @__PURE__ */ React.createElement("div", { className: "nbr-tile", key: t.id }, /* @__PURE__ */ React.createElement("small", null, t.label), /* @__PURE__ */ React.createElement("b", { className: t.text ? "num nbr-tt" : "num" }, t.value), /* @__PURE__ */ React.createElement("small", null, t.unit), t.note && /* @__PURE__ */ React.createElement("small", { className: "nbr-tn" }, t.note))))) : null;
       }
       function Highlights({ items, title = "\u8A66\u5408\u306E\u30CF\u30A4\u30E9\u30A4\u30C8" }) {
         return items.length > 0 ? /* @__PURE__ */ React.createElement("section", { className: "nbr-hl", "aria-label": title }, /* @__PURE__ */ React.createElement("h3", null, title), items.map((h) => /* @__PURE__ */ React.createElement("article", { className: "nbr-card", key: h.id }, ICON[h.id] || ICON.big, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h4", null, h.title, h.tag && /* @__PURE__ */ React.createElement("span", { className: "num" }, h.tag)), /* @__PURE__ */ React.createElement("p", null, h.detail))))) : null;
@@ -1430,10 +1430,13 @@
         const tiles = [{ id: "score", label: "\u5F97\u70B9", value: i.score, unit: "\u70B9" }, { id: "caught", label: "\u6B63\u89E3\u6570", value: i.caught, unit: "\u554F" }];
         if (maxCombo !== null) tiles.push({ id: "combo", label: "\u6700\u5927\u30B3\u30F3\u30DC", value: maxCombo, unit: "" });
         if (perfect !== null) tiles.push({ id: "perfect", label: "Perfect", value: perfect, unit: "\u56DE" });
-        if (misses !== null) tiles.push({ id: "miss", label: "\u30DF\u30B9", value: misses, unit: "\u56DE\uFF08\u8AA4\u7B54\u30FB\u6642\u9593\u5207\u308C\uFF09" });
+        if (misses !== null) tiles.push({ id: "miss", label: "\u30DF\u30B9", value: misses, unit: "\u56DE", note: "\u8AA4\u7B54\u30FB\u6642\u9593\u5207\u308C" });
         if (fin(i.elapsedSeconds)) tiles.push({ id: "time", label: "\u30D7\u30EC\u30A4\u6642\u9593", value: clock(i.elapsedSeconds), text: true, unit: "" });
         if (i.label) tiles.push({ id: "difficulty", label: "\u96E3\u6613\u5EA6", value: i.label, text: true, unit: "" });
-        if (i.levelText) tiles.push({ id: "level", label: "\u5230\u9054\u30EC\u30D9\u30EB", value: i.levelText, text: true, unit: "" });
+        if (i.levelText) {
+          const [lv, ...name] = String(i.levelText).split(/\s+/);
+          tiles.push({ id: "level", label: "\u5230\u9054\u30EC\u30D9\u30EB", value: lv, text: true, unit: "", ...name.length ? { note: name.join(" ") } : {} });
+        }
         const hl = [];
         if (cleared && fin(i.elapsedSeconds)) hl.push({ id: "clear", title: "\u30AF\u30EA\u30A2\u30BF\u30A4\u30E0", tag: clock(i.elapsedSeconds), detail: fin(i.clearTimeBonus) ? `\u30BF\u30A4\u30E0\u30DC\u30FC\u30CA\u30B9 ${i.clearTimeBonus >= 0 ? "+" : ""}${i.clearTimeBonus}\u70B9` : `${i.clearCount}\u554F\u3092\u9054\u6210` });
         if (maxCombo !== null && maxCombo >= 2) hl.push({ id: "combo", title: `\u6700\u5927${maxCombo}\u30B3\u30F3\u30DC`, tag: "", detail: "\u3053\u306E\u6311\u6226\u3067\u9023\u7D9A\u3057\u3066\u6B63\u89E3\u3057\u305F\u6700\u9577\u8A18\u9332" });

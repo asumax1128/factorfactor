@@ -77,3 +77,29 @@ main[data-next-legacy-spectator]{position:fixed;inset:0;z-index:80;overflow-y:au
  .nbr-review{width:auto;margin:0 34px 20px;padding:0 24px}
 }
 @media (prefers-reduced-motion:reduce){.nbr-hero .nbr-word,.nbr-confetti i{animation:none!important}.nbr-confetti{display:none}}
+
+/* ===== 通常ソロ専用の調整（共有コンポーネント ExpGain 等は変更せず、ソロ結果の中だけをダーク配色へ） ===== */
+.nbr[data-kind=S] .nbr-tile{min-width:0;overflow-wrap:anywhere}
+.nbr[data-kind=S] .nbr-tn{font-size:11px;color:var(--muted);line-height:1.35}
+.nbr[data-kind=S] .nbr-tt{font-size:clamp(15px,4.4cqw,18px)!important}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl{background:#192b38!important;border:1px solid #324354;padding:12px!important;margin:0!important}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl{background:#0b141e!important;border:1px solid #324354}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl>div:first-child{color:#9daebd!important}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl>div:first-child span:last-child{color:#72dfce!important}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl>div:last-child>span{color:#e8f0f5!important}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl>div:last-child>div{background:#101720!important;border:1px solid #3b5364}
+.nbr[data-kind=S] .nbr-growslot>.rounded-xl>.rounded-xl>div:last-child>div>div{background:linear-gradient(90deg,#3fb5a3,#72dfce)!important}
+/* ランキング欄とボタン（.nbr-act はソロ結果の下段。従来の青い窓・オレンジのボタンをダークネイビー＋ティールへ） */
+.nbr-act.v7-result{background:#101720;border:1px solid #324354;border-radius:12px;box-shadow:none;color:#e8f0f5;padding:16px}
+.nbr-act .v7-go{background:linear-gradient(#72dfce,#52c2b0);color:#07201c;box-shadow:none;border-radius:8px;min-height:50px;font-size:16px}
+.nbr-act .v7-go:active{transform:none;filter:brightness(.95)}
+.nbr-act .v7-btn-w{background:#192430;border:1px solid #324354;color:#e8f0f5;border-radius:8px;min-height:44px}
+.nbr-act .v7-go:focus-visible,.nbr-act .v7-btn-w:focus-visible,.nbr-act input:focus-visible,.nbr-act button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.nbr-act [data-net]{background:#192b38!important;color:#e8f0f5!important;border:1px solid #456267;border-left-width:4px;font-family:BBody,'Yu Gothic',sans-serif}
+.nbr-act [data-net] div{color:inherit!important}
+.nbr-act [data-net=pending]{border-color:#72dfce}
+.nbr-act [data-net=sending]{border-color:#83c8ff;color:#cfe0e6!important}
+.nbr-act [data-net=sent]{border-color:#72dfce;color:#72dfce!important}
+.nbr-act [data-net=error]{border-color:#ff8a75;color:#ffb59c!important}
+.nbr-act [data-net] .v7-input{background:#0b141e;color:#e8f0f5;border:1px solid #324354}
+.nbr-act [data-net] button:not(.v7-go){color:#9daebd!important}

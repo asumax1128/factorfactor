@@ -34,7 +34,7 @@ function Stack({r,players}){
 }
 function Table({rows,players}){const D=players.length===2?Duel:Stack;return <>{rows.map(r=><D key={r.id} r={r} players={players}/>)}</>}
 function Confetti({on}){return on?<div className="nbr-confetti" aria-hidden="true">{Array.from({length:10},(_,i)=><i key={i} style={{left:(i*9.7+4)+'%',background:TONE[i%4],animationDelay:(i*70)+'ms'}}/>)}</div>:null}
-function Tiles({tiles}){return tiles.length>0?<section className="nbr-tiles" aria-label="あなたの成績"><h3>あなたの成績</h3><div>{tiles.map(t=><div className="nbr-tile" key={t.id}><small>{t.label}</small><b className={t.text?'num nbr-tt':'num'}>{t.value}</b><small>{t.unit}</small></div>)}</div></section>:null}
+function Tiles({tiles}){return tiles.length>0?<section className="nbr-tiles" aria-label="あなたの成績"><h3>あなたの成績</h3><div>{tiles.map(t=><div className="nbr-tile" key={t.id}><small>{t.label}</small><b className={t.text?'num nbr-tt':'num'}>{t.value}</b><small>{t.unit}</small>{t.note&&<small className="nbr-tn">{t.note}</small>}</div>)}</div></section>:null}
 function Highlights({items,title='試合のハイライト'}){return items.length>0?<section className="nbr-hl" aria-label={title}><h3>{title}</h3>{items.map(h=><article className="nbr-card" key={h.id}>{ICON[h.id]||ICON.big}<div><h4>{h.title}{h.tag&&<span className="num">{h.tag}</span>}</h4><p>{h.detail}</p></div></article>)}</section>:null}
 function GrowthSection({children}){return children?<section className="nbr-grow" aria-label="成長の記録"><h3>成長の記録</h3><div className="nbr-growslot">{children}</div></section>:null}
 function Count({C,to,plain}){return C&&!plain?<C from={0} to={to} ms={900}/>:<>{to}</>}

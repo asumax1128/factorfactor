@@ -20,10 +20,10 @@ function build(i){
  const tiles=[{id:'score',label:'得点',value:i.score,unit:'点'},{id:'caught',label:'正解数',value:i.caught,unit:'問'}];
  if(maxCombo!==null)tiles.push({id:'combo',label:'最大コンボ',value:maxCombo,unit:''});
  if(perfect!==null)tiles.push({id:'perfect',label:'Perfect',value:perfect,unit:'回'});
- if(misses!==null)tiles.push({id:'miss',label:'ミス',value:misses,unit:'回（誤答・時間切れ）'});
+ if(misses!==null)tiles.push({id:'miss',label:'ミス',value:misses,unit:'回',note:'誤答・時間切れ'});
  if(fin(i.elapsedSeconds))tiles.push({id:'time',label:'プレイ時間',value:clock(i.elapsedSeconds),text:true,unit:''});
  if(i.label)tiles.push({id:'difficulty',label:'難易度',value:i.label,text:true,unit:''});
- if(i.levelText)tiles.push({id:'level',label:'到達レベル',value:i.levelText,text:true,unit:''});
+ if(i.levelText){const[lv,...name]=String(i.levelText).split(/\s+/);tiles.push({id:'level',label:'到達レベル',value:lv,text:true,unit:'',...(name.length?{note:name.join(' ')}:{})})}
  const hl=[];
  if(cleared&&fin(i.elapsedSeconds))hl.push({id:'clear',title:'クリアタイム',tag:clock(i.elapsedSeconds),detail:fin(i.clearTimeBonus)?`タイムボーナス ${i.clearTimeBonus>=0?'+':''}${i.clearTimeBonus}点`:`${i.clearCount}問を達成`});
  if(maxCombo!==null&&maxCombo>=2)hl.push({id:'combo',title:`最大${maxCombo}コンボ`,tag:'',detail:'この挑戦で連続して正解した最長記録'});

@@ -2738,7 +2738,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     const netBlock = (<>
           {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
           {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
-            <div className="rounded-xl p-3 mb-3 text-left" style={{ background: '#fff', color: 'var(--v7-ink)' }}>
+            <div className="rounded-xl p-3 mb-3 text-left" data-net={netSubmitState} style={{ background: '#fff', color: 'var(--v7-ink)' }}>
               {(netSubmitState === 'pending' || netSubmitState === 'error') && (
                 <div>
                   <div className="text-xs font-bold mb-2 text-center">
@@ -2784,14 +2784,14 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           </div>
         );
     return (
-      <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center py-6 px-4" style={{ background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+      <div className="v7-battle min-h-screen w-full flex flex-col items-center justify-center py-6 px-4" style={{ background: skinBg(V7_NIGHT), fontFamily: "'Zen Kaku Gothic New', sans-serif", ...(soloModel ? { justifyContent: 'flex-start', paddingTop: 'max(6.5rem, calc(env(safe-area-inset-top) + 6rem))' } : {}) }}> {/* 新リザルトは上部にLEVEL UP帯の通り道を空ける */}
         <FontImport />
         {soloModel ? (<>
           <div className="w-full" style={{ maxWidth: 'min(1120px, 100%)' }}>
             <NR.SoloSummary model={soloModel} growth={expBlock || null} CountUp={CountUp}
               onLearn={soloModel.learnButton && onMode ? () => { uiSnd('ok'); onMode('learn'); } : null} />
           </div>
-          <div className="v7-wnd v7-result v7-open" style={{ marginTop: 12 }}>
+          <div className="nbr-act v7-result v7-open" style={{ marginTop: 12 }}>
             {netBlock}
             {actionBlock}
           </div>
