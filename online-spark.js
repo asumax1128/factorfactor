@@ -3003,6 +3003,53 @@
     }
   });
 
+  // src/friend-raid-next.cjs
+  var require_friend_raid_next = __commonJS({
+    "src/friend-raid-next.cjs"(exports, module) {
+      "use strict";
+      var { enabled } = require_weekly_run_next();
+      var { tx } = require_online_spark_client();
+      var ROOT = "games/factor/friendRaidNextV1";
+      var MATCHES = "games/factor/onlineSparkV1/matches";
+      var powers = Object.freeze({ easy: { label: "\u3088\u308F\u3044", k: 0.7, enabled: true }, normal: { label: "\u3075\u3064\u3046", k: 1, enabled: true }, hard: { label: "\u3064\u3088\u3044", k: 1.4, enabled: true }, oni: { label: "\u9B3C", k: null, enabled: false } });
+      function official(m, account) {
+        var _a, _b, _c;
+        const members = Object.values((m == null ? void 0 : m.members) || {}), r = m == null ? void 0 : m.receipt;
+        if (members.some((p) => !p || typeof p !== "object")) return false;
+        return !!m && m.phase === "settled" && !m.opponent && !m.bot && !m.practice && !m.selfGhost && ["A", "B"].includes(m.mode) && ["easy", "normal"].includes(m.difficulty) && members.length === 2 && new Set(members.map((p) => p.uid)).size === 2 && new Set(members.map((p) => p.key)).size === 2 && members.every((p) => /^a[a-z0-9_]+$/.test(p.key || "") && typeof p.uid === "string" && p.uid !== "_ghost") && members.some((p) => p.key === account) && ((_a = m.game) == null ? void 0 : _a.id) === m.id && !!m.game.result && !!r && members.every((p) => {
+          var _a2;
+          return (_a2 = r.players) == null ? void 0 : _a2[p.key];
+        }) && (m.game.result.draw === true || members.some((p) => p.uid === m.game.result.winner)) && m.game.result.winner === ((_b = r.result) == null ? void 0 : _b.winner) && !!m.game.result.draw === !!((_c = r.result) == null ? void 0 : _c.draw);
+      }
+      async function qualify({ db, account }) {
+        if (!(account == null ? void 0 : account.key)) throw Error("REGISTERED_ACCOUNT_REQUIRED");
+        const q = db.ref(`${ROOT}/eligibility/${account.key}`), saved = (await q.get()).val();
+        if ((saved == null ? void 0 : saved.version) === 1 && Object.values(saved.matches || {}).length === 10) return saved;
+        const p = (await db.ref(`games/factor/onlineSparkV1/profiles/${account.key}`).get()).val(), ids = Object.keys((p == null ? void 0 : p.processed) || {}).filter((id) => p.processed[id] === true).sort().reverse().slice(0, 30), valid = [];
+        for (let i = 0; i < ids.length && valid.length < 10; i += 5) {
+          const batch = await Promise.all(ids.slice(i, i + 5).map(async (id) => {
+            try {
+              const m = (await db.ref(`${MATCHES}/${id}`).get()).val();
+              return (m == null ? void 0 : m.id) === id && official(m, account.key) ? id : null;
+            } catch {
+              return null;
+            }
+          }));
+          for (const id of batch) if (id && !valid.includes(id)) valid.push(id);
+        }
+        if (valid.length < 10) throw Error(`\u516C\u5F0F\u5BFE\u4EBA\u622610\u6226\u306E\u78BA\u5B9A\u8A18\u9332\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\uFF08\u78BA\u8A8D\u6E08\u307F${valid.length}\u6226\uFF09\u3002\u65E7\u901A\u7B97\u30FBCPU\u30FB\u81EA\u5DF1\u30B4\u30FC\u30B9\u30C8\u306F\u52A0\u7B97\u3057\u307E\u305B\u3093\u3002`);
+        await tx(q, (old) => old || { version: 1, matches: valid.slice(0, 10), at: { ".sv": "timestamp" } });
+        return (await q.get()).val();
+      }
+      function settings(state) {
+        const p = powers[state.friendPower || state.power || "normal"];
+        if (!(p == null ? void 0 : p.enabled) || state.friendPower && state.power && state.friendPower !== state.power) throw Error("FRIEND_DIFFICULTY_NOT_APPROVED");
+        return p;
+      }
+      module.exports = { ROOT, enabled, official, qualify, powers, settings };
+    }
+  });
+
   // src/title-presentation-next.cjs
   var require_title_presentation_next = __commonJS({
     "src/title-presentation-next.cjs"(exports, module) {
@@ -3172,6 +3219,7 @@
   window.EventHost = require_event_host_client();
   window.DailyV2 = require_daily_client();
   window.RoomB2 = require_room_b2_client();
+  window.FriendRaidNext = require_friend_raid_next();
   window.TitlePresentationNext = require_title_presentation_next();
   window.TournamentB2 = require_tournament_b2();
   window.WeeklyRunNext = require_weekly_run_next();

@@ -4917,7 +4917,8 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
   const list = Object.entries(players).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).slice(0, 4);
   const boss = bossOf(state.boss || 'dragon', state); const BT = traitOf(boss.id);
   const minutes = state.minutes || 3, power = state.power || 'normal';
-  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * RAID_POWER[power].k * (BT.hpK || 1));
+  const powers=state.friendPolicyVersion===1 ? window.FriendRaidNext.powers : RAID_POWER;
+  const hp = Math.round(Math.max(1, list.length) * RAID_PER_MIN * minutes * powers[power].k * (BT.hpK || 1));
   const myRole = (players[me] && players[me].role) || 'atk';
   const [info, setInfo] = useState(myRole);
   const cnt = id => list.filter(([k, p]) => (p.role || 'atk') === id).length;
@@ -4934,7 +4935,7 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
         <div style={{ fontSize: '3.4rem', lineHeight: 1 }}><MonsterPic id={boss.id} icon={boss.icon} size="4.6rem" /></div>
         <div className="min-w-0">
           <div className="v7-name" style={{ color: boss.color }}>{boss.name} <span className="v7-chip align-middle" style={{ background: boss.color }}>{BT.tag}</span></div>
-          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {RAID_POWER[power].label}</div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>体力 {hp.toLocaleString()} ・ 制限時間 {minutes}分 ・ 強さ {powers[power].label}</div>
           {z && <div className="text-[11px] font-black" style={{ color: '#8d6e63' }}>🔨 {partsOf(state).find(p => p.id === z.part).name}をこわすと「{z.text}」</div>}
         </div>
       </div>
@@ -4943,7 +4944,7 @@ function FriendRaidLobby({ code, isHost, spectator, players, state, me, onRule, 
         <div className="grid grid-cols-5 gap-1.5 mb-2">{BOSSES.map(b => { const on = (state.boss || 'dragon') === b.id; return <button key={b.id} onClick={() => onRule({ boss: b.id })} className="v7-cur rounded-xl py-1.5 text-[11px] font-black" style={{ background: on ? b.color : '#fff', color: on ? '#fff' : COLORS.ink, border: `1.5px solid ${on ? b.color : 'var(--v7-line)'}` }}><div className="text-xl"><MonsterPic id={b.id} icon={b.icon} size="2.2rem" /></div>{traitOf(b.id).tag}</button>; })}</div>
         <div className="grid grid-cols-2 gap-2">
           <Seg items={[[2, '2分'], [3, '3分'], [5, '5分']]} cur={minutes} onPick={v => onRule({ minutes: v })} />
-          <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />
+          {state.friendPolicyVersion===1 ? <div role="group" aria-label="フレンドレイドの難易度" className="next-friend-powers">{Object.entries(powers).map(([id,p])=><button key={id} disabled={!p.enabled} aria-pressed={power===id} onClick={()=>onRule({power:id,friendPower:id})}>{p.label}{!p.enabled?'（調整中）':''}</button>)}</div> : <Seg items={Object.entries(RAID_POWER).map(([k, v]) => [k, v.label])} cur={power} onPick={v => onRule({ power: v })} />}
         </div>
       </div>)}
     </Card>
@@ -8643,6 +8644,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     setErr('');
     if(kind?.takeover){await joinRoom(kind.takeover,false);return;}
     const tour = kind === true || kind === 'tour', raid = kind === 'raid', fraid = kind === 'fraid';
+    const friendNext=fraid&&window.FriendRaidNext?.enabled(FB.db,window.location);
+    if(friendNext){try{await window.FriendRaidNext.qualify({db:FB.db,account:acct})}catch(e){setErr(e.message);return;}}
     let delegated=false;
     if((tour||raid)&&acct&&FB.db){try{delegated=!(await FB.db.ref(`games/factor/teachers/${acct.key}`).get()).exists();}catch(e){setErr('開催権限を確認できませんでした');return;}}
     for (let t = 0; t < 12; t++) {
@@ -8653,7 +8656,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       if (res.committed) {
         if(delegated){try{await FB.db.ref(`games/factor/eventHostRooms/${acct.key}/${c}`).set({at:fbNow()});}catch(e){setErr('開催登録を保存できませんでした。再試行してください');return;}}
         await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer', 'fx'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
-        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: !tour&&['A','B','C'].includes(preferredMode)?preferredMode:'B', diff: 'easy', tour: !!tour }).catch(() => {});
+        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, ...(friendNext?{friendPolicyVersion:1,friendPower:'normal'}:{}), boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: !tour&&['A','B','C'].includes(preferredMode)?preferredMode:'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
         return;
       }
@@ -8914,6 +8917,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   /* ---- クラス協力レイド ---- */
   async function raidStart(hp) {
     const st = state || {};
+    if(st.friendPolicyVersion===1){try{window.FriendRaidNext.settings(st)}catch(e){setErr('鬼の難易度は調整中です');return;}}
     const startAt = fbNow() + 3500;
     await fref(`rooms/${code}/rd`).remove().catch(() => {});
     // 班対抗：参加した順に分ける
@@ -8922,7 +8926,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     await fref(`rooms/${code}/tb`).remove().catch(() => {});
     await fref(`rooms/${code}/fx`).remove().catch(() => {});
     const roles = {}; if (st.friend) Object.entries(players).forEach(([k, p]) => { if (p && p.name) roles[k] = ROLES[p.role] ? p.role : 'atk'; });
-    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, ...(st.friend ? { friend: true, roles } : {}), boss: st.boss || 'dragon', ...(st.tname ? { tname: st.tname } : {}), minutes: st.minutes || 3, power: st.power || 'normal', teamCount: tc, teams, gid: 'r' + Date.now(), hpMax: hp, startAt: startAt + 1500, endAt: startAt + 1500 + (st.minutes || 3) * 60000 });
+    await fref(`rooms/${code}/state`).set({ phase: 'raid', raid: true, ...(st.friend ? { friend: true, roles, ...(st.friendPolicyVersion===1?{friendPolicyVersion:1,friendPower:st.friendPower||st.power||'normal'}:{}) } : {}), boss: st.boss || 'dragon', ...(st.tname ? { tname: st.tname } : {}), minutes: st.minutes || 3, power: st.power || 'normal', teamCount: tc, teams, gid: 'r' + Date.now(), hpMax: hp, startAt: startAt + 1500, endAt: startAt + 1500 + (st.minutes || 3) * 60000 });
   }
   /* ---- 大会（トーナメント） ---- */
   async function tourStart() {
@@ -9029,7 +9033,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   // クラス協力レイド
   if (state && state.phase === 'raid') {
     if (state.friend && !spectator) return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} isHost={isHost} onLeave={() => leave()}
-      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, friend: true, boss: state.boss, minutes: state.minutes, power: state.power })} />;
+      onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, friend: true, ...(state.friendPolicyVersion===1?{friendPolicyVersion:1,friendPower:state.friendPower||state.power}:{}), boss: state.boss, minutes: state.minutes, power: state.power })} />;
     if (isHost || spectator) return shell(<RaidBoard code={code} state={state} isHost={isHost} onLeave={() => leave()}
       onAgain={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', raid: true, boss: state.boss, ...(state.tname ? { tname: state.tname } : {}), minutes: state.minutes, power: state.power, teamCount: state.teamCount || 0 })} />, true);
     return <RaidClassPlay key={state.gid} code={code} state={state} acct={acct} who={who} onLeave={() => leave()} />;

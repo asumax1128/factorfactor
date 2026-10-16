@@ -19,6 +19,7 @@ function functions(html) {
     code: false,
   }).ast;
   const normalise = (n) => {
+    if(n?.type==='FunctionDeclaration'&&n.id?.name==='FriendRaidLobby')require('./friend-legacy-projection.cjs')(n);
     if(n?.type==='FunctionDeclaration'&&['TourBoard','TourMatchCard'].includes(n.id?.name))require('./tournament-legacy-projection.cjs')(n);
     if(n?.type==='FunctionDeclaration'&&n.id?.name==='WeeklyRaidApp')require('./weekly-legacy-projection.cjs')(n);
     if (!n || typeof n !== "object") return;
