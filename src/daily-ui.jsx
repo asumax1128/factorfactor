@@ -2,20 +2,33 @@
  const {useState,useEffect,useRef}=React,D=root.DailyV2.model,P=root.DailyV2.Play;
  function App({acct,onExit,onMode,rankingsOnly=false,renderMenu}){
   const [client]=useState(()=>acct?.key?root.DailyV2.create({db:H.FB.db,uid:H.FB.uid,account:acct}):null);
-  const [status,setStatus]=useState(null),[day,setDay]=useState(null),[difficulty,setDifficulty]=useState('easy'),[rows,setRows]=useState([]),[err,setErr]=useState(''),[busy,setBusy]=useState(false),[record,setRecord]=useState(null);
+  const [status,setStatus]=useState(null),[day,setDay]=useState(null),[difficulty,setDifficulty]=useState('easy'),[rows,setRows]=useState([]),[err,setErr]=useState(''),[busy,setBusy]=useState(false),[record,setRecord]=useState(null),[loadingRows,setLoadingRows]=useState(false),[retry,setRetry]=useState(0);
   const [game,setGame]=useState(null),[time,setTime]=useState(0),[muted,setMuted]=H.useGameMute(),[feedback,setFeedback]=useState(null),[attempt,setAttempt]=useState(null);
   const sound=H.useBattleSound(muted);
   const ref=useRef(null),saved=useRef(false),pending=useRef(null),feedbackTimer=useRef(null),origin=useRef(0),startClock=useRef(0);
   const refresh=async()=>{if(!client)return;const s=await client.status();setStatus(s);setDay(d=>d===null?s.day:status?.day!==s.day?s.day+(d===status?.day-1?-1:0):d);};
   useEffect(()=>{if(!status)return;const ms=(status.day+1)*D.DAY-D.SHIFT-status.now;const timer=setTimeout(()=>refresh().catch(e=>setErr(e.message)),Math.max(100,ms+100));return()=>clearTimeout(timer)},[status?.now]);
   useEffect(()=>{refresh().then(()=>!rankingsOnly&&client?.awards()).catch(e=>setErr(e.message));return()=>clearTimeout(feedbackTimer.current)},[]);
-  useEffect(()=>{if(client&&day!==null){let active=true;client.rankings(day,difficulty).then(r=>active&&setRows(r)).catch(e=>active&&setErr(e.message));return()=>{active=false}}},[day,difficulty,record]);
+  useEffect(()=>{if(client&&day!==null){let active=true;setLoadingRows(true);client.rankings(day,difficulty).then(r=>{if(active){setRows(r);setErr('');setLoadingRows(false)}}).catch(e=>{if(active){setErr(e.message);setLoadingRows(false)}});return()=>{active=false}}},[day,difficulty,record,retry]);
   const done=async(s,a)=>{if(saved.current)return;saved.current=true;pending.current={s,a};try{const r=await client.finish(a,s);setRecord(r);setErr('');await refresh();await H.onCompleted?.(acct,a,s);pending.current=null;}catch(e){saved.current=false;setErr('記録を送信できませんでした。再試行してください：'+e.message)}};
   useEffect(()=>{if(!attempt||!game||game.done)return;const t=setInterval(()=>{const now=startClock.current+performance.now()-origin.current;setTime(now);if(now<startClock.current)return;const n=P.tick(ref.current,now);ref.current=n;setGame(n);if(n.done)done(n,attempt)},40);return()=>clearInterval(t)},[attempt,!!game,game?.done]);
   const start=async()=>{if(busy)return;setBusy(true);setErr('');try{const a=await client.start(difficulty);setStatus(s=>({...s,day:a.day,now:a.at,used:a.used??s?.used}));setDifficulty(a.difficulty);setAttempt(a);setRecord(null);saved.current=false;origin.current=performance.now()+3000;startClock.current=Date.now();const s=P.begin(a.difficulty,a.seed,startClock.current);ref.current=s;setGame(s);setTime(startClock.current-3000);}catch(e){setErr(e.message)}finally{setBusy(false)}};
   const answer=(id1,id2)=>{const ids=Array.isArray(id1)?id1:[id1,id2];if(time<startClock.current||ref.current?.resolving||ref.current?.done)return;const at=startClock.current+performance.now()-origin.current;try{const n=P.answer(ref.current,ids,at),hist=n.hist.slice(-1)[0];ref.current=n;setGame(n);setFeedback({judge:H.timingVisual(hist.ok?H.getJudgment(hist.ms):{label:'Bad',color:'#FF5C5C'}),flash:Object.fromEntries(ids.map(id=>[id,hist.ok?'correct':'wrong']))});sound.play(hist.ok?'ok':'buzz');clearTimeout(feedbackTimer.current);feedbackTimer.current=setTimeout(()=>setFeedback(null),420);if(n.done)done(n,attempt)}catch(e){setErr(e.message)}};
   if(game&&!game.done){if(game.cur.reverse)return <H.BattleSurface><h2>展開ボーナス・{H.DIFFICULTY_CONFIG[difficulty].label}</h2><H.MathText text={game.cur.factors.map(H.formatFactorTile).join('')}/><p>正しい展開結果を選ぼう</p>{game.cur.choices.map(c=><button key={c.id} data-daily-choice={c.id} disabled={game.resolving||time<startClock.current} onClick={()=>answer([c.id])}><H.MathText text={c.text}/></button>)}<H.HpBar hp={game.hp}/></H.BattleSurface>;const g={id:attempt.id,mode:'B',difficulty,question:`${game.cur.level}:${game.cur.k}`,poly:game.cur.poly,tiles:game.cur.tiles,level:game.cur.level,startAt:game.qStart,timeoutMs:20000,resolving:game.resolving,readyAt:game.readyAt,combo:game.combo,live:{daily:{...game,c:game.index},unused:{score:0,hp:100,c:0,combo:0}},acceptedSeq:0};
    return <H.BattleView H={H} m={{id:attempt.id,daily:true,selfUid:'daily',mode:'B',difficulty,gameStartAt:startClock.current,members:[{uid:'daily',name:acct.name},{uid:'unused',name:'デイリーチャレンジ'}]}} g={g} time={time} muted={muted} setMuted={setMuted} disabled={time<startClock.current} onMatch={answer} onSpecial={()=>{}} feedback={feedback} onLeave={()=>{if(confirm('途中退出は未クリアとなり、挑戦回数は戻りません。退出しますか？')){const s={...ref.current,done:true,cleared:false,elapsed:Math.max(0,time-startClock.current)};ref.current=s;setGame(s);done(s,attempt)}}}/>;
+  }
+  if(rankingsOnly&&root.NextRanking){
+   // Ver.6.0 ranking look (same data, order, TOP10 and tie handling as before; only the presentation changed).
+   const R=root.NextRanking,L=H.DIFFICULTY_CONFIG[difficulty].label,which=status&&day!==null&&day<status.day?'yesterday':'today';
+   const state=!client?'empty':err?'error':loadingRows||day===null?'loading':rows.length?'ok':'empty';
+   return <div className="rk-daily" data-ranking="daily">
+    <R.RankingHead title="デイリーランキング" note={day===null?'':D.date(day)}/>
+    <div className="rk-bar"><R.Segmented label="日付" items={[['today','今日'],['yesterday','昨日']]} value={which} onChange={v=>status&&setDay(v==='today'?status.day:status.day-1)}/><R.Segmented label="難易度" items={['easy','normal','hard'].map(d=>[d,H.DIFFICULTY_CONFIG[d].label])} value={difficulty} onChange={setDifficulty}/></div>
+    <p className="rk-foot">{L} TOP10</p>
+    <R.ListState status={state} message={!client?'1日3回の挑戦権とランキングを管理するため、登録アカウントでログインしてください。ソロ・CPU練習はゲストでも遊べます。':err?err:state==='empty'?'まだ記録がありません':undefined} onRetry={client&&err?()=>setRetry(n=>n+1):null} retryLabel="↻ 再読み込み"/>
+    {state==='ok'&&<R.RankList label={L+' TOP10'}>{rows.map((r,i)=><R.RankRow key={r.key} rank={i+1} name={r.name} value={r.score} unit="点" self={!!acct?.key&&r.key===acct.key} sub={(r.cleared?`クリアタイム ${(r.elapsed/1000).toFixed(2)}秒`:'未クリア')+`・${r.correct}問正解`+(day<status?.day&&i===0?'・🏆 優勝':'')}/>)}</R.RankList>}
+    <p className="rk-foot">得点→クリア→タイム／正解数→確定時刻の順。前日の優勝称号は日跨ぎ挑戦の終了猶予後、次回起動時に付与します。</p>
+   </div>;
   }
   return (renderMenu&&!rankingsOnly?renderMenu:x=>x)(<main className="or-app"><header><button onClick={onExit}>{rankingsOnly?'ランキング総合へ':'← タイトルへ'}</button><h1>{rankingsOnly?'デイリーランキング':'デイリーチャレンジ'}</h1></header>
    {!client&&<section><p>1日3回の挑戦権とランキングを管理するため、登録アカウントでログインしてください。ソロ・CPU練習はゲストでも遊べます。</p></section>}
