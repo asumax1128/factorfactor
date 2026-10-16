@@ -172,16 +172,41 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     console.log(
       "PASS missing bundle produces actionable error, not old matchmaking",
     );
-    const legacy = await open({ enabled: false, protocol: "spark-v1" });
-    await legacy.page
-      .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
-      .click();
-    await legacy.page.waitForTimeout(400);
-    assert.ok(
-      legacy.writes.some((x) => /games\/factor\/(qm|rooms)\//.test(x.path)),
+    // Approved spec (next major): explicit false disables random matchmaking with no
+    // automatic fallback to the legacy qm queue; rooms and CPU practice stay available.
+    const off = await open({ enabled: false, protocol: "spark-v1" });
+    const offQuick = off.page.getByRole("button", {
+      name: "すぐ遊ぶ（ランダム対戦）",
+      exact: true,
+    });
+    assert.equal(await offQuick.isDisabled(), true, "random match must be disabled");
+    await off.page
+      .getByText(
+        "レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。",
+        { exact: true },
+      )
+      .waitFor();
+    for (const name of ["部屋を作る（ホスト）", "CPUと練習スタート"])
+      assert.equal(
+        await off.page.getByRole("button", { name, exact: true }).isEnabled(),
+        true,
+        name + " must remain available",
+      );
+    // A forced DOM click on the disabled control must not reach any matchmaking path.
+    await offQuick.evaluate((el) => el.click());
+    await off.page.waitForTimeout(400);
+    noLegacy(off);
+    assert.equal(
+      off.writes.filter((x) => /games\/factor\/onlineSparkV1\//.test(x.path))
+        .length,
+      0,
+      "no rated matchmaking writes either",
     );
-    await legacy.ctx.close();
-    console.log("PASS explicit false retains legacy matchmaking");
+    assert.deepEqual(off.errors, []);
+    await off.ctx.close();
+    console.log(
+      "PASS explicit false disables random match, explains rooms/CPU, never writes qm/rooms",
+    );
     const publicPage = await context(b, {
       siteRoot: require("node:path").resolve("dist"),
       tree: {
@@ -248,6 +273,10 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     );
     cpu.page.once("dialog", (dialog) => dialog.accept());
     await cpu.page.getByRole("button", { name: /退出/ }).first().click();
+    // new result screen: return to the lobby explicitly before random matching
+    await cpu.page
+      .getByRole("button", { name: "CPUの設定にもどる", exact: true })
+      .click();
     await cpu.page
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
