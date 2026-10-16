@@ -2749,42 +2749,41 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     const netBlock = (<>
           {/* ネットランキング送信エリア: 名前未入力で終了した場合はここで入力してから送信 */}
           {GAS_ENDPOINT_URL !== '' && netSubmitState !== 'none' && (
-            <div className="rounded-xl p-3 mb-3 text-left" data-net={netSubmitState} style={{ background: '#fff', color: 'var(--v7-ink)' }}>
+            <div className="rs-net" data-net={netSubmitState}>
               {(netSubmitState === 'pending' || netSubmitState === 'error') && (
                 <div>
-                  <div className="text-xs font-bold mb-2 text-center">
+                  <div className="rs-net-msg">
                     {netSubmitState === 'error'
                       ? '⚠️ 送信に失敗しました。もう一度試してね'
                       : 'なまえを入れて、みんなのランキングに登録しよう！'}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="rs-net-row">
                     <input
                       type="text"
                       value={playerName}
                       onChange={(e) => setPlayerName(e.target.value.slice(0, 10))}
                       placeholder="なまえ (10文字まで)"
                       maxLength={10}
-                      className="v7-input flex-1 min-w-0"
-                      style={{ fontSize: 16 }}
+                      className="rs-input v7-input"
                     />
                     <button
+                      type="button"
                       onClick={submitPendingScore}
                       disabled={!playerName.trim()}
-                      className="v7-go shrink-0"
-                      style={{ width: 'auto', padding: '8px 16px', fontSize: 14 }}
+                      className="rs-btn rs-primary"
                     >
                       {netSubmitState === 'error' ? '再送信' : '送信'}
                     </button>
                   </div>
                   {netSubmitState === 'pending' && (
-                    <button onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }} className="w-full text-center text-[10px] font-bold mt-2" style={{ color: 'var(--v7-sub)' }}>
+                    <button type="button" onClick={() => { setNetSubmitState('none'); setPendingNetEntry(null); }} className="rs-btn rs-quiet">
                       送信しないでスキップ
                     </button>
                   )}
                 </div>
               )}
-              {netSubmitState === 'sending' && <div className="text-xs font-bold text-center py-1" style={{ color: 'var(--v7-sub)' }}>みんなのランキングに送信中…</div>}
-              {netSubmitState === 'sent' && <div className="text-xs font-bold text-center py-1" style={{ color: '#2D6A4F' }}>✅ みんなのランキングに登録しました！</div>}
+              {netSubmitState === 'sending' && <div className="rs-net-msg" role="status">みんなのランキングに送信中…</div>}
+              {netSubmitState === 'sent' && <div className="rs-net-msg rs-net-ok" role="status">✅ みんなのランキングに登録しました！</div>}
             </div>
           )}
         </>);
@@ -2799,12 +2798,24 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
         <FontImport />
         {soloModel ? (<>
           <div className="w-full" style={{ maxWidth: 'min(1120px, 100%)' }}>
-            <NR.SoloSummary model={soloModel} growth={expBlock || null} CountUp={CountUp}
-              onLearn={soloModel.learnButton && onMode ? () => { uiSnd('ok'); onMode('learn'); } : null} />
-          </div>
-          <div className="nbr-act v7-result v7-open" style={{ marginTop: 12 }}>
-            {netBlock}
-            {actionBlock}
+            {NR.ResultActions ? (
+              <NR.ResultShell kind="S" outcome={soloModel.outcome} busy={netSubmitState === 'sending'}>
+                <NR.SoloSummary model={soloModel} growth={expBlock || null} CountUp={CountUp}
+                  onLearn={soloModel.learnButton && onMode ? () => { uiSnd('ok'); onMode('learn'); } : null} />
+                {netBlock}
+                <NR.ResultActions busy={netSubmitState === 'sending'}>
+                  <NR.ResultButton tone="primary" onClick={() => { uiSnd('ok'); startGame(difficulty); }}>もう一度あそぶ（{diffCfg.label}）</NR.ResultButton>
+                  <NR.ResultButton onClick={() => { uiSnd('back'); setScreen('menu'); }}>タイトルにもどる</NR.ResultButton>
+                </NR.ResultActions>
+              </NR.ResultShell>
+            ) : (<>
+              <NR.SoloSummary model={soloModel} growth={expBlock || null} CountUp={CountUp}
+                onLearn={soloModel.learnButton && onMode ? () => { uiSnd('ok'); onMode('learn'); } : null} />
+              <div className="nbr-act v7-result v7-open" style={{ marginTop: 12 }}>
+                {netBlock}
+                {actionBlock}
+              </div>
+            </>)}
           </div>
         </>) : (
         <div className="v7-wnd v7-result v7-open">

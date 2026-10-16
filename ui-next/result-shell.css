@@ -51,3 +51,13 @@
 @media(prefers-reduced-motion:reduce){.rs-title-card[data-revealed=true]{animation:none}}
 @media(min-width:700px){.rs-actions{flex-direction:row;flex-wrap:wrap;justify-content:center}.rs-actions .rs-btn{width:auto;min-width:200px}.rs-actions .rs-note,.rs-actions .rs-ready{flex-basis:100%}}
 @media(max-height:450px){.rs-actions{flex-direction:row;flex-wrap:wrap;padding:6px 0}.rs-actions .rs-btn{width:auto;flex:1 1 150px;min-height:44px}}
+/* solo ranking submit (name entry / send / retry / skip) */
+.rs-net{margin:0 0 14px;padding:14px;border:1px solid #456267;border-left-width:4px;border-radius:10px;background:var(--panel2,#192b38);color:var(--text,#e8f0f5)}
+.rs-net[data-net=pending]{border-color:var(--accent,#72dfce)}.rs-net[data-net=sending]{border-color:#83c8ff}.rs-net[data-net=sent]{border-color:var(--accent,#72dfce)}.rs-net[data-net=error]{border-color:#ff8a75}
+.rs-net-msg{margin:0 0 10px;text-align:center;font-size:13px;font-weight:700;color:var(--text,#e8f0f5)}
+.rs-net-ok{color:var(--accent,#72dfce)}
+.rs-net-row{display:flex;gap:8px;align-items:stretch}
+.rs-net-row .rs-btn{width:auto;min-width:96px;flex:0 0 auto}
+.rs-input{flex:1 1 auto;min-width:0;min-height:48px;padding:8px 12px;border-radius:8px;border:1px solid var(--line,#324354);background:#0b141e;color:var(--text,#e8f0f5);font:700 16px var(--body,sans-serif)}
+.rs-input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.rs-net .rs-quiet{margin-top:8px;width:100%}
