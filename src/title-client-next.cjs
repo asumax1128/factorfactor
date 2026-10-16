@@ -32,13 +32,19 @@ function judge(facts){
  return out;
 }
 // Decide what to write. Pure: returns {snapshot, add}. Add-only: existing awards/snapshot entries are never replaced.
-function plan({account,snapshot,awards,legacy=[],equipped=null,facts={}}){
+// Awarding new titles (judged from Spark data) and freezing the legacy titles are INDEPENDENT: a player whose legacy
+// `stats` cannot be confirmed yet (e.g. random-match-only accounts) still receives new titles, and the freeze is retried later.
+// `canFreeze=false` means "do not create the snapshot now"; legacy-held ids are still excluded from new awards while no snapshot
+// exists, because the later freeze will retain them.
+function plan({account,snapshot,awards,legacy=[],equipped=null,facts={},canFreeze=true}){
  const held=new Set([...Object.keys(snapshot?.earned||{}),...Object.entries(awards||{}).filter(([,v])=>v?.earned===true).map(([id])=>id)]);
  const out={snapshot:null,add:{}};
  if(!snapshot){
-  const frozen=Cut.freeze(null,{account,migrationId:MIGRATION_ID,capturedAt:1,legacyEarned:legacy,equipped});
-  out.snapshot={...frozen,capturedAt:stamp()};
   for(const id of legacy)held.add(id);
+  if(canFreeze){
+   const frozen=Cut.freeze(null,{account,migrationId:MIGRATION_ID,capturedAt:1,legacyEarned:legacy,equipped});
+   out.snapshot={...frozen,capturedAt:stamp()};
+  }
  }
  for(const id of judge(facts))if(!held.has(id))out.add[id]={earned:true,at:stamp(),source:'client-judged-v1'};
  return out;
@@ -46,7 +52,8 @@ function plan({account,snapshot,awards,legacy=[],equipped=null,facts={}}){
 // Persist through compat/RTDB. Safe to call on every login/profile open: re-runs add nothing new.
 // All sources are read here (not taken from UI hooks that may still be loading), so the one-time freeze
 // can never capture a half-loaded legacy state. `computeBadgeIds(stats)` is the game's own legacy BADGES evaluator.
-// status: 'ok' | 'deferred' (nothing written on purpose, retried next time; no user warning) | 'failed' (user is told).
+// status: 'ok' | 'deferred' (offline: nothing written, retried; no user warning) | 'failed' (user is told).
+// `freezeDeferred` names why the legacy snapshot was not created this time (new awards are still processed).
 const isEmpty=v=>v==null||(typeof v==='object'&&!Object.keys(v).length);
 async function sync({db,account,computeBadgeIds=()=>[]}){
  const key=account?.key;if(!key)return{status:'skipped',reason:'guest',added:[],awards:{}};
@@ -57,26 +64,31 @@ async function sync({db,account,computeBadgeIds=()=>[]}){
   [stats,daily,sparkProfile,snap0,awards0,acctName]=await Promise.all([g(`accounts/${key}/stats`),g(`dailyV2/titles/${key}`),g(`onlineSparkV1/profiles/${key}`),sRef.get().then(s=>s.val()),aRef.get().then(s=>s.val()),g(`accounts/${key}/name`)]);
  }catch(e){return{status:'failed',error:'READ_FAILED',added:[],awards:{}};}   // a failed read is never treated as "no titles"
  try{connected=(await db.ref('.info/connected').get()).val();}catch(e){connected=undefined;}
- let snapshot=snap0,awards=awards0||{};
+ // Offline writes would hang until reconnect: do nothing now and retry.
+ if(connected===false)return{status:'deferred',reason:'OFFLINE',added:[],awards:awards0||{},snapshot:snap0||null};
+ let snapshot=snap0,awards=awards0||{},canFreeze=true,freezeDeferred=null;
  if(!snapshot){
-  // The freeze is write-once, so it only happens on server-confirmed, non-empty legacy data of an existing account.
-  if(connected===false)return{status:'deferred',reason:'OFFLINE',added:[],awards};
-  if(acctName==null)return{status:'deferred',reason:'ACCOUNT_UNCONFIRMED',added:[],awards};
-  if(isEmpty(stats))return{status:'deferred',reason:'STATS_EMPTY',added:[],awards};
+  // The freeze is write-once, so it only happens on non-empty legacy data of an existing account.
+  if(acctName==null){canFreeze=false;freezeDeferred='ACCOUNT_UNCONFIRMED';}
+  else if(isEmpty(stats)){canFreeze=false;freezeDeferred='STATS_EMPTY';}
  }
  const legacy=legacyIds({badgeIds:computeBadgeIds(stats||{}),flags:[daily,stats?.ghostTitles,sparkProfile?.badges]});
- const p=plan({account:key,snapshot,awards,legacy,equipped:stats?.nick??null,facts:{sparkProfile}});
- if(p.snapshot){try{await sRef.set(p.snapshot);}catch(e){/* a concurrent device froze it first, or rules deny: re-read decides */}
-  try{snapshot=(await sRef.get()).val();}catch(e){snapshot=null;}}
- if(!snapshot)return{status:'failed',error:'SNAPSHOT_UNAVAILABLE',added:[],awards};
- // Awards are written after the snapshot exists; rules require it, and each id can be created exactly once.
+ const p=plan({account:key,snapshot,awards,legacy,equipped:stats?.nick??null,facts:{sparkProfile},canFreeze});
+ let snapshotError=null;
+ if(p.snapshot){
+  try{await sRef.set(p.snapshot);}catch(e){/* a concurrent device froze it first, or rules deny: re-read decides */}
+  try{snapshot=(await sRef.get()).val();}catch(e){snapshot=null;}
+  if(!snapshot)snapshotError='SNAPSHOT_UNAVAILABLE';
+ }
+ // New awards do not depend on the snapshot (rules check ownership, add-only and Spark evidence).
  const added=[],failed=[];
  for(const[id,record]of Object.entries(p.add)){
   try{await aRef.child(id).set(record);added.push(id);}
   catch(e){let exists=false;try{exists=(await aRef.child(id).get()).exists();}catch(_){}if(!exists)failed.push(id);}
  }
  try{awards=(await aRef.get()).val()||{};}catch(e){}
- return{status:failed.length?'failed':'ok',...(failed.length?{error:'AWARD_NOT_SAVED',failed}:{}),snapshot,awards,added,frozen:!!p.snapshot};
+ const error=snapshotError||(failed.length?'AWARD_NOT_SAVED':null);
+ return{status:error?'failed':'ok',...(error?{error}:{}),...(failed.length?{failed}:{}),...(freezeDeferred?{freezeDeferred}:{}),snapshot:snapshot||null,awards,added,frozen:!!(p.snapshot&&snapshot&&!snapshotError)};
 }
 // What the UI shows: snapshot (retained) + awards, never fewer than before.
 function view({snapshot,awards,equipped=null}){

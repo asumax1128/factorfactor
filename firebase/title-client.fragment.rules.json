@@ -5,7 +5,7 @@
     "$account": {
       ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
       "$id": {
-        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && !data.exists() && newData.exists() && root.child('games/factor/titleNextV1/snapshots/' + $account).exists()",
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && !data.exists() && newData.exists()",
         ".validate": "newData.hasChildren(['earned', 'at', 'source']) && newData.child('earned').val() === true && newData.child('at').val() === now && newData.child('source').val() === 'client-judged-v1' && (($id === 'easy_adept' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1730) || ($id === 'easy_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1820) || ($id === 'normal_adept' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1730) || ($id === 'normal_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1820) || ($id === 'dual_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1820 && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1820))",
         "earned": {
           ".validate": true

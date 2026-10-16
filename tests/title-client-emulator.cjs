@@ -66,22 +66,28 @@ const T=require('../src/title-client-next.cjs');
   await assertFails(s.db.ref(A+'ap').get());await assertFails(s.db.ref(S+'ap').get());
   await assertFails(d1.db.ref(A+'ap/hidden_forge').set(rec));
   console.log('PASS other accounts, unproven ids, overwrite, delete and strangers are all rejected');
-  // 5. a fresh account with no snapshot cannot be awarded first; the snapshot comes first
+  // 5. awards no longer need a snapshot, but still need the Spark evidence (bp has none)
   await assertFails(o.db.ref(A+'bp/easy_adept').set(rec));
-  // 5b. stats not available yet -> deliberately not frozen; once available it freezes and keeps the legacy titles
+  // 5b. random-match-only player: legacy stats unavailable -> new titles are still awarded, the freeze waits and later keeps everything
   await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor'),{
    logins:{ap:{[d1.uid]:'x',[d2.uid]:'x'},bp:{[o.uid]:'x'},cp:{[s.uid]:'x'}},
    accounts:{ap:{name:'AP',stats},bp:{name:'BP',stats:{}},cp:{name:'CP'}},
-   onlineSparkV1:{profiles:{cp:{easy:{maxRating:1740},normal:{maxRating:1500}}}},
+   onlineSparkV1:{profiles:{ap:{easy:{maxRating:1830},normal:{maxRating:1500}},cp:{easy:{maxRating:1740},normal:{maxRating:1500}}}},
    titleNextV1:{snapshots:{},awards:{}}
   }));
   const rc1=await T.sync({db:s.db,account:{key:'cp'},computeBadgeIds:legacyOf});
-  assert.equal(rc1.status,'deferred');assert.equal(rc1.reason,'STATS_EMPTY');
-  assert.equal((await s.db.ref('games/factor/titleNextV1/snapshots/cp').get()).exists(),false,'nothing frozen yet');
+  assert.equal(rc1.status,'ok');assert.equal(rc1.freezeDeferred,'STATS_EMPTY');assert.deepEqual(rc1.added,['easy_adept']);
+  assert.equal((await s.db.ref('games/factor/titleNextV1/snapshots/cp').get()).exists(),false,'no empty snapshot is faked');
+  const rc1b=await T.sync({db:s.db,account:{key:'cp'},computeBadgeIds:legacyOf});assert.deepEqual(rc1b.added,[],'no double award on re-login');
+  await assertFails(s.db.ref(A+'cp/easy_adept').set(rec));                      // existing award cannot be rewritten
+  await assertFails(s.db.ref(A+'ap/easy_master').set(rec));                     // another account (evidence exists there) is refused
   await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'games/factor/accounts/cp/stats'),{nick:'first',w:4}));
   const rc2=await T.sync({db:s.db,account:{key:'cp'},computeBadgeIds:legacyOf});
-  assert.equal(rc2.status,'ok');assert.equal(rc2.frozen,true);assert(rc2.snapshot.earned.first&&rc2.snapshot.earned.streak10);assert.deepEqual(rc2.added,['easy_adept']);
-  console.log('PASS deferred freeze retries safely once stats is readable');
+  assert.equal(rc2.status,'ok');assert.equal(rc2.frozen,true);assert(rc2.snapshot.earned.first&&rc2.snapshot.earned.streak10);assert.deepEqual(rc2.added,[]);
+  assert.equal(rc2.awards.easy_adept.earned,true,'award given before the freeze is kept');
+  const vc=T.view({snapshot:rc2.snapshot,awards:rc2.awards});assert(vc.earned.first&&vc.earned.streak10&&vc.earned.easy_adept);
+  await assertFails(s.db.ref(S+'cp').set({...rc2.snapshot,earned:{}}));         // the snapshot can no longer be replaced/emptied
+  console.log('PASS random-match-only player: awards without snapshot, freeze later, nothing lost or doubled');
   // 5c. production rules as they are today (titleNextV1 not defined): reported as failed, nothing breaks, nothing written
   const prod=JSON.parse(fs.readFileSync('firebase/v525.candidate.rules.json'));
   await env.withSecurityRulesDisabled(async()=>{});

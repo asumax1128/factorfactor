@@ -65,6 +65,18 @@ window.firebase.database=Object.assign(()=>{const db=d();return{...db,ref:p=>wra
     assert.equal(f.writes.filter((x) => /titleNextV1/.test(x.path)).length, 0);
     await f.ctx.close();
     console.log('PASS save failure shows the notice; existing titles stay'); 
+    // random-match-only player (no legacy stats): new titles still appear, no empty snapshot, no warning
+    const rm = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher' } }, onlineSparkV1: { profiles: { ateacher: { easy: { maxRating: 1830 }, normal: { maxRating: 1500 } } } } } } } });
+    await rm.page.locator('.account-main').click();
+    await rm.page.locator('[data-next-profile]').waitFor();
+    await rm.page.getByRole('tab', { name: '称号・装備' }).click();
+    await rm.page.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="easy_master"] small')?.textContent || ''));
+    assert.equal(await rm.page.locator('[data-title-save-failed]').count(), 0);
+    assert(rm.writes.some((x) => x.path === 'games/factor/titleNextV1/awards/ateacher/easy_master'), 'new title saved');
+    assert(!rm.writes.some((x) => /titleNextV1\/snapshots/.test(x.path)), 'no premature (empty) legacy snapshot');
+    assert.deepEqual(rm.errors, []);
+    await rm.ctx.close();
+    console.log('PASS random-match-only player gets new titles without a snapshot');
     console.log('PASS client-judged rate titles: freeze, award, reload, rising peak, no rounding, guest/stats untouched');
   } finally {
     await b.close();

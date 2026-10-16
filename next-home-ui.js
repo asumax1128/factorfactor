@@ -1169,13 +1169,15 @@
         for (const [id, rule] of Object.entries(JUDGES)) if (known.has(id) && rule(facts.sparkProfile)) out.push(id);
         return out;
       }
-      function plan({ account, snapshot, awards, legacy = [], equipped = null, facts = {} }) {
+      function plan({ account, snapshot, awards, legacy = [], equipped = null, facts = {}, canFreeze = true }) {
         const held = /* @__PURE__ */ new Set([...Object.keys((snapshot == null ? void 0 : snapshot.earned) || {}), ...Object.entries(awards || {}).filter(([, v]) => (v == null ? void 0 : v.earned) === true).map(([id]) => id)]);
         const out = { snapshot: null, add: {} };
         if (!snapshot) {
-          const frozen = Cut.freeze(null, { account, migrationId: MIGRATION_ID, capturedAt: 1, legacyEarned: legacy, equipped });
-          out.snapshot = { ...frozen, capturedAt: stamp() };
           for (const id of legacy) held.add(id);
+          if (canFreeze) {
+            const frozen = Cut.freeze(null, { account, migrationId: MIGRATION_ID, capturedAt: 1, legacyEarned: legacy, equipped });
+            out.snapshot = { ...frozen, capturedAt: stamp() };
+          }
         }
         for (const id of judge(facts)) if (!held.has(id)) out.add[id] = { earned: true, at: stamp(), source: "client-judged-v1" };
         return out;
@@ -1198,14 +1200,20 @@
         } catch (e) {
           connected = void 0;
         }
-        let snapshot = snap0, awards = awards0 || {};
+        if (connected === false) return { status: "deferred", reason: "OFFLINE", added: [], awards: awards0 || {}, snapshot: snap0 || null };
+        let snapshot = snap0, awards = awards0 || {}, canFreeze = true, freezeDeferred = null;
         if (!snapshot) {
-          if (connected === false) return { status: "deferred", reason: "OFFLINE", added: [], awards };
-          if (acctName == null) return { status: "deferred", reason: "ACCOUNT_UNCONFIRMED", added: [], awards };
-          if (isEmpty(stats)) return { status: "deferred", reason: "STATS_EMPTY", added: [], awards };
+          if (acctName == null) {
+            canFreeze = false;
+            freezeDeferred = "ACCOUNT_UNCONFIRMED";
+          } else if (isEmpty(stats)) {
+            canFreeze = false;
+            freezeDeferred = "STATS_EMPTY";
+          }
         }
         const legacy = legacyIds({ badgeIds: computeBadgeIds(stats || {}), flags: [daily, stats == null ? void 0 : stats.ghostTitles, sparkProfile == null ? void 0 : sparkProfile.badges] });
-        const p = plan({ account: key, snapshot, awards, legacy, equipped: (_a = stats == null ? void 0 : stats.nick) != null ? _a : null, facts: { sparkProfile } });
+        const p = plan({ account: key, snapshot, awards, legacy, equipped: (_a = stats == null ? void 0 : stats.nick) != null ? _a : null, facts: { sparkProfile }, canFreeze });
+        let snapshotError = null;
         if (p.snapshot) {
           try {
             await sRef.set(p.snapshot);
@@ -1216,8 +1224,8 @@
           } catch (e) {
             snapshot = null;
           }
+          if (!snapshot) snapshotError = "SNAPSHOT_UNAVAILABLE";
         }
-        if (!snapshot) return { status: "failed", error: "SNAPSHOT_UNAVAILABLE", added: [], awards };
         const added = [], failed = [];
         for (const [id, record] of Object.entries(p.add)) {
           try {
@@ -1236,7 +1244,8 @@
           awards = (await aRef.get()).val() || {};
         } catch (e) {
         }
-        return { status: failed.length ? "failed" : "ok", ...failed.length ? { error: "AWARD_NOT_SAVED", failed } : {}, snapshot, awards, added, frozen: !!p.snapshot };
+        const error = snapshotError || (failed.length ? "AWARD_NOT_SAVED" : null);
+        return { status: error ? "failed" : "ok", ...error ? { error } : {}, ...failed.length ? { failed } : {}, ...freezeDeferred ? { freezeDeferred } : {}, snapshot: snapshot || null, awards, added, frozen: !!(p.snapshot && snapshot && !snapshotError) };
       }
       function view({ snapshot, awards, equipped = null }) {
         var _a;
@@ -1426,7 +1435,7 @@
       return /* @__PURE__ */ React.createElement(Panel, { title: label }, /* @__PURE__ */ React.createElement(MetricGrid, null, /* @__PURE__ */ React.createElement(Stat, { label: "\u5BFE\u6226\u6570", value: integer(value.games) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u52DD\u5229", value: integer(value.w) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u6557\u5317", value: integer(value.l) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u5F15\u304D\u5206\u3051", value: integer(value.d) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u52DD\u7387", value: value.winRate === null ? "\u672A\u8A18\u9332" : value.winRate.toFixed(1) + "%" })));
     }
     return function Profile({ acct, stats, profile, onBack, onLegacy, onWardrobe }) {
-      var _a, _b, _c, _d, _e;
+      var _a, _b, _c, _d, _e, _f;
       const [muted] = H.useGameMute();
       const fb = useFbReady(), real = isReal(acct), daily = useDailyTitles(real ? acct.key : null);
       const mine = useFbValue(fb.ready && real ? `raidw/${weekKey(now())}/dmg/${acct.key}` : null);
@@ -1439,7 +1448,7 @@
         let live = true, timer = 0;
         const run = (retry) => TitleClient.sync({ db: H.FB.db, account: acct, computeBadgeIds: (st) => badgesOf(st).map((b) => b.id) }).then((r) => {
           if (!live) return;
-          if (r == null ? void 0 : r.snapshot) setClientTitles(r);
+          if (r && (r.snapshot || Object.keys(r.awards || {}).length)) setClientTitles(r);
           setTitleSaveFailed((r == null ? void 0 : r.status) === "failed");
           if ((r == null ? void 0 : r.status) === "deferred" && r.reason === "OFFLINE" && retry) timer = setTimeout(() => run(false), 4e3);
         }).catch(() => {
@@ -1479,7 +1488,7 @@
       } }, label))), /* @__PURE__ */ React.createElement("div", { role: "tabpanel", id: "profile-" + tab, "aria-labelledby": "profile-tab-" + tab }, tab === "summary" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => {
         const r = real ? profile === null && d === "normal" ? { value: null, note: "\u672A\u8A18\u9332" } : RatingDisplay.current(profile, stats, d) : { value: null, note: "" };
         return /* @__PURE__ */ React.createElement(Panel, { key: d, title: d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB" }, /* @__PURE__ */ React.createElement(MetricGrid, null, /* @__PURE__ */ React.createElement(Stat, { label: "\u73FE\u5728\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: RatingDisplay.format(r.value), note: r.note }), /* @__PURE__ */ React.createElement(Stat, { label: "\u6B74\u4EE3\u6700\u9AD8\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: real ? RatingDisplay.format(RatingHistory.highest(profile, stats, [d])) : "\u2015" })));
-      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, titleSaveFailed && /* @__PURE__ */ React.createElement("p", { role: "status", className: "next-note", "data-title-save-failed": true }, "\u65B0\u79F0\u53F7\u306E\u4FDD\u5B58\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(TitleInventory, { presentationStore, accountKey: acct.key, muted, earnedIds: authority ? [] : [...earned.keys()], flags: authority ? [Object.fromEntries(Object.entries((authoritySnapshot == null ? void 0 : authoritySnapshot.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), authorityAwards] : [profile == null ? void 0 : profile.badges, ...clientTitles ? [Object.fromEntries(Object.entries(clientTitles.snapshot.earned || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), clientTitles.awards] : []], equipped: stats == null ? void 0 : stats.nick })), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
+      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, titleSaveFailed && /* @__PURE__ */ React.createElement("p", { role: "status", className: "next-note", "data-title-save-failed": true }, "\u65B0\u79F0\u53F7\u306E\u4FDD\u5B58\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(TitleInventory, { presentationStore, accountKey: acct.key, muted, earnedIds: authority ? [] : [...earned.keys()], flags: authority ? [Object.fromEntries(Object.entries((authoritySnapshot == null ? void 0 : authoritySnapshot.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), authorityAwards] : [profile == null ? void 0 : profile.badges, ...clientTitles ? [Object.fromEntries(Object.entries(((_f = clientTitles.snapshot) == null ? void 0 : _f.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), clientTitles.awards] : []], equipped: stats == null ? void 0 : stats.nick })), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
         const id = skin == null ? void 0 : skin[key], item = skinCatalog[key].find((x) => x.id === id);
         return /* @__PURE__ */ React.createElement(Stat, { key, label, value: id ? (item == null ? void 0 : item.name) || id : "\u672A\u8A18\u9332" });
       }))))));
