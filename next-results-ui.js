@@ -1340,7 +1340,7 @@
   // src/next-battle-result-ui.jsx
   var require_next_battle_result_ui = __commonJS({
     "src/next-battle-result-ui.jsx"(exports, module) {
-      var reduced = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var reduced2 = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       var TONE = ["#72dfce", "#f6bd62", "#b5a5ff", "#83c8ff"];
       var fmt = (v, r) => (r.decimals ? v.toFixed(r.decimals) : String(v)) + r.unit;
       var ICON = {
@@ -1395,15 +1395,15 @@
         return C && !plain ? /* @__PURE__ */ React.createElement(C, { from: 0, to, ms: 900 }) : /* @__PURE__ */ React.createElement(React.Fragment, null, to);
       }
       function BattleSummary2({ model: m, badges = [], notes = null, growth = null, reviewCount = 0, onReview = null, CountUp = null }) {
-        const ref = React.useRef(null), wide = useWide(ref), rm = reduced(), [open, setOpen] = React.useState(false);
+        const ref = React.useRef(null), wide = useWide(ref), rm = reduced2(), [open, setOpen] = React.useState(false);
         const me = m.players[0], foe = m.players[1], primary = m.rows.slice(0, 4), more = m.rows.slice(4);
-        return /* @__PURE__ */ React.createElement("section", { ref, className: "nbr" + (m.extras.length ? " has-extra" : ""), "data-battle-summary": true, "data-kind": m.kind, "data-outcome": m.outcome, "data-wide": wide }, /* @__PURE__ */ React.createElement("header", { className: "nbr-hero", "data-outcome": m.outcome }, /* @__PURE__ */ React.createElement(Confetti, { on: m.outcome === "win" && !rm }), /* @__PURE__ */ React.createElement("span", { className: "nbr-chip" }, m.methodLabel, m.multi ? ` \u30FB ${m.players.length}\u4EBA\u5BFE\u6226` : ""), /* @__PURE__ */ React.createElement("h2", { className: "nbr-word", "aria-label": { win: "\u52DD\u5229", lose: m.multi ? `${m.place}\u4F4D` : "\u6557\u5317", draw: "\u5F15\u304D\u5206\u3051" }[m.outcome] }, m.word), m.multi && m.outcome === "lose" && /* @__PURE__ */ React.createElement("div", { className: "nbr-sub" }, "LOSE\u2026"), m.reasonText && /* @__PURE__ */ React.createElement("div", { className: "nbr-reason" }, m.reasonText), badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "nbr-badges" }, badges.map((b) => /* @__PURE__ */ React.createElement("span", { key: b }, b))), notes && /* @__PURE__ */ React.createElement("div", { className: "nbr-notes" }, notes), m.multi ? /* @__PURE__ */ React.createElement("ul", { className: "nbr-rank" }, [...m.players].sort((a, b) => {
+        return /* @__PURE__ */ React.createElement("section", { ref, className: "nbr" + (m.extras.length ? " has-extra" : ""), "data-battle-summary": true, "data-kind": m.kind, "data-outcome": m.outcome, "data-wide": wide }, /* @__PURE__ */ React.createElement("header", { className: "nbr-hero", "data-outcome": m.outcome }, /* @__PURE__ */ React.createElement(Confetti, { on: m.outcome === "win" && !rm }), /* @__PURE__ */ React.createElement("span", { className: "nbr-chip" }, m.methodLabel, m.multi ? ` \u30FB ${m.players.length}\u4EBA\u5BFE\u6226` : ""), /* @__PURE__ */ React.createElement("h2", { className: "nbr-word", "aria-label": { win: "\u52DD\u5229", lose: m.multi ? `${m.place}\u4F4D` : "\u6557\u5317", draw: "\u5F15\u304D\u5206\u3051" }[m.outcome] }, m.word), m.multi && m.outcome === "lose" && /* @__PURE__ */ React.createElement("div", { className: "nbr-sub" }, "LOSE"), m.reasonText && /* @__PURE__ */ React.createElement("div", { className: "nbr-reason" }, m.reasonText), badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "nbr-badges" }, badges.map((b) => /* @__PURE__ */ React.createElement("span", { key: b }, b))), notes && /* @__PURE__ */ React.createElement("div", { className: "nbr-notes" }, notes), m.multi ? /* @__PURE__ */ React.createElement("ul", { className: "nbr-rank" }, [...m.players].sort((a, b) => {
           var _a, _b;
           return ((_a = a.rank) != null ? _a : 9) - ((_b = b.rank) != null ? _b : 9);
         }).map((p) => /* @__PURE__ */ React.createElement("li", { key: p.uid, "data-me": p.me }, /* @__PURE__ */ React.createElement("b", { className: "num" }, p.rank ? `${p.rank}\u4F4D` : "\u2014"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("i", { className: "nbr-dot", style: { background: TONE[p.tone % 4] } }), p.me ? "\u3042\u306A\u305F" : p.name), /* @__PURE__ */ React.createElement("span", { className: "num" }, p.score == null ? "" : `${p.score}\u70B9`)))) : me.score != null && foe.score != null && /* @__PURE__ */ React.createElement("div", { className: "nbr-score num" }, /* @__PURE__ */ React.createElement("span", { style: { color: TONE[0] }, "data-score": me.score }, /* @__PURE__ */ React.createElement(Count, { C: CountUp, plain: rm, to: me.score })), /* @__PURE__ */ React.createElement("small", null, "VS"), /* @__PURE__ */ React.createElement("span", { "data-score": foe.score }, /* @__PURE__ */ React.createElement(Count, { C: CountUp, plain: rm, to: foe.score })))), /* @__PURE__ */ React.createElement("div", { className: "nbr-grid" }, /* @__PURE__ */ React.createElement(Tiles, { tiles: m.tiles }), m.rows.length > 1 && /* @__PURE__ */ React.createElement("section", { className: "nbr-cmp", "aria-label": "\u76F8\u624B\u3068\u306E\u6BD4\u8F03" }, /* @__PURE__ */ React.createElement("h3", null, m.multi ? "\u307F\u3093\u306A\u3068\u306E\u6BD4\u8F03" : "\u76F8\u624B\u3068\u306E\u6BD4\u8F03"), /* @__PURE__ */ React.createElement("div", { className: "nbr-panel" }, /* @__PURE__ */ React.createElement(Table, { rows: wide || !more.length ? m.rows : primary, players: m.players }), !wide && more.length > 0 && /* @__PURE__ */ React.createElement("details", { open, onToggle: (e) => setOpen(e.currentTarget.open) }, /* @__PURE__ */ React.createElement("summary", null, "\u3055\u3089\u306B", more.length, "\u9805\u76EE\u3092\u898B\u308B"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Table, { rows: more, players: m.players })))), m.hiddenRows && /* @__PURE__ */ React.createElement("p", { className: "nbr-note" }, "\u8A18\u9332\u304C\u306A\u3044\u9805\u76EE\u306F\u8868\u793A\u3057\u3066\u3044\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Highlights, { items: m.highlights }), /* @__PURE__ */ React.createElement(GrowthSection, null, growth), m.extras.length > 0 && /* @__PURE__ */ React.createElement("section", { className: "nbr-extra", "aria-label": "B\u65B9\u5F0F\u306E\u8A18\u9332" }, /* @__PURE__ */ React.createElement("h3", null, "B\u65B9\u5F0F\u306E\u8A18\u9332"), /* @__PURE__ */ React.createElement("div", { className: "nbr-panel" }, /* @__PURE__ */ React.createElement(Table, { rows: m.extras, players: m.players })))), onReview && reviewCount > 0 && /* @__PURE__ */ React.createElement("button", { type: "button", className: "nbr-review", onClick: onReview }, "\u9593\u9055\u3048\u305F\u554F\u984C\u3092\u5FA9\u7FD2\uFF08", reviewCount, "\u554F\uFF09"));
       }
       function SoloSummary2({ model: m, growth = null, onLearn = null, learnLabel = "\u5B66\u3073\u306E\u90E8\u5C4B\u3078", CountUp = null }) {
-        const rm = reduced();
+        const rm = reduced2();
         return /* @__PURE__ */ React.createElement("section", { className: "nbr", "data-battle-summary": true, "data-kind": "S", "data-outcome": m.outcome, "data-solo-ending": m.cleared ? "clear" : "gameover" }, /* @__PURE__ */ React.createElement("header", { className: "nbr-hero", "data-outcome": m.outcome }, /* @__PURE__ */ React.createElement(Confetti, { on: m.outcome === "win" && !rm }), /* @__PURE__ */ React.createElement("span", { className: "nbr-chip" }, m.methodLabel), /* @__PURE__ */ React.createElement("h2", { className: "nbr-word", "aria-label": m.cleared ? "\u30AF\u30EA\u30A2" : "\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC" }, m.word), m.reasonText && /* @__PURE__ */ React.createElement("div", { className: "nbr-reason" }, m.reasonText), m.badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "nbr-badges" }, m.badges.map((b) => /* @__PURE__ */ React.createElement("span", { key: b }, b))), m.score != null && /* @__PURE__ */ React.createElement("div", { className: "nbr-score num" }, /* @__PURE__ */ React.createElement("span", { style: { color: TONE[0] }, "data-score": m.score }, /* @__PURE__ */ React.createElement(Count, { C: CountUp, plain: rm, to: m.score })), /* @__PURE__ */ React.createElement("small", null, "\u70B9")), m.note && /* @__PURE__ */ React.createElement("div", { className: "nbr-notes" }, m.note)), /* @__PURE__ */ React.createElement("div", { className: "nbr-grid nbr-solo" }, /* @__PURE__ */ React.createElement(Tiles, { tiles: m.tiles }), /* @__PURE__ */ React.createElement(Highlights, { items: m.highlights, title: "\u30D7\u30EC\u30A4\u306E\u30CF\u30A4\u30E9\u30A4\u30C8" }), /* @__PURE__ */ React.createElement(GrowthSection, null, growth)), onLearn && /* @__PURE__ */ React.createElement("button", { type: "button", className: "nbr-review", "data-learn": true, onClick: onLearn }, learnLabel));
       }
       module.exports = { BattleSummary: BattleSummary2, SoloSummary: SoloSummary2 };
@@ -1641,7 +1641,7 @@
           outcome: result,
           multi,
           place,
-          word: result === "win" ? "WIN!" : result === "draw" ? "DRAW" : multi && place ? `${place}\u4F4D` : "LOSE\u2026",
+          word: result === "win" ? "WIN!" : result === "draw" ? "DRAW" : multi && place ? `${place}\u4F4D` : "LOSE",
           reasonText: input.reasonText || "",
           players,
           tiles,
@@ -1832,6 +1832,65 @@
     })), children, g.result && /* @__PURE__ */ React.createElement("p", null, g.result.draw ? "\u5F15\u304D\u5206\u3051" : `${names[g.result.winner] || "\u30D7\u30EC\u30A4\u30E4\u30FC"}\u306E\u52DD\u5229`));
   }
 
+  // src/result-shell.jsx
+  var WORD = { win: "WIN!", draw: "DRAW", lose: "LOSE" };
+  var wordOf = (o) => WORD[{ w: "win", d: "draw", l: "lose", win: "win", draw: "draw", lose: "lose" }[o]] || WORD.lose;
+  var reduced = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function ResultShell({ kind, outcome, busy = false, className = "", children, ...p }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "rs-scope " + className, "data-result-shell": true, "data-kind": kind, "data-outcome": outcome, "data-busy": busy || void 0, "aria-busy": busy || void 0, ...p }, children);
+  }
+  function ResultDetails({ title, id, children, ...p }) {
+    return /* @__PURE__ */ React.createElement("section", { className: "rs-details", "aria-label": title, ...p }, title && /* @__PURE__ */ React.createElement("h3", null, title), children);
+  }
+  function ResultButton({ tone = "secondary", children, ...p }) {
+    return /* @__PURE__ */ React.createElement("button", { type: "button", className: "rs-btn rs-" + tone, ...p }, children);
+  }
+  function ResultActions({ children, busy = false, note = null, ...p }) {
+    return /* @__PURE__ */ React.createElement("div", { className: "rs-actions", "data-busy": busy || void 0, ...p }, children, note);
+  }
+  function ReviewCard({ summary, open, onToggle, onlyLabel, onlyMiss, onOnlyMiss, rows, emptyText = "\u3042\u308A\u307E\u305B\u3093" }) {
+    return /* @__PURE__ */ React.createElement("section", { className: "rs-review", "data-review-card-body": true }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "rs-review-toggle", "aria-expanded": open, onClick: onToggle }, /* @__PURE__ */ React.createElement("span", null, summary), /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, open ? "\u25B2" : "\u25BC")), open && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", { className: "rs-review-only" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: onlyMiss, onChange: (e) => onOnlyMiss(e.target.checked) }), " ", onlyLabel), /* @__PURE__ */ React.createElement("div", { className: "rs-review-list" }, rows.length === 0 && /* @__PURE__ */ React.createElement("p", null, emptyText), rows.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.n, className: "rs-review-row" }, /* @__PURE__ */ React.createElement("div", { className: "rs-review-meta" }, /* @__PURE__ */ React.createElement("span", null, "\u554F", r.n, " \u30FB Lv.", r.lv), /* @__PURE__ */ React.createElement("span", { "data-good": r.good }, r.good ? "\u25CB" : "\xD7", " ", r.mark)), /* @__PURE__ */ React.createElement("div", { className: "rs-review-body" }, r.content))))));
+  }
+  function TitleReveal({ titles, fx = {}, revealKey = null, staticOnly = false }) {
+    const seen = React.useRef(null);
+    if (seen.current === null) {
+      let s = false;
+      try {
+        s = !!revealKey && localStorage.getItem("fxf_title_reveal_v1:" + revealKey) === "1";
+      } catch (e) {
+      }
+      seen.current = s;
+    }
+    const still = staticOnly || seen.current || reduced();
+    const [open, setOpen] = React.useState(still ? titles.length : 0);
+    React.useEffect(() => {
+      if (!titles.length || still) {
+        if (revealKey && titles.length) try {
+          localStorage.setItem("fxf_title_reveal_v1:" + revealKey, "1");
+        } catch (e) {
+        }
+        return;
+      }
+      let i = 0;
+      const t = setInterval(() => {
+        i++;
+        setOpen(i);
+        fx.sound && fx.sound();
+        fx.confetti && fx.confetti();
+        if (i >= titles.length) {
+          clearInterval(t);
+          if (revealKey) try {
+            localStorage.setItem("fxf_title_reveal_v1:" + revealKey, "1");
+          } catch (e) {
+          }
+        }
+      }, 900);
+      return () => clearInterval(t);
+    }, [titles.length]);
+    if (!titles.length) return null;
+    return /* @__PURE__ */ React.createElement("section", { className: "rs-title", "data-title-reveal": true, "data-new-title": "1", "aria-label": "\u79F0\u53F7\u30B2\u30C3\u30C8" }, /* @__PURE__ */ React.createElement("h3", null, "\u{1F389} \u79F0\u53F7\u30B2\u30C3\u30C8\uFF01"), /* @__PURE__ */ React.createElement("div", { className: "rs-title-cards" }, titles.map((b, i) => i < open ? /* @__PURE__ */ React.createElement("div", { key: b.id, className: "rs-title-card", "data-revealed": "true" }, /* @__PURE__ */ React.createElement("span", { className: "rs-title-icon", "aria-hidden": "true" }, b.icon), /* @__PURE__ */ React.createElement("b", null, b.label), b.desc && /* @__PURE__ */ React.createElement("small", null, b.desc)) : /* @__PURE__ */ React.createElement("div", { key: b.id, className: "rs-title-card rs-title-back", "aria-hidden": "true" }, "?"))));
+  }
+
   // src/next-results-ui.jsx
   var BResult = require_b_result();
   var { BattleSummary, SoloSummary } = require_next_battle_result_ui();
@@ -1877,5 +1936,5 @@
       return /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("div", null, teamLabels[teams[u]] || "\u30C1\u30FC\u30E0\u672A\u8A18\u9332", " \uFF0F ", names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC", " ", /* @__PURE__ */ React.createElement("b", null, known(u, "c") === null ? "\u672A\u8A18\u9332" : known(u, "c") + "\u554F\u6B63\u89E3")), known(u, "c") !== null && /* @__PURE__ */ React.createElement("div", { className: "next-c-bar", role: "img", "aria-label": `${names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"} \u6B63\u89E3${known(u, "c")}\u554F` }, /* @__PURE__ */ React.createElement("span", { style: { width: 100 * known(u, "c") / max + "%", background: palette[i % 4] } })), /* @__PURE__ */ React.createElement("p", null, "\u5F97\u70B9 ", (_a = known(u, "score")) != null ? _a : "\u672A\u8A18\u9332", " \uFF0F \u6700\u7D42\u5831\u544A\u30B3\u30F3\u30DC ", (_b = known(u, "combo")) != null ? _b : "\u672A\u8A18\u9332"));
     })), /* @__PURE__ */ React.createElement("p", null, "\u653B\u6483\u30FB\u76F8\u6BBA\u30FB\u9632\u5FA1\u30FB\u56DE\u5FA9\u30FB\u500B\u4EBA\u5225HP\u5BC4\u4E0E\u306E\u78BA\u5B9A\u5408\u8A08\uFF0F\u6642\u7CFB\u5217\u306F\u672A\u8A18\u9332\u306E\u305F\u3081\u8868\u793A\u3067\u304D\u307E\u305B\u3093\u3002\u30C1\u30FC\u30E0\u5171\u6709HP\u3092\u500B\u4EBA\u306E\u8CA2\u732E\u3078\u63A8\u6E2C\u914D\u5206\u3057\u307E\u305B\u3093\u3002"));
   }
-  window.NextResults = { BattleSummary, SoloSummary, SoloResultModel, ResultModel, AuthorityWeekly, LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
+  window.NextResults = { ResultShell, ResultDetails, ResultButton, ResultActions, ReviewCard, TitleReveal, wordOf, BattleSummary, SoloSummary, SoloResultModel, ResultModel, AuthorityWeekly, LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
 })();

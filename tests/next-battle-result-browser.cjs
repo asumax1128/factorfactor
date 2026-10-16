@@ -38,10 +38,10 @@ for(const[tag,outcome]of [['win','w'],['lose','l'],['draw','d']])for(const n of 
    assert(info.hl<=3,tag);assert(!/新B方式/.test(info.txt),tag);
    assert.equal(info.conf>0,m.outcome==='win'&&!reduced,'confetti only on a win without reduced motion '+tag);
    if(reduced)assert.equal(info.anim,'none','reduced motion disables hero animation '+tag);
-   { const mm=/^([AB])-([23])p-(win|lose|draw)$/.exec(name);if(mm){const lose=(info.hero.match(/LOSE…/g)||[]).length,n=+mm[2];
-     if(mm[3]==='win'){assert.equal(info.word,'WIN!',tag);assert.equal(lose,0,'no LOSE… on a win '+tag)}
-     if(mm[3]==='draw'){assert.equal(info.word,'DRAW',tag);assert.equal(lose,0,'a draw never shows LOSE… '+tag)}
-     if(mm[3]==='lose'){assert.equal(lose,1,'exactly one LOSE… on a loss '+tag);assert.equal(info.word,n===2?'LOSE…':`${m.place}位`,tag)}
+   { const mm=/^([AB])-([23])p-(win|lose|draw)$/.exec(name);if(mm){const lose=(info.hero.match(/LOSE/g)||[]).length,n=+mm[2];
+     if(mm[3]==='win'){assert.equal(info.word,'WIN!',tag);assert.equal(lose,0,'no LOSE on a win '+tag)}
+     if(mm[3]==='draw'){assert.equal(info.word,'DRAW',tag);assert.equal(lose,0,'a draw never shows LOSE '+tag)}
+     if(mm[3]==='lose'){assert.equal(lose,1,'exactly one LOSE on a loss '+tag);assert.equal(info.word,n===2?'LOSE':`${m.place}位`,tag)}
      assert.equal(info.rank,n===3?3:0,tag)} }
    if(name==='B-3p'){assert.equal(info.rank,3,tag);assert.match(info.txt,/2位/);assert.match(info.txt,/1位/);assert.match(info.txt,/3位/)}else if(!/^[AB]-[23]p-/.test(name))assert.equal(info.rank,0,tag);
    if(name==='B-draw')assert.match(info.word,/DRAW/);
@@ -71,6 +71,18 @@ for(const[tag,outcome]of [['win','w'],['lose','l'],['draw','d']])for(const n of 
    const r=await p.evaluate(()=>({kind:document.querySelector('.nbr').dataset.kind,ov:document.documentElement.scrollWidth>innerWidth,box:document.querySelector('.nbr').getBoundingClientRect().width,old:!!document.querySelector('.v7-open'),analysis:!!document.querySelector('[data-a-result],[data-b-result]'),review:!!document.querySelector('[data-review-card]'),btn:[...document.querySelectorAll('button')].map(x=>x.textContent).join('|')}));
    assert.equal(r.kind,mode,mode+width);assert(!r.ov,'overflow '+mode+width);assert(!r.old,'old hero is not rendered beside the new one');assert(r.analysis,'existing analysis is kept');assert(r.review);assert.match(r.btn,/もう一戦/);assert.match(r.btn,/設定にもどる|ロビー|部屋を出る/);
    if(width===1440)assert(r.box>900,'wide layout reached on desktop: '+r.box)}
+  // Ver.6.0 ResultShell: dark details, one scroll container, review toggle, reachable action row (phone / short Chromebook)
+  for(const [w,h] of [[390,844],[683,325]]){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(250);
+   const sh=await p.evaluate(()=>{const scroller=document.querySelector('[data-result-scroll]'),inner=[...scroller.querySelectorAll('*')].filter(e=>{const o=getComputedStyle(e).overflowY;return(o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight+1});
+    const d=document.querySelector('.rs-details'),bg=d&&getComputedStyle(d).backgroundColor.match(/\d+/g).slice(0,3).map(Number);
+    return{shell:!!document.querySelector('[data-result-shell]'),inner:inner.length,detailsDark:!bg||Math.max(...bg)<90,old:!!document.querySelector('.v7-panel.next-a-details'),actions:!!document.querySelector('.rs-actions .rs-btn')}});
+   assert(sh.shell&&sh.actions,'shell rendered '+mode+w);assert.equal(sh.inner,0,'no independent inner scroll area '+mode+w);assert(sh.detailsDark,'details use the dark theme '+mode+w);assert(!sh.old,'old light details gone');
+   const btn=p.getByRole('button',{name:/もう一戦/}).first();await btn.waitFor();
+   const box=await btn.boundingBox();assert(box&&box.y>=0&&box.y+box.height<=h+1,`rematch stays reachable without scrolling ${mode} ${w}x${h}: ${JSON.stringify(box)}`);
+   await p.evaluate(()=>{const s=document.querySelector('[data-result-scroll]');s.scrollTop=s.scrollHeight});
+   const end=await btn.boundingBox();assert(end&&end.y+end.height<=h+1,'still reachable at the bottom')}
+  await p.setViewportSize({width:1100,height:1100});
+  await p.getByRole('button',{name:/ふり返り（/}).click();assert(await p.locator('.rs-review-row').count()>0,'review list opens with the same toggle');
   await p.getByRole('button',{name:/間違えた問題を復習/}).click().catch(()=>{});
   assert.deepEqual(t.errors,[]);await t.ctx.close();console.log('PASS real CPU '+mode+' flow: new summary + existing analysis/review/rematch controls, 4 widths');
  }

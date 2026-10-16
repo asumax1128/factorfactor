@@ -33,6 +33,7 @@
 <script src="online-spark.js"></script>
 <script src="next-results-ui.js"></script>
 <link rel="stylesheet" href="ui-next/results.css" />
+<link rel="stylesheet" href="ui-next/result-shell.css" />
 <script src="online-rated-ui.js"></script>
 <script src="daily-ui.js"></script>
 <script src="room-b2-ui.js"></script>
@@ -9686,7 +9687,7 @@ function GhostHistory({acct,stats={}}) {
 /* ---------- だれかの成績（みんなが見られる） ---------- */
 function AResultDetails({ report, me, names = {} }) {
   if (!report) return <p className="text-xs">問題別の確定記録はありません。</p>;
-  const ids = report.ids, colors = ['#078AB8','#D94B28','#7752B8','#2A9678'];
+  const ids = report.ids, colors = ['#72dfce','#f6bd62','#b5a5ff','#83c8ff'];
   const label = u => u === me ? 'あなた' : names[u] || `相手${ids.filter(x=>x!==me).indexOf(u)+1}`;
   let lastLead = 0;
   const rows = report.events.map(e => {
@@ -9697,19 +9698,19 @@ function AResultDetails({ report, me, names = {} }) {
   });
   const max = Math.max(1,...Object.values(report.scores)), n = Math.max(1,rows.length);
   const x = q => 28 + q / n * 276, y = v => 140 - v / max * 115;
-  return <section className="v7-panel my-3 next-a-details" data-a-result>
-    <h3 className="font-black" style={{fontSize:18,color:COLORS.ink}}>A方式 得点のふり返り</h3>
-    <div className="flex flex-wrap gap-2 my-2">{ids.map((u,i)=><div key={u} className="flex-1 rounded-xl p-2" style={{background:COLORS.paperDark,minWidth:100,color:colors[i%4]}}><b>{label(u)}</b><div>{report.scores[u]||0}点</div><small>最高 {report.best[u]||0}コンボ</small></div>)}</div>
+  return <section className="rs-details next-a-details" data-a-result aria-label="A方式 得点のふり返り">
+    <h3>A方式 得点のふり返り</h3>
+    <div className="rs-chips">{ids.map((u,i)=><div key={u} className="rs-chip" style={{borderLeft:`4px solid ${colors[i%4]}`}}><b>{label(u)}</b><div>{report.scores[u]||0}<small style={{display:'inline',marginLeft:2}}>点</small></div><small>最高 {report.best[u]||0}コンボ</small></div>)}</div>
     {!report.consistent ? <p role="status">得点記録が不足しているため、推移は表示できません。</p> : <>
-      <svg viewBox="0 0 320 165" role="img" aria-label="問題番号ごとの累積得点推移" style={{width:'100%',display:'block'}}>
+      <svg className="rs-chart" viewBox="0 0 320 165" role="img" aria-label="問題番号ごとの累積得点推移">
         <title>問題番号と累積得点。逆転した問題を丸で表示</title>
-        {[0,Math.round(max/2),max].map((v,i)=><g key={i}><line x1="28" x2="304" y1={y(v)} y2={y(v)} stroke="#D9D1C3"/><text x="25" y={y(v)+3} textAnchor="end" fontSize="9" fill="#626B75">{v}</text></g>)}
+        {[0,Math.round(max/2),max].map((v,i)=><g key={i}><line className="grid" x1="28" x2="304" y1={y(v)} y2={y(v)} /><text x="25" y={y(v)+3} textAnchor="end" fontSize="9">{v}</text></g>)}
         {ids.map((u,i)=><polyline key={u} fill="none" stroke={colors[i%4]} strokeWidth="2.5" points={[[28,140],...rows.map(e=>[x(e.question),y(e.totals[u]||0)])].map(p=>p.join(',')).join(' ')} />)}
-        {rows.filter(e=>e.reversal).map(e=><circle key={e.id} cx={x(e.question)} cy={y(e.totals[me]||0)} r="5" fill="#FFD54A" stroke="#8B5B0E" />)}
-        <text x="28" y="158" fontSize="9" fill="#626B75">0問</text><text x="304" y="158" textAnchor="end" fontSize="9" fill="#626B75">{rows.length}問</text>
+        {rows.filter(e=>e.reversal).map(e=><circle key={e.id} cx={x(e.question)} cy={y(e.totals[me]||0)} r="5" fill="#f6bd62" stroke="#8b5b0e" />)}
+        <text x="28" y="158" fontSize="9">0問</text><text x="304" y="158" textAnchor="end" fontSize="9">{rows.length}問</text>
       </svg>
-      <p className="text-[10px] font-bold">確定した{rows.length}問を表示 ・ ● リード交代（同点を挟んだ交代を含む）</p>
-      <ol className="mt-2">{rows.map(e=><li key={e.id} className="rounded-xl p-2 my-1 text-xs" style={{background:e.reversal?'#FFF1BA':COLORS.paperDark}} data-a-question={e.question}>
+      <p style={{fontSize:11,fontWeight:700}}>確定した{rows.length}問を表示 ・ ● リード交代（同点を挟んだ交代を含む）</p>
+      <ol className="rs-qlist">{rows.map(e=><li key={e.id} className="rs-q" data-reversal={e.reversal} data-a-question={e.question}>
         <b>第{e.question}問：{e.winner?label(e.winner):'獲得者なし'} +{e.pts}点</b>{e.ms!==null&&<span> ・ {(e.ms/1000).toFixed(1)}秒</span>}
         <div>{ids.map(u=>`${label(u)} ${e.totals[u]||0}点`).join(' ／ ')}</div>
         <div>{e.lead>0?'自分がリード':e.lead<0?'相手がリード':'同点'}（差 {Math.abs(e.diff)}点）{e.reversal&&<b> ・ 逆転！</b>}</div>
@@ -10663,6 +10664,46 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
         {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
         {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
   </>);
+  const RS = NR && NR.ResultActions && NR.ReviewCard && NR.TitleReveal ? NR : null;
+  if (summary && RS) {
+    // Ver.6.0 shared result shell (display only: every callback below is the unchanged original handler)
+    const humans = state.bot ? ids : ids.filter(u => !(state.cpu || {})[u]);
+    const rd = u => players[u] && players[u].ready === state.gid;
+    const missCount = review.filter(r => !r.good).length;
+    const titles = rec && rec.badges ? rec.badges : [];
+    const reveal = <RS.TitleReveal titles={titles} revealKey={acct ? `${acct.key}:${state.gid || code}` : null} fx={{ sound: () => fxSound('badge'), confetti: () => FX.confetti(30) }} />;
+    return (
+      <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }} data-result-scroll>
+        <RS.ResultShell kind={mode} outcome={summary.outcome}>
+          <NR.BattleSummary model={summary} badges={outcome === 'w' && rec && rec.comeback ? ['逆転勝ち'] : []} notes={notesBlock}
+            growth={<>{reveal}{growthBlock}</>}
+            reviewCount={missCount} CountUp={CountUp}
+            onReview={() => { setShowRev(true); setOnlyMiss(true); setTimeout(() => { const el = document.querySelector('[data-review-card]'); if (el) el.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, 0); }} />
+          {state.b2Final && <NR.BDetails game={state.b2Final} me={me} names={names} />}
+          {mode === 'A' && <AResultDetails report={result.aResult || window.OnlineSpark?.buildAResult?.(scA, claims, ids, state.startAt, A_NEXT_DELAY)} me={me} names={names} />}
+          <div data-review-card />
+          <RS.ReviewCard summary={`📝 ふり返り（${review.length}問 ・ ${isBm(mode) ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）`}
+            open={showRev} onToggle={() => setShowRev(v => !v)} onlyMiss={onlyMiss} onOnlyMiss={setOnlyMiss}
+            onlyLabel={isBm(mode) ? 'まちがえた・時間切れの問題だけ' : '取れなかった問題だけ'}
+            rows={rv.map(r => ({ n: r.n, lv: r.lv, good: r.good, mark: r.mark, content: <><MathText text={formatPoly(r.poly)} /> <span>=</span> <span className="rs-ans"><MathText text={r.ans} /></span></> }))} />
+          <RS.ResultActions>
+            {onBack ? <RS.ResultButton tone="gold" onClick={onBack}>🏆 大会の表にもどる</RS.ResultButton>
+              : practice ? (<>
+                <RS.ResultButton tone="primary" onClick={onRematch}>もう一戦（同じルール）</RS.ResultButton>
+                <RS.ResultButton onClick={onLobby}>CPUの設定にもどる</RS.ResultButton>
+              </>) : (<>
+                <RS.ResultButton tone="primary" disabled={!humansOnline || rd(me)} onClick={() => fref(`rooms/${code}/players/${me}`).update({ ready: state.gid }).catch(() => {})}>
+                  {!humansOnline ? 'いない人がいます' : rd(me) ? '準備OK！ みんなを待っています…' : 'もう一戦（準備OK）'}</RS.ResultButton>
+                <div className="rs-ready">{humans.map(u => <span key={u} data-ready={!!rd(u)}>{rd(u) ? '✓' : '…'} {u === me ? 'あなた' : names[u]}</span>)}</div>
+                <p className="rs-note">全員が「準備OK」を押すと、すぐに次の試合が始まります</p>
+                {isHost && !state.qm && <RS.ResultButton onClick={onLobby}>ルールを変える（ロビーへ）</RS.ResultButton>}
+                <RS.ResultButton onClick={onLeave}>部屋を出る</RS.ResultButton>
+              </>)}
+          </RS.ResultActions>
+        </RS.ResultShell>
+      </div>
+    );
+  }
   return (
     <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
       {summary && (<>
@@ -10674,9 +10715,9 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
       {!summary && (<>
       <div className="text-center mb-3">
         <div className="v7-open" style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(2.8rem, 14vw, 5rem)', lineHeight: 1.1, color: outcome === 'w' ? 'var(--v7-gold)' : outcome === 'l' ? '#FF8A75' : '#7FD8FF', WebkitTextStroke: '2px #0B1430', textShadow: '0 4px 0 rgba(0,0,0,.35)' }}>
-          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi && !TCr ? `${myRank}位` : 'LOSE…'}
+          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi && !TCr ? `${myRank}位` : 'LOSE'}
         </div>
-        {outcome === 'l' && multi && !TCr && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
+        {outcome === 'l' && multi && !TCr && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE</div>}
         <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{TCr ? reasonC : reason}</div>
         {TCr && rec && mine.eng && <div className="text-xs font-black mt-0.5" style={{ color: '#B9A8FF' }}>🤝 合体攻撃 {mine.eng.s.unites}回 ・ カバー {mine.eng.s.covers}</div>}
         {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
