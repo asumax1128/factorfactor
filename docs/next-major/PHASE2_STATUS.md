@@ -138,3 +138,7 @@ Emulatorの保護snapshotがあるアカウントだけ、管理側workerから�
 Cは参加者書込の既存ev／thpを正式証拠とする安全性が成立しないため、推測writerを追加せず保留。[認可確認](PHASE5_C_EVIDENCE.md#再開時の認可確認2026-10-16)。元Cの管理側再生・ID付き適用operationの実装が必要で、集計器を実戦接続済みとは扱わない。
 
 週間接続コミット `6dc45dc` の開発CI [38856649409](https://github.com/asumax1128/factorfactor/actions/runs/38856649409) は生成物・ユニット・実UI／旧回帰まで成功し、Emulator SDK工程で失敗。公開詳細ログURLは404で取得できず、所有者へエラー末尾を依頼中。ローカルのSDK成功をもってCI失敗を解消済みとはしない。
+
+### CIと同じSDK順序の再現・修正
+
+週間SDK→週間画面SDKの連続実行で `WEEK_POLICY_CONFLICT` をローカル再現。前者が同一Emulator週へ残したslimeのfixtureを、後者がdragonとして再初期化しようとしていた。画面テストの開始時に**そのdemo週のfixtureだけ**を初期化するよう修正。authorityの週設定不変チェック・ゲーム処理・認可・assertionは緩めていない。修正後は同じ2本連続実行（実プロフィール称号の追加確認を含む）が成功。CIそのものの詳細末尾は未取得なので、次の実行結果で解消を確認する。
