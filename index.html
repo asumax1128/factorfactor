@@ -392,6 +392,10 @@ window.__FXF_ASSETS = {
 
 <script src="next-home-ui.js"></script>
 <script type="text/plain" id="app-source">
+// Ver.6.0: C方式（2対2）は非公開。コード・記録・観戦表示は残し、新規開始と選択肢だけを止める一元フラグ。
+const FEATURES = { cMode: false };
+window.FXF_FEATURES = FEATURES;
+
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
 /* ============================================================
@@ -1166,7 +1170,7 @@ const TUTORIAL_STEPS = [
   { ch: 'vs', v: 'vote', title: '方式を決める', body: '「すぐ遊ぶ」は2人がそろったら「方式×難易度」の4つから投票。方式は同じならその方式、分かれたらランダム。難易度は2人ともノーマルのときだけノーマル。' },
   { ch: 'vs', v: 'modeA', title: 'A方式：早い者勝ち', body: 'みんなで同じ問題を同時に解いて、先に正解した人だけ得点。まちがえると2秒の「お手つき」。最後の3問は得点2倍のラストスパート！' },
   { ch: 'vs', v: 'modeB', title: 'B方式：レース＋攻撃', body: '自分のペースで解き、コンボで相手の体力を削ろう。Perfectでおじゃまタイルも送れる。攻撃の予告中に正解すると相殺できるよ。' },
-  { ch: 'vs', v: 'modeC', title: 'C方式：2対2タッグ', body: '部屋で4人そろえて2人1組のチーム戦（足りなければCPUを入れられる）。体力はチームで1本。仲間に来た攻撃も自分の正解でカバーでき、2人とも3コンボ以上を3秒以内にそろえると合体攻撃！' },
+  ...(FEATURES.cMode ? [{ ch: 'vs', v: 'modeC', title: 'C方式：2対2タッグ', body: '部屋で4人そろえて2人1組のチーム戦（足りなければCPUを入れられる）。体力はチームで1本。仲間に来た攻撃も自分の正解でカバーでき、2人とも3コンボ以上を3秒以内にそろえると合体攻撃！' }] : []),
   { ch: 'vs', v: 'sp', title: '必殺技とピンチ', body: '必殺技ゲージがたまったら、大攻撃・回復・シールドから選んで使える。体力30%以下になると攻撃が1.3倍のピンチボーナス。逆転をねらおう！' },
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
@@ -7524,6 +7528,7 @@ const BATTLE_MODES = {
 };
 BATTLE_MODES.C = { label: 'C：2対2タッグ', short: '2対2タッグ', color: '#7b2cbf',
   desc: ['2人1組のチーム戦（4人。足りないときはCPUで埋められる）', 'B方式と同じく自分のペースで解いて攻撃。体力はチームで1本を共有', '仲間に届いた攻撃も、自分の正解で相殺できる（カバー）', '2人とも3コンボ以上を3秒以内にそろえると「合体攻撃」', '仲間がミスした直後3秒は、自分の攻撃1.2倍（フォロー）', 'チームで合わせて規定数×2を解き切るか、相手チームの体力を0にしたら勝ち'] };
+const noHiddenMode = c => (!FEATURES.cMode && c && c.mode === 'C') ? { ...c, mode: 'B' } : c;
 const isBm = m => m === 'B' || m === 'C';
 const TEAM_INFO_C = [{ name: '赤チーム', color: '#E4572E' }, { name: '青チーム', color: '#2F6FD6' }];
 const C_HP = { decay: 0.5, recover: 0.5, miss: 0.6 };   // C：体力はチームで共有（自然減少・回復・ミスの減りを弱める）
@@ -8744,7 +8749,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       if (res.committed) {
         if(delegated){try{await FB.db.ref(`games/factor/eventHostRooms/${acct.key}/${c}`).set({at:fbNow()});}catch(e){setErr('開催登録を保存できませんでした。再試行してください');return;}}
         await Promise.all(['players', 'state', 'claims', 'ev', 'live', 'result', 'ko', 'rd', 'tb', 'cheer', 'fx'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
-        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, ...(friendNext?{friendPolicyVersion:1,friendPower:'normal'}:{}), boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: !tour&&['A','B','C'].includes(preferredMode)?preferredMode:'B', diff: 'easy', tour: !!tour }).catch(() => {});
+        await fref(`rooms/${c}/state`).set(fraid ? { phase: 'lobby', raid: true, friend: true, ...(friendNext?{friendPolicyVersion:1,friendPower:'normal'}:{}), boss: 'dragon', minutes: 3, power: 'normal' } : raid ? { phase: 'lobby', raid: true, boss: 'dragon', minutes: 3, power: 'normal' } : { phase: 'lobby', mode: !tour&&(FEATURES.cMode?['A','B','C']:['A','B']).includes(preferredMode)?preferredMode:'B', diff: 'easy', tour: !!tour }).catch(() => {});
         setIsHost(true); setSpectator(false); setCode(c); setScr('lobby');
         return;
       }
@@ -8758,6 +8763,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     try { m = (await fref(`rooms/${c}/meta`).get()).val(); pl = (await fref(`rooms/${c}/players`).get()).val() || {}; st = (await fref(`rooms/${c}/state`).get()).val() || {}; }
     catch (e) { setErr('接続できませんでした（' + (e.code || e.message) + '）'); return false; }
     if (!m || m.createdAt < fbNow() - BATTLE_ROOM_TTL || st.phase === 'closed') { setErr('その部屋は見つかりません'); return false; }
+    if (!asSpectator && st.mode === 'C' && !FEATURES.cMode) { setErr('C方式（2対2）はVer.6.0では利用できません。この部屋には参加できません（観戦のみ可能です）'); return false; }
     const host = m.host === FB.uid;
     if (!asSpectator && !host) {
       const others = Object.keys(pl).filter(k => k !== FB.uid);
@@ -8940,6 +8946,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   }, [code, state && state.vid]);
   // CPU練習：端末の中だけのデータベースで動かす（通信しない）
   async function startPractice(cfg) {
+    cfg = noHiddenMode(cfg);
     DBX = makeLocalDb();
     const ids = ['me'], names = { me: myName }, cpu = {};
     const pl = { me: { name: myName, acct: '', nick: myNick || '', joinedAt: Date.now() } };
@@ -8967,6 +8974,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     opt = opt || {};
     const c = (typeof cArg === 'string' && cArg) || code || 'local';
     const st = (await fref(`rooms/${c}/state`).get()).val() || state || {};
+    if (!FEATURES.cMode && (opt.mode || st.mode) === 'C') { setErr('C方式（2対2）はVer.6.0では利用できません'); return; }
     const pl = (await fref(`rooms/${c}/players`).get()).val() || players;
     const ids = Object.entries(pl).filter(([k, p]) => p && p.name).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0)).map(([k]) => k).slice(0, ROOM_MAX);
     if (ids.length < 2) return;
@@ -9096,12 +9104,12 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   );
 
   // すぐ遊ぶ：相手を待つ画面
-  if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })))} onCancel={() => { cancelQm(); setScr('home'); }} />);
+  if (scr === 'qmwait' && qm) return shell(<QmWait qm={qm} onPractice={() => v7Wipe(() => startPractice(noHiddenMode(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 }))))} onCancel={() => { cancelQm(); setScr('home'); }} />);
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
   if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} acct={acct} onExit={initialScreen==='ratings'?onExit:() => setScr('home')} /> : shell(<Card><p>{ratedMessage || '新しい対戦制度は準備中です。'}</p><button onClick={initialScreen==='ratings'?onExit:() => setScr('home')}>戻る</button></Card>);
   if (scr === 'home') return (renderMenu||shell)(
-    <BattleHome nextUI={!!renderMenu} onNavigate={onNavigate} onProfile={onProfile} fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; ratedEnabled ? setScr('rated') : quickMatch(); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
+    <BattleHome nextUI={!!renderMenu} onNavigate={onNavigate} onProfile={onProfile} fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; if (!ratedEnabled) { setErr('レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。'); return; } setScr('rated'); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
   if (scr === 'dash') return <TeacherDash acct={acct} onBack={() => setScr('home')} onWatch={c => joinRoom(c, true)} />;
 
@@ -9490,7 +9498,7 @@ function BattleHome({ nextUI=false, onNavigate, onProfile, onGhosts, fb, acct, w
   useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/ghostV1/users/${acct.key}/bountyCooldowns`),f=s=>setBountyCooldowns(s.val()||{});r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState('games');
-  const [pc, setPc] = useState(() => loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 }));
+  const [pc, setPc] = useState(() => noHiddenMode(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })));
   const setPcv = p => setPc(c => { const n = { ...c, ...p }; saveLS('fxf_cpu_cfg_v1', n); return n; });
   const stats = useFbValue(fb.ready && acct ? `accounts/${acct.key}/stats` : null);
   useEffect(() => {
@@ -9538,8 +9546,8 @@ function BattleHome({ nextUI=false, onNavigate, onProfile, onGhosts, fb, acct, w
       {!fb.ready && <div className="v7-panel text-sm text-center font-bold" style={{ color: 'var(--v7-sub)', gridColumn: '1 / -1' }}>{fb.err || 'サーバーに接続しています…'}（CPU練習は通信なしで遊べます）</div>}
       <div className="v7-col">
         <div>
-          <button disabled={!fb.ready || quickPending} onClick={onQuick} className="v7-go v7-cur" style={{ fontSize: 19, padding: 15 }}>すぐ遊ぶ（ランダム対戦）</button>
-          <p className="text-[10px] font-bold mt-1 text-center" style={{ color: 'var(--v7-sub)' }}>{ratedEnabled ? 'イージー／ノーマルを選んで相手を検索。マッチング後はA/B方式を投票。' : '1対1・方式と難易度は投票。待つあいだはCPU練習、相手が来たら乱入！'}</p>
+          <button disabled={!fb.ready || quickPending || !ratedEnabled} onClick={onQuick} className="v7-go v7-cur" style={{ fontSize: 19, padding: 15 }}>すぐ遊ぶ（ランダム対戦）</button>
+          <p className="text-[10px] font-bold mt-1 text-center" style={{ color: 'var(--v7-sub)' }}>{ratedEnabled ? 'イージー／ノーマルを選んで相手を検索。マッチング後はA/B方式を投票。' : 'レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。'}</p>
           {quickMessage && <p role={quickError ? 'alert' : 'status'} className="text-xs font-bold mt-1 text-center">{quickMessage}</p>}
           {quickError && <button onClick={onConfigRetry} className="v7-pill v7-cur">設定を再試行</button>}
           {err && <p className="text-xs font-bold mt-1 text-center" style={{ color: '#C2410C' }}>{err}</p>}
@@ -9565,7 +9573,7 @@ function BattleHome({ nextUI=false, onNavigate, onProfile, onGhosts, fb, acct, w
       <div className="v7-col">
         <div className="v7-panel">
           {cap('CPUと練習', <span className="text-[10px]">記録には残りません</span>)}
-          <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color], ['C', 'C 2対2', BATTLE_MODES.C.color]]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
+          <Seg items={[['A', 'A 早い者勝ち', BATTLE_MODES.A.color], ['B', 'B レース＋攻撃', BATTLE_MODES.B.color], ...(FEATURES.cMode ? [['C', 'C 2対2', BATTLE_MODES.C.color]] : [])]} cur={pc.mode} onPick={v => setPcv({ mode: v })} />
           <div className="mt-1.5"><Seg items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}（${DIFFICULTY_CONFIG[d].clearCount}問）`, DIFFICULTY_CONFIG[d].color])} cur={pc.diff} onPick={v => setPcv({ diff: v })} /></div>
           <div className="flex items-center gap-2 mt-1.5"><span className="text-[11px] font-black shrink-0" style={{ color: 'var(--v7-sub)', width: '3.6em', fontFamily: 'var(--v7-f-ui)' }}>CPUの強さ</span><div className="flex-1"><Seg items={Object.entries(CPU_LEVELS).map(([k, c]) => [k, c.label, k === 'weak' ? '#3FA55F' : k === 'normal' ? '#E9A82A' : '#DD4A3A'])} cur={pc.lv} onPick={v => setPcv({ lv: v })} /></div></div>
           {pc.mode === 'C' ? <div className="text-[11px] font-black mt-1.5" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>あなた＋味方CPU 対 相手CPU2人（体力はチームで共有）</div>
@@ -9878,7 +9886,7 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
     </Card>
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>対戦方式{isHost ? '' : '（ホストが決めます）'}</div>
-      <Seg disabled={!isHost} items={[['A', 'A：早い者勝ち', BATTLE_MODES.A.color], ['B', 'B：レース＋攻撃', BATTLE_MODES.B.color], ['C', 'C：2対2タッグ', BATTLE_MODES.C.color]]} cur={mode} onPick={v => onRule({ mode: v })} />
+      <Seg disabled={!isHost} items={[['A', 'A：早い者勝ち', BATTLE_MODES.A.color], ['B', 'B：レース＋攻撃', BATTLE_MODES.B.color], ...(FEATURES.cMode ? [['C', 'C：2対2タッグ', BATTLE_MODES.C.color]] : [])]} cur={mode} onPick={v => onRule({ mode: v })} />
       <ul className="mt-2 text-[11px] font-bold list-disc pl-4" style={{ color: COLORS.inkSoft }}>
         {(mode==='B'?['時間終了時の得点で勝負、HP0はKO','連続正解でお邪魔カード攻撃。3秒間のカウンター受付','必殺ゲージ100%でFREEZEが自動発動。正解で回復、HPは毎秒1%減少']:BATTLE_MODES[mode].desc).map(d => <li key={d}>{d}</li>)}
       </ul>

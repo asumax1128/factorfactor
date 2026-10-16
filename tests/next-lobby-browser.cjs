@@ -10,15 +10,16 @@ const assert=require('node:assert/strict');const {chromium,context,drag}=require
   await p.getByRole('button',{name:/^賞金首リスト/}).click();await p.locator('.v7-modal').getByText('Target',{exact:true}).click();assert.equal(await p.locator('.v7-modal').count(),0);await p.getByRole('button',{name:'とじる',exact:true}).click();
   await p.getByRole('button',{name:'称号とくわしい成績',exact:true}).click();await p.locator('[data-next-profile]').waitFor();await p.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();
   if(width===390){await p.getByRole('button',{name:'オンラインレーティング',exact:true}).click();await p.locator('.or-rating').waitFor();await p.getByRole('button',{name:'オンラインへ戻る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();}
-  for(const [mode,label]of [['A','A方式'],['B','新B方式'],['C','C方式']]){
+  assert.equal(await p.locator('.next-mode-links').getByRole('button',{name:/^C方式/}).count(),0,'C is hidden in Ver.6.0 room modes');
+  for(const [mode,label]of [['A','A方式'],['B','新B方式']]){
    await p.locator('.next-mode-links').getByRole('button',{name:new RegExp('^'+label)}).click();await p.getByRole('button',{name:'部屋を出る',exact:true}).waitFor();
    const room=Object.values(f.rooms||{}).find(r=>r.state?.phase==='lobby'&&r.state.mode===mode);assert(room,'actual created '+mode+' lobby');assert.equal(room.state.diff,'easy');assert(!await p.locator('.bottom-nav').count(),'game/room lifecycle keeps existing navigation guards');
    await p.getByRole('button',{name:'部屋を出る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();
   }
   await p.getByPlaceholder('部屋コード4桁').fill('12');await p.getByRole('button',{name:'参加',exact:true}).click();await p.getByRole('alert').getByText('4桁の数字を入れてください',{exact:true}).waitFor();
   await p.getByRole('button',{name:'ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:/イージーゴースト/}).waitFor();await p.getByRole('button',{name:'オンラインへ戻る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();
-  const choice=p.getByRole('group',{name:'方式',exact:true});await choice.getByRole('button',{name:'A 早い者勝ち',exact:true}).click();await p.getByRole('group',{name:'難易度',exact:true}).getByRole('button',{name:'ノーマル',exact:true}).click();await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).click();await p.locator('[data-btile]').first().waitFor();assert(!await p.locator('.bottom-nav').count(),'no menu navigation during combat');
-  assert.deepEqual(t.errors,[]);console.log(`PASS lobby ${width}: actual A/B/C room creation, search/bounty modal replacement, own profile, ghost menu, CPU NORMAL A start, protected room/game navigation`);await t.ctx.close();
+  const choice=p.getByRole('group',{name:'方式',exact:true});assert.equal(await choice.getByRole('button',{name:/^C /}).count(),0,'C hidden in CPU practice');await choice.getByRole('button',{name:'A 早い者勝ち',exact:true}).click();await p.getByRole('group',{name:'難易度',exact:true}).getByRole('button',{name:'ノーマル',exact:true}).click();await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).click();await p.locator('[data-btile]').first().waitFor();assert(!await p.locator('.bottom-nav').count(),'no menu navigation during combat');
+  assert.deepEqual(t.errors,[]);console.log(`PASS lobby ${width}: actual A/B room creation (C hidden), search/bounty modal replacement, own profile, ghost menu, CPU NORMAL A start, protected room/game navigation`);await t.ctx.close();
  }
 for(const isTeacher of [false,true]){
  const tree={games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{}}},teachers:isTeacher?{ateacher:true}:{},onlineSparkV1:{config:{enabled:false,protocol:'spark-v1'}}}}};

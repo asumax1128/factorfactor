@@ -1,0 +1,88 @@
+{
+  ".read": false,
+  ".write": false,
+  "awards": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      "$id": {
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && !data.exists() && newData.exists() && root.child('games/factor/titleNextV1/snapshots/' + $account).exists()",
+        ".validate": "newData.hasChildren(['earned', 'at', 'source']) && newData.child('earned').val() === true && newData.child('at').val() === now && newData.child('source').val() === 'client-judged-v1' && (($id === 'easy_adept' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1730) || ($id === 'easy_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1820) || ($id === 'normal_adept' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1730) || ($id === 'normal_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1820) || ($id === 'dual_master' && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/easy/maxRating').val() >= 1820 && root.child('games/factor/onlineSparkV1/profiles/' + $account + '/normal/maxRating').val() >= 1820))",
+        "earned": {
+          ".validate": true
+        },
+        "at": {
+          ".validate": true
+        },
+        "source": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  },
+  "presentations": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      "factor_factor": {
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/titleNextV1/awards/' + $account + '/factor_factor/earned').val() === true && newData.exists()",
+        ".validate": "newData.hasChildren(['seen','at']) && newData.child('seen').val() === true && (data.exists() && newData.child('at').val() === data.child('at').val() || !data.exists() && newData.child('at').val() === now)",
+        "seen": {
+          ".validate": true
+        },
+        "at": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  },
+  "snapshots": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && !data.exists() && newData.exists()",
+      ".validate": "newData.hasChildren(['version', 'source', 'account', 'migrationId', 'capturedAt', 'earned']) && newData.child('version').val() === 1 && newData.child('source').val() === 'legacy-cutover-v1' && newData.child('account').val() === $account && newData.child('migrationId').val() === 'v6-client-1' && newData.child('capturedAt').val() === now",
+      "version": {
+        ".validate": true
+      },
+      "source": {
+        ".validate": true
+      },
+      "account": {
+        ".validate": true
+      },
+      "migrationId": {
+        ".validate": true
+      },
+      "capturedAt": {
+        ".validate": true
+      },
+      "earned": {
+        "$id": {
+          ".validate": "$id.matches(/^[a-z0-9_]{1,40}$/) && newData.hasChildren(['id']) && newData.child('id').val() === $id && (!newData.child('at').exists() || newData.child('at').isNumber() && newData.child('at').val() > 0 && newData.child('at').val() <= now)",
+          "id": {
+            ".validate": true
+          },
+          "at": {
+            ".validate": true
+          },
+          "source": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "equipped": {
+        ".validate": "newData.isString() && newData.val().length <= 40"
+      },
+      "$other": {
+        ".validate": false
+      }
+    }
+  }
+}
