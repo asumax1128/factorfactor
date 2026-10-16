@@ -3,6 +3,9 @@ import {Frame} from './next-ui.jsx';
 import {createProfile} from './next-profile-ui.jsx';
 const navigation=require('./next-navigation.cjs');
 window.NextNavigation=navigation;
+import * as RankingKit from './ranking-kit.jsx';
+import {SoloRanking} from './solo-ranking-ui.jsx';
+window.NextRanking={...RankingKit,SoloRanking};
 // Home is presentation/read-only: no boss initialization, rewards or migration writes.
 const icons = require('./next-home-icons.json');
 window.NextHomeFactory = H => {
@@ -51,7 +54,7 @@ window.NextHomeFactory = H => {
   const brand=<><img src="ui-next/logo-official.png" alt="FACTOR × FACTOR" width="1774" height="887"/></>;
   const hp=boss.info?Math.max(0,boss.info.hp):null,max=boss.info?.hpMax,pct=max?Math.min(100,hp/max*100):0;
   const statusText={loading:'HP情報を読み込み中…',preparing:'次のボスを準備中',error:'HP情報を取得できません',denied:'HP情報を取得できません（権限不足）'}[boss.status];
-  return <><link rel="stylesheet" href="ui-next/home.css"/><div className="next-home" data-next-home>
+  return <><link rel="stylesheet" href="ui-next/home.css"/><link rel="stylesheet" href="ui-next/ranking.css"/><div className="next-home" data-next-home>
    {acct&&page==='home'&&<LoginBonus acct={acct}/>}
    <Frame sidebar={<aside className="sidebar"><button className="brand-slot" onClick={()=>go('home')} aria-label="ホームへ">{brand}</button><div className="side-divider"/><nav aria-label="PCメインメニュー">{nav.map(([k,n])=>navButton(k,n))}</nav><div className="sidebar-account"><Icon name="account"/><button onClick={()=>go('profile')}>{acct.name}<small>Lv.{L.lv}</small></button></div></aside>} mobileHeader={<header className="mobile-top"><button className="mobile-brand" onClick={()=>go('home')} aria-label="ホームへ">{brand}</button><div className="header-tools"><button aria-label={muted?'音声をオン':'音声をオフ'} onClick={()=>setMuted(!muted)}><Icon name="sound"/></button><button aria-label="設定" onClick={()=>setPanel('settings')}><Icon name="settings"/></button></div></header>} title={page==='home'?'ホーム':page==='profile'?'プロフィール・成績':({battle:'オンライン対戦',solo:'ソロモード',daily:'デイリーミッション',help:'あそびかた'})[page]||'ランキング'} actions={<button className="pc-settings" onClick={()=>setPanel('settings')} aria-label="設定"><Icon name="settings"/></button>} bottomNav={<nav className="bottom-nav" aria-label="スマホメインメニュー">{[['home','ホーム'],['online','対戦'],['solo','ソロ'],['rank','順位']].map(([k,n])=>navButton(k,n))}<button className={"nav-item "+(page==='profile'?'selected':'')} aria-current={page==='profile'?'page':undefined} aria-label="メニューを開く" aria-expanded={panel==='menu'} onClick={()=>setPanel('menu')}><Icon name="more"/><span>メニュー</span></button></nav>}>
    {page==='home'?<>   <div className="account-row"><button className="account-main" onClick={()=>go('profile')}><span className="avatar"><Icon name="account"/></span><span><small>{nickOf(st?.nick)?.label||'装備中の称号なし'}</small><strong>{acct.name}</strong><span className="level">Lv. <b>{L.lv}</b><span className="xp"><i style={{width:`${L.cur/L.need*100}%`}}/></span></span></span></button><div className="ratings">{['easy','normal'].map(d=>{const r=RatingDisplay.current(profile,st,d);return <div key={d}><small>{d==='easy'?'イージー':'ノーマル'}</small><strong>{isReal(acct)?RatingDisplay.format(r.value):'―'}</strong></div>})}</div><button className="account-link" onClick={()=>go('profile')}>成績確認 <Icon name="chevron"/></button></div>

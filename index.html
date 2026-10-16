@@ -2539,7 +2539,13 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
         </div>}
-        {menuWin === 'rank' && <RankingFrame title={rankingOnly ? "ソロランキング" : "ランキング"} wide onClose={rankingOnly ? onRankExit : () => setMenuWin(null)}>
+        {menuWin === 'rank' && rankingOnly && window.NextRanking?.SoloRanking && <window.NextRanking.SoloRanking
+          gas={GAS_ENDPOINT_URL !== ''} netStatus={netStatus} netError={netError} tab={rankTab} onTab={setRankTab} onReload={loadNetRanking}
+          best={Object.fromEntries(NET_RANKING_DIFF_ORDER.map(k => [k, withRanks((netRanking[k] || []).slice(0, 20))]))}
+          total={Object.fromEntries(NET_RANKING_DIFF_ORDER.map(k => [k, withRanks((totalRanking[k] || []).slice(0, 20).map(r => ({ ...r, score: r.totalScore, caught: r.totalCaught })))]))}
+          local={withRanks(ranking)} storageOk={STORAGE_AVAILABLE} diffs={Object.fromEntries(['easy', 'normal', 'hard'].map(k => [k, { label: DIFFICULTY_CONFIG[k].label, color: DIFFICULTY_CONFIG[k].color }]))}
+          defaultDiff={menuDiff} selfName={isReal(acct) ? acct.name : null} />}
+        {menuWin === 'rank' && !(rankingOnly && window.NextRanking?.SoloRanking) && <RankingFrame title={rankingOnly ? "ソロランキング" : "ランキング"} wide onClose={rankingOnly ? onRankExit : () => setMenuWin(null)}>
           <div className="v7-tabs">
             {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'best'} onClick={() => setRankTab('best')}>みんなのベスト</button>}
             {GAS_ENDPOINT_URL !== '' && <button className="v7-cur" aria-pressed={rankTab === 'total'} onClick={() => setRankTab('total')}>みんなの総得点</button>}

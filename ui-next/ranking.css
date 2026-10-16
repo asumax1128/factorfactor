@@ -1,0 +1,37 @@
+/* Ver.6.0 ranking lists (solo / daily / rating). Inherits the .next-home tokens; presentation only. */
+.next-home .rk-head{margin:6px 0 14px}
+.next-home .rk-head h2{font:900 22px/1.4 var(--heading);overflow-wrap:anywhere}
+.next-home .rk-head p{margin-top:4px;font-size:12px;color:var(--muted)}
+.next-home .rk-seg{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.next-home .rk-seg button{flex:1 1 auto;min-width:88px;min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#162029;color:var(--muted);font:700 14px/1.3 var(--body)}
+.next-home .rk-seg button:hover{border-color:#4d6a7b;color:var(--text)}
+.next-home .rk-seg button[aria-pressed=true]{background:#1f4a50;border-color:var(--accent);color:var(--text);box-shadow:inset 0 -3px 0 var(--accent)}
+.next-home .rk-bar{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.next-home .rk-bar .rk-seg{flex:1 1 200px}
+.next-home .rk-reload{flex:0 0 auto;min-width:88px;min-height:44px;margin:0 0 12px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#162029;color:var(--text);font:700 14px var(--body)}
+.next-home .rk-list,.next-home .ranking-view .rk-list{list-style:none;margin:0;padding:0!important;display:flex;flex-direction:column;gap:6px}
+.next-home .rk-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:52px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(140deg,var(--next-panel,#192b38),#172330)}
+.next-home .rk-no{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#101a23;border:1px solid var(--line);font:700 16px var(--number);color:var(--muted)}
+.next-home .rk-top1 .rk-no{background:#f6bd62;border-color:#f6bd62;color:#2b1d03}
+.next-home .rk-top2 .rk-no{background:#cfd8de;border-color:#cfd8de;color:#18232b}
+.next-home .rk-top3 .rk-no{background:#d08a5a;border-color:#d08a5a;color:#2a1608}
+.next-home .rk-main{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
+.next-home .rk-name{font:900 16px/1.4 var(--heading);color:var(--text);overflow-wrap:anywhere;background:none;border:0;padding:0;min-height:0;text-align:left}
+.next-home button.rk-name{text-decoration:underline;text-decoration-color:#4d6a7b;text-underline-offset:3px;min-height:44px}
+.next-home .rk-main small{flex-basis:100%;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.next-home .rk-me{font-style:normal;font-size:11px;font-weight:900;padding:1px 8px;border-radius:99px;background:var(--accent);color:#08262b}
+.next-home .rk-val{display:flex;align-items:baseline;gap:3px;white-space:nowrap}
+.next-home .rk-val b{font:700 22px/1.2 var(--number);color:var(--accent)}
+.next-home .rk-val i{font-style:normal;font-size:12px;color:var(--muted)}
+.next-home .rk-self{border-color:var(--accent);background:linear-gradient(140deg,#1d4a50,#18313c);box-shadow:0 0 0 1px var(--accent) inset}
+.next-home .rk-state{padding:26px 16px;text-align:center;border:1px dashed var(--line);border-radius:8px;background:#141e27;color:var(--muted)}
+.next-home .rk-state p{margin:0}
+.next-home .rk-state small{display:block;margin-top:6px;font-size:11px;overflow-wrap:anywhere}
+.next-home .rk-state button{margin-top:12px;min-height:44px;padding:8px 18px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--text);font:700 14px var(--body)}
+.next-home .rk-error{border-color:#b9645a;color:#f1b4ac}
+.next-home .rk-foot{margin:10px 2px 0;font-size:11px;color:var(--muted)}
+.next-home .rk-warn{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:#3a2326;color:#f1b4ac;font-size:12px;font-weight:700}
+@media(max-width:600px){.next-home .rk-row{grid-template-columns:38px minmax(0,1fr) auto;gap:8px;padding:8px 10px}.next-home .rk-no{width:32px;height:32px;font-size:14px}.next-home .rk-val b{font-size:19px}.next-home .rk-seg button{min-width:0;padding:8px 10px;font-size:13px}.next-home .rk-head h2{font-size:20px}}
+@media(max-height:450px){.next-home .rk-row{min-height:46px;padding:5px 10px}.next-home .rk-head{margin-bottom:8px}}
+@media(prefers-reduced-motion:reduce){.next-home .rk-row{transition:none}}
+.next-home [data-ranking]{max-width:880px}
