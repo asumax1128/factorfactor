@@ -10,7 +10,7 @@ const TS=firebase.database.ServerValue.TIMESTAMP,rej=async(fn,m)=>{try{await fn(
   const clean=o=>JSON.parse(JSON.stringify(o)),entry=(n,over={})=>({n,k:'answer',q:n,a:['f1','f2'],ct:Date.now(),sat:TS,...over});
   const put=(code,gid,u,n,v)=>u.db.ref(root+code+'/'+gid+'/'+u.uid+'/'+n).set(clean(v||entry(n)));
   const mk=(c,g,extra={})=>({meta:{host:A.uid},players:Object.fromEntries([...ids,out.uid].map(u=>[u,{n:1}])),state:{phase:'play',mode:'C',diff:'easy',gid:g,startAt:Date.now()-1000,players:ids,tm,handi:{},...extra}});
-  const seed=async(c,g)=>env.withSecurityRulesDisabled(async x=>{await set(ref(x.database(),R(c)),mk(c,g))});
+  const seed=async(c,g)=>env.withSecurityRulesDisabled(async x=>{await set(ref(x.database(),R(c)),mk(c,g));if(!process.env.NO_PIN)await CW.create({database:x.database()}).open(c)});
   // ============ 1. sat is a server timestamp, never a client value
   await seed('1000','s1');
   for(const bad of [Date.now()-1000,Date.now()+1000,Date.now()-3600000,Date.now()+3600000,0,1.5,'now',null])await assertFails(put('1000','s1',A,0,entry(0,{sat:bad})));

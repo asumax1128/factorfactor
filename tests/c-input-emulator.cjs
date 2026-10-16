@@ -15,6 +15,7 @@ const TS=firebase.database.ServerValue.TIMESTAMP,pause=ms=>new Promise(r=>setTim
    const db=c.database();for(const [c2,g,ex] of [[code,gid,{}],['1111','g2',{cpu:{x:1}}],['2222','g3',{mode:'B'}],['3333','g4',{}],['5555','g5',{}]])await set(ref(db,R(c2)),room(c2,g,ex));
    await set(ref(db,R('3333')+'/result/g4'),{winner:'x'});
    await set(ref(db,R('5555')+'/state/startAt'),Date.now()+600000);
+   for(const c2 of ['4321','1111','2222','3333','5555'])await CW.create({database:db}).open(c2).catch(()=>{});// pins every game that can be pinned; CPU/result/future-start rooms stay closed by rules
   });
   // ---- allowed: own, contiguous, server-assigned sat
   for(const u of [A,B,Cc,D])await assertSucceeds(put(u,0));
