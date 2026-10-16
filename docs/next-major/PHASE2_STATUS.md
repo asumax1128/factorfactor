@@ -148,3 +148,9 @@ Cは参加者書込の既存ev／thpを正式証拠とする安全性が成立�
 Wardrobeの既定表示を既存B改良版へ統一。旧AccountBar／AccountPanelV7の呼出元・所有条件・装備保存を変更せず、portal側で必要なstylesheetを読み込む。明示的なlegacy表示の内部互換分岐は保持。
 
 375／1440pxで2種類の実コンポーネント入口、portal、ロック選択拒否、skinだけの正確な保存、Escape／焦点復帰、横はみ出しなしを確認。既存の新プロフィール4幅とイージー／ノーマル歴代MASTERエフェクトの回帰も成功。教師画面・全対戦／ソロ内部の統一まで完了したとは扱わない。
+
+### SDK fixtureの後片付け
+
+CIと同じSDK工程を通して実行し、後続 `weekly-run-emulator.cjs:42` が旧accounts領域の空状態を検査する際、追加した画面テストの `accounts/ar` fixtureが残って失敗することを再現した。新画面SDKテストをdemo Emulatorの前後clearで独立化。後続の「本来書き込まない領域」のassertionは維持。修正後の画面SDK→旧週間SDKは両方成功した。本番データの削除ではなく、明示demoプロジェクト・127.0.0.1の試験データのみ。
+
+4画面幅は2つの実クライアントをresizeして確認する形に整理し、認証／14MBアプリの重複起動を削減した。2端末復帰・4幅・実ドラッグ・称号profileのassertionは保持し、制限時間やテストtimeoutを延長していない。
