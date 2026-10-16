@@ -1,7 +1,7 @@
 name: Next major development checks (no deployment)
 on:
   push:
-    branches: [dev/next-major-20261015, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off]
+    branches: [dev/next-major-20261015, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off, claude/v6-ranking-ui]
     paths:
       - 'src/**'
       - 'index.html'
