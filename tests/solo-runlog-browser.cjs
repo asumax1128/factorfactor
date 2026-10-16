@@ -6,8 +6,8 @@ const exe=process.env.CHROMIUM_PATH||'/usr/bin/chromium';
 const html=fs.readFileSync('index.html','utf8').replace('Math.random() < REVERSE_STAGE_CHANCE','Math.random() < (window.__revChance ?? REVERSE_STAGE_CHANCE)');
 assert(html.includes('window.__revChance'),'hook inserted');
 const tree=()=>({games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{exp:100,rating:1600}}}}}});
-async function begin(b,label,extra={}){const t=await context(b,{tree:tree(),assetOverrides:{'/':html},...extra}),p=t.page;await p.evaluate(()=>{window.__revChance=0});
- await p.locator('.action-card.solo').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor();return{t,p}}
+async function begin(b,label,extra={}){const tr=tree(),t=await context(b,{tree:tr,assetOverrides:{'/':html},...extra}),p=t.page;await p.evaluate(()=>{window.__revChance=0});
+ await p.locator('.action-card.solo').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor();return{t,p,tr}}
 const judge=p=>p.evaluate(()=>[...document.querySelectorAll('.combat-judge')].map(e=>e.textContent.trim()).find(Boolean)||null);
 // a recorder that mirrors what the player really did/saw
 const mk=()=>({caught:0,wrong:0,timeouts:0,perfect:0,combo:0,maxCombo:0,reverseOk:0,reverseWrong:0});
@@ -44,11 +44,17 @@ const same=(r,rec,tag)=>{assert.equal(r.tiles['正解数'],String(rec.caught),ta
   const rec2=mk();await dieByWrong(p,rec2);const r2=await read(p);assert.equal(r2.tiles['正解数'],'0');assert.equal(r2.tiles['Perfect'],'0');assert.equal(r2.tiles['最大コンボ'],'0');assert.equal(r2.tiles['ミス'],String(rec2.wrong));assert(!r2.hl.some(x=>x.startsWith('最速解答')||x.startsWith('最大')));
   assert.deepEqual(t.errors,[]);await t.ctx.close()}
  console.log('PASS mixed normal + bonus stage (31 normal, bonus correct/wrong, interleaved): exact counts; fresh run starts empty');
- // ===== 3. CLEAR right after the final correct answer =====
- {const{t,p}=await begin(b,'イージー'),rec=mk();for(let i=0;i<15;i++)await right(p,rec).catch(async e=>{if(i<14)throw e});
-  await p.locator('[data-battle-summary]').waitFor();const r=await read(p);assert.equal(r.word,'CLEAR!');assert.equal(r.tiles['正解数'],'15');assert.equal(r.tiles['最大コンボ'],'15');assert.equal(r.tiles['ミス'],'0');
-  assert(r.tiles['Perfect']!==undefined,'tile only exists when the log accounts for every correct answer, i.e. the final answer is in it');assert([rec.perfect,rec.perfect+1].includes(+r.tiles['Perfect']),'Perfect = the 14 seen + at most the final (its popup is replaced by the result screen)');assert.deepEqual(t.errors,[]);await t.ctx.close()}
- console.log('PASS CLEAR snapshot includes the final correct answer');
+ // ===== 3. CLEAR right after the final correct answer: the final question is made Perfect / not Perfect on purpose =====
+ // Oracle: the game's own mission progress (mis.p.pf), written by flushLearn from the original learning record, counts every Perfect.
+ for(const finalPerfect of [true,false]){
+  const{t,p,tr}=await begin(b,'イージー'),rec=mk();for(let i=0;i<14;i++)await right(p,rec);
+  if(!finalPerfect)await p.waitForTimeout(2400);        // the final question stays open > 2s: judged Great, never Perfect
+  await soloDrag(p,true);await p.locator('[data-battle-summary]').waitFor();await p.waitForTimeout(900);
+  const r=await read(p),pf=tr.games.factor.accounts.ateacher.mis.p.pf,expected=rec.perfect+(finalPerfect?1:0);
+  assert.equal(r.word,'CLEAR!');assert.equal(r.tiles['正解数'],'15');assert.equal(r.tiles['最大コンボ'],'15');assert.equal(r.tiles['ミス'],'0');
+  assert.equal(pf,expected,'oracle: the game itself counted exactly this many Perfects ('+(finalPerfect?'final fast':'final slow')+')');
+  assert.equal(+r.tiles['Perfect'],expected,'displayed Perfect equals the exact expectation, no tolerance');assert.deepEqual(t.errors,[]);await t.ctx.close()}
+ console.log('PASS CLEAR: final answer Perfect and not-Perfect both give the exact Perfect count (checked against the game\'s own record)');
  // ===== 4. missing / inconsistent log => no inaccurate numbers =====
  {const{t,p}=await begin(b,'ハード');await p.evaluate(()=>{const M=NextResults.SoloResultModel,f=M.build;M.build=i=>f({...i,snapshot:{...i.snapshot,log:(i.snapshot.log||[]).slice(1)}})});
   const rec=mk();await right(p,rec).catch(()=>{});await dieByWrong(p,rec);const r=await p.evaluate(()=>({tiles:[...document.querySelectorAll('.nbr-tile small:first-child')].map(e=>e.textContent),learn:!!document.querySelector('[data-learn]'),hl:[...document.querySelectorAll('.nbr-card h4')].map(e=>e.textContent)}));
