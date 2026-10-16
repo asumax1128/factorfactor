@@ -1,6 +1,7 @@
 const { buildSync } = require("esbuild");
 require("./build-online-spark.cjs");
 require("./audit-rewards.cjs");
+require("./build-weekly-authority.cjs");
 buildSync({
   entryPoints: ["src/online-rated-ui.jsx"],
   outfile: "online-rated-ui.js",

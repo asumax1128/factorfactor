@@ -1,0 +1,45 @@
+{
+  ".read": false,
+  ".write": false,
+  "weekly": {
+    "$week": {
+      "public": {
+        ".read": "auth != null"
+      },
+      "views": {
+        "$account": {
+          ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()"
+        }
+      },
+      "processed": {
+        "$account": {
+          ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()"
+        }
+      },
+      "requests": {
+        "$account": {
+          ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+          "$id": {
+            ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && newData.exists()",
+            ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,64}$/) && $id !== '__proto__' && $id !== 'constructor' && $id !== 'prototype' && newData.hasChildren(['uid','type','payload','at']) && newData.child('uid').val() === auth.uid && newData.child('type').isString() && newData.child('type').val().matches(/^(start|answer|resume|quit)$/) && newData.child('payload').isString() && newData.child('payload').val().length <= 2048 && newData.child('at').isNumber() && (!data.exists() && newData.child('at').val() === now || data.exists() && newData.child('uid').val() === data.child('uid').val() && newData.child('type').val() === data.child('type').val() && newData.child('payload').val() === data.child('payload').val() && newData.child('at').val() === data.child('at').val())",
+            "uid": {
+              ".validate": true
+            },
+            "type": {
+              ".validate": true
+            },
+            "payload": {
+              ".validate": true
+            },
+            "at": {
+              ".validate": true
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

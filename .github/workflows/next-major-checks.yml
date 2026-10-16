@@ -37,9 +37,9 @@ jobs:
       - name: Check generated engine and UI
         run: |
           node scripts/build-online-rated.cjs
-          git diff --exit-code -- online-spark.js online-rated-ui.js room-b2-ui.js next-home-ui.js next-results-ui.js server/online-rated/engine-source.js achievements-audit.js reports/
+          git diff --exit-code -- online-spark.js online-rated-ui.js room-b2-ui.js next-home-ui.js next-results-ui.js server/online-rated/engine-source.js server/next-authority/weekly-source.js achievements-audit.js reports/
       - name: Confirmed results and protected data units
-        run: node --test tests/b2.test.cjs tests/b-result.test.cjs tests/weekly-next.test.cjs tests/weekly-combat.test.cjs tests/weekly-gimmick-checkpoint.test.cjs tests/weekly-rewards-next.test.cjs tests/c-contribution-next.test.cjs tests/tournament-b2.test.cjs tests/title-compat-next.test.cjs tests/title-awards-next.test.cjs tests/title-cutover-next.test.cjs tests/friend-raid-next.test.cjs
+        run: node --test tests/weekly-authority.test.cjs tests/b2.test.cjs tests/b-result.test.cjs tests/weekly-next.test.cjs tests/weekly-combat.test.cjs tests/weekly-gimmick-checkpoint.test.cjs tests/weekly-rewards-next.test.cjs tests/c-contribution-next.test.cjs tests/tournament-b2.test.cjs tests/title-compat-next.test.cjs tests/title-awards-next.test.cjs tests/title-cutover-next.test.cjs tests/friend-raid-next.test.cjs
       - name: Install official Chromium
         run: npx playwright install --with-deps chromium
       - name: Select Chromium
@@ -61,4 +61,4 @@ jobs:
       - name: Isolated demo SDK and authorization checks
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-run-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tournament-b2-emulator.cjs && HTTP_PROXY= http_proxy= node tests/title-presentation-emulator.cjs && HTTP_PROXY= http_proxy= node tests/friend-raid-emulator.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/weekly-authority-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-run-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tournament-b2-emulator.cjs && HTTP_PROXY= http_proxy= node tests/title-presentation-emulator.cjs && HTTP_PROXY= http_proxy= node tests/friend-raid-emulator.cjs"
