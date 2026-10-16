@@ -2,6 +2,14 @@
 
 作業ブランチ：`dev/next-major-20261015`。本番main=`5584885`、公開Ver.5.25を維持。main統合／本番Firebase・ルール変更／本番移行／公開は行っていない。**全Phaseの完成・公開可能の宣言ではない。**
 
+## A方式・B方式リザルト画面（作業ブランチ `claude/result-ui-impl`・ディレクター確認待ち）
+
+- 追加：`src/battle-result-model.cjs`（表示モデルの純粋関数）、`src/next-battle-result-ui.jsx`（`NextResults.BattleSummary`）、`ui-next/results.css`の`.nbr`。`BattleResult`は`mode==='A'`または`state.b2Final`（=B方式）のときだけ新ヒーロー／成績／比較／ハイライト／成長を表示し、既存の分析（AResultDetails／BDetails）・ふり返り・再戦／ロビー／退出ボタンはそのまま再利用。C・旧Bの表示は変更なし。
+- データ方針：比較行は全員分の値がある行だけ表示（A方式の解答時間は「獲得した問題の平均解答時間」）。B方式の「送信お邪魔カード」は送った量で与ダメージではない旨を注記し、`dmgTaken`（誤答によるHP減少のみ）は被ダメージとして表示しない。ハイライトは確認できる事実のみ（リード交代・連続獲得／最大コンボ・最速解答・最大得点・最小HP）で因果を書かず、同一の出来事は重複除去して最大3件。履歴欠損時はグラフ・リード交代・最大得点を出さない。
+- PC：結果の外枠を最大1120pxへ広げ2カラム（`BattleGame`の`wrap`に表示専用の第3引数）。スマホ：比較の5項目目以降を展開式。`prefers-reduced-motion`で紙吹雪・アニメ・カウントアップ停止。
+- テスト：`tests/battle-result-model.test.cjs`、`tests/next-battle-result-browser.cjs`（孤立表示と実CPU対戦のA／B、375/390/430/1440）。`tests/legacy-regression.cjs`のAST監査は`wrap()`の追加引数だけを正規化（ゲームロジックは同一）。
+- 未解決：成長ブロックは既存コンポーネント（ExpGain等）をそのまま再利用しており配色が従来のライトカード。既存の勝利時の全画面紙吹雪（`FX.confetti(70)`、対戦記録処理側）は未変更。ランダムレーティング対戦（`or-result`）は別の結果画面で未接続。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
