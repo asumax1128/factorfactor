@@ -1337,6 +1337,255 @@
     }
   });
 
+  // src/next-battle-result-ui.jsx
+  var require_next_battle_result_ui = __commonJS({
+    "src/next-battle-result-ui.jsx"(exports, module) {
+      var reduced = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var TONE = ["#72dfce", "#f6bd62", "#b5a5ff", "#83c8ff"];
+      var fmt = (v, r) => (r.decimals ? v.toFixed(r.decimals) : String(v)) + r.unit;
+      var ICON = {
+        reversal: /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 36 36", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M6 13h20l-5-5M30 23H10l5 5" })),
+        combo: /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 36 36", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M18 4c2 6 9 9 9 17a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 2 4 3 4 0-5-1-8 2-13z" })),
+        fast: /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 36 36", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M20 3 8 20h9l-2 13 13-18h-9z" })),
+        big: /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 36 36", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("circle", { cx: "18", cy: "18", r: "13" }), /* @__PURE__ */ React.createElement("circle", { cx: "18", cy: "18", r: "6" })),
+        minhp: /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 36 36", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: "M18 4 6 9v9c0 8 5 13 12 15 7-2 12-7 12-15V9z" }))
+      };
+      function useWide(ref) {
+        const [wide, set] = React.useState(false);
+        React.useEffect(() => {
+          const el = ref.current;
+          if (!el || typeof ResizeObserver === "undefined") return;
+          const ro = new ResizeObserver(([e]) => set(e.contentRect.width >= 760));
+          ro.observe(el);
+          return () => ro.disconnect();
+        }, []);
+        return wide;
+      }
+      function Duel({ r, players }) {
+        const [a, b] = [r.values[players[0].uid], r.values[players[1].uid]], low = r.better === "low";
+        const w = (x) => low ? x > 0 ? 1 / x : 2 : x, wa = w(a), wb = w(b), share = wa + wb > 0 ? wa / (wa + wb) : 0.5;
+        const better = a === b ? 0 : (low ? a < b : a > b) ? 1 : -1;
+        return /* @__PURE__ */ React.createElement("div", { className: "nbr-row", "data-row": r.id }, /* @__PURE__ */ React.createElement("div", { className: "nbr-duel" }, /* @__PURE__ */ React.createElement("b", { className: "num", style: { color: better > 0 ? TONE[0] : void 0 }, "data-better": better > 0 }, fmt(a, r)), /* @__PURE__ */ React.createElement("span", { className: "nbr-label" }, r.label), /* @__PURE__ */ React.createElement("b", { className: "num", style: { color: better < 0 ? TONE[players[1].tone % 4] : void 0 }, "data-better": better < 0 }, fmt(b, r))), /* @__PURE__ */ React.createElement("div", { className: "nbr-split", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("i", { style: { width: share * 100 + "%", background: TONE[0] } }), /* @__PURE__ */ React.createElement("i", { style: { width: (1 - share) * 100 + "%", background: TONE[players[1].tone % 4] } })), r.note && /* @__PURE__ */ React.createElement("small", null, r.note));
+      }
+      function Stack({ r, players }) {
+        const vals = players.map((p) => r.values[p.uid]), low = r.better === "low", best = low ? Math.min(...vals) : Math.max(...vals), max = Math.max(...vals, 1e-9), min = Math.min(...vals);
+        return /* @__PURE__ */ React.createElement("div", { className: "nbr-row", "data-row": r.id }, /* @__PURE__ */ React.createElement("div", { className: "nbr-label" }, r.label), players.map((p, i) => {
+          const v = vals[i], w = low ? v > 0 ? min / v : 1 : v / max;
+          return /* @__PURE__ */ React.createElement("div", { className: "nbr-bar", key: p.uid, "data-best": v === best && vals.filter((x) => x === best).length < vals.length }, /* @__PURE__ */ React.createElement("span", { className: "n" }, /* @__PURE__ */ React.createElement("i", { className: "nbr-dot", style: { background: TONE[p.tone % 4] } }), p.me ? "\u3042\u306A\u305F" : p.name), /* @__PURE__ */ React.createElement("span", { className: "trk" }, /* @__PURE__ */ React.createElement("i", { style: { width: Math.max(4, w * 100) + "%", background: TONE[p.tone % 4] } })), /* @__PURE__ */ React.createElement("span", { className: "v num" }, fmt(v, r)));
+        }), r.note && /* @__PURE__ */ React.createElement("small", null, r.note));
+      }
+      function Table({ rows, players }) {
+        const D = players.length === 2 ? Duel : Stack;
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, rows.map((r) => /* @__PURE__ */ React.createElement(D, { key: r.id, r, players })));
+      }
+      function Count({ C, to, plain }) {
+        return C && !plain ? /* @__PURE__ */ React.createElement(C, { from: 0, to, ms: 900 }) : /* @__PURE__ */ React.createElement(React.Fragment, null, to);
+      }
+      function BattleSummary2({ model: m, badges = [], notes = null, growth = null, reviewCount = 0, onReview = null, CountUp = null }) {
+        const ref = React.useRef(null), wide = useWide(ref), rm = reduced(), [open, setOpen] = React.useState(false);
+        const me = m.players[0], foe = m.players[1], primary = m.rows.slice(0, 4), more = m.rows.slice(4);
+        return /* @__PURE__ */ React.createElement("section", { ref, className: "nbr" + (m.extras.length ? " has-extra" : ""), "data-battle-summary": true, "data-kind": m.kind, "data-outcome": m.outcome, "data-wide": wide }, /* @__PURE__ */ React.createElement("header", { className: "nbr-hero", "data-outcome": m.outcome }, m.outcome === "win" && !rm && /* @__PURE__ */ React.createElement("div", { className: "nbr-confetti", "aria-hidden": "true" }, Array.from({ length: 10 }, (_, i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { left: i * 9.7 + 4 + "%", background: TONE[i % 4], animationDelay: i * 70 + "ms" } }))), /* @__PURE__ */ React.createElement("span", { className: "nbr-chip" }, m.methodLabel, m.multi ? ` \u30FB ${m.players.length}\u4EBA\u5BFE\u6226` : ""), /* @__PURE__ */ React.createElement("h2", { className: "nbr-word", "aria-label": { win: "\u52DD\u5229", lose: m.multi ? `${m.place}\u4F4D` : "\u6557\u5317", draw: "\u5F15\u304D\u5206\u3051" }[m.outcome] }, m.word), m.multi && m.outcome !== "win" && /* @__PURE__ */ React.createElement("div", { className: "nbr-sub" }, "LOSE\u2026"), m.reasonText && /* @__PURE__ */ React.createElement("div", { className: "nbr-reason" }, m.reasonText), badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "nbr-badges" }, badges.map((b) => /* @__PURE__ */ React.createElement("span", { key: b }, b))), notes && /* @__PURE__ */ React.createElement("div", { className: "nbr-notes" }, notes), m.multi ? /* @__PURE__ */ React.createElement("ul", { className: "nbr-rank" }, [...m.players].sort((a, b) => {
+          var _a, _b;
+          return ((_a = a.rank) != null ? _a : 9) - ((_b = b.rank) != null ? _b : 9);
+        }).map((p) => /* @__PURE__ */ React.createElement("li", { key: p.uid, "data-me": p.me }, /* @__PURE__ */ React.createElement("b", { className: "num" }, p.rank ? `${p.rank}\u4F4D` : "\u2014"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("i", { className: "nbr-dot", style: { background: TONE[p.tone % 4] } }), p.me ? "\u3042\u306A\u305F" : p.name), /* @__PURE__ */ React.createElement("span", { className: "num" }, p.score == null ? "" : `${p.score}\u70B9`)))) : me.score != null && foe.score != null && /* @__PURE__ */ React.createElement("div", { className: "nbr-score num" }, /* @__PURE__ */ React.createElement("span", { style: { color: TONE[0] }, "data-score": me.score }, /* @__PURE__ */ React.createElement(Count, { C: CountUp, plain: rm, to: me.score })), /* @__PURE__ */ React.createElement("small", null, "VS"), /* @__PURE__ */ React.createElement("span", { "data-score": foe.score }, /* @__PURE__ */ React.createElement(Count, { C: CountUp, plain: rm, to: foe.score })))), /* @__PURE__ */ React.createElement("div", { className: "nbr-grid" }, m.tiles.length > 0 && /* @__PURE__ */ React.createElement("section", { className: "nbr-tiles", "aria-label": "\u3042\u306A\u305F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement("h3", null, "\u3042\u306A\u305F\u306E\u6210\u7E3E"), /* @__PURE__ */ React.createElement("div", null, m.tiles.map((t) => /* @__PURE__ */ React.createElement("div", { className: "nbr-tile", key: t.id }, /* @__PURE__ */ React.createElement("small", null, t.label), /* @__PURE__ */ React.createElement("b", { className: "num" }, t.value), /* @__PURE__ */ React.createElement("small", null, t.unit))))), m.rows.length > 1 && /* @__PURE__ */ React.createElement("section", { className: "nbr-cmp", "aria-label": "\u76F8\u624B\u3068\u306E\u6BD4\u8F03" }, /* @__PURE__ */ React.createElement("h3", null, m.multi ? "\u307F\u3093\u306A\u3068\u306E\u6BD4\u8F03" : "\u76F8\u624B\u3068\u306E\u6BD4\u8F03"), /* @__PURE__ */ React.createElement("div", { className: "nbr-panel" }, /* @__PURE__ */ React.createElement(Table, { rows: wide || !more.length ? m.rows : primary, players: m.players }), !wide && more.length > 0 && /* @__PURE__ */ React.createElement("details", { open, onToggle: (e) => setOpen(e.currentTarget.open) }, /* @__PURE__ */ React.createElement("summary", null, "\u3055\u3089\u306B", more.length, "\u9805\u76EE\u3092\u898B\u308B"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Table, { rows: more, players: m.players })))), m.hiddenRows && /* @__PURE__ */ React.createElement("p", { className: "nbr-note" }, "\u8A18\u9332\u304C\u306A\u3044\u9805\u76EE\u306F\u8868\u793A\u3057\u3066\u3044\u307E\u305B\u3093\u3002")), m.highlights.length > 0 && /* @__PURE__ */ React.createElement("section", { className: "nbr-hl", "aria-label": "\u8A66\u5408\u306E\u30CF\u30A4\u30E9\u30A4\u30C8" }, /* @__PURE__ */ React.createElement("h3", null, "\u8A66\u5408\u306E\u30CF\u30A4\u30E9\u30A4\u30C8"), m.highlights.map((h) => /* @__PURE__ */ React.createElement("article", { className: "nbr-card", key: h.id }, ICON[h.id] || ICON.big, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h4", null, h.title, h.tag && /* @__PURE__ */ React.createElement("span", { className: "num" }, h.tag)), /* @__PURE__ */ React.createElement("p", null, h.detail))))), growth && /* @__PURE__ */ React.createElement("section", { className: "nbr-grow", "aria-label": "\u6210\u9577\u306E\u8A18\u9332" }, /* @__PURE__ */ React.createElement("h3", null, "\u6210\u9577\u306E\u8A18\u9332"), /* @__PURE__ */ React.createElement("div", { className: "nbr-growslot" }, growth)), m.extras.length > 0 && /* @__PURE__ */ React.createElement("section", { className: "nbr-extra", "aria-label": "B\u65B9\u5F0F\u306E\u8A18\u9332" }, /* @__PURE__ */ React.createElement("h3", null, "B\u65B9\u5F0F\u306E\u8A18\u9332"), /* @__PURE__ */ React.createElement("div", { className: "nbr-panel" }, /* @__PURE__ */ React.createElement(Table, { rows: m.extras, players: m.players })))), onReview && reviewCount > 0 && /* @__PURE__ */ React.createElement("button", { type: "button", className: "nbr-review", onClick: onReview }, "\u9593\u9055\u3048\u305F\u554F\u984C\u3092\u5FA9\u7FD2\uFF08", reviewCount, "\u554F\uFF09"));
+      }
+      module.exports = { BattleSummary: BattleSummary2 };
+    }
+  });
+
+  // src/battle-result-model.cjs
+  var require_battle_result_model = __commonJS({
+    "src/battle-result-model.cjs"(exports, module) {
+      "use strict";
+      var fin = (n) => typeof n === "number" && Number.isFinite(n);
+      var sec = (ms) => (ms / 1e3).toFixed(1);
+      var mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+      var leadOf = (scores, me, ids) => Math.sign(scores[me] - Math.max(...ids.filter((u) => u !== me).map((u) => scores[u])));
+      function lastReversal(frames, me, ids) {
+        let last = 0, out = null;
+        for (const f of frames) {
+          const l = leadOf(f.scores, me, ids);
+          if (l && last && l !== last) out = { frame: f, toMe: l > 0 };
+          if (l) last = l;
+        }
+        return out;
+      }
+      function runOf(flags) {
+        let best = 0, bi = -1, cur = 0;
+        flags.forEach((ok, i) => {
+          cur = ok ? cur + 1 : 0;
+          if (cur > best) {
+            best = cur;
+            bi = i;
+          }
+        });
+        return best ? { len: best, from: bi - best + 1, to: bi } : null;
+      }
+      function pick(cands) {
+        const used = /* @__PURE__ */ new Set(), out = [];
+        for (const c of cands) {
+          if (!c) continue;
+          if (c.refs.some((r) => used.has(r))) continue;
+          c.refs.forEach((r) => used.add(r));
+          const { refs, ...rest } = c;
+          out.push(rest);
+          if (out.length === 3) break;
+        }
+        return out;
+      }
+      function rank(ids, score, given) {
+        if (given && ids.every((u) => fin(given[u]))) return given;
+        const o = [...ids].sort((a, b) => score[b] - score[a]), r = {};
+        o.forEach((u, i) => {
+          r[u] = i && score[u] === score[o[i - 1]] ? r[o[i - 1]] : i + 1;
+        });
+        return r;
+      }
+      function row(id, label, unit, ids, get, extra = {}) {
+        const values = {};
+        for (const u of ids) {
+          const v = get(u);
+          if (!fin(v)) return null;
+          values[u] = v;
+        }
+        return { id, label, unit, values, ...extra };
+      }
+      function buildA({ me, ids, report, claims }) {
+        var _a, _b;
+        const ok = !!report && report.consistent === true && Array.isArray(report.events);
+        const score = report && report.scores ? report.scores : null;
+        const rows = [], hl = [];
+        let hidden = !ok;
+        const add = (r) => {
+          rows.push(r);
+          if (!r) hidden = true;
+        };
+        if (score) add(row("score", "\u5F97\u70B9", "\u70B9", ids, (u) => score[u]));
+        else hidden = true;
+        let wins = null;
+        if (ok) {
+          wins = Object.fromEntries(ids.map((u) => [u, report.events.filter((e) => e.winner === u).length]));
+          add(row("won", "\u53D6\u3063\u305F\u554F\u984C", "\u554F", ids, (u) => wins[u], { note: `${report.events.length}\u554F\u4E2D` }));
+        }
+        if (report && report.best) add(row("combo", "\u6700\u5927\u30B3\u30F3\u30DC", "", ids, (u) => report.best[u]));
+        else hidden = true;
+        if (ok) {
+          const judged = report.events.filter((e) => e.winner);
+          const hasJ = judged.every((e) => {
+            var _a2;
+            return typeof ((_a2 = claims == null ? void 0 : claims[e.question - 1]) == null ? void 0 : _a2.j) === "string";
+          });
+          if (hasJ && judged.length) add(row("perfect", "Perfect", "\u56DE", ids, (u) => judged.filter((e) => e.winner === u && claims[e.question - 1].j === "Perfect").length));
+          else hidden = true;
+          add(row("time", "\u5E73\u5747\u89E3\u7B54\u6642\u9593", "\u79D2", ids, (u) => {
+            const t = report.events.filter((e) => e.winner === u && fin(e.ms)).map((e) => e.ms);
+            return t.length ? Math.round(mean(t)) / 1e3 : null;
+          }, { better: "low", note: "\u7372\u5F97\u3057\u305F\u554F\u984C\u306E\u5E73\u5747\u89E3\u7B54\u6642\u9593\uFF08\u53D6\u308C\u306A\u304B\u3063\u305F\u554F\u984C\u306E\u6642\u9593\u306F\u8A18\u9332\u3055\u308C\u307E\u305B\u3093\uFF09", decimals: 1 }));
+          const rev = lastReversal(report.events.map((e) => ({ q: e.question, scores: e.totals })), me, ids);
+          const mine = report.events.filter((e) => e.winner === me);
+          const run = runOf(report.events.map((e) => e.winner === me));
+          const fast = mine.filter((e) => fin(e.ms)).sort((a, b) => a.ms - b.ms)[0];
+          const big = [...mine].sort((a, b) => b.pts - a.pts)[0];
+          const range = (a, b) => {
+            const r = [];
+            for (let i = a; i <= b; i++) r.push("q" + i);
+            return r;
+          };
+          hl.push(rev && { id: "reversal", title: "\u30EA\u30FC\u30C9\u4EA4\u4EE3", tag: `\u7B2C${rev.frame.q}\u554F`, detail: `${rev.toMe ? "\u3042\u306A\u305F\u304C\u30EA\u30FC\u30C9\u3092\u596A\u3063\u305F" : "\u76F8\u624B\u304C\u30EA\u30FC\u30C9\u3092\u596A\u3063\u305F"}\uFF08\u4EE5\u5F8C\u30EA\u30FC\u30C9\u4EA4\u4EE3\u306A\u3057\uFF09`, refs: ["q" + rev.frame.q] });
+          hl.push(run && run.len >= 2 && run.len === ((_a = report.best) == null ? void 0 : _a[me]) && { id: "combo", title: `${run.len}\u554F\u9023\u7D9A\u3067\u7372\u5F97`, tag: `\u7B2C${run.from + 1}\u301C${run.to + 1}\u554F`, detail: "\u9023\u7D9A\u3057\u3066\u6B63\u89E3\u3092\u53D6\u3063\u305F\u533A\u9593", refs: range(run.from + 1, run.to + 1) });
+          hl.push(fast && { id: "fast", title: "\u6700\u901F\u3067\u7372\u5F97\u3057\u305F\u554F\u984C", tag: `\u7B2C${fast.question}\u554F`, detail: `${sec(fast.ms)}\u79D2` + (typeof ((_b = claims == null ? void 0 : claims[fast.question - 1]) == null ? void 0 : _b.j) === "string" ? ` \u30FB ${claims[fast.question - 1].j}` : ""), refs: ["q" + fast.question] });
+          hl.push(big && big.pts > 0 && { id: "big", title: "\u6700\u5927\u5F97\u70B9\u306E\u554F\u984C", tag: `\u7B2C${big.question}\u554F`, detail: `+${big.pts}\u70B9`, refs: ["q" + big.question] });
+        }
+        return { rows: rows.filter(Boolean), hl: pick(hl), extras: [], analysis: ok, hidden };
+      }
+      function buildB({ me, ids, game, trace }) {
+        const S = game && game.states, rows = [], hl = [], extras = [];
+        if (!S || !ids.every((u) => S[u])) return { rows: [], hl: [], extras: [], analysis: false, hidden: true };
+        const hist = (u) => Array.isArray(S[u].hist) ? S[u].hist : null, okH = (u) => (hist(u) || []).filter((h) => h.ok);
+        rows.push(row("score", "\u5F97\u70B9", "\u70B9", ids, (u) => S[u].score));
+        rows.push(row("correct", "\u6B63\u89E3\u6570", "\u554F", ids, (u) => S[u].c));
+        rows.push(row("combo", "\u6700\u5927\u30B3\u30F3\u30DC", "", ids, (u) => S[u].best));
+        rows.push(row("perfect", "Perfect", "\u56DE", ids, (u) => fin(S[u].perfects) ? S[u].perfects : hist(u) ? okH(u).filter((h) => h.j === "Perfect").length : null));
+        rows.push(row("time", "\u5E73\u5747\u89E3\u7B54\u6642\u9593", "\u79D2", ids, (u) => {
+          const t = okH(u).filter((h) => fin(h.ms)).map((h) => h.ms);
+          return hist(u) && t.length ? Math.round(mean(t)) / 1e3 : null;
+        }, { better: "low", note: "\u6B63\u89E3\u3057\u305F\u554F\u984C\u306E\u5E73\u5747\u89E3\u7B54\u6642\u9593", decimals: 1 }));
+        rows.push(row("wrong", "\u8AA4\u7B54", "\u56DE", ids, (u) => hist(u) ? hist(u).filter((h) => h.ok === false && !h.timeout).length : null, { better: "low" }));
+        rows.push(row("timeout", "\u6642\u9593\u5207\u308C", "\u56DE", ids, (u) => hist(u) ? hist(u).filter((h) => h.timeout).length : null, { better: "low" }));
+        extras.push(row("sent", "\u9001\u4FE1\u304A\u90AA\u9B54\u30AB\u30FC\u30C9", "\u679A", ids, (u) => {
+          var _a;
+          return (_a = S[u].ojSent) != null ? _a : 0;
+        }, { note: "\u9001\u3063\u305F\u91CF\u3067\u3059\u3002\u76F8\u624B\u306B\u4E0E\u3048\u305F\u30C0\u30E1\u30FC\u30B8\u3067\u306F\u3042\u308A\u307E\u305B\u3093" }));
+        extras.push(row("cancel", "\u76F8\u6BBA", "\u679A", ids, (u) => {
+          var _a;
+          return (_a = S[u].cancelTotal) != null ? _a : 0;
+        }));
+        extras.push(row("freeze", "FREEZE\u4F7F\u7528", "\u56DE", ids, (u) => {
+          var _a;
+          return (_a = S[u].spUsed) != null ? _a : 0;
+        }));
+        const mine = hist(me) || [];
+        const rev = trace && trace.consistent ? lastReversal(trace.rows.map((r) => ({ id: r.id, at: r.at, scores: r.scores })), me, ids) : null;
+        const big = trace && trace.consistent ? trace.rows.filter((r) => r.uid === me && fin(r.gain)).sort((a, b) => b.gain - a.gain)[0] : null;
+        const best = S[me].best, run = runOf(mine.map((h) => !!h.ok)), located = run && run.len === best;
+        const fast = mine.map((h, i) => ({ h, i })).filter((x) => x.h.ok && fin(x.h.ms)).sort((a, b) => a.h.ms - b.h.ms)[0];
+        const range = (a, b) => {
+          const r = [];
+          for (let i = a; i <= b; i++) r.push("q" + i);
+          return r;
+        };
+        hl.push(rev && { id: "reversal", title: "\u30EA\u30FC\u30C9\u4EA4\u4EE3", tag: `${sec(rev.frame.at - trace.startAt)}\u79D2`, detail: `${rev.toMe ? "\u3042\u306A\u305F\u304C\u30EA\u30FC\u30C9\u3092\u596A\u3063\u305F" : "\u76F8\u624B\u304C\u30EA\u30FC\u30C9\u3092\u596A\u3063\u305F"}\uFF08\u4EE5\u5F8C\u30EA\u30FC\u30C9\u4EA4\u4EE3\u306A\u3057\uFF09`, refs: ["r" + rev.frame.id] });
+        hl.push(best >= 2 && { id: "combo", title: `\u6700\u5927${best}\u30B3\u30F3\u30DC`, tag: located ? `\u7B2C${run.from + 1}\u301C${run.to + 1}\u554F` : "", detail: located ? "\u9023\u7D9A\u3057\u3066\u6B63\u89E3\u3057\u305F\u533A\u9593" : "\u3053\u306E\u8A66\u5408\u3067\u306E\u6700\u5927", refs: located ? range(run.from + 1, run.to + 1) : ["combo"] });
+        hl.push(fast && { id: "fast", title: "\u6700\u901F\u89E3\u7B54", tag: `\u7B2C${fast.i + 1}\u554F`, detail: `${sec(fast.h.ms)}\u79D2` + (typeof fast.h.j === "string" ? ` \u30FB ${fast.h.j}` : ""), refs: ["q" + (fast.i + 1)] });
+        hl.push(big && { id: "big", title: "\u6700\u5927\u306E\u5F97\u70B9", tag: `${sec(big.at - trace.startAt)}\u79D2`, detail: `+${big.gain}\u70B9`, refs: ["r" + big.id] });
+        hl.push(fin(S[me].minHp) && S[me].minHp < 100 && { id: "minhp", title: "HP\u306E\u6700\u4F4E\u5024", tag: `${Math.round(S[me].minHp)}%`, detail: `HP\u304C\u6700\u5C0F${Math.round(S[me].minHp)}%\u307E\u3067\u4F4E\u4E0B\u3057\u305F`, refs: ["hp"] });
+        return { rows: rows.filter(Boolean), hl: pick(hl), extras: extras.filter(Boolean), analysis: !!(trace && trace.consistent), hidden: rows.some((r) => !r) || extras.some((r) => !r) };
+      }
+      function build(input) {
+        var _a, _b, _c, _d, _e;
+        const { kind, me, ids, names = {}, outcome } = input;
+        if (!["A", "B"].includes(kind) || !me || !Array.isArray(ids) || !ids.includes(me)) return null;
+        const part = kind === "A" ? buildA({ me, ids, report: (_a = input.A) == null ? void 0 : _a.report, claims: (_b = input.A) == null ? void 0 : _b.claims }) : buildB({ me, ids, game: (_c = input.B) == null ? void 0 : _c.game, trace: (_d = input.B) == null ? void 0 : _d.trace });
+        const sc = Object.fromEntries(ids.map((u) => {
+          var _a2, _b2, _c2, _d2, _e2, _f, _g;
+          return [u, kind === "A" ? (_c2 = (_b2 = (_a2 = input.A) == null ? void 0 : _a2.report) == null ? void 0 : _b2.scores) == null ? void 0 : _c2[u] : (_g = (_f = (_e2 = (_d2 = input.B) == null ? void 0 : _d2.game) == null ? void 0 : _e2.states) == null ? void 0 : _f[u]) == null ? void 0 : _g.score];
+        }));
+        const haveScore = ids.every((u) => fin(sc[u])), ranks = haveScore || input.rank ? rank(ids, haveScore ? sc : {}, input.rank) : {};
+        const order = [me, ...ids.filter((u) => u !== me)];
+        const players = order.map((u, i) => {
+          var _a2;
+          return { uid: u, name: names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC", me: u === me, tone: i, rank: (_a2 = ranks[u]) != null ? _a2 : null, score: haveScore ? sc[u] : null };
+        });
+        const multi = ids.length > 2, place = (_e = ranks[me]) != null ? _e : null;
+        const result = outcome === "w" ? "win" : outcome === "d" ? "draw" : "lose";
+        const tiles = [];
+        const get = (id) => part.rows.find((r) => r.id === id);
+        if (haveScore) tiles.push({ id: "score", label: "\u5F97\u70B9", value: sc[me], unit: "\u70B9" });
+        for (const [id, label] of kind === "A" ? [["won", "\u53D6\u3063\u305F\u554F\u984C"], ["combo", "\u6700\u5927\u30B3\u30F3\u30DC"], ["perfect", "Perfect"]] : [["correct", "\u6B63\u89E3\u6570"], ["combo", "\u6700\u5927\u30B3\u30F3\u30DC"], ["perfect", "Perfect"]]) {
+          const r = get(id);
+          if (r) tiles.push({ id, label, value: r.values[me], unit: r.unit });
+        }
+        return {
+          kind,
+          methodLabel: kind === "A" ? "A\u65B9\u5F0F" : "B\u65B9\u5F0F",
+          outcome: result,
+          multi,
+          place,
+          word: result === "win" ? "WIN!" : result === "draw" ? "DRAW" : multi && place ? `${place}\u4F4D` : "LOSE\u2026",
+          reasonText: input.reasonText || "",
+          players,
+          tiles,
+          rows: part.rows,
+          extras: part.extras,
+          highlights: part.hl,
+          hiddenRows: part.hidden,
+          analysisAvailable: part.analysis
+        };
+      }
+      module.exports = { build, pick, lastReversal, runOf, rank };
+    }
+  });
+
   // src/authority-weekly-ui.jsx
   function AuthorityWeekly({ H, acct, onExit }) {
     var _a;
@@ -1514,10 +1763,12 @@
 
   // src/next-results-ui.jsx
   var BResult = require_b_result();
+  var { BattleSummary } = require_next_battle_result_ui();
+  var ResultModel = require_battle_result_model();
   var palette = ["#71e0cf", "#f6bd62", "#b5a5ff", "#83c8ff"];
   function BDetails({ game, report, names = {}, me }) {
     const r = report || (game ? BResult.build(game) : { consistent: false, reason: "\u3053\u306E\u8A66\u5408\u306E\u8A73\u7D30\u306A\u5F97\u70B9\u5C65\u6B74\u306F\u3042\u308A\u307E\u305B\u3093\u3002" }), [selected, setSelected] = React.useState(null);
-    if (!r.consistent) return /* @__PURE__ */ React.createElement("section", { className: "next-result-details", "data-b-result": true }, /* @__PURE__ */ React.createElement("h3", null, "\u65B0B\u65B9\u5F0F \u5F97\u70B9\u306E\u63A8\u79FB"), /* @__PURE__ */ React.createElement("p", { role: "status" }, r.reason || "\u8A73\u7D30\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093\u3002"));
+    if (!r.consistent) return /* @__PURE__ */ React.createElement("section", { className: "next-result-details", "data-b-result": true }, /* @__PURE__ */ React.createElement("h3", null, "B\u65B9\u5F0F \u5F97\u70B9\u306E\u63A8\u79FB"), /* @__PURE__ */ React.createElement("p", { role: "status" }, r.reason || "\u8A73\u7D30\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093\u3002"));
     const ids = r.ids, other = ids.find((u) => u !== me), selectedIndex = selected === null ? r.rows.length - 1 : Math.min(selected, r.rows.length - 1), row = r.rows[selectedIndex], max = Math.max(1, ...Object.values(r.final)), duration = Math.max(1, r.endAt - r.startAt);
     const x = (at) => 42 + (at - r.startAt) / duration * 540, y = (n) => 196 - n / max * 155, label = (u) => names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC";
     let lastLead = 0;
@@ -1527,7 +1778,7 @@
       if (lead) lastLead = lead;
       return change;
     });
-    return /* @__PURE__ */ React.createElement("section", { className: "next-result-details", "data-b-result": true }, /* @__PURE__ */ React.createElement("h3", null, "\u65B0B\u65B9\u5F0F \u5F97\u70B9\u306E\u63A8\u79FB"), /* @__PURE__ */ React.createElement("p", null, "\u78BA\u5B9A\u5F97\u70B9\u5C65\u6B74 #", r.revision, " \u30FB \u6A2A\u8EF8\uFF1A\u7D4C\u904E\u79D2 \uFF0F \u7E26\u8EF8\uFF1A\u5F97\u70B9"), /* @__PURE__ */ React.createElement("ul", { className: "next-result-legend" }, ids.map((u, i) => /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("span", { style: { background: palette[i % 4] } }), label(u), " ", /* @__PURE__ */ React.createElement("b", null, r.final[u], "\u70B9")))), /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 610 230", role: "img", "aria-label": "\u78BA\u5B9A\u3057\u305F\u7D2F\u7A4D\u5F97\u70B9\u306E\u63A8\u79FB" }, /* @__PURE__ */ React.createElement("title", null, "\u78BA\u5B9A\u5F97\u70B9\u3002\u9006\u8EE2\u7B87\u6240\u306F\u4E38\u5370"), [0, Math.round(max / 2), max].map((n, i) => /* @__PURE__ */ React.createElement("g", { key: i }, /* @__PURE__ */ React.createElement("line", { x1: "42", x2: "582", y1: y(n), y2: y(n), stroke: "#344c60" }), /* @__PURE__ */ React.createElement("text", { x: "36", y: y(n) + 4, textAnchor: "end" }, n))), ids.map((u, i) => {
+    return /* @__PURE__ */ React.createElement("section", { className: "next-result-details", "data-b-result": true }, /* @__PURE__ */ React.createElement("h3", null, "B\u65B9\u5F0F \u5F97\u70B9\u306E\u63A8\u79FB"), /* @__PURE__ */ React.createElement("p", null, "\u78BA\u5B9A\u5F97\u70B9\u5C65\u6B74 #", r.revision, " \u30FB \u6A2A\u8EF8\uFF1A\u7D4C\u904E\u79D2 \uFF0F \u7E26\u8EF8\uFF1A\u5F97\u70B9"), /* @__PURE__ */ React.createElement("ul", { className: "next-result-legend" }, ids.map((u, i) => /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("span", { style: { background: palette[i % 4] } }), label(u), " ", /* @__PURE__ */ React.createElement("b", null, r.final[u], "\u70B9")))), /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 610 230", role: "img", "aria-label": "\u78BA\u5B9A\u3057\u305F\u7D2F\u7A4D\u5F97\u70B9\u306E\u63A8\u79FB" }, /* @__PURE__ */ React.createElement("title", null, "\u78BA\u5B9A\u5F97\u70B9\u3002\u9006\u8EE2\u7B87\u6240\u306F\u4E38\u5370"), [0, Math.round(max / 2), max].map((n, i) => /* @__PURE__ */ React.createElement("g", { key: i }, /* @__PURE__ */ React.createElement("line", { x1: "42", x2: "582", y1: y(n), y2: y(n), stroke: "#344c60" }), /* @__PURE__ */ React.createElement("text", { x: "36", y: y(n) + 4, textAnchor: "end" }, n))), ids.map((u, i) => {
       let points = [];
       r.rows.forEach((e, j) => {
         if (j) points.push([x(e.at), y(r.rows[j - 1].scores[u])]);
@@ -1554,5 +1805,5 @@
       return /* @__PURE__ */ React.createElement("li", { key: u }, /* @__PURE__ */ React.createElement("div", null, teamLabels[teams[u]] || "\u30C1\u30FC\u30E0\u672A\u8A18\u9332", " \uFF0F ", names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC", " ", /* @__PURE__ */ React.createElement("b", null, known(u, "c") === null ? "\u672A\u8A18\u9332" : known(u, "c") + "\u554F\u6B63\u89E3")), known(u, "c") !== null && /* @__PURE__ */ React.createElement("div", { className: "next-c-bar", role: "img", "aria-label": `${names[u] || "\u30D7\u30EC\u30A4\u30E4\u30FC"} \u6B63\u89E3${known(u, "c")}\u554F` }, /* @__PURE__ */ React.createElement("span", { style: { width: 100 * known(u, "c") / max + "%", background: palette[i % 4] } })), /* @__PURE__ */ React.createElement("p", null, "\u5F97\u70B9 ", (_a = known(u, "score")) != null ? _a : "\u672A\u8A18\u9332", " \uFF0F \u6700\u7D42\u5831\u544A\u30B3\u30F3\u30DC ", (_b = known(u, "combo")) != null ? _b : "\u672A\u8A18\u9332"));
     })), /* @__PURE__ */ React.createElement("p", null, "\u653B\u6483\u30FB\u76F8\u6BBA\u30FB\u9632\u5FA1\u30FB\u56DE\u5FA9\u30FB\u500B\u4EBA\u5225HP\u5BC4\u4E0E\u306E\u78BA\u5B9A\u5408\u8A08\uFF0F\u6642\u7CFB\u5217\u306F\u672A\u8A18\u9332\u306E\u305F\u3081\u8868\u793A\u3067\u304D\u307E\u305B\u3093\u3002\u30C1\u30FC\u30E0\u5171\u6709HP\u3092\u500B\u4EBA\u306E\u8CA2\u732E\u3078\u63A8\u6E2C\u914D\u5206\u3057\u307E\u305B\u3093\u3002"));
   }
-  window.NextResults = { AuthorityWeekly, LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
+  window.NextResults = { BattleSummary, ResultModel, AuthorityWeekly, LegacySpectator, BDetails, CDetails, Spectator, TitleCinematic, Help, buildB: BResult.build };
 })();

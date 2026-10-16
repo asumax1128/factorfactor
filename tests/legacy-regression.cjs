@@ -136,6 +136,9 @@ const withoutFrame = (s) => {
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripReport); else stripReport(v); }
   };
   stripReport(n);
+  // The result frame may be widened (presentation only): extra arguments to wrap() are not game logic.
+  const trimWrap = node => { if (!node || typeof node !== 'object') return; if (node.type === 'CallExpression' && node.callee?.name === 'wrap' && node.arguments.length > 1 && JSON.stringify(node.arguments[0]).includes('BattleResult')) node.arguments = node.arguments.slice(0, 1); for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(trimWrap); else trimWrap(v); } };
+  trimWrap(n);
   for (const statement of n.body.body) {
     for (const d of statement.declarations || [])
       if (d.id?.name === "wrap")

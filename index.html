@@ -10120,15 +10120,15 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     </div>
   );
   // ver.7：紺の夜空にFF風のウィンドウ。play=true のときは子どもが v7-play（スマホ縦／タブレット横の2列）を持つ
-  const wrap = (children, play) => (
+  const wrap = (children, play, wideResult) => (
     <BattleSurface>
-      {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{height:'100%',minHeight:0}}>{children}</div>}
+      {play ? children : <div className="max-w-md sm:max-w-xl md:max-w-2xl w-full flex flex-col" style={{height:'100%',minHeight:0,...(wideResult ? { maxWidth: 'min(1120px, 100%)' } : {})}}>{children}</div>}
       {state.cpu && !result && (isHost || practice || code === 'bot' || code === 'local') && <CpuBots code={code} state={state} bank={bank} N={N} viewRef={viewRef} claims={claims} onClear={u => writeResult(u, 'clear')} />}
     </BattleSurface>
   );
 
   if (result) return wrap(<BattleResult result={result} rec={rec} me={me} ids={ids} names={names} mode={mode} N={N} live={live} ko={ko} bank={bank} claims={claims} state={state}
-    mine={mine.current} isHost={isHost} acct={acct} practice={practice} players={players} code={code} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} onBack={onBack} />);
+    mine={mine.current} isHost={isHost} acct={acct} practice={practice} players={players} code={code} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} onBack={onBack} />, false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final))));
   if (counting) return wrap(<>
     {header(null)}
     <VsCutIn tm={mode === 'C' ? state.tm : null} ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} bty={state.bty || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
@@ -10586,27 +10586,17 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
   }, [mode, claims]);
   const rv = onlyMiss ? review.filter(r => !r.good) : review;
   const humansOnline = ids.filter(u => u !== me && !(state.cpu || {})[u]).every(u => players[u]);
-  return (
-    <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
-      <div className="text-center mb-3">
-        <div className="v7-open" style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(2.8rem, 14vw, 5rem)', lineHeight: 1.1, color: outcome === 'w' ? 'var(--v7-gold)' : outcome === 'l' ? '#FF8A75' : '#7FD8FF', WebkitTextStroke: '2px #0B1430', textShadow: '0 4px 0 rgba(0,0,0,.35)' }}>
-          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi && !TCr ? `${myRank}位` : 'LOSE…'}
-        </div>
-        {outcome === 'l' && multi && !TCr && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
-        <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{TCr ? reasonC : reason}</div>
-        {TCr && rec && mine.eng && <div className="text-xs font-black mt-0.5" style={{ color: '#B9A8FF' }}>🤝 合体攻撃 {mine.eng.s.unites}回 ・ カバー {mine.eng.s.covers}</div>}
-        {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
-        {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>🔄 逆転勝ち！</div>}
-        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
-        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
-        {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
-        {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
-      </div>
-      {rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}
-      <Card className="mb-3">{order.map(row)}</Card>
-      {mode==='C'&&window.NextResults&&<window.NextResults.CDetails ids={ids} records={live} names={names} teams={state.tm} teamLabels={Object.fromEntries(Object.entries(TEAM_INFO_C).map(([k,v])=>[k,v.name]))}/>}
-      {state.b2Final&&window.NextResults&&<window.NextResults.BDetails game={state.b2Final} me={me} names={names}/>}
-      {mode === 'A' && <AResultDetails report={result.aResult || window.OnlineSpark?.buildAResult?.(scA,claims,ids,state.startAt,A_NEXT_DELAY)} me={me} names={names} />}
+  const NR = window.NextResults;
+  const summary = useMemo(() => {
+    if (!NR || !NR.BattleSummary || !NR.ResultModel || !(mode === 'A' || (mode === 'B' && state.b2Final))) return null;
+    try {
+      return NR.ResultModel.build({ kind: mode === 'A' ? 'A' : 'B', me, ids, names, outcome, rank, reasonText: reason,
+        A: mode === 'A' ? { report: result.aResult || window.OnlineSpark?.buildAResult?.(scA, claims, ids, state.startAt, A_NEXT_DELAY), claims } : undefined,
+        B: mode === 'B' ? { game: state.b2Final, trace: NR.buildB(state.b2Final) } : undefined });
+    } catch (e) { return null; }
+  }, [mode, state.b2Final, result, claims, outcome]);
+  /* 成長ブロック（既存の表示をそのまま再利用。新UIでは成長セクションに入る） */
+  const growthBlock = (<>
       {rec && rec.exp && <div className="mb-3 v7-panel"><ExpGain before={rec.exp.before} after={rec.exp.after} label={practice ? 'CPU練習の経験値' : acct ? 'この試合の経験値' : 'この試合の経験値（ゲスト：この端末に保存）'} /></div>}
       {practice ? <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>CPU練習の勝敗は記録されません（経験値は入ります）</p>
         : acct ? <Card className="mb-3">
@@ -10626,6 +10616,45 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
           {rec && rec.perfects > 0 && <div className="text-xs font-bold" style={{ color: '#c99a00' }}>この試合の Perfect：{rec.perfects}回</div>}
         </Card>
         : <p className="text-center text-[11px] font-bold mb-3" style={{ color: '#AAB6E0' }}>名前と合言葉を登録すると、勝敗・レーティング・称号が記録されます</p>}
+  </>);
+  const notesBlock = (<>
+        {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
+        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
+        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
+        {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
+        {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
+  </>);
+  return (
+    <div className="fx-scroll flex-1 overflow-y-auto py-4" style={{ touchAction: 'pan-y' }}>
+      {summary && (<>
+        <NR.BattleSummary model={summary} badges={outcome === 'w' && rec && rec.comeback ? ['逆転勝ち'] : []} notes={notesBlock}
+          growth={<>{rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}{growthBlock}</>}
+          reviewCount={review.filter(r => !r.good).length} CountUp={CountUp}
+          onReview={() => { setShowRev(true); setOnlyMiss(true); setTimeout(() => { const el = document.querySelector('[data-review-card]'); if (el) el.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, 0); }} />
+      </>)}
+      {!summary && (<>
+      <div className="text-center mb-3">
+        <div className="v7-open" style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 'clamp(2.8rem, 14vw, 5rem)', lineHeight: 1.1, color: outcome === 'w' ? 'var(--v7-gold)' : outcome === 'l' ? '#FF8A75' : '#7FD8FF', WebkitTextStroke: '2px #0B1430', textShadow: '0 4px 0 rgba(0,0,0,.35)' }}>
+          {outcome === 'w' ? 'WIN!' : outcome === 'd' ? 'DRAW' : multi && !TCr ? `${myRank}位` : 'LOSE…'}
+        </div>
+        {outcome === 'l' && multi && !TCr && <div className="text-xs font-black" style={{ color: '#AAB6E0' }}>LOSE…</div>}
+        <div className="text-sm font-bold" style={{ color: '#E6ECFF', fontFamily: 'var(--v7-f-ui)' }}>{TCr ? reasonC : reason}</div>
+        {TCr && rec && mine.eng && <div className="text-xs font-black mt-0.5" style={{ color: '#B9A8FF' }}>🤝 合体攻撃 {mine.eng.s.unites}回 ・ カバー {mine.eng.s.covers}</div>}
+        {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
+        {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>🔄 逆転勝ち！</div>}
+        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
+        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
+        {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
+        {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
+      </div>
+      {rec && rec.badges && rec.badges.length > 0 && <BadgeReveal badges={rec.badges} />}
+      <Card className="mb-3">{order.map(row)}</Card>
+      </>)}
+      {mode==='C'&&window.NextResults&&<window.NextResults.CDetails ids={ids} records={live} names={names} teams={state.tm} teamLabels={Object.fromEntries(Object.entries(TEAM_INFO_C).map(([k,v])=>[k,v.name]))}/>}
+      {state.b2Final&&window.NextResults&&<window.NextResults.BDetails game={state.b2Final} me={me} names={names}/>}
+      {mode === 'A' && <AResultDetails report={result.aResult || window.OnlineSpark?.buildAResult?.(scA,claims,ids,state.startAt,A_NEXT_DELAY)} me={me} names={names} />}
+      {!summary && growthBlock}
+      <div data-review-card />
       <Card className="mb-3">
         <button onClick={() => setShowRev(v => !v)} className="w-full flex items-center justify-between text-sm font-black" style={{ color: COLORS.ink }}>
           <span>📝 ふり返り（{review.length}問 ・ {isBm(mode) ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）</span><span>{showRev ? '▲' : '▼'}</span>
