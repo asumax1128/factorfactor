@@ -1,6 +1,6 @@
 'use strict';
 // A conservative dry-run planner, not a Firebase writer or an award authority.
-const catalog=require('./title-catalog-next.json'),compat=require('./title-compat-next.cjs'),B=require('./b-result.cjs');
+const catalog=require('./title-catalog-next.json'),compat=require('./title-compat-next.cjs'),cutover=require('./title-cutover-next.cjs'),D=require('./daily-model.cjs'),B=require('./b-result.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x)),number=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0?x:null;
 function matchFacts(proofs,account){
  const unique=new Map(),rejected=[];
@@ -12,8 +12,8 @@ function matchFacts(proofs,account){
  }
  return{matches:[...unique.values()],rejected};
 }
-function plan({account,legacyEarned=[],flags=[],equipped=null,confirmedMatches=[],login=null,history=null,blockedAttackEvents=[]}={}){
- const prior=compat.read({legacyEarned,flags,equipped}),{matches,rejected}=matchFacts(confirmedMatches,account),wins=matches.filter(m=>m.win),losses=matches.filter(m=>m.loss),perfects=matches.reduce((n,m)=>n+m.perfects,0),allHist=matches.flatMap(m=>m.hist),vs=new Map();
+function plan({account,legacyEarned=[],flags=[],equipped=null,confirmedMatches=[],login=null,history=null,blockedAttackEvents=[],legacySnapshot=null,dailyFinals=[],serverNow=null}={}){
+ const prior=legacySnapshot?cutover.read(legacySnapshot,account):compat.read({legacyEarned,flags,equipped}),{matches,rejected}=matchFacts(confirmedMatches,account),wins=matches.filter(m=>m.win),losses=matches.filter(m=>m.loss),perfects=matches.reduce((n,m)=>n+m.perfects,0),allHist=matches.flatMap(m=>m.hist),vs=new Map();
  matches.forEach(m=>m.opponents.forEach(k=>vs.set(k,(vs.get(k)||0)+1)));
  const facts=new Map(),prove=(id,ok,source)=>{if(ok)facts.set(id,source)};
  prove('online_first',matches.length>=1,'confirmedMatches:distinct game.id');prove('first',wins.length>=1,'confirmedMatches:result.winner');
@@ -30,8 +30,17 @@ function plan({account,legacyEarned=[],flags=[],equipped=null,confirmedMatches=[
  const eventIds=new Set(blockedAttackEvents.filter(e=>e.source==='confirmed-blocked-attack-event'&&matches.some(m=>m.id===e.matchId)&&typeof e.id==='string').map(e=>e.matchId+':'+e.id));prove('cancel500',eventIds.size>=500,'blockedAttackEvents:distinct matchId:eventId');prove('cancel2000',eventIds.size>=2000,'blockedAttackEvents:distinct matchId:eventId');
  if(login?.source==='saved-login-record'){for(const[id,k,n]of[['lb7','cards',1],['lb_cards7','cards',7],['lb30','n',30],['lb100','n',100]])prove(id,number(login[k])!==null&&login[k]>=n,'accounts/stats/login/'+k);}
  if(history?.source==='saved-historical-rating'){const e=number(history.easy),n=number(history.normal),peak=Math.max(e??-1,n??-1);for(const[id,min]of[['rgold',1580],['master1600',1600],['master1700',1700],['rmaster',1820],['master1900',1900]])prove(id,peak>=min,'saved historical EASY/NORMAL peak');for(const[d,p]of[['easy',e],['normal',n]]){prove(d+'_adept',p!==null&&p>=1730,'saved historical '+d+' peak');prove(d+'_master',p!==null&&p>=1820,'saved historical '+d+' peak');}prove('dual_master',e!==null&&n!==null&&e>=1820&&n>=1820,'both saved historical peaks');}
+ const daily=new Map();
+ for(const p of dailyFinals){
+  const r=p.record,key=p.day+':'+p.difficulty;
+  if(p.source!=='dailyV2-finals'||!Number.isInteger(p.day)||!D.awardIds[p.difficulty]||!Number.isFinite(serverNow)||!D.finalizable(p.day,serverNow)||r?.day!==p.day||typeof r.key!=='string'||!Number.isFinite(r.score)||!Number.isFinite(r.confirmedAt)){rejected.push({id:key,reason:'確定日次ランキングとして検証できない'});continue;}
+  if(daily.has(key)&&JSON.stringify(daily.get(key))!==JSON.stringify(r))throw Error('CONFLICTING_DAILY_FINAL');daily.set(key,r);
+ }
+ const winsByDay=new Map();
+ for(const[key,r]of daily)if(r.key===account){const [day,d]=key.split(':');prove(D.awardIds[d],true,'dailyV2/finals/'+day+'/'+d);const set=winsByDay.get(day)||new Set();set.add(d);winsByDay.set(day,set);}
+ prove('daily_king',[...winsByDay.values()].some(ds=>ds.size===3),'dailyV2/finals: three departments on the SAME JST day');
  const rows=catalog.titles.map(t=>({...t,status:prior.earned[t.id]?'retained':facts.has(t.id)?t.stars>=4?'pending-reveal-approval':'proven':'unverified',evidence:prior.earned[t.id]?.source||facts.get(t.id)||'判定根拠不足／対象adapter未接続'}));
- return{schemaVersion:1,dryRun:true,rows,rejected,retained:prior.earned,archived:prior.archived,equipped,hidden:{id:catalog.hidden.id,retained:prior.hiddenOwned,eligible:prior.fiveStarCount>=15,evidence:'distinct retained five-star IDs (tour1 included); no pending award counted'}};
+ return{schemaVersion:1,dryRun:true,rows,rejected,retained:prior.earned,archived:prior.archived,equipped:prior.equipped,cutover:legacySnapshot?{migrationId:legacySnapshot.migrationId,capturedAt:legacySnapshot.capturedAt}:null,hidden:{id:catalog.hidden.id,retained:prior.hiddenOwned,eligible:prior.fiveStarCount>=15,evidence:'distinct retained five-star IDs (tour1 included); no pending award counted'}};
 }
 function applyDraft(existing,proposal,appliedAt){
  if(!proposal?.dryRun||number(appliedAt)===null||appliedAt<=0)throw Error('EXPLICIT_MIGRATION_TIMESTAMP_REQUIRED');
