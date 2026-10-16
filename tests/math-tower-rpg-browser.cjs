@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   R = require("../math-tower-core");
@@ -27,7 +28,7 @@ const seed = (progress) => ({
   },
 });
 const open = async (p) =>
-  p.getByRole("button", { name: "数学の塔", exact: false }).click();
+  openTower(p);
 async function rawDrag(p, ids) {
   const a = await p.locator(`[data-btile="${ids[0]}"]`).boundingBox(),
     b = await p.locator(`[data-btile="${ids[1]}"]`).boundingBox();

@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const R = require("../math-tower-core");
@@ -42,7 +43,7 @@ function seed(floor, phase = "post", difficulty = "normal") {
 const progressOf = (t) =>
   t.tree.games.factor.mathTowerV2.trialProgress.ateacher;
 async function open(t) {
-  await t.page.getByRole("button", { name: /数学の塔/ }).click();
+  await openTower(t.page);
   await continueTower(t.page);
 }
 (async () => {

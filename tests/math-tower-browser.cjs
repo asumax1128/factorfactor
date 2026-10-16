@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const fs = require("node:fs"),
   assert = require("node:assert/strict");
 const {
@@ -44,6 +45,9 @@ const seed = () => ({
       if (who === "wrong-uid") uid = "other";
       const t = await context(browser, { tree, account, uid });
       await sleep(700);
+      // new home: the tower tile lives in the solo menu, so denied users must lack it there too
+      await t.page.locator(".action-card.solo").click();
+      await t.page.getByRole("button", { name: "スタート", exact: true }).waitFor();
       assert.equal(
         await t.page
           .getByRole("button", { name: "数学の塔", exact: false })
@@ -69,9 +73,7 @@ const seed = () => ({
           pc: difficulty === "normal",
         }),
         page = t.page;
-      await page
-        .getByRole("button", { name: "数学の塔", exact: false })
-        .click();
+      await openTower(page);
       await newTower(page, difficulty);
       for (let floor = 1; floor <= 5; floor++) {
         if (floor > 1) {
@@ -170,9 +172,7 @@ const seed = () => ({
       await page.locator(".mt-zoom .mt-button").click();
       await page.locator("[data-math-book]>.mt-button").click();
       await page.reload();
-      await page
-        .getByRole("button", { name: "数学の塔", exact: false })
-        .click();
+      await openTower(page);
       await page.getByRole("button", { name: "続きから", exact: true }).click();
       assert.equal(
         await page.locator(`[data-adventure=${difficulty}]`).innerText(),
@@ -184,9 +184,7 @@ const seed = () => ({
         uid: "teacher-second",
         account: { key: "ateacher", name: "Teacher" },
       });
-      await other.page
-        .getByRole("button", { name: "数学の塔", exact: false })
-        .click();
+      await openTower(other.page);
       await other.page
         .getByRole("button", { name: "続きから", exact: true })
         .click();
@@ -208,7 +206,7 @@ const seed = () => ({
     }
     const t = await context(browser, { tree: seed() }),
       page = t.page;
-    await page.getByRole("button", { name: "数学の塔", exact: false }).click();
+    await openTower(page);
     await newTower(page);
     await page.getByRole("button", { name: "試練を開始", exact: true }).click();
     await page.locator("[data-math-dialog]").waitFor();

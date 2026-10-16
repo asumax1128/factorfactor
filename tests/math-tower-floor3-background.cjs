@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   crypto = require("node:crypto"),
@@ -50,7 +51,7 @@ function tree() {
       const t = await context(b, { tree: tree(), pc: width > 900 }),
         p = t.page;
       await p.setViewportSize({ width, height });
-      await p.getByRole("button", { name: /数学の塔/ }).click();
+      await openTower(p);
       await continueTower(p);
       await p.getByRole("button", { name: "試練を開始", exact: true }).click();
       await p.locator('[data-math-story="3-pre"]').waitFor();

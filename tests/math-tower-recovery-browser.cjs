@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   R = require("../math-tower-core");
@@ -64,7 +65,7 @@ const content = require("../math-tower/chapter1.json");
       }),
       p = t.page;
     const saves = () => t.writes.filter((x) => x.path === path);
-    await p.getByRole("button", { name: "数学の塔", exact: false }).click();
+    await openTower(p);
     await p.getByRole("button", { name: /数理の書/ }).click();
     await p.getByRole("button", { name: "とじる", exact: true }).click();
     assert.equal(

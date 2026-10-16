@@ -1,3 +1,4 @@
+const { openTower } = require("./tower-nav-helper.cjs");
 const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   cp = require("node:child_process"),
@@ -24,7 +25,7 @@ const seed = (progress = R.fresh(), c = content) => ({
     },
   },
 });
-const open = (p) => p.getByRole("button", { name: /数学の塔/ }).click();
+const open = (p) => openTower(p);
 const BASE = "c426284";
 async function battle(browser, options = {}) {
   const t = await context(browser, {
