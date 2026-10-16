@@ -46,7 +46,7 @@ function BattleSummary({model:m,badges=[],notes=null,growth=null,reviewCount=0,o
    <Confetti on={m.outcome==='win'&&!rm}/>
    <span className="nbr-chip">{m.methodLabel}{m.multi?` ・ ${m.players.length}人対戦`:''}</span>
    <h2 className="nbr-word" aria-label={{win:'勝利',lose:m.multi?`${m.place}位`:'敗北',draw:'引き分け'}[m.outcome]}>{m.word}</h2>
-   {m.multi&&m.outcome!=='win'&&<div className="nbr-sub">LOSE…</div>}
+   {m.multi&&m.outcome==='lose'&&<div className="nbr-sub">LOSE…</div>}
    {m.reasonText&&<div className="nbr-reason">{m.reasonText}</div>}
    {badges.length>0&&<div className="nbr-badges">{badges.map(b=><span key={b}>{b}</span>)}</div>}
    {notes&&<div className="nbr-notes">{notes}</div>}
