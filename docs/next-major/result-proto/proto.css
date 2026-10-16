@@ -1,0 +1,142 @@
+/* FACTOR×FACTOR リザルト画面 デザイン試作（独立・実データ非接続）
+   トークンは ui-next/tokens.css（承認済みB改良版）の値をそのまま使用。新規フォントなし。 */
+@font-face{font-family:BHeading;src:url(../../../ui-next/fonts/heading.woff) format('woff');font-weight:900;font-display:swap}
+@font-face{font-family:BBody;src:url(../../../ui-next/fonts/body.woff) format('woff');font-weight:500;font-display:swap}
+@font-face{font-family:BNumber;src:url(../../../ui-next/fonts/number.woff) format('woff');font-weight:700;font-display:swap}
+*{box-sizing:border-box}
+html,body{margin:0;background:#0b1118;color:#e8f0f5;font-family:BBody,'Yu Gothic',sans-serif}
+
+/* ---- 試作ビューア（正式画面ではない） ---- */
+.rp-bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:#0b1118ee;border-bottom:1px solid #324354;font-size:13px}
+.rp-bar b{color:#72dfce;margin-right:4px}
+.rp-bar button{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid #324354;background:#192430;color:#e8f0f5;font:inherit;cursor:pointer}
+.rp-bar button[aria-pressed=true]{border-color:#72dfce;color:#72dfce;background:#16352f}
+.rp-bar .sp{flex:1}
+.rp-stage{display:flex;justify-content:center;padding:20px 12px 60px}
+.rp-frame{container-type:inline-size;width:100%;max-width:1180px;background:#101720;border:1px solid #324354;border-radius:12px;overflow:hidden}
+.rp-frame[data-view=phone]{max-width:390px}
+.rp-note{max-width:1180px;margin:0 auto;padding:0 14px 8px;color:#9daebd;font-size:12px}
+
+/* ---- リザルト本体（.next-result にトークンを再定義：.next-home 外でも使うため） ---- */
+.next-result{--bg:#101720;--panel:#192430;--panel2:#192b38;--text:#e8f0f5;--muted:#9daebd;--accent:#72dfce;--line:#324354;--gold:#f6bd62;--violet:#b5a5ff;--sky:#83c8ff;--lose:#8fa6c4;
+ --heading:BHeading,'Yu Gothic',sans-serif;--body:BBody,'Yu Gothic',sans-serif;--number:BNumber,sans-serif;--gap:20px;--radius:8px;--touch:44px;
+ background:var(--bg);color:var(--text);font-family:var(--body);padding:0 0 12px;line-height:1.6}
+.next-result h1,.next-result h2,.next-result h3{font-family:var(--heading);font-weight:900;margin:0}
+.next-result .num{font-family:var(--number);font-weight:700;font-variant-numeric:tabular-nums}
+.nr-wrap{padding:0 17px}
+.nr-panel{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:0 8px 24px #0002}
+.nr-sec{margin-top:17px}
+.nr-sec>h2{font-size:15px;letter-spacing:.04em;margin:0 0 9px;color:var(--text)}
+.nr-sec>h2 small{font-family:var(--body);font-weight:500;color:var(--muted);font-size:11px;margin-left:8px;letter-spacing:0}
+
+/* ヒーロー */
+.nr-hero{position:relative;overflow:hidden;padding:26px 17px 20px;text-align:center;border-bottom:1px solid var(--line);
+ background:linear-gradient(125deg,#283f45 0%,#1a2934 60%,#172330)}
+.nr-hero[data-outcome=lose]{background:linear-gradient(125deg,#202c3b 0%,#18222e 60%,#141c27)}
+.nr-hero[data-outcome=draw]{background:linear-gradient(125deg,#23344a 0%,#1a2836 60%,#151f2b)}
+.nr-chip{display:inline-block;font-size:11px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--muted);background:#0b141e80}
+.nr-word{font-family:var(--heading);font-weight:900;font-size:clamp(52px,16cqw,92px);line-height:1.05;margin:6px 0 2px;letter-spacing:.02em}
+.nr-hero[data-outcome=win] .nr-word{color:var(--gold);text-shadow:0 0 28px #f6bd6255,0 3px 0 #0006}
+.nr-hero[data-outcome=lose] .nr-word{color:var(--lose);font-size:clamp(42px,13cqw,72px)}
+.nr-hero[data-outcome=draw] .nr-word{color:var(--sky)}
+.nr-reason{font-size:14px;color:#cfe0e6}
+.nr-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.nr-badge{border:1px solid #f6bd6288;color:var(--gold);background:#2a2314;border-radius:999px;padding:2px 12px;font-size:12px;font-weight:700}
+.nr-score{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;font-size:clamp(26px,8cqw,40px)}
+.nr-score .vs{font-size:13px;color:var(--muted);font-family:var(--body)}
+.nr-score .me{color:var(--accent)}
+.nr-rank{margin:14px auto 0;max-width:520px;display:grid;gap:6px;text-align:left}
+.nr-rank li{list-style:none;display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;background:#0b141e66;border:1px solid var(--line);border-radius:var(--radius);padding:6px 10px;min-height:40px}
+.nr-rank li[data-me=true]{border-color:var(--accent);background:#16352f88}
+.nr-rank ul{margin:0;padding:0;display:grid;gap:6px}
+.nr-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+/* 勝利の紙吹雪（CSSのみ・1.8秒で終了） */
+.nr-confetti{position:absolute;inset:0;pointer-events:none}
+.nr-confetti i{position:absolute;top:-12px;width:7px;height:12px;border-radius:2px;opacity:0;animation:nr-fall 1.8s ease-out forwards}
+@keyframes nr-fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(240px) rotate(300deg)}}
+.nr-hero[data-outcome=win] .nr-word{animation:nr-pop .55s cubic-bezier(.2,1.4,.4,1) both}
+.nr-hero[data-outcome=lose] .nr-word{animation:nr-fade .8s ease-out both}
+.nr-hero[data-outcome=draw] .nr-word{animation:nr-wipe .6s ease-out both}
+@keyframes nr-pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes nr-fade{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+@keyframes nr-wipe{0%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 0 0 0)}}
+
+/* 主要成績タイル */
+.nr-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.nr-tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:11px 13px}
+.nr-tile .l{font-size:11px;color:var(--muted)}
+.nr-tile .v{font-size:28px;line-height:1.2}
+.nr-tile .s{font-size:11px;color:var(--muted)}
+
+/* 比較ボード */
+.nr-cmp{display:grid;gap:14px}
+.nr-row .t{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.nr-row .t b{color:var(--text);font-weight:700}
+.nr-bars{display:grid;gap:4px}
+.nr-bar{display:grid;grid-template-columns:76px 1fr 54px;gap:8px;align-items:center;font-size:12px}
+.nr-bar .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nr-bar .trk{height:8px;border-radius:6px;background:#0b141e;border:1px solid #3b5364;overflow:hidden}
+.nr-bar .fill{height:100%;border-radius:6px;width:0;transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.nr-bar .v{text-align:right}
+.nr-bar[data-best=true] .v{color:var(--accent)}
+.nr-note{font-size:11px;color:var(--muted);margin:8px 0 0}
+.nr-sub{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+.nr-sub div{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;font-size:12px}
+.nr-sub b{display:block;font-size:20px;font-family:var(--number)}
+
+/* ハイライト */
+.nr-hl{display:grid;gap:12px}
+.nr-card{display:grid;grid-template-columns:40px 1fr;gap:12px;background:linear-gradient(125deg,#283f45 0%,#1a2934 60%,#172330);border:1px solid #456267;border-left:3px solid var(--accent);border-radius:var(--radius);padding:12px 14px}
+.nr-card svg{width:36px;height:36px;color:var(--accent)}
+.nr-card h3{font-size:14px}
+.nr-card .tag{display:inline-block;white-space:nowrap;font-family:var(--number);font-size:11px;color:var(--gold);margin-left:6px}
+.nr-card p{margin:2px 0 0;font-size:12px;color:#cfe0e6}
+
+/* 成長 */
+.nr-grow{display:grid;gap:14px}
+.nr-g h3{font-size:12px;color:var(--muted);font-family:var(--body);font-weight:700;margin-bottom:4px}
+.nr-g .big{font-size:24px}
+.nr-g .big small{font-size:13px;margin-left:6px}
+.pos{color:var(--accent)}.neg{color:var(--lose)}
+.nr-xp{height:10px;border-radius:6px;background:#0b141e;border:1px solid #3b5364;overflow:hidden;margin-top:6px}
+.nr-xp i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3fb5a3,#72dfce);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.nr-chips{display:flex;flex-wrap:wrap;gap:8px}
+.nr-chips span{border:1px solid #f6bd6288;background:#2a2314;color:var(--gold);border-radius:999px;padding:2px 12px;font-size:12px;font-weight:700}
+.nr-guest{font-size:12px;color:var(--muted)}
+
+/* 分析導線 */
+.nr-an{display:grid;gap:10px}
+.nr-an details{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.nr-an summary{min-height:var(--touch);display:flex;align-items:center;padding:0 14px;cursor:pointer;font-weight:700;list-style:none}
+.nr-an summary::after{content:'▼';margin-left:auto;font-size:10px;color:var(--muted)}
+.nr-an details[open] summary::after{content:'▲'}
+.nr-an .body{padding:4px 14px 14px;font-size:12px;color:var(--muted)}
+.nr-an svg.graph{width:100%;height:auto;display:block;margin-top:6px}
+.nr-reuse{display:inline-block;font-size:10px;border:1px dashed #5b7488;border-radius:4px;padding:0 6px;color:#8fb0c4;margin-bottom:4px}
+
+/* 次の行動 */
+.nr-actions{position:sticky;bottom:0;z-index:5;margin-top:20px;padding:12px 17px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(#10172000,#101720 24%);display:grid;gap:8px}
+.nr-btn{min-height:var(--touch);border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);color:var(--text);font:700 14px var(--body);cursor:pointer}
+.nr-btn.primary{background:linear-gradient(#72dfce,#52c2b0);color:#07201c;border-color:#72dfce;font-size:16px;min-height:50px}
+.nr-btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.nr-btn small{font-weight:500;opacity:.8}
+.nr-sub-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* PC（コンテナ幅901px以上。正式実装では @media(min-width:901px) に置換） */
+@container (min-width:901px){
+ .nr-wrap{padding:0 38px}
+ .nr-main{display:grid;grid-template-columns:1.03fr 1fr;gap:21px;align-items:start}
+ .nr-tiles{grid-template-columns:repeat(4,1fr)}
+ .nr-hl{grid-template-columns:repeat(3,1fr)}
+ .nr-card{grid-template-columns:1fr}
+ .nr-grow{grid-template-columns:1fr 1fr}
+ .nr-hero{padding:34px 38px 26px}
+ .nr-actions{grid-template-columns:2fr 1fr 1fr;align-items:stretch;padding:14px 38px}
+ .nr-sub-actions{display:contents}
+ .nr-sub{grid-template-columns:repeat(4,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+ .nr-hero .nr-word,.nr-confetti i{animation:none!important}
+ .nr-confetti{display:none}
+ .nr-bar .fill,.nr-xp i{transition:none!important}
+}
