@@ -6,7 +6,7 @@ function evaluate({account,snapshot,onlineState={},weeklyStates=[],existing={},n
  Cut.validate(snapshot,account);if(!Number.isSafeInteger(now)||now<=0)throw Error('INVALID_TITLE_AUTHORITY_TIME');
  const confirmedMatches=[];
  for(const m of Object.values(onlineState.matches||{})){
-  if(m.practice||m.selfGhost||m.bot||m.ghost||m.members?.some(x=>x.kind&&x.kind!=='human')||m.phase!=='settled'||!m.receipt||!onlineState.settlements?.[m.id]||m.mode!=='B'||m.game?.rules!=='b2'||!m.members?.some(x=>x.key===account)||new Set(m.members.map(x=>x.key)).size!==2)continue;
+  if(m.practice||m.selfGhost||m.bot||m.ghost||m.members?.some(x=>x.kind&&x.kind!=='human')||m.phase!=='settled'||!m.receipt||!onlineState.settlements?.[m.id]||!(m.mode==='A'&&m.game?.mode==='A'||m.mode==='B'&&m.game?.rules==='b2')||!m.members?.some(x=>x.key===account)||new Set(m.members.map(x=>x.key)).size!==2)continue;
   const member=m.members.find(x=>x.key===account);confirmedMatches.push({source:'confirmed-human-online',uid:member.uid,game:m.game,participants:Object.fromEntries(m.members.map(x=>[x.uid,{account:x.key,kind:'human'}]))});
  }
  const player=onlineState.players?.[account],history=player?{source:'saved-historical-rating',easy:player.easy?.maxRating,normal:player.normal?.maxRating}:null;

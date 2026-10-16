@@ -8,7 +8,7 @@ assert len(legacy)==97
 old={r['内部ID']:r for r in legacy}
 assert len(old)==97 and len(c['titles'])==100 and len({t['id'] for t in c['titles']})==100
 assert sum(t['stars']==5 for t in c['titles'])==26
-online=set('online_first first wins100_ab games100 games300 lose50 rival20 wide10 wide30 perfect50 perfect100 perfect300 perfect500 perfect1000 flash flash3 combo20 combo30 nomiss nomiss10 accuracy10 lv9 alllv sp3 sp50 ojama100 ojama500'.split())
+online=set('dual dual50 shutout online_first first wins100_ab games100 games300 lose50 rival20 wide10 wide30 perfect50 perfect100 perfect300 perfect500 perfect1000 flash flash3 combo20 combo30 nomiss nomiss10 accuracy10 lv9 alllv sp3 sp50 ojama100 ojama500'.split())
 rating=set('rgold master1600 master1700 rmaster master1900 easy_adept easy_master normal_adept normal_master dual_master'.split())
 weekly=set('wk1 wk_runs20 wkk1 wkk5 wkk10 wkace wkace5 wkone wkone2 wkst3 wkst5 wkst10 wksup1 wkchest1 wkchest10 wksup100 wksup500 wkrage'.split())
 dry=set('daily_easy_king daily_normal_king daily_hard_king daily_king lb7 lb_cards7 lb30 lb100 cancel500 cancel2000'.split())
@@ -20,7 +20,7 @@ def loc(lines,word,path):
 out=io.StringIO(newline='');fields=['新番号','内部ID','旧番号','旧台帳名','正式名','星数','取得条件','参照する確定記録','証明アダプター','遡及判定','正式付与接続','判定コード','旧判定コード','備考'];w=csv.DictWriter(out,fieldnames=fields,lineterminator='\n');w.writeheader();counts={}
 for t in c['titles']:
  id=t['id'];prior=old.get(t['legacyId']);state='未接続';record='証明元・adapter未整備';judge='';note='旧取得済みは固定snapshotで保持。旧判定式を新条件の証明へ無条件流用しない。'
- if id in online:state='管理側接続済み（B2部分）';record='onlineRatedV2/privateState: settled matches + settlements +確定hist';judge=loc(planner,'function matchFacts','src/title-awards-next.cjs');note+=' A・C等の証明adapterは未接続。CPU／自己ゴースト／未確定試合は対象外。'
+ if id in online:state='管理側接続済み（A/B2記録の範囲）';record='onlineRatedV2/privateState: settled matches + settlements +確定hist／A claims';judge=loc(planner,'function matchFacts','src/title-awards-next.cjs');note+=' C等の証明adapterは未接続。CPU／自己ゴースト／未確定試合は対象外。'
  elif id in rating:state='管理側接続済み';record='onlineRatedV2/privateState/players/<account>/easy|normal/maxRating';judge=loc(planner,"if(history?.source",'src/title-awards-next.cjs');note+=' 1820等の内部判定は丸めない。'
  elif id in weekly:state='管理側接続済み（authority記録のみ）';record='nextAuthorityV1/weekly/<week>/state: runs/receipt, awards, closed';judge=loc(source,'const runs=', 'server/next-authority/titles.cjs');note+=' 旧raidw／本人書込sandboxの自己申告値は使わない。'
  elif id in dry:state='dry-runのみ／正式証明元未接続';record='既存plannerの入力形式はあるが、信頼できる読取元との接続は未完';judge='src/title-awards-next.cjs:plan';note+=' source文字列だけでは正式証拠と認めない。'
