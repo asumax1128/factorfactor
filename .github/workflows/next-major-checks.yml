@@ -53,6 +53,8 @@ jobs:
           node tests/next-spectator-browser.cjs
           node tests/legacy-spectator-browser.cjs
           node tests/friend-raid-browser.cjs
+          node tests/next-wardrobe-browser.cjs
+          node tests/master-effect-browser.cjs
           node tests/title-next-browser.cjs
           node tests/title-presentation-browser.cjs
           node tests/legacy-regression.cjs

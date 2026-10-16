@@ -3588,7 +3588,14 @@ function skinInfo(st, exp) {
   return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0, tower: (st.tower && st.tower.best) || 0 };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
-function Wardrobe({ acct, st, exp, onClose }) {
+function Wardrobe({ acct, st, exp, onClose, appearance }) {
+  const nextWardrobe=appearance==='next',wardrobeRef=useRef(null);
+  useEffect(()=>{
+    if(!nextWardrobe)return;const previous=document.activeElement,overflow=document.body.style.overflow;document.body.style.overflow='hidden';
+    const root=wardrobeRef.current;root?.querySelector('button')?.focus();
+    const key=e=>{if(e.key==='Escape'){e.preventDefault();onClose();}if(e.key==='Tab'&&root){const items=[...root.querySelectorAll('button:not([disabled])')],first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
+    document.addEventListener('keydown',key);return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',key);if(previous?.isConnected)previous.focus();};
+  },[nextWardrobe]);
   useSkin();
   const dailyTitles=useDailyTitles(isReal(acct)?acct.key:null);
   st={...st,dailyTitles};
@@ -3613,18 +3620,18 @@ function Wardrobe({ acct, st, exp, onClose }) {
     const c = x.color === 'rainbow' ? 'conic-gradient(#ff4d4d,#ffb020,#ffe14d,#43c97b,#3aa0ff,#9b5bff,#ff4d4d)' : x.color || 'conic-gradient(#FFD54A,#8BE38F,#6BD4E8,#8FB8FF,#FFD54A)';
     return <div className="rounded-full mx-auto" style={{ width: '3rem', height: '3rem', background: c, boxShadow: '0 0 12px rgba(0,0,0,.15)' }} />;
   };
-  return (
-    <div onClick={onClose} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 85 }}>
+  const content = (
+    <div ref={wardrobeRef} role={nextWardrobe?"dialog":undefined} aria-modal={nextWardrobe?"true":undefined} aria-label={nextWardrobe?"きせかえ":undefined} onClick={onClose} className={`${nextWardrobe?"next-home next-wardrobe ":""}fixed inset-0 flex items-center justify-center p-4`} style={{ background: 'rgba(29,38,51,.45)', zIndex: 85 }}>
       <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '30rem', maxHeight: '88vh', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-lg font-black" style={{ color: COLORS.ink, ...bFont }}>🎨 きせかえ</div>
+          <div className="text-lg font-black" style={{ color: COLORS.ink, ...bFont }}>{nextWardrobe?'きせかえ':'🎨 きせかえ'}</div>
           <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
-        <div className="mb-2"><Seg items={[['tile', 'タイル'], ['bg', '背景'], ['fx', 'エフェクト']]} cur={tab} onPick={setTab} /></div>
+        <div className="mb-2">{nextWardrobe?<div className="next-wardrobe-tabs" role="group" aria-label="きせかえの種類">{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</div>:<Seg items={[["tile", "タイル"], ["bg", "背景"], ["fx", "エフェクト"]]} cur={tab} onPick={setTab} />}</div>
         <div className="text-[11px] font-bold mb-2" style={{ color: COLORS.inkSoft }}>解放 {openN}/{list.length} ・ レベル・ランク帯・称号で増えていきます{isReal(acct) ? '' : '（ゲストはこの端末だけ）'}</div>
         <div className="grid grid-cols-3 gap-2">
           {list.map(x => { const ok = available(x), on = cur === x.id; return (
-            <button key={x.id} onClick={() => pick(x)} className="rounded-xl p-2 text-center transition-transform active:scale-95" style={{ background: on ? `${COLORS.amber}33` : COLORS.paperDark, outline: on ? `3px solid ${COLORS.amber}` : 'none', opacity: ok ? 1 : 0.5 }}>
+            <button key={x.id} data-skin-item={x.id} aria-pressed={on} aria-disabled={!ok} onClick={() => pick(x)} className="rounded-xl p-2 text-center transition-transform active:scale-95" style={{ background: on ? `${COLORS.amber}33` : COLORS.paperDark, outline: on ? `3px solid ${COLORS.amber}` : 'none', opacity: ok ? 1 : 0.5 }}>
               <div style={{ filter: ok ? 'none' : 'grayscale(1)' }}>{preview(x)}</div>
               <div className="text-[11px] font-black mt-1" style={{ color: COLORS.ink }}>{ok ? '' : '🔒'}{x.name}</div>
               <div className="text-[9px] font-bold leading-tight" style={{ color: on ? '#9a6a12' : COLORS.inkSoft }}>{on ? 'つけている' : ok ? 'タップでつける' : skinNeedText(x.need)}</div>
@@ -3633,6 +3640,7 @@ function Wardrobe({ acct, st, exp, onClose }) {
       </div>
     </div>
   );
+  return nextWardrobe ? ReactDOM.createPortal(content,document.body) : content;
 }
 
 /* ---------- 自分のゴーストの活躍（だれかのすぐ遊ぶにゴーストとして出て、戦った結果） ----------
