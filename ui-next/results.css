@@ -65,9 +65,13 @@ main[data-next-legacy-spectator]{position:fixed;inset:0;z-index:80;overflow-y:au
 .nbr-growslot{display:grid;gap:10px}
 .nbr-review{display:block;width:calc(100% - 32px);margin:0 16px 16px;min-height:var(--touch);border-radius:var(--r);border:1px solid var(--line);background:var(--panel);color:var(--text);font:700 14px var(--body);cursor:pointer}
 .nbr-review:focus-visible,.nbr summary:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* ソロ（.nbr-solo）：成績タイルとハイライトを縦に並べる */
+.nbr-tt{font-size:17px!important;line-height:1.5!important}
+.nbr-solo>section.nbr-tiles>div{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
 @container (min-width:760px){
  .nbr-hero{padding:30px 34px 24px}
  .nbr-grid{padding:20px 34px;gap:18px 21px;grid-template-columns:minmax(0,1.03fr) minmax(0,1fr);grid-template-areas:"tiles cmp" "hl cmp" "grow grow"}
+ .nbr-grid.nbr-solo{grid-template-areas:"tiles hl" "grow grow"}
  .nbr.has-extra .nbr-grid{grid-template-areas:"tiles cmp" "hl cmp" "grow extra"}
  .nbr-tiles{grid-area:tiles}.nbr-cmp{grid-area:cmp}.nbr-hl{grid-area:hl}.nbr-grow{grid-area:grow}.nbr-extra{grid-area:extra}
  .nbr-review{width:auto;margin:0 34px 20px;padding:0 24px}
