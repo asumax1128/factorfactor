@@ -50,7 +50,10 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
     await h.page.locator("[data-btile]").first().waitFor();
     await g.page.locator("[data-btile]").first().waitFor();
     for (let i = 0; i < 4; i++) {
+      // the next problem's board is mounted only after the resolving phase: wait for it, not a fixed delay
+      for (const t of [h, g]) await t.page.locator("[data-poly]").waitFor();
       await drag(h.page);
+      for (const t of [h, g]) await t.page.locator("[data-poly]").waitFor();
       await drag(g.page);
     }
     const modern=Object.values(tree.games.factor.rooms[code].b2)[0].game;assert.equal(modern.rules,'b2');assert(modern.states.host.c>0&&modern.states.guest.c>0);assert.equal(modern.duration,90);

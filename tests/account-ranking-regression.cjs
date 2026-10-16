@@ -39,7 +39,7 @@ const { chromium, context } = require("./browser-harness.cjs");
     await p.getByPlaceholder("名前（10文字まで）").fill(name);
     await p.getByPlaceholder("合言葉（4桁の数字）").fill("1234");
     await p.getByRole("button", { name: "ログイン", exact: true }).click();
-    await p.getByRole("button", { name: "スタート", exact: true }).waitFor();
+    await p.locator(".action-card.solo").waitFor(); // new home: logged-in home shows the solo card
     assert.equal(
       await p.evaluate(
         () => JSON.parse(localStorage.getItem("fxf_battle_account_v1")).key,
@@ -47,7 +47,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       key,
     );
     await p.reload();
-    await p.getByRole("button", { name: "スタート", exact: true }).waitFor();
+    await p.locator(".action-card.solo").waitFor(); // new home: logged-in home shows the solo card
     assert.equal(
       await p.getByRole("button", { name: "数学の塔", exact: false }).count(),
       0,
@@ -57,8 +57,11 @@ const { chromium, context } = require("./browser-harness.cjs");
       "PASS existing account login/reload, existing stats unchanged, no tower grant entry",
     );
     await p.getByRole("button", { name: "ランキング", exact: true }).click();
-    await p.getByRole("heading", { name: "ランキング", exact: true }).waitFor();
-    assert((await p.locator(".v7-modal-win").innerText()).includes("みんな"));
+    // new ranking hub: the "みんなのランキング" board lives under ソロランキング
+    await p.locator("main.ranking-content").waitFor();
+    await p.getByRole("button", { name: /ソロランキング/ }).click();
+    await p.getByText("みんなのランキング").first().waitFor();
+    assert((await p.locator("main").innerText()).includes("みんな"));
     assert.deepEqual(t.errors, []);
     console.log("PASS ranking window and mocked ranking fetch");
     await t.ctx.close();
