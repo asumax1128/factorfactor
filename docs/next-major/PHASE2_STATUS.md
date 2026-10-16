@@ -16,6 +16,13 @@
 - 時刻：`sat`はサーバー時刻と一致(`===now`)を強制。`ct`は参照用の自己申告で、`now-120秒〜now+3秒`に制限（遅延した正当な書込は通る）し、順序や確定には使わない。`sat`は同一人物内で非減少。
 - 保証できないこと：回答の正誤・ダメージ量・因数の実在は未検証。別プレイヤー間の順序は「サーバー到着順」で、行動順ではない（遅延した書込は後から届く）。ホストは`state.players`を変更できるため、ルールは現在値を読む（writerは開始時に固定）。`finish`はサーバー側のみ。`received/covered`は削除せず、正式貢献としても扱わない。
 
+## C操作ログ 段階(a)補強（作業ブランチ `claude/c-input-hardening`）
+
+- `sat`：`ServerValue.TIMESTAMP`のみ有効。過去・未来・0・小数・文字列・欠落・1時間進んだクライアント時計は拒否または無視され、保存値はサーバー時刻（テスト済）。
+- 封印：`seal`は`final`確定を前提に、ログを2回読んで同一ダイジェストでなければ`LOG_CHANGED_DURING_SEAL`で何も保存しない。保存は`final`／pin不変を確認するtransaction内で、最初の封印が勝ち、以後は同じダイジェストでなければ`SEAL_MISMATCH`。`verifySeal`が事後改変を検出。
+- ホストのstate変更：参加者の正本は管理側のpin（`c-writer.open`）のみ。ルールはpin後は`state.players`ではなくpinの`ids`で本人性を判定。`players/tm/handi/diff/startAt/mode`が同一gidで変化したらverifyが`drift`を出し`consistent:false`、`seal`は`STATE_DRIFT`で拒否（試合は未確定）。gid／phase変更は既存ルールで旧ログへの書込が閉じる。
+- 残る限界：pin前（`open`前）にホストがplayersを書き換えた場合、その値がpinされ検出できない。pinは試合開始直後にworkerが行う必要がある。回答の正誤・ダメージは未検証のまま。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
