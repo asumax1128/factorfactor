@@ -43,6 +43,7 @@ function functions(html) {
     }
     if(n.type==='FunctionDeclaration'&&['PlayerMirror','SplitView','SpectatorView'].includes(n.id?.name)){
       const name=n.id.name;
+      if(['SplitView','SpectatorView'].includes(name))n.body.body=n.body.body.filter(s=>{if(s.type!=='IfStatement'||!JSON.stringify(s.test).includes('LegacySpectator'))return true;assert.equal(bare(s.test),bare(expr("window.NextResults?.LegacySpectator && ['A','C'].includes(mode)")));assert.equal(s.consequent.type,'ReturnStatement');return false;});
       if(name==='PlayerMirror'){
         const p=n.params[0].properties.find(p=>p.key?.name==='ready');if(p){assert.equal(p.value.type,'AssignmentPattern');assert.equal(p.value.right.value,false);}
         n.params[0].properties=n.params[0].properties.filter(p=>p.key?.name!=='ready');

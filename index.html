@@ -7290,6 +7290,7 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
   const rank = (result && result.rank) || {};
   const two = ids.length === 2;
   const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
+  if (window.NextResults?.LegacySpectator && ['A','C'].includes(mode)) return <window.NextResults.LegacySpectator H={{TargetCard,BattleBoard}} ids={ids} names={names} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} probA={probA} startAt={startAt} time={now} scoreA={scA} feed={feed} onLeave={onClose}>{cheer&&<CheerBar code={cheer.code} gid={cheer.gid} ids={ids} names={names} done={!!result}/>}</window.NextResults.LegacySpectator>;
   return (
     <div className="fixed inset-0 flex flex-col" style={{ zIndex: 85, background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, padding: '0.6rem', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <div className="flex items-center justify-between gap-2 mb-2" style={{ flexShrink: 0 }}>
@@ -10656,6 +10657,7 @@ function SpectatorView({ code, state, players, onLeave }) {
   const feed = useCommentary(ids, live, ko, names, isBm(mode) ? N : null);
   const [split, setSplit] = useState(false);
   if (split) return <SplitView ids={ids} names={names} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={state.startAt} title={`観戦 ・ 部屋${code}`} onClose={() => setSplit(false)} cheer={{ code, gid: state.gid }} />;
+  if (window.NextResults?.LegacySpectator && ['A','C'].includes(mode)) return <window.NextResults.LegacySpectator H={{TargetCard,BattleBoard}} ids={ids} names={names} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} probA={probA} startAt={state.startAt} time={now} scoreA={sc} teams={state.tm||{}} feed={feed} onLeave={onLeave}><CheerBar code={code} gid={state.gid} ids={ids} names={names} done={!!result}/></window.NextResults.LegacySpectator>;
   return (<>
     <div className="flex items-center justify-between mb-3">
       <button onClick={onLeave} className="v7-pill v7-cur" data-snd="back">← 観戦をやめる</button>

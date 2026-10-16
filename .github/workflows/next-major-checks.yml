@@ -50,6 +50,8 @@ jobs:
           node tests/tournament-b2-browser.cjs
           node tests/local-b2-browser.cjs
           node tests/next-board-visibility-browser.cjs
+          node tests/next-spectator-browser.cjs
+          node tests/legacy-spectator-browser.cjs
           node tests/friend-raid-browser.cjs
           node tests/title-next-browser.cjs
           node tests/title-presentation-browser.cjs
