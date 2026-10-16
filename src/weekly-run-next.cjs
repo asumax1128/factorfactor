@@ -41,7 +41,7 @@ function create({db,uid,account,validateBoard,initialStats={}}){
    const s=data.stats ||= clone(typeof initialStats==='function'?initialStats():initialStats),out=award(s,clone(cur.session),cur);cur.reward=out;cur.receipt=receipt;cur.status='done';return data;}));return read(id);
  }
  function subscribe(callback){const listener=s=>callback(s.val());ref.on('value',listener);return()=>ref.off('value',listener);}
- return{start,resume,checkpoint,abandon,finish,subscribe,read};
+ return{start,resume,checkpoint,abandon,finish,subscribe,read,claimWeek:week=>serial(()=>require('./weekly-rewards-next.cjs').claim({db,uid,account:account.key,week}))};
 }
 function damage(data,week){return Object.values(data?.runs||{}).filter(r=>r.week===week).reduce((n,r)=>{n.d+=r.session?.d||0;n.p+=r.session?.sp||0;if(r.receipt){n.s++;n.b=Math.max(n.b,r.session?.d||0)}return n},{d:0,p:0,s:0,b:0})}
 // Persist absolute server timestamps; convert only at the local presentation edge.

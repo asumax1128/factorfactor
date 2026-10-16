@@ -5710,6 +5710,7 @@ function WeeklyRaidApp({ acct, onExit }) {
   const devRun = useRef(null), devInitial = useRef(null), devSeq = useRef(0), devQueue = useRef(Promise.resolve()), devEnding = useRef(false), devCombat = useRef(null);
   const pointerKey = 'fxf_weekly_dev_run:' + meKey;
   useEffect(() => dev ? dev.subscribe(setDevData) : undefined,[dev]);
+  useEffect(()=>{if(dev)Promise.all([dev.claimWeek(wk),dev.claimWeek(pwk)]).catch(e=>setDevError('週間確定報酬の確認に失敗しました：'+e.message));},[dev]);
   const devDmg = dev ? window.WeeklyRunNext.damage(devData,wk) : null;
   const v = devDmg ? { ...legacyV, [meKey]: { ...(legacyV[meKey] || {}), d: (legacyV[meKey]?.d || 0) + devDmg.d, s: (legacyV[meKey]?.s || 0) + devDmg.s, b: Math.max(legacyV[meKey]?.b || 0,devDmg.b),name:acct.name } } : legacyV;
   const devSup = devDmg ? { ...sup, [meKey]: { p: (sup?.[meKey]?.p || 0) + devDmg.p, name:acct.name } } : sup;

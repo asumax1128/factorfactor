@@ -66,5 +66,11 @@
       ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
       ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && newData.exists()"
     }
+  },
+  "awards": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      ".write": false
+    }
   }
 }
