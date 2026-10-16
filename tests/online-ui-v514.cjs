@@ -29,16 +29,16 @@ const fs = require("fs");
         assetOverrides: { "/online-rated-ui.js": ui },
       }),
       p = t.page;
+    await p.locator(".action-card.solo").click();
     await p.getByRole("button", { name: "成績", exact: true }).click();
-    const order = await p.locator("body").innerText();
+    await p.getByRole("button", { name: /称号の装備・詳細記録/ }).click();
+    const order = await p.locator(".fixed.inset-0").innerText();
     assert(
       order.indexOf("ゴースト対戦履歴") > order.indexOf("称号（"),
       "history must follow all old profile sections",
     );
     await p.reload();
-    await p
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
-      .click();
+    await p.locator(".action-card.online").click();
     await p
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();
