@@ -336,7 +336,7 @@
         </section>
       );
     }
-    function App({ acct, onExit, view = "match", initialGhost = null }) {
+    function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
         [feedback, setFeedback] = useState(null),
@@ -592,7 +592,7 @@
           {["play", "result"].includes(screen) && (
             <H.FxLayer level={112} combat />
           )}
-          {screen !== "play" && (
+          {screen !== "play" && !(rankingMode && view === "ratings" && root.NextRanking) && (
             <header>
               <button
                 onClick={() => {
@@ -827,6 +827,42 @@
           )}
           {view === "ratings" && (
             <>
+              {rankingMode && root.NextRanking ? (() => {
+                // Ver.6.0 ranking look: same data, same listing rule, same ranks; only presentation changed.
+                const R = root.NextRanking, mine = state?.ratings?.[tab];
+                const rows = state?.rankings?.[tab] || [];
+                const status = !state ? "loading" : rows.length ? "ok" : "empty";
+                return (
+                  <div className="rk-rating" data-ranking="rating">
+                    <R.RankingHead title="レーティングランキング" />
+                    <R.Segmented label="ランキングの難易度" items={[["easy", label("easy")], ["normal", label("normal")]]} value={tab} onChange={setTab} />
+                    <section className="rk-selfcard" aria-label="自分のレーティング">
+                      <span>{label(tab)} レーティング</span>
+                      <strong className="or-rating">{mine?.rating == null ? "読込中" : formatRating(mine.rating)}</strong>
+                      <p>有効な人間対戦 {mine?.games ?? 0}戦{!!mine?.ghost?.games && `・ゴースト・BOT：${mine.ghost.games}戦`}</p>
+                      <p>{state?.ranks?.[tab] ? `自分の順位：${state.ranks[tab]}位` : "自分の順位：未掲載"}</p>
+                    </section>
+                    <p className="rk-foot">{label(tab)}ランキング ／ {tab === "easy" ? "掲載条件：イージーレーティング1501以上（対戦数不問）" : "掲載条件：ノーマルの有効な人間対戦3戦以上"}</p>
+                    <R.ListState status={status} message={status === "loading" ? "読み込み中…" : "掲載条件を満たすプレイヤーはまだいません"} />
+                    {status === "ok" && (
+                      <R.RankList label={label(tab) + "ランキング"}>
+                        {rows.map((r) => (
+                          <R.RankRow key={r.key} rank={r.rank} name={r.name} onName={() => setSelectedPlayer(r)} self={!!acct?.key && r.key === acct.key}
+                            value={formatRating(r.rating)}
+                            extra={<>
+                              {titles[r.title] ? <small>{titles[r.title]}</small> : H.Nick && <H.Nick id={r.cosmetics?.stats?.nick} block />}
+                              {H.BadgeIcons && <H.BadgeIcons st={r.cosmetics?.stats || {}} max={4} />}
+                            </>}
+                            sub={`人間対戦 ${r.statsKnown ? r.games : "―"}戦・勝利 ${r.statsKnown ? r.w : "―"}・敗北 ${r.statsKnown ? r.l : "―"}・勝率 ${r.statsKnown && r.games ? `${Math.round((r.w / r.games) * 100)}%` : "―"}`
+                              + (r.ghost?.games ? `　乱入対戦：${r.ghost.games}戦・${r.ghost.w}勝 ${r.ghost.l}敗（人間戦績とは別集計）` : "")
+                              + (!r.statsKnown ? "　旧レートを引き継いだ記録です。難易度別の戦績は未記録。" : "")} />
+                        ))}
+                      </R.RankList>
+                    )}
+                  </div>
+                );
+              })() : (
+              <>
               <nav className="or-tabs" aria-label="ランキングの難易度">
                 {["easy", "normal"].map((d) => (
                   <button
@@ -925,6 +961,8 @@
                   </ol>
                 )}
               </section>
+              </>
+              )}
               {!!Object.keys(state?.badges || {}).length && (
                 <section>
                   <h3>獲得した称号</h3>

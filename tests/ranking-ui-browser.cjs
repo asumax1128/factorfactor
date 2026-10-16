@@ -132,6 +132,68 @@ async function openSolo(t, p) {
       await g.ctx.close();
       console.log('PASS daily ranking: guest sees the login notice');
     }
+    // ---- rating ----
+    for (const [width, height] of [[375, 844], [1440, 900], [683, 325]]) {
+      const season = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 7);
+      const pr = (name, e, en, n, nn, extra = {}) => ({ name, ...extra, easy: { rating: e, maxRating: e, season, games: en, w: Math.floor(en / 2), l: en - Math.floor(en / 2) }, normal: { rating: n, maxRating: n, season, games: nn, w: Math.floor(nn / 2), l: nn - Math.floor(nn / 2) } });
+      const accounts = { ateacher: { name: 'Teacher', stats: { rating: 1600, exp: 100 } }, ap2: { name: 'Rival', stats: {} }, ap3: { name: 'Third', stats: {} } };
+      const profiles = { ateacher: pr('Teacher', 1665.6, 6, 1550, 4, { badges: { easy_adept: true } }), ap2: pr('Rival', 1750, 10, 1620, 8), ap3: pr('Third', 1580, 4, 1500, 1) };
+      const tree = { games: { factor: { accounts, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' }, profiles } } } };
+      const t = await context(b, { tree }), p = t.page;
+      await p.setViewportSize({ width, height });
+      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await p.locator('.ranking-entry').filter({ hasText: 'レーティングランキング' }).click();
+      const view = p.locator('[data-ranking="rating"]');
+      await view.locator('.rk-row').first().waitFor();
+      assert.equal(await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).count(), 1, 'single back button');
+      assert.equal(await p.getByRole('button', { name: 'オンラインへ戻る' }).count(), 0, 'no misleading online back button');
+      assert.equal(await p.getByRole('button', { name: /消音|音を出す/ }).count(), 0, 'no sound button inside the list');
+      const easy = await view.locator('.rk-row').evaluateAll((es) => es.map((e) => [Number(e.dataset.rank), e.querySelector('.rk-name').textContent, e.querySelector('.rk-val b').textContent, e.classList.contains('rk-self')]));
+      assert.deepEqual(easy, [[1, 'Rival', '1750', false], [2, 'Teacher', '1666', true], [3, 'Third', '1580', false]]);
+      assert.match(await view.locator('.rk-selfcard').innerText(), /1666/);
+      assert.match(await view.locator('.rk-selfcard').innerText(), /自分の順位：2位/);
+      assert.match(await view.innerText(), /掲載条件：イージーレーティング1501以上（対戦数不問）/);
+      assert.equal(await view.getByRole('button', { name: 'イージー', exact: true }).getAttribute('aria-pressed'), 'true');
+      await view.getByRole('button', { name: 'ノーマル', exact: true }).click();
+      await view.getByText(/掲載条件：ノーマルの有効な人間対戦3戦以上/).waitFor();
+      const normal = await view.locator('.rk-row').evaluateAll((es) => es.map((e) => [Number(e.dataset.rank), e.querySelector('.rk-name').textContent, e.querySelector('.rk-val b').textContent]));
+      assert.deepEqual(normal, [[1, 'Rival', '1620'], [2, 'Teacher', '1550']], 'listing rule unchanged: Third has only 1 human game');
+      assert.match(await view.locator('.rk-selfcard').innerText(), /1550/);
+      // the player card still opens from a name; titles section is kept
+      await view.getByRole('button', { name: 'Rival', exact: true }).click();
+      await p.locator('.fixed.inset-0').getByText('Rival').first().waitFor();
+      await p.locator('.fixed.inset-0').getByRole('button', { name: 'とじる', exact: true }).first().click();
+      await p.getByRole('heading', { name: '獲得した称号' }).waitFor();
+      for (const btn of await view.getByRole('button').all()) { const box = await btn.boundingBox(); if (box) assert(box.height >= 43.5, 'tap target >=44px ' + box.height); }
+      assert(!await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'rating overflow ' + width);
+      assert.equal(JSON.stringify(tree.games.factor.onlineSparkV1.profiles.ap2), JSON.stringify(pr('Rival', 1750, 10, 1620, 8)), 'ratings untouched');
+      await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).click();
+      await p.locator('.ranking-grid').waitFor();
+      assert.equal(await p.locator('.ranking-entry').count(), 3);
+      assert.deepEqual(t.errors, []);
+      await t.ctx.close();
+      console.log(`PASS rating ranking ${width}x${height}: easy/normal tabs, listing rule, self rank, player card, titles kept, one back button`);
+    }
+    {
+      const t = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: {} } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' }, profiles: { ateacher: { name: 'Teacher', easy: { rating: 1500, maxRating: 1500, games: 0 }, normal: { rating: 1500, maxRating: 1500, games: 0 } } } } } } } }), p = t.page;
+      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await p.locator('.ranking-entry').filter({ hasText: 'レーティングランキング' }).click();
+      await p.locator('[data-ranking="rating"]').getByText('掲載条件を満たすプレイヤーはまだいません').waitFor();
+      assert.match(await p.locator('[data-ranking="rating"] .rk-selfcard').innerText(), /自分の順位：未掲載/);
+      await t.ctx.close();
+      console.log('PASS rating ranking empty state keeps the self card');
+    }
+    {
+      // the online lobby's own rating screen keeps its header and "back to online"
+      const profiles = { ateacher: { name: 'Teacher', easy: { rating: 1600, maxRating: 1600, games: 1 }, normal: { rating: 1500, maxRating: 1500, games: 0 } } };
+      const t = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: {} } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' }, profiles } } } } }), p = t.page;
+      await p.locator('.action-card.online').click();
+      await p.getByRole('button', { name: 'オンラインレーティング', exact: true }).click();
+      await p.getByRole('button', { name: 'オンラインへ戻る', exact: true }).waitFor();
+      assert.equal(await p.locator('[data-ranking="rating"]').count(), 0, 'lobby screen is not the ranking list');
+      await t.ctx.close();
+      console.log('PASS online lobby rating screen unchanged');
+    }
   } finally {
     await b.close();
   }

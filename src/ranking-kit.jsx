@@ -12,11 +12,11 @@ export function ListState({status,message,detail,onRetry,retryLabel='↻ 更新'
  return <div className={'rk-state rk-'+status} role={status==='error'?'alert':'status'}><p>{text}</p>{detail&&<small>({detail})</small>}{onRetry&&status!=='loading'&&<button type="button" onClick={onRetry}>{retryLabel}</button>}</div>;
 }
 // RankRow: rank / name / main value / optional sub line. `self` highlights the player's own row.
-export function RankRow({rank,name,value,unit='',sub,self=false,onName}){
+export function RankRow({rank,name,value,unit='',sub,extra,self=false,onName}){
  const top=rank>=1&&rank<=3;
  return <li className={'rk-row'+(self?' rk-self':'')+(top?' rk-top rk-top'+rank:'')} data-rank={rank} aria-current={self?'true':undefined}>
   <span className="rk-no" aria-label={rank+'位'}>{rank}</span>
-  <span className="rk-main">{onName?<button type="button" className="rk-name" onClick={onName}>{name}</button>:<strong className="rk-name">{name}</strong>}{self&&<em className="rk-me">あなた</em>}{sub&&<small>{sub}</small>}</span>
+  <span className="rk-main">{onName?<button type="button" className="rk-name" onClick={onName}>{name}</button>:<strong className="rk-name">{name}</strong>}{self&&<em className="rk-me">あなた</em>}{extra&&<span className="rk-extra">{extra}</span>}{sub&&<small>{sub}</small>}</span>
   <span className="rk-val"><b>{value}</b>{unit&&<i>{unit}</i>}</span>
  </li>;
 }

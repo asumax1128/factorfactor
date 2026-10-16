@@ -34,4 +34,28 @@
 @media(max-width:600px){.next-home .rk-row{grid-template-columns:38px minmax(0,1fr) auto;gap:8px;padding:8px 10px}.next-home .rk-no{width:32px;height:32px;font-size:14px}.next-home .rk-val b{font-size:19px}.next-home .rk-seg button{min-width:0;padding:8px 10px;font-size:13px}.next-home .rk-head h2{font-size:20px}}
 @media(max-height:450px){.next-home .rk-row{min-height:46px;padding:5px 10px}.next-home .rk-head{margin-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.next-home .rk-row{transition:none}}
-.next-home [data-ranking]{max-width:880px}
+.next-home [data-ranking]{max-width:880px;margin-inline:0}
+.next-home .rk-extra{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.next-home .rk-selfcard{margin:0 0 14px;padding:16px;border:1px solid var(--accent);border-radius:8px;background:linear-gradient(140deg,#1d4a50,#18313c);display:grid;gap:2px;justify-items:start}
+.next-home .rk-selfcard span{font-size:12px;color:var(--muted)}
+.next-home .rk-selfcard .or-rating{font:700 38px/1.2 var(--number)!important;color:var(--accent)!important}
+.next-home .rk-selfcard p{margin:0;font-size:13px;color:var(--text)}
+.next-home .rk-rating .or-name{color:var(--text)!important}
+/* the rating list still lives inside the legacy .or-app wrapper: neutralise its light paper and button look here only */
+.next-home .ranking-view .or-app:has(.rk-rating){background:transparent;color:var(--text);padding:0;min-height:0}
+.next-home .ranking-view .rk-rating .rk-seg button{background:#162029;color:var(--muted);border:1px solid var(--line);border-radius:8px;box-shadow:none;font:700 14px/1.3 var(--body);padding:8px 14px;min-height:44px;margin:0;width:auto}
+.next-home .ranking-view .rk-rating .rk-seg button[aria-pressed=true]{background:#1f4a50;border-color:var(--accent);color:var(--text);box-shadow:inset 0 -3px 0 var(--accent)}
+.next-home .ranking-view .rk-rating .rk-name{background:none!important;border:0!important;box-shadow:none!important;color:var(--text)!important;font:900 16px/1.4 var(--heading);padding:0!important;min-height:44px;width:auto;text-align:left;text-decoration:underline;text-decoration-color:#4d6a7b}
+.next-home .ranking-view .rk-rating h2,.next-home .ranking-view .rk-rating p,.next-home .ranking-view .rk-rating span,.next-home .ranking-view .rk-rating strong{color:inherit}
+.next-home .ranking-view .rk-rating .rk-head h2{font:900 22px/1.4 var(--heading);margin:0;color:var(--text)}
+.next-home .ranking-view .rk-rating .rk-main small,.next-home .ranking-view .rk-rating .rk-foot,.next-home .ranking-view .rk-rating .rk-selfcard span{color:var(--muted)}
+.next-home .ranking-view .rk-rating .rk-val b{color:var(--accent)}
+.next-home .ranking-view .rk-rating .rk-selfcard .or-rating{color:var(--accent)!important}
+.next-home .ranking-view .rk-rating p{margin:0}
+.next-home .ranking-view .rk-rating .rk-selfcard p{margin:2px 0 0}
+.next-home .ranking-view .rk-rating .rk-selfcard{background:linear-gradient(140deg,#1d4a50,#18313c)!important;border:1px solid var(--accent)!important;color:var(--text)!important;box-shadow:none!important;margin:0 0 14px!important;padding:16px!important}
+.next-home .ranking-view .rk-rating .rk-selfcard p{color:var(--text)!important}
+.next-home .ranking-view .rk-rating .rk-head h2{text-align:left}
+.next-home .ranking-view .or-app:has(.rk-rating){max-width:none;margin:0;border:0;box-shadow:none}
+.next-home .ranking-view .rk-rating .rk-top1 .rk-no{color:#2b1d03}.next-home .ranking-view .rk-rating .rk-top2 .rk-no{color:#18232b}.next-home .ranking-view .rk-rating .rk-top3 .rk-no{color:#2a1608}
+.next-home .ranking-view .rk-rating .rk-no{font:700 16px var(--number)}

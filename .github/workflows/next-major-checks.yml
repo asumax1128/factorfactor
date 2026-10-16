@@ -65,6 +65,8 @@ jobs:
           node tests/legacy-regression.cjs
           node tests/v6-c-hidden-browser.cjs
           node tests/title-client-browser.cjs
+          node tests/ranking-ui-browser.cjs
+          node tests/ranking-hub-browser.cjs
           node tests/next-lobby-browser.cjs
           node tests/next-help-browser.cjs
       - name: Isolated demo SDK and authorization checks

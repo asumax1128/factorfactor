@@ -28,6 +28,7 @@
     "test:online-presentation": "node --test tests/combat-events-v514.test.cjs && node tests/online-ui-v514.cjs",
     "test:v6-c-hidden": "node tests/v6-c-hidden-browser.cjs",
     "test:title-client": "node --test tests/title-client-next.test.cjs && node tests/title-client-browser.cjs",
+    "test:ranking-ui": "node tests/ranking-ui-browser.cjs && node tests/ranking-hub-browser.cjs",
     "test:ui-font": "node tests/ui-font-v515.cjs",
     "test:online-latency": "node --test tests/online-state-order.test.cjs && node tests/online-latency-browser.cjs",
     "test:bounty-profile": "node tests/bounty-profile-browser.cjs",

@@ -239,7 +239,7 @@
           /* @__PURE__ */ React.createElement("button", { disabled: busy, className: "or-primary", onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B")
         );
       }
-      function App({ acct, onExit, view = "match", initialGhost = null }) {
+      function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false }) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
         const [state, setState] = useState(null), [error, setError] = useState(""), [feedback, setFeedback] = useState(null), [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select"
@@ -462,7 +462,7 @@
           },
           /* @__PURE__ */ React.createElement(H.FontImport, null),
           ["play", "result"].includes(screen) && /* @__PURE__ */ React.createElement(H.FxLayer, { level: 112, combat: true }),
-          screen !== "play" && /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
+          screen !== "play" && !(rankingMode && view === "ratings" && root.NextRanking) && /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
             "button",
             {
               onClick: () => {
@@ -621,7 +621,28 @@
               })
             }
           ),
-          view === "ratings" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("nav", { className: "or-tabs", "aria-label": "\u30E9\u30F3\u30AD\u30F3\u30B0\u306E\u96E3\u6613\u5EA6" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
+          view === "ratings" && /* @__PURE__ */ React.createElement(React.Fragment, null, rankingMode && root.NextRanking ? (() => {
+            var _a2, _b2, _c2, _d2, _e2;
+            const R = root.NextRanking, mine = (_a2 = state == null ? void 0 : state.ratings) == null ? void 0 : _a2[tab];
+            const rows = ((_b2 = state == null ? void 0 : state.rankings) == null ? void 0 : _b2[tab]) || [];
+            const status = !state ? "loading" : rows.length ? "ok" : "empty";
+            return /* @__PURE__ */ React.createElement("div", { className: "rk-rating", "data-ranking": "rating" }, /* @__PURE__ */ React.createElement(R.RankingHead, { title: "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30E9\u30F3\u30AD\u30F3\u30B0" }), /* @__PURE__ */ React.createElement(R.Segmented, { label: "\u30E9\u30F3\u30AD\u30F3\u30B0\u306E\u96E3\u6613\u5EA6", items: [["easy", label("easy")], ["normal", label("normal")]], value: tab, onChange: setTab }), /* @__PURE__ */ React.createElement("section", { className: "rk-selfcard", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("span", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, (mine == null ? void 0 : mine.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(mine.rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_c2 = mine == null ? void 0 : mine.games) != null ? _c2 : 0, "\u6226", !!((_d2 = mine == null ? void 0 : mine.ghost) == null ? void 0 : _d2.games) && `\u30FB\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A${mine.ghost.games}\u6226`), /* @__PURE__ */ React.createElement("p", null, ((_e2 = state == null ? void 0 : state.ranks) == null ? void 0 : _e2[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("p", { className: "rk-foot" }, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0 \uFF0F ", tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30A4\u30FC\u30B8\u30FC\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30CE\u30FC\u30DE\u30EB\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), /* @__PURE__ */ React.createElement(R.ListState, { status, message: status === "loading" ? "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026" : "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093" }), status === "ok" && /* @__PURE__ */ React.createElement(R.RankList, { label: label(tab) + "\u30E9\u30F3\u30AD\u30F3\u30B0" }, rows.map((r) => {
+              var _a3, _b3, _c3, _d3;
+              return /* @__PURE__ */ React.createElement(
+                R.RankRow,
+                {
+                  key: r.key,
+                  rank: r.rank,
+                  name: r.name,
+                  onName: () => setSelectedPlayer(r),
+                  self: !!(acct == null ? void 0 : acct.key) && r.key === acct.key,
+                  value: formatRating(r.rating),
+                  extra: /* @__PURE__ */ React.createElement(React.Fragment, null, titles[r.title] ? /* @__PURE__ */ React.createElement("small", null, titles[r.title]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: (_b3 = (_a3 = r.cosmetics) == null ? void 0 : _a3.stats) == null ? void 0 : _b3.nick, block: true }), H.BadgeIcons && /* @__PURE__ */ React.createElement(H.BadgeIcons, { st: ((_c3 = r.cosmetics) == null ? void 0 : _c3.stats) || {}, max: 4 })),
+                  sub: `\u4EBA\u9593\u5BFE\u6226 ${r.statsKnown ? r.games : "\u2015"}\u6226\u30FB\u52DD\u5229 ${r.statsKnown ? r.w : "\u2015"}\u30FB\u6557\u5317 ${r.statsKnown ? r.l : "\u2015"}\u30FB\u52DD\u7387 ${r.statsKnown && r.games ? `${Math.round(r.w / r.games * 100)}%` : "\u2015"}` + (((_d3 = r.ghost) == null ? void 0 : _d3.games) ? `\u3000\u4E71\u5165\u5BFE\u6226\uFF1A${r.ghost.games}\u6226\u30FB${r.ghost.w}\u52DD ${r.ghost.l}\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09` : "") + (!r.statsKnown ? "\u3000\u65E7\u30EC\u30FC\u30C8\u3092\u5F15\u304D\u7D99\u3044\u3060\u8A18\u9332\u3067\u3059\u3002\u96E3\u6613\u5EA6\u5225\u306E\u6226\u7E3E\u306F\u672A\u8A18\u9332\u3002" : "")
+                }
+              );
+            })));
+          })() : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("nav", { className: "or-tabs", "aria-label": "\u30E9\u30F3\u30AD\u30F3\u30B0\u306E\u96E3\u6613\u5EA6" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
             "button",
             {
               key: d,
@@ -657,7 +678,7 @@
               !!((_d2 = r.ghost) == null ? void 0 : _d2.games) && /* @__PURE__ */ React.createElement("small", null, "\u4E71\u5165\u5BFE\u6226\uFF1A", r.ghost.games, "\u6226\u30FB", r.ghost.w, "\u52DD", " ", r.ghost.l, "\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09"),
               !r.statsKnown && /* @__PURE__ */ React.createElement("small", null, "\u65E7\u30EC\u30FC\u30C8\u3092\u5F15\u304D\u7D99\u3044\u3060\u8A18\u9332\u3067\u3059\u3002\u96E3\u6613\u5EA6\u5225\u306E\u6226\u7E3E\u306F\u672A\u8A18\u9332\u3002")
             ));
-          }))), !!Object.keys((state == null ? void 0 : state.badges) || {}).length && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u7372\u5F97\u3057\u305F\u79F0\u53F7"), /* @__PURE__ */ React.createElement("div", { className: "or-titles" }, Object.keys(state.badges).filter((k) => state.badges[k]).map((k) => /* @__PURE__ */ React.createElement(
+          })))), !!Object.keys((state == null ? void 0 : state.badges) || {}).length && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u7372\u5F97\u3057\u305F\u79F0\u53F7"), /* @__PURE__ */ React.createElement("div", { className: "or-titles" }, Object.keys(state.badges).filter((k) => state.badges[k]).map((k) => /* @__PURE__ */ React.createElement(
             "button",
             {
               key: k,
