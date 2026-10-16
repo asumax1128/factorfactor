@@ -53,6 +53,7 @@ jobs:
           node tests/next-board-visibility-browser.cjs
           node tests/next-battle-result-browser.cjs
           node tests/solo-result-browser.cjs
+          node tests/solo-runlog-browser.cjs
           node tests/next-spectator-browser.cjs
           node tests/legacy-spectator-browser.cjs
           node tests/friend-raid-browser.cjs

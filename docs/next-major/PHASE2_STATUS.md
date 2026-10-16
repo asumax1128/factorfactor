@@ -16,7 +16,8 @@
 - データ：`finishGame`の直前に表示専用スナップショット（最大コンボ＋全問の結果ログ）を`setRunSummary`へ取得。**学習記録`learnRef`は展開ボーナス問題と一部の経路を含まないため、表示専用の`runLogRef`を5箇所（通常正解／誤答／時間切れ／展開正解／展開誤答）に追記**（learnRef／flushLearn／EXP／ランキング／ゴースト／ミッションの処理・順序は不変）。開始時に両方を空にして次のプレイに混入しない。ログの正解数が`caught`と一致しない場合は、Perfect・ミス・最速解答を表示しない。
 - 表示：CLEAR!（金・控えめな紙吹雪）／GAME OVER（落ち着いた表示）、成績（得点・正解数・最大コンボ・Perfect・ミス（誤答＋時間切れ）・プレイ時間・難易度・到達レベル）、ハイライト（クリアタイム・最大コンボ・最速解答。問題番号なし）、既存ExpGain。ミス1回以上で「学びの部屋へ」（`onMode('learn')`。復習とは表記しない）。バッジは既存の`isRecord`／`rankedIn`が真のときだけ。
 - 検証：`tests/solo-result-model.test.cjs`、`tests/solo-result-browser.cjs`（イージークリア／ノーマルGAME OVER＋次プレイ非混入／ハード0正解／ゲスト／フォールバック／reduced-motion、375/390/430/1440）、`tests/solo-parity-dump.cjs`（変更前後で DB書込パス・EXP増分・ローカル保存キー・ゴースト形を照合し一致）。
-- 未解決：成長ブロック（ExpGain）は既存のライトカード配色。ネットランキング送信欄とボタンは既存の青い窓のまま。`chromebook-browser`／`online-improvements-browser`は開発ブランチの元の状態でも失敗する既存の古いテスト。
+- 最終調整（ディレクター確認後）：LEVEL UP帯の通り道を上部に確保（演出は維持）、成長カード／ランキング欄／ボタンを`.nbr[data-kind=S]`と`.nbr-act`限定CSSでダークネイビー＋ティールへ（ExpGain等の共有コンポーネントは不変。送信中／成功／失敗／入力待ちは`data-net`で枠色と文言を区別）、ハイライトは実数（最大15コンボ）、スマホタイルの補足（ミス＝誤答・時間切れ／到達レベル名）を折り返し対応。`tests/solo-runlog-browser.cjs`で通常問題の正解・誤答・時間切れ、展開ボーナスの正解・誤答、混在試合、クリア直後・GAME OVER直後、再挑戦での非混入、欠損時の非表示を実プレイで検証。
+- 未解決：`chromebook-browser`／`online-improvements-browser`は基点ブランチでも同じ箇所で失敗する既存の古いテスト（今回の変更による新しい失敗なし）。
 
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
