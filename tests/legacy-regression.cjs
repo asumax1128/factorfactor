@@ -111,6 +111,26 @@ const previous = functions(
     maxBuffer: 10e6,
   }),
 );
+const stripPos = (x) => { if (Array.isArray(x)) return x.map(stripPos); if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) if (!['start', 'end', 'loc', 'range', 'extra', 'leadingComments', 'trailingComments', 'innerComments'].includes(k)) o[k] = stripPos(v); return o; } return x; };
+const parseExpr = (code) => stripPos(Babel.transform(code + ';', { presets: ['react'], ast: true, code: false }).ast.program.body.find((b) => b.type === 'ExpressionStatement').expression);
+const DISPLAY_WRAP_FLAG = JSON.stringify(parseExpr("!!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final)))"));
+function trimDisplayWrapArgs(root, strict = true) {
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee?.name === 'wrap' && node.arguments.length === 3 && JSON.stringify(node.arguments[0]).includes('BattleResult') && node.arguments[1]?.type === 'BooleanLiteral' && node.arguments[1].value === false && JSON.stringify(stripPos(node.arguments[2])) === DISPLAY_WRAP_FLAG) node.arguments = node.arguments.slice(0, 1);
+    for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(walk); else walk(v); }
+  };
+  walk(root); return root;
+}
+// Self-test: only the exact presentation flag is hidden from the audit; anything else stays visible and makes the comparison fail.
+{
+  const call = (args) => stripPos(Babel.transform(`wrap(<BattleResult a={1} />${args});`, { presets: ['react'], ast: true, code: false }).ast.program.body.find((b) => b.type === 'ExpressionStatement').expression);
+  const len = (args) => trimDisplayWrapArgs({ x: call(args) }).x.arguments.length;
+  const ok = ", false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final)))";
+  assert.equal(len(ok), 1, 'the exact display-only flag is normalised');
+  for (const bad of [", false, true", ", true, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final)))", ", false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final) || rating > 0))", ok + ", scoreBoost()", ", false, applyRating()", ", false"])
+    assert.notEqual(len(bad), 1, 'must not be hidden from the audit: ' + bad);
+}
 const withoutFrame = (s) => {
   const n = JSON.parse(s);
   // Only the new B2 final-result adapter is removed for this comparison.
@@ -136,9 +156,10 @@ const withoutFrame = (s) => {
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripReport); else stripReport(v); }
   };
   stripReport(n);
-  // The result frame may be widened (presentation only): extra arguments to wrap() are not game logic.
-  const trimWrap = node => { if (!node || typeof node !== 'object') return; if (node.type === 'CallExpression' && node.callee?.name === 'wrap' && node.arguments.length > 1 && JSON.stringify(node.arguments[0]).includes('BattleResult')) node.arguments = node.arguments.slice(0, 1); for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(trimWrap); else trimWrap(v); } };
-  trimWrap(n);
+  // The result frame may be widened (presentation only). Exactly ONE additive shape is allowed:
+  //   wrap(<BattleResult .../>, false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final))))
+  // Any other extra argument, a different flag expression or a different second argument is NOT normalised and fails the audit.
+  trimDisplayWrapArgs(n);
   for (const statement of n.body.body) {
     for (const d of statement.declarations || [])
       if (d.id?.name === "wrap")
