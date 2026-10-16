@@ -41,5 +41,45 @@
         }
       }
     }
+  },
+  "cInput": {
+    "$code": {
+      "$gid": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          "$seq": {
+            ".write": "auth != null && auth.uid === $uid && newData.exists() && !data.exists() && $code.matches(/^[0-9]{4}$/) && $gid.matches(/^[A-Za-z0-9_-]{1,40}$/) && (root.child('games/factor/rooms/' + $code + '/state').child('players/0').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/state').child('players/1').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/state').child('players/2').val() === auth.uid || root.child('games/factor/rooms/' + $code + '/state').child('players/3').val() === auth.uid) && root.child('games/factor/rooms/' + $code + '/state').child('mode').val() === 'C' && root.child('games/factor/rooms/' + $code + '/state').child('phase').val() === 'play' && root.child('games/factor/rooms/' + $code + '/state').child('gid').val() === $gid && !root.child('games/factor/rooms/' + $code + '/state').child('cpu').exists() && !root.child('games/factor/rooms/' + $code + '/state').child('bot').exists() && now >= root.child('games/factor/rooms/' + $code + '/state').child('startAt').val() - 3000 && !root.child('games/factor/rooms/' + $code + '/result/' + $gid).exists() && !root.child('games/factor/nextAuthorityV1/c/' + $code + '_' + $gid + '/final').exists()",
+            ".validate": "$seq.matches(/^(0|[1-9][0-9]{0,3})$/) && newData.hasChildren(['n','k','ct','sat']) && '' + newData.child('n').val() === $seq && ($seq === '0' || data.parent().child('' + (newData.child('n').val() - 1)).exists() && newData.child('sat').val() >= data.parent().child('' + (newData.child('n').val() - 1)).child('sat').val()) && ((newData.child('k').val() === 'answer' && newData.child('q').exists() && newData.child('a').exists() && !newData.child('s').exists()) || (newData.child('k').val() === 'special' && newData.child('s').exists() && !newData.child('q').exists() && !newData.child('a').exists()))",
+            "n": {
+              ".validate": "newData.isNumber()"
+            },
+            "k": {
+              ".validate": "newData.isString() && newData.val().matches(/^(answer|special)$/)"
+            },
+            "sat": {
+              ".validate": "newData.isNumber() && newData.val() === now"
+            },
+            "ct": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 3000 && newData.val() >= now - 120000"
+            },
+            "q": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999"
+            },
+            "s": {
+              ".validate": "newData.isString() && newData.val().matches(/^(big|heal|shield)$/)"
+            },
+            "a": {
+              ".validate": "newData.hasChildren(['0','1']) && !newData.child('2').exists() && newData.child('0').val() !== newData.child('1').val()",
+              "$i": {
+                ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,40}$/)"
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
   }
 }
