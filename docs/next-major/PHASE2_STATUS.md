@@ -10,6 +10,14 @@
 - テスト：`tests/battle-result-model.test.cjs`、`tests/next-battle-result-browser.cjs`（孤立表示と実CPU対戦のA／B、375/390/430/1440）。`tests/legacy-regression.cjs`のAST監査は`wrap()`の追加引数だけを正規化（ゲームロジックは同一）。
 - 未解決：成長ブロックは既存コンポーネント（ExpGain等）をそのまま再利用しており配色が従来のライトカード。既存の勝利時の全画面紙吹雪（`FX.confetti(70)`、対戦記録処理側）は未変更。ランダムレーティング対戦（`or-result`）は別の結果画面で未接続。
 
+## 通常ソロ リザルト統一（作業ブランチ `claude/solo-result-ui`・ディレクター確認待ち）
+
+- 対象：FactorHuntの通常ソロ3難易度のみ（デイリー／塔／学び／週間／CPU／ゴースト・A/B/C結果は未変更）。`src/solo-result-model.cjs`（表示モデル）、`SoloSummary`（`next-battle-result-ui.jsx`。A/Bと共通の`Confetti`／`Tiles`／`Highlights`／`GrowthSection`と`.nbr`CSSを再利用）。`gameover`は新UI→既存のネットランキング送信欄・もう一度／タイトルへ・エンディング・結果BGMの順。共通UIが読めない場合は従来画面へフォールバック。
+- データ：`finishGame`の直前に表示専用スナップショット（最大コンボ＋全問の結果ログ）を`setRunSummary`へ取得。**学習記録`learnRef`は展開ボーナス問題と一部の経路を含まないため、表示専用の`runLogRef`を5箇所（通常正解／誤答／時間切れ／展開正解／展開誤答）に追記**（learnRef／flushLearn／EXP／ランキング／ゴースト／ミッションの処理・順序は不変）。開始時に両方を空にして次のプレイに混入しない。ログの正解数が`caught`と一致しない場合は、Perfect・ミス・最速解答を表示しない。
+- 表示：CLEAR!（金・控えめな紙吹雪）／GAME OVER（落ち着いた表示）、成績（得点・正解数・最大コンボ・Perfect・ミス（誤答＋時間切れ）・プレイ時間・難易度・到達レベル）、ハイライト（クリアタイム・最大コンボ・最速解答。問題番号なし）、既存ExpGain。ミス1回以上で「学びの部屋へ」（`onMode('learn')`。復習とは表記しない）。バッジは既存の`isRecord`／`rankedIn`が真のときだけ。
+- 検証：`tests/solo-result-model.test.cjs`、`tests/solo-result-browser.cjs`（イージークリア／ノーマルGAME OVER＋次プレイ非混入／ハード0正解／ゲスト／フォールバック／reduced-motion、375/390/430/1440）、`tests/solo-parity-dump.cjs`（変更前後で DB書込パス・EXP増分・ローカル保存キー・ゴースト形を照合し一致）。
+- 未解決：成長ブロック（ExpGain）は既存のライトカード配色。ネットランキング送信欄とボタンは既存の青い窓のまま。`chromebook-browser`／`online-improvements-browser`は開発ブランチの元の状態でも失敗する既存の古いテスト。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
