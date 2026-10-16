@@ -71,3 +71,7 @@
 .or-result.rs-rated .or-exp b{font:700 24px var(--number);color:var(--gold)}
 .or-result.rs-rated .rs-origin{margin:6px 0 0;font-size:12px;color:var(--muted)}
 .or-result.rs-rated{overflow:visible;background:transparent;border:0;padding:0;text-align:left;color:var(--text,#e8f0f5)}
+.rs-page{min-height:100dvh;background:#101720;padding:max(12px,env(safe-area-inset-top)) 12px 12px;box-sizing:border-box}
+.rs-page .rs-scope{max-width:880px;margin:0 auto}
+.rs-status{margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:13px;font-weight:700}
+.rs-status-err{border-color:#ff8a75;color:#ffb59c}

@@ -10897,6 +10897,22 @@ function TournamentB2Final({code,state,game,acct,onBack,onLeave}) {
   useEffect(()=>{if(!isReal(acct)||!game.result)return;let active=true;const ref=FB.db.ref(`games/factor/accounts/${acct.key}/stats`);
     ref.transaction(s=>window.TournamentB2.record(s,{tournamentId:state.tournamentId,game,uid:me})).then(()=>{if(active)setSaved(true)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false};
   },[game.id,acct?.key]);
+  const [slow,setSlow]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setSlow(true),8000);return()=>clearTimeout(t)},[]);
+  const NR=window.NextResults;
+  if(NR&&NR.ResultActions&&NR.MinimalSummary){
+    // Ver.6.0 shared result look. The save effect above, the texts and the return callback are unchanged;
+    // the return button is held only while the receipt is being saved (released on success, error or after 8 s).
+    const o=game.result.draw?'draw':game.result.winner===me?'win':'lose';
+    const busy=isReal(acct)&&!saved&&!error&&!slow;
+    return <div className="rs-page" data-tournament-final><NR.ResultShell kind="T" outcome={o} busy={busy}>
+      <NR.MinimalSummary outcome={o} methodLabel="大会B方式" notes={<p>大会B方式・公式レーティング対象外</p>}/>
+      <NR.BDetails game={game} names={state.names} me={me}/>
+      <p role="status" className="rs-status">{saved?'大会記録・EXPを保存しました':isReal(acct)?'大会記録を保存しています…':'ゲストの大会結果'}</p>
+      {error&&<p role="alert" className="rs-status rs-status-err">{error}</p>}
+      <NR.ResultActions busy={busy}><NR.ResultButton tone="gold" onClick={onBack||onLeave}>大会の表にもどる</NR.ResultButton></NR.ResultActions>
+    </NR.ResultShell></div>;
+  }
   return <div className="or-app"><h1>{game.result.draw?'引き分け':game.result.winner===me?'勝利':'敗北'}</h1><p>大会B方式・公式レーティング対象外</p><window.NextResults.BDetails game={game} names={state.names} me={me}/><p role="status">{saved?'大会記録・EXPを保存しました':isReal(acct)?'大会記録を保存しています…':'ゲストの大会結果'}</p>{error&&<p role="alert">{error}</p>}<button onClick={onBack||onLeave}>大会の表にもどる</button></div>;
 }
 function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStart, onLeave }) {
