@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),Babel=require('@babel/standalone');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const src=html.match(/<script type="text\/plain" id="app-source">([\s\S]*?)<\/script>/)[1];
-const seeds=['createBEngine'],injected=new Set(['fref','TSV','fbNow']);
+const seeds=['createBEngine','makeBank','polyEqual','multiply','DIFFICULTY_CONFIG','QUESTION_TIMEOUT_MS'],injected=new Set(['fref','TSV','fbNow']);
 let result;
 Babel.transform(src,{presets:['react'],code:false,plugins:[()=>({visitor:{Program(p){
  const selected=new Map(),queue=[...seeds];
@@ -16,7 +16,7 @@ Babel.transform(src,{presets:['react'],code:false,plugins:[()=>({visitor:{Progra
   b.traverse({ReferencedIdentifier:collect});
  }
  const defs=[...selected.values()].sort((a,b)=>a.node.start-b.node.start).map(b=>b.isVariableDeclarator()?'let '+src.slice(b.node.start,b.node.end)+';':src.slice(b.node.start,b.node.end));
- result='// GENERATED from main index.html; do not edit. Server-only.\n'+defs.join('\n')+'\n({createBEngine});\n';
+ result='// GENERATED from main index.html; do not edit. Server-only.\n'+defs.join('\n')+'\n({'+seeds.join(',')+'});\n';
  if(/(?:React\.|document\.|localStorage\.|Tone\.|window\.)/.test(result))throw Error('Browser dependency in server engine');
 }}})]});
 const out=path.join(__dirname,'../server/next-authority/c-source.js');

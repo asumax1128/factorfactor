@@ -143,10 +143,122 @@ function genL9() {
   return { factors: [f1, f2], poly: multiply(f1, f2) };
 }
 let GENERATORS = { 1: genL1, 2: genL2, 3: genL3, 4: genL4, 5: genL5, 6: genL6, 7: genL7, 8: genL8, 9: genL9 };
+let LEVEL_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 let LEVEL_POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };
+let FIXED_PHASE_LAST_Q = 27;
+let RANDOM_PHASE_FIRST_Q = 28;
+let INITIAL_WEIGHTS = { 1: 8, 2: 8, 3: 8, 4: 8, 5: 10, 6: 10, 7: 12, 8: 16, 9: 20 };
+let WEIGHT_DELTA = { 1: -1, 2: -1, 3: -1, 4: -1, 5: +2, 6: +2, 7: -2, 8: +2 };
+let FINAL_STEP = 6;
+let FINAL_FIXED_WEIGHTS = { 1: 2, 2: 2, 3: 2, 4: 2, 5: 22, 6: 22, 7: 2, 8: 30, 9: 16 };
+function getLevelWeights(questionNumber) {
+  const steps = Math.max(0, Math.floor((questionNumber - RANDOM_PHASE_FIRST_Q) / 3));
+
+  if (steps >= FINAL_STEP) return { ...FINAL_FIXED_WEIGHTS };
+
+  const w = {};
+  [1, 2, 3, 4].forEach(lv => { w[lv] = Math.max(0, INITIAL_WEIGHTS[lv] + WEIGHT_DELTA[lv] * steps); });
+  w[5] = INITIAL_WEIGHTS[5] + WEIGHT_DELTA[5] * steps;
+  w[6] = INITIAL_WEIGHTS[6] + WEIGHT_DELTA[6] * steps;
+  w[7] = Math.max(0, INITIAL_WEIGHTS[7] + WEIGHT_DELTA[7] * steps);
+  w[8] = INITIAL_WEIGHTS[8] + WEIGHT_DELTA[8] * steps;
+
+  // Lv.9は「他の8レベルを引いた残り全部」を引き受ける(常に合計100%になる)
+  const usedSum = [1, 2, 3, 4, 5, 6, 7, 8].reduce((s, lv) => s + w[lv], 0);
+  w[9] = Math.max(0, 100 - usedSum);
+  return w;
+}
+function pickLevelForQuestion(questionNumber) {
+  if (questionNumber <= FIXED_PHASE_LAST_Q) {
+    // 1〜3問目=Lv.1、4〜6問目=Lv.2 … 25〜27問目=Lv.9
+    return Math.min(9, Math.floor((questionNumber - 1) / 3) + 1);
+  }
+  const w = getLevelWeights(questionNumber);
+  let r = Math.random() * 100;
+  for (const lv of LEVEL_IDS) {
+    if (r < w[lv]) return lv;
+    r -= w[lv];
+  }
+  return 9; // 丸め誤差対策のフォールバック
+}
+let DIFFICULTY_CONFIG = {
+  easy: { label: 'イージー', clearCount: 15, color: '#52B788', tileCount: 6 },
+  normal: { label: 'ノーマル', clearCount: 30, color: '#E8A33D', tileCount: 9 },
+  hard: { label: 'ハード', clearCount: 50, color: '#E76F51', tileCount: 9 },
+};
+function flipSign(f) {
+  if (f.type === 'const') return { type: 'const', k: -f.k };
+  // quadratic は中央の項(±nx)の符号を間違えるのが典型的なミスなのでそこを反転する
+  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: -f.B, C: f.C };
+  return { type: 'linear', a: f.a, b: -f.b };
+}
+function shiftConst(f) {
+  const d = randSign();
+  if (f.type === 'const') return { type: 'const', k: f.k + d };
+  if (f.type === 'quadratic') return { type: 'quadratic', A: f.A, B: f.B, C: f.C + d };
+  return { type: 'linear', a: f.a, b: f.b + d };
+}
 function foreignFactor(level) {
   const { factors } = GENERATORS[level]();
   return factors[randInt(0, 1)];
+}
+function genDummies(level, correctFactors) {
+  const dummies = [];
+  const pushUnique = (f) => {
+    const key = factorKey(f);
+    if (!correctFactors.some(cf => factorKey(cf) === key) && !dummies.some(d => factorKey(d) === key)) {
+      dummies.push(f);
+    }
+  };
+  for (let i = 0; i < randInt(1, 2); i++) pushUnique(flipSign(correctFactors[randInt(0, 1)]));
+  for (let i = 0; i < randInt(1, 2); i++) pushUnique(shiftConst(correctFactors[randInt(0, 1)]));
+  for (let i = 0; i < randInt(1, 2); i++) pushUnique(foreignFactor(level));
+  // 盤面のマス数は有限なので、ダミーが多すぎないよう上限を設ける(最終的な枚数はbuildBoard側でtileCountに切り詰める)
+  return dummies.slice(0, 5);
+}
+function buildBoard(level, seenSet, tileCount = 9) {
+  let factors, poly, sig;
+  let outerAttempt = 0;
+  do {
+    ({ factors, poly } = GENERATORS[level]());
+    sig = `${level}:${poly.x4},${poly.x3},${poly.x2},${poly.x1},${poly.x0}`;
+    outerAttempt++;
+  } while (seenSet && seenSet.has(sig) && outerAttempt < 60);
+  if (seenSet) seenSet.add(sig);
+
+  let tiles = [];
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    const dummies = genDummies(level, factors);
+    let pool = [...factors, ...dummies];
+    let guard = 0;
+    while (pool.length < tileCount && guard < 200) {
+      guard++;
+      const f = foreignFactor(level);
+      const key = factorKey(f);
+      if (!pool.some(p => factorKey(p) === key)) pool.push(f);
+    }
+    // 正解ペア2枚は pool の先頭にあるので、slice しても必ず盤面に残る
+    pool = pool.slice(0, tileCount);
+    tiles = pool.map((f, idx) => ({ id: `${Date.now()}_${idx}_${Math.random().toString(36).slice(2)}`, factor: f }));
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    let matchCount = 0;
+    for (let i = 0; i < tiles.length && matchCount <= 1; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        if (polyEqual(multiply(tiles[i].factor, tiles[j].factor), poly)) {
+          matchCount++;
+          if (matchCount > 1) break;
+        }
+      }
+    }
+    if (matchCount === 1) break;
+    if (attempt > 40) break;
+  }
+  return { tiles, poly, factors };
 }
 let QUESTION_TIMEOUT_MS = 20000;
 let JUDGE_TIERS = [
@@ -181,6 +293,40 @@ let C_HP = { decay: 0.5, recover: 0.5, miss: 0.6 };
 let C_UNITE = { dmg: 10, oj: 1, win: 3000, cool: 8000, combo: 3 };
 let C_FOLLOW = { win: 3000, mul: 1.2 };
 let handiDmgMul = h => 1 - 0.15 * (h || 0);
+function hashSeed(s) {
+  let h = 1779033703 ^ s.length;
+  for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+function mulberry32(a) {
+  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function withSeed(key, fn) {
+  const orig = Math.random;
+  Math.random = mulberry32(hashSeed(key));
+  try { return fn(); } finally { Math.random = orig; }
+}
+function makeBank(seed, tileCount) {
+  const lists = {}, seen = {}, levels = {};
+  return {
+    get(level, k) {
+      const L = lists[level] || (lists[level] = []);
+      const S = seen[level] || (seen[level] = new Set());
+      while (L.length <= k) {
+        const i = L.length;
+        const b = withSeed(`${seed}:${level}:${i}`, () => buildBoard(level, S, tileCount));
+        b.tiles = b.tiles.map((t, j) => ({ ...t, id: `q${level}_${i}_${j}` }));
+        L.push(b);
+      }
+      return L[k];
+    },
+    level(n) { // n 問目（1始まり）のレベル
+      if (levels[n] == null) levels[n] = withSeed(`${seed}:lv:${n}`, () => pickLevelForQuestion(n));
+      return levels[n];
+    },
+  };
+}
 function addOjama(tiles, poly, level, n) {
   const out = [...tiles];
   let guard = 0, added = 0;
@@ -463,4 +609,4 @@ function createBEngine(o) {
   E.serve();
   return E;
 }
-({createBEngine});
+({createBEngine,makeBank,polyEqual,multiply,DIFFICULTY_CONFIG,QUESTION_TIMEOUT_MS});
