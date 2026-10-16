@@ -8,6 +8,9 @@
 - [大会B2](PHASE4_TOURNAMENT_B2.md)：新規開催の識別・教師coordinator・結果／観戦・回戦再送ガード・専用EXP／優勝receiptを接続。実SDKで4人トーナメントと再接続、4画面幅の実操作を検証。旧大会は旧経路で完走。スイス全回戦の実SDK追加検証と実機確認は残る。
 - 専用CI `next-major-checks.yml`を追加。devだけ、contents:read、demo Emulator／モックのみ。Pages／デプロイ／本番秘密情報の工程はない。公開workflowは変更しない。
 
+- [称号の互換・dry-run・全端末演出管理](PHASE4_TITLE_COMPATIBILITY.md)：旧97件と新100件の共通ID90／旧のみ7／新のみ10を照合。証明可能な限定判定と冪等draft、Emulator限定の全端末ackを追加。100件全ての実運用付与／本番移行ではない。52件の公開条件は未承認。
+- 開発CI `6802639` は [run 38802226183](https://github.com/asumax1128/factorfactor/actions/runs/38802226183) 成功を公開Actions画面で確認。GitHub APIは接続拒否だったが、GitHub公開画面の結果から確認できた。後続コミットの結果は別途確認する。
+
 ## コミットと現在地
 
 |区分|状態|コミット・根拠|

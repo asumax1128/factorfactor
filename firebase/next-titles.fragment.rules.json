@@ -1,0 +1,22 @@
+{
+  ".read": false,
+  ".write": false,
+  "awards": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      ".write": false
+    }
+  },
+  "presentations": {
+    "$account": {
+      ".read": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists()",
+      "factor_factor": {
+        ".write": "auth != null && root.child('games/factor/logins/' + $account + '/' + auth.uid).exists() && root.child('games/factor/titleNextV1/awards/' + $account + '/factor_factor/earned').val() === true && newData.exists()",
+        ".validate": "newData.hasChildren(['seen','at']) && newData.child('seen').val() === true && (data.exists() && newData.child('at').val() === data.child('at').val() || !data.exists() && newData.child('at').val() === now)",
+        "seen": { ".validate": true },
+        "at": { ".validate": true },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

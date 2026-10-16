@@ -12,7 +12,7 @@ esbuild
   .build({
     stdin: {
       contents:
-        'window.OnlineSpark = require("./src/online-spark-client.cjs");window.EventHost = require("./src/event-host-client.cjs");window.DailyV2 = require("./src/daily-client.cjs");window.RoomB2 = require("./src/room-b2-client.cjs");window.TournamentB2 = require("./src/tournament-b2.cjs");window.WeeklyRunNext = require("./src/weekly-run-next.cjs");window.LocalB2Bots = require("./src/local-b2-bots.cjs");',
+        'window.OnlineSpark = require("./src/online-spark-client.cjs");window.EventHost = require("./src/event-host-client.cjs");window.DailyV2 = require("./src/daily-client.cjs");window.RoomB2 = require("./src/room-b2-client.cjs");window.TitlePresentationNext = require("./src/title-presentation-next.cjs");window.TournamentB2 = require("./src/tournament-b2.cjs");window.WeeklyRunNext = require("./src/weekly-run-next.cjs");window.LocalB2Bots = require("./src/local-b2-bots.cjs");',
       resolveDir: process.cwd(),
     },
     outfile: "online-spark.js",
