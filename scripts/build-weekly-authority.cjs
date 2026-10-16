@@ -40,7 +40,11 @@ Babel.transform(src, {
             if (b.isReferencedIdentifier()) collect(b);
             b.traverse({ ReferencedIdentifier: collect });
           }
-          const defs = [...selected.values()]
+          // BOSS_TRAITS is extended by a top-level Object.assign after its declaration.
+          // Extract the original extension too; lexical bindings alone omit 9 bosses.
+          const extensions=p.get('body').filter(b=>b.isExpressionStatement()&&b.node.expression.type==='CallExpression'&&b.node.expression.callee.type==='MemberExpression'&&b.node.expression.callee.object.name==='Object'&&b.node.expression.callee.property.name==='assign'&&b.node.expression.arguments[0]?.name==='BOSS_TRAITS');
+          if(extensions.length!==1)throw Error('Expected exactly one original boss-trait extension');
+          const defs = [...selected.values(),...extensions]
             .sort((a, b) => a.node.start - b.node.start)
             .map((b) =>
               b.isVariableDeclarator()

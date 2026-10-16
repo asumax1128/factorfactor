@@ -1,14 +1,15 @@
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),W=require('../../src/weekly-next.cjs'),Rewards=require('../../src/weekly-rewards-next.cjs');
 function hydrate(w){for(const k of ['log','runs','damage','support','accounts','awards','receipts'])w[k] ||= {};w.log=Object.fromEntries(Object.entries(w.log).filter(([,v])=>v));for(const r of Object.values(w.runs)){r.fired ||= {};r.seen=Array.isArray(r.seen)?r.seen:Object.values(r.seen||{});r.chestLog=Array.isArray(r.chestLog)?r.chestLog:Object.values(r.chestLog||{});if(r.prob)for(const k of ['tiles','factors','factors2'])if(r.prob[k]&&!Array.isArray(r.prob[k]))r.prob[k]=Object.values(r.prob[k]);if(r.gim)r.gim.fired ||= {}}return w;}
-const script=new vm.Script(fs.readFileSync(require.resolve('./weekly-source.js'),'utf8')),copy=x=>JSON.parse(JSON.stringify(x)),DAY=86400000;
+const source=fs.readFileSync(require.resolve('./weekly-source.js'),'utf8'),sourceHash=require('node:crypto').createHash('sha256').update(source).digest('hex');
+const script=new vm.Script(source),copy=x=>JSON.parse(JSON.stringify(x)),DAY=86400000;
 function api(w,at,r){
  const math=Object.create(Math);math.random=()=>{w.rng=(Math.imul(w.rng,1664525)+1013904223)>>>0;return w.rng/4294967296};class Clock extends Date{static now(){return at}}let hook=0;
  return script.runInNewContext({Math:math,Date:Clock,useRef:x=>({current:hook++===0&&r?.gim?{...r.gim,fired:r.gim.fired||{}}:x}),FX:new Proxy({},{get:()=>()=>{}}),rectC:()=>null,qs:()=>null},{timeout:1000});
 }
 function info(w,a){const sorted=Object.fromEntries(Object.entries(w.damage).sort(([a],[b])=>a.localeCompare(b)));return a.weeklyInfo(w.week,sorted,w.meta,w.support)}
 function log(w,type,actor,at,data={}){const revision=++w.revision;w.log[revision]={revision,type,actor,at,data};return revision}
-function create({week,meta,seed=1,at}){if(!W.monday(week)||!Number.isSafeInteger(at)||at<Date.parse(week+'T00:00:00+09:00')||at>=Date.parse(week+'T00:00:00+09:00')+7*DAY)throw Error('INVALID_WEEK');const w={version:1,week,meta:copy(meta),seed:seed>>>0,rng:seed>>>0,time:at,revision:0,log:{},runs:{},damage:{},support:{},accounts:{},awards:{},receipts:{},closed:false};const a=api(w,at),i=info(w,a);if(i.boss.id!==meta.boss)throw Error('INVALID_BOSS');w.hpMax=i.hpMax;return w;}
+function create({week,meta,seed=1,at}){if(!W.monday(week)||!Number.isSafeInteger(at)||at<Date.parse(week+'T00:00:00+09:00')||at>=Date.parse(week+'T00:00:00+09:00')+7*DAY)throw Error('INVALID_WEEK');const w={version:1,sourceHash,week,meta:copy(meta),seed:seed>>>0,rng:seed>>>0,time:at,revision:0,log:{},runs:{},damage:{},support:{},accounts:{},awards:{},receipts:{},closed:false};const a=api(w,at),i=info(w,a);if(i.boss.id!==meta.boss)throw Error('INVALID_BOSS');w.hpMax=i.hpMax;return w;}
 function gim(w,r,at,a){const i=info(w,a);return a.useBossGim(i.T.gim||null,{active:r.status==='play',t0:r.startAt,hpRatio:Math.max(0,i.hp)/i.hpMax,checkpointRotation:true,ctl:{current:{rotate:()=>{if(r.pending)return false;r.prob.tiles.unshift(r.prob.tiles.pop());log(w,'rotate',r.account,at,{run:r.id,nextWave:r.gim?.nextWave});return true}}},onAbs:()=>{if(r.absExt>=15000)return false;r.absExt+=3000;r.endAt+=3000;return true}})}
 function family(w,r,at,a,g){const i=info(w,a),sec=(at-r.startAt)/1000,win=a.wkWeakOf(i.boss.id).find(([x,y])=>sec>=x&&sec<y);return g.chFam||(win?(i.T.weakFam?a.RAID_FAMS.find(f=>f.id===i.T.weakFam):a.RAID_FAMS[a.hashSeed(`${r.startAt}:${win[0]}`)%a.RAID_FAMS.length]):null)}
 function level(w,r,at,a,g,lv,how){let n=lv+(how==='up'?1:how==='miss'?-1:0);n=Math.max(1,Math.min(9,how==='init'?(info(w,a).rule?.id==='high'?3:1):n));const f=family(w,r,at,a,g);return f?[...f.lv].sort((x,y)=>Math.abs(x-n)-Math.abs(y-n))[0]:n}
@@ -59,4 +60,4 @@ function execute(input,{account,id,type,payload={},at}){
  w.time=at;w.receipts[account][receiptKey]={type,payload:copy(payload),at,revision:w.revision,runId:r.id};return w;
 }
 function view(w,account){hydrate(w);const a=api(w,w.time),i=info(w,a);return copy({revision:w.revision,serverAt:w.time,week:w.week,hp:Math.max(0,i.hp),hpMax:i.hpMax,kill:w.kill||null,closed:w.closed,runs:Object.fromEntries(Object.entries(w.runs).filter(([,r])=>r.account===account).map(([id,r])=>[id,{...copy(r),prob:r.status==='play'&&!r.pending&&w.time>=r.startAt?r.prob:null}])),awards:w.awards[account]||{},stats:w.accounts[account]?.stats||null,ranking:w.closed?i.rows.map((r,index)=>({account:r.k,damage:r.d,rank:index+1})):null});}
-module.exports={create,execute,advance,view,api,info};
+module.exports={create,execute,advance,view,api,info,sourceHash};

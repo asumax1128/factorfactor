@@ -265,6 +265,18 @@ let BOSS_TRAITS = {
   robot: { tag: '機械型', seal: { part: 'a', text: 'ジャミングが止まる', ojK: 0 }, parts: ['アンテナ', 'アーム', 'コア'], weak: { every: 30000, len: 20000 }, chainK: 0.08, counter: { every: 35000, stun: 0, oj: 3, name: '📡 ジャミング' },
     desc: ['反撃は「ジャミング」：しびれないが、おじゃまタイル+3', '弱点タイムが多い（30秒ごとに20秒）', '連携チェインのダメージアップが大きい（最大1.8倍）'] },
 };
+Object.assign(BOSS_TRAITS, {
+  abs: { tag: '境界型', gim: 'abs', parts: ['爪', '牙', 'しっぽ'], weak: false, counter: null, desc: ['まちがえたときのダメージ・しびれが2倍', '正解すると「−」が「＋」に変わる（塔と今週のボスでは時間+3秒）'] },
+  balance: { tag: '均衡型', gim: 'balance', parts: ['左の皿', '右の皿', '支柱'], weak: false, counter: null, desc: ['同じレベルの問題を2問続けて正解すると、ふつうのダメージ', 'それ以外の正解はダメージ半分（0にはならない）'] },
+  mod: { tag: '剰余型', gim: 'mod', parts: ['帽子', '杖', 'ローブ'], weak: false, counter: null, desc: ['6枚のタイルのうち1枚は、答えに似せたニセの因数（あまりがずれている）', '正解の組は必ず1つある'] },
+  wave: { tag: '波動型', gim: 'wave', parts: ['葉', 'つる', '根'], weak: false, counter: null, desc: ['5秒ごとにタイルの並びが1つずつずれる', 'ドラッグしている間はずれない'] },
+  chimera: { tag: '合体型', gim: 'chimera', parts: ['二次の頭', '三次の頭', 'しっぽ'], weak: false, counter: null, desc: ['「二次式の頭」と「三次式の頭」が12秒ごとに入れかわる', '二次の頭はたすきがけ・2乗の差（Lv4〜6・8・9）が1.5倍、三次の頭は3乗の和・差（Lv7）が2倍'] },
+  prime: { tag: '孤高型', gim: 'prime', parts: ['背びれ', '牙', '尾びれ'], weak: false, counter: null, desc: ['奇数コンボ目の正解はダメージ2倍、偶数コンボ目は半分', 'コンボが切れたら1コンボ目（2倍）から'] },
+  sim: { tag: '連携型', gim: 'sim', parts: ['右の糸', '左の糸', '仮面'], weak: false, counter: null, desc: ['式Ａと式Ｂが同時に出る。どちらから解いてもOK', 'ＡとＢを交互に解くと連携ゲージがたまり、4つで大ダメージ'] },
+  mirror: { tag: '鏡映型', gim: 'mirror', parts: ['左の鏡', '右の鏡', '核'], weak: false, counter: null, desc: ['ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）', '選んでいるタイルは金色で光る'] },
+  king: { tag: '最終決戦型', gim: 'king', hpK: 1.2, parts: ['王冠', '杖', 'マント'], revive: 0.3, counter: { start: 20000, every: 30000, warn: 3000, stun: 1500, fog: 2500, oj: 2, name: '👑 王の裁き' },
+    desc: ['体力が減るごとに「絶対値の力（ミス2倍）」→「素数の力（奇数コンボ2倍・偶数半分）」→「周期の力（タイルがずれる）」', '王冠（Lv1〜3）・杖（Lv4〜6）・マント（Lv7〜9）をこわすと、その力を封じる', '体力が半分を切ると真の姿になって回復'] },
+});
 let traitOf = id => BOSS_TRAITS[id] || {};
 let RAID_CTR_DEF = { name: '💢 ボスの反撃' };
 let ctrOf = id => ({ start: 35000, every: 40000, warn: 4000, stun: 3000, fog: 0, oj: 0, ...RAID_CTR_DEF, ...(traitOf(id).counter || {}) });

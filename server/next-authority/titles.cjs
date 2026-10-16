@@ -40,7 +40,7 @@ async function reconcile({database,account}){
  if(!/^a[a-z0-9_]+$/.test(account))throw Error('INVALID_ACCOUNT');
  const now=await Store.create({database}).clock(),snapshot=(await get(ref(database,`games/factor/titleNextV1/snapshots/${account}`))).val();Cut.validate(snapshot,account);
  const onlineState=(await get(ref(database,'games/factor/onlineRatedV2/privateState'))).val()||{},weeks=(await get(ref(database,Store.ROOT+'/weekly'))).val()||{};
- const weeklyStates=Object.values(weeks).map(v=>v.state).filter(Boolean),target=ref(database,`games/factor/titleNextV1/awards/${account}`);
+ const weeklyStates=Object.values(weeks).map(v=>v.state).filter(w=>w?.sourceHash===require('./weekly.cjs').sourceHash),target=ref(database,`games/factor/titleNextV1/awards/${account}`);
  return Store.atomic(target,existing=>evaluate({account,snapshot,onlineState,weeklyStates,existing:existing||{},now}).awards);
 }
 module.exports={evaluate,reconcile};
