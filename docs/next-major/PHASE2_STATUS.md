@@ -23,6 +23,15 @@
 - ホストのstate変更：参加者の正本は管理側のpin（`c-writer.open`）のみ。ルールはpin後は`state.players`ではなくpinの`ids`で本人性を判定。`players/tm/handi/diff/startAt/mode`が同一gidで変化したらverifyが`drift`を出し`consistent:false`、`seal`は`STATE_DRIFT`で拒否（試合は未確定）。gid／phase変更は既存ルールで旧ログへの書込が閉じる。
 - 残る限界：pin前（`open`前）にホストがplayersを書き換えた場合、その値がpinされ検出できない。pinは試合開始直後にworkerが行う必要がある。回答の正誤・ダメージは未検証のまま。
 
+## C段階(b) 1人分の決定的再生・J3（作業ブランチ `claude/c-replay-solo`）
+
+- `server/next-authority/c-replay.cjs`：封印済み操作ログから1人分を、元の`makeBank(seed)`・タイルID・`polyEqual/multiply`で再生。確定するのは出題順（level,k）、各回答の正誤（IDで判定）、正解数、コンボ、おじゃま混入回答（=誤答）のみ。**スコア・判定・攻撃量・回復量・必殺ゲージ・HP・クリア・KOは確定しない（J3）**。必殺技は申告数のみ。
+- 盤面番号qの飛びは時間切れと確定せず`unattributed`（`timeoutPlausible`は注釈のみ）。飛びがあれば以後の件数は下限値（`countsExact:false`）。ログ末尾の未回答盤面は観測できず推測しない。
+- 対象外（理由付き未確定）：CPU入り、seed無し、開始後にpin、`clientVersion`不一致、エンジン抽出元の変更。pinに`seed/clientVersion/pinnedAt/engineHash/cpu`を追加。操作ログのルールはpinが無ければ書込不可。`clientVersion`は現状worker側の申告値（クライアントの実バージョン検証は将来のクライアント書込追加で行う）。
+- C writerの重複判定を`applied[受信者][eventId]`の入れ子に変更（`to_id`連結の曖昧さを解消）。
+- 検証：実`createBEngine`を同一seed・入力で駆動した360試合・11,773回答（おじゃま788）で、出題順・正誤・正解数・コンボ・最高コンボが一致。Emulator SDKで封印→再生→1回だけ保存→ダイジェスト束縛、封印後改変の拒否を確認。
+- 範囲外：Cクライアントへの書込、4人の相互作用、着弾/相殺/シールド/回復の確定、スコア・称号への反映。
+
 ## Claudeへの最終引き継ぎ（2026-10-16）
 
 - 調査時HEAD：`78d39c27e6688aa6d08a6c8d65c41ba23b489833`、remote一致、作業ツリークリーン。最新実装`04ce824`と下記CI成功を保持し、今回は文書だけを保存する。未保存の実装変更はない。
