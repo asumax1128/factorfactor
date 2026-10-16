@@ -2,6 +2,8 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   cp = require("node:child_process");
 const { chromium, context, sleep } = require("./browser-harness.cjs");
+const MENU_FONT = 'BBody, "Yu Gothic", sans-serif';
+const RATED_FONT = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif';
 const html = fs.readFileSync("index.html", "utf8");
 const before = cp.execFileSync("git", ["show", "42032d2:index.html"], {
   encoding: "utf8",
@@ -87,10 +89,12 @@ const ui =
           w: e.clientWidth,
           scroll: e.scrollWidth,
         }));
-        assert.equal(v.family, oldButton.family);
+        assert.equal(v.family, RATED_FONT, "rated battle screen keeps its own Zen Maru Gothic stack");
         assert.equal(v.weight, "900");
         assert(v.scroll <= v.w + 1, "UI text fits its button");
       }
+      assert.equal(oldButton.family, MENU_FONT, "new-home lobby menu button uses the approved BBody token");
+      assert.notEqual(oldButton.family, RATED_FONT, "menu and rated screens intentionally differ");
       assert.equal(oldButton.weight, "900");
       assert(
         await p.evaluate(
