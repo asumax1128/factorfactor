@@ -41,6 +41,8 @@
 <link rel="stylesheet" href="online-rated.css" />
 <link rel="stylesheet" href="ui-next/online-menu.css" />
 <link rel="stylesheet" href="ui-next/play-frame.css" />
+<link rel="preload" href="fonts/katex/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="fonts/katex/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
 <style>
   /* 数式の表示：数字・記号は KaTeX_Main、文字 x は KaTeX_Math の斜体（教科書と同じ組み方） */
@@ -677,26 +679,26 @@ const MATH_SUP = { '²': '2', '³': '3', '⁴': '4' };
 function MathText({ text }) {
   const s = String(text == null ? '' : text);
   const out = [];
-  let i = 0, key = 0;
+  let i = 0, key = 0, mw = 0; // mw: rough width in em (KaTeX metrics). Presentation hint only: read by ui-next/play-frame.css to fit long formulas.
   while (i < s.length) {
     const ch = s[i];
     if (ch === ' ') { i++; continue; }
     if (/[0-9]/.test(ch)) {
       let j = i; while (j < s.length && /[0-9]/.test(s[j])) j++;
-      out.push(<span key={key++}>{s.slice(i, j)}</span>); i = j; continue;
+      out.push(<span key={key++}>{s.slice(i, j)}</span>); mw += 0.5 * (j - i); i = j; continue;
     }
-    if (ch === 'x') { out.push(<span key={key++} className="fxm-v">x</span>); i++; continue; }
-    if (MATH_SUP[ch]) { out.push(<sup key={key++} className="fxm-sup">{MATH_SUP[ch]}</sup>); i++; continue; }
+    if (ch === 'x') { out.push(<span key={key++} className="fxm-v">x</span>); mw += 0.58; i++; continue; }
+    if (MATH_SUP[ch]) { out.push(<sup key={key++} className="fxm-sup">{MATH_SUP[ch]}</sup>); mw += 0.37; i++; continue; }
     if (ch === '+' || ch === '-' || ch === '±' || ch === '∓') {
       const before = s.slice(0, i).trim();
       const binary = before.length > 0 && !before.endsWith('(') && !before.endsWith('→');
       const sym = ch === '-' ? '−' : ch;
-      out.push(<span key={key++} className={binary ? 'fxm-op' : undefined}>{sym}</span>); i++; continue;
+      out.push(<span key={key++} className={binary ? 'fxm-op' : undefined}>{sym}</span>); mw += binary ? 1.22 : 0.78; i++; continue;
     }
-    if (ch === '→') { out.push(<span key={key++} className="fxm-arrow">→</span>); i++; continue; }
-    out.push(<span key={key++}>{ch}</span>); i++;
+    if (ch === '→') { out.push(<span key={key++} className="fxm-arrow">→</span>); mw += 1.4; i++; continue; }
+    out.push(<span key={key++}>{ch}</span>); mw += (ch === '(' || ch === ')') ? 0.39 : 0.55; i++;
   }
-  return <span className="fxm">{out}</span>;
+  return <span className="fxm" style={{ '--mw': (mw * 1.03).toFixed(2) }}>{out}</span>;
 }
 function formatPoly(poly) {
   const terms = [];

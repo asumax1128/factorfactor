@@ -17,6 +17,20 @@ const old = cp.execFileSync("git", ["show", "42011a6:index.html"], {
 });
 const importer = (s) => s.match(/function FontImport\(\) \{[\s\S]*?\n\}/)[0];
 assert.equal(importer(html), importer(old), "Reuse exact old web font loader");
+// Ver.6.0 (owner-approved formula typography): the ONLY allowed change to MathText is an inert width hint
+// (`mw` accumulator + `--mw` style custom property) read by ui-next/play-frame.css. Strip exactly that and compare the rest.
+const stripMwHint = (src) =>
+  src
+    .replace(/let i = 0, key = 0, mw = 0; \/\/ mw:[^\n]*/, "let i = 0, key = 0;")
+    .replace(/ mw \+= [^;]+;/g, "")
+    .replace(/ style=\{\{ '--mw': \(mw \* 1\.03\)\.toFixed\(2\) \}\}/, "");
+{
+  const base = "function MathText({ text }) {\n  let i = 0, key = 0;\n  out.push(<span key={key++}>{ch}</span>); i++;\n  return <span className=\"fxm\">{out}</span>;\n}";
+  const hinted = "function MathText({ text }) {\n  let i = 0, key = 0, mw = 0; // mw: hint\n  out.push(<span key={key++}>{ch}</span>); mw += 0.55; i++;\n  return <span className=\"fxm\" style={{ '--mw': (mw * 1.03).toFixed(2) }}>{out}</span>;\n}";
+  assert.equal(stripMwHint(hinted), base, "the width hint is the only thing normalised");
+  assert.notEqual(stripMwHint(hinted.replace('className=\"fxm\"', 'className=\"fxn\"')), base, "any other change to MathText stays visible");
+  assert.notEqual(stripMwHint(hinted.replace("i++;\n  return", "i += 2;\n  return")), base, "logic changes stay visible");
+}
 for (const re of [
   /function MathText\([\s\S]*?\n\}/,
   /  \.fxm \{[^}]+\}/,
@@ -24,7 +38,7 @@ for (const re of [
   /  \.fxm sup \{[^}]+\}/,
 ]) {
   assert.equal(
-    html.match(re)?.[0],
+    (html.match(re)?.[0] === undefined ? undefined : stripMwHint(html.match(re)[0])),
     before.match(re)?.[0],
     "Math renderer/style unchanged",
   );

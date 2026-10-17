@@ -82,3 +82,25 @@
  .pf-surface .pf-youbar .pf-name{padding:0 8px}
  .pf-surface .or-b2-status{padding:2px 6px;font-size:10px;line-height:1.2}
 }
+/* ---- math typography (textbook look): same-origin KaTeX faces + KaTeX spacing, CSS only ----
+   The shipped fonts (fonts/katex, KaTeX 0.16.9, MIT) are declared under their own names so the formulas look the same when the
+   CDN stylesheet is unreachable. MathText markup, values and the tile/question DOM are unchanged. */
+@font-face{font-family:FxMathMain;src:url("../fonts/katex/KaTeX_Main-Regular.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:FxMathItalic;src:url("../fonts/katex/KaTeX_Math-Italic.woff2") format("woff2");font-style:italic;font-weight:400;font-display:swap}
+.pf-surface .fxm{font-family:FxMathMain,"KaTeX_Main","Times New Roman","Cambria Math",serif;font-size:1.1em;line-height:1.25}
+.pf-surface .fxm-v{font-family:FxMathItalic,"KaTeX_Math","Times New Roman","Cambria Math",serif;font-style:italic;padding-right:.02em}
+.pf-surface .fxm-op{margin:0 .2222em}
+.pf-surface .fxm-sup{font-size:.7em;vertical-align:.52em;margin-left:.02em}
+/* fit: the glyphs are wider than the old fallback, so a formula never grows past its card.
+   --mw (em width estimate set by MathText) + container width units shrink only the long ones. */
+@supports (width:1cqw){
+ .pf-surface .v7-poly,.pf-surface [data-btile]{container-type:inline-size}
+ .pf-surface .v7-poly .fxm{font-size:min(1.12em,calc(92cqw / var(--mw,8)))}
+ .pf-surface [data-btile] .fxm{font-size:min(1.1em,calc(84cqw / var(--mw,6)))}
+ .pf-surface [data-btile][data-f*='"quadratic"'] .fxm{font-size:min(1em,calc(84cqw / var(--mw,6)))}
+}
+@supports not (width:1cqw){
+ .pf-surface .v7-poly .fxm{font-size:.9em}
+ .pf-surface [data-btile] .fxm{font-size:.95em}
+ .pf-surface [data-btile][data-f*='"quadratic"'] .fxm{font-size:.85em}
+}

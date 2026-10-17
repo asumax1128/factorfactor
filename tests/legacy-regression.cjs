@@ -217,6 +217,7 @@ for (const [name, value] of Object.entries(before)) {
       "GameA", // Shared timing/merge presentation only; math engine/source unchanged.
       "GameB", // Shared timing/merge presentation only; rules verified by full E2E.
       "BattleBoard", // Opt-in tap pair and touch-cancel; original drag path retained and all modes E2E tested.
+      "MathText", // Ver.6.0: adds only an inert --mw width hint (style custom property) read by ui-next/play-frame.css; text and class output unchanged.
       "BattleGame", // Shared presentation-only BattleSurface; existing math, CPU and synchronization unchanged and E2E tested.
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
       "Wardrobe", // Master tile alone reads immutable EASY/NORMAL history; other cosmetic rules unchanged.
