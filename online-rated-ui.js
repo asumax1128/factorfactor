@@ -62,7 +62,7 @@
         feedback,
         extraControls
       }) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
         const tiles = useMemo(
           () => g.tiles,
           [g.question, JSON.stringify(g.tiles)]
@@ -116,17 +116,18 @@
           }
         }, [frozen]);
         const N = H2.DIFFICULTY_CONFIG[m.difficulty].clearCount;
-        return /* @__PURE__ */ React.createElement(H2.BattleSurface, null, /* @__PURE__ */ React.createElement(
+        const selfName = ((_e = (_d = m.members) == null ? void 0 : _d.find((x) => x.uid === m.selfUid)) == null ? void 0 : _e.name) || "\u3042\u306A\u305F";
+        return /* @__PURE__ */ React.createElement(H2.BattleSurface, { frame: true }, /* @__PURE__ */ React.createElement(
           "div",
           {
             className: "v7-play or-battle",
             "data-online-mode": m.mode,
             "data-online-ready": !disabled && !counting && !frozen && !ready && !g.result
           },
-          /* @__PURE__ */ React.createElement("div", { className: "v7-zone" }, /* @__PURE__ */ React.createElement("div", { className: "or-game-header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "or-game-controls" }, /* @__PURE__ */ React.createElement(
+          /* @__PURE__ */ React.createElement("div", { className: "v7-zone" }, /* @__PURE__ */ React.createElement("div", { className: "or-game-header pf-bar" }, /* @__PURE__ */ React.createElement("div", { className: "or-game-controls pf-ctl" }, /* @__PURE__ */ React.createElement(
             "button",
             {
-              className: "v7-bar-btn",
+              className: "v7-bar-btn pf-exit",
               onClick: onLeave,
               disabled
             },
@@ -134,12 +135,14 @@
           ), /* @__PURE__ */ React.createElement(
             "button",
             {
-              className: "v7-bar-btn",
+              className: "v7-bar-btn pf-mute",
               "aria-label": muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3",
               onClick: () => setMuted(!muted)
             },
             muted ? "\u{1F507}" : "\u{1F50A}"
-          )), /* @__PURE__ */ React.createElement("span", { className: "v7-chip" }, m.mode === "A" ? "\u65E9\u3044\u8005\u52DD\u3061" : "\u30EC\u30FC\u30B9\uFF0B\u653B\u6483", " \u30FB", " ", label(m.difficulty))), /* @__PURE__ */ React.createElement("div", { className: "v7-wnd or-opponent", "data-online-opponent": "1" }, /* @__PURE__ */ React.createElement("b", null, ((_d = m.opponent) == null ? void 0 : _d.name) || ((_f = (_e = m.members) == null ? void 0 : _e.find((x) => x.uid !== m.selfUid)) == null ? void 0 : _f.name) || "\u76F8\u624B"), /* @__PURE__ */ React.createElement("small", null, typeof opponent === "number" ? opponent + "\u70B9" : `HP ${(_h = (_g = opponent == null ? void 0 : opponent.hp) == null ? void 0 : _g.toFixed(1)) != null ? _h : 100}% \u30FB ${(opponent == null ? void 0 : opponent.score) || 0}\u70B9`))), /* @__PURE__ */ React.createElement("div", { className: "or-stat-grid" }, H2.v7Stat(
+          )), /* @__PURE__ */ React.createElement("span", { className: "v7-chip pf-chip" }, m.mode === "A" ? "\u65E9\u3044\u8005\u52DD\u3061" : "\u30EC\u30FC\u30B9\uFF0B\u653B\u6483", " \u30FB", " ", label(m.difficulty)), /* @__PURE__ */ React.createElement("p", { className: "or-connection pf-timer", role: "status" }, /* @__PURE__ */ React.createElement("span", { className: "pf-phase" }, counting ? "\u307E\u3082\u306A\u304F\u958B\u59CB" : ready ? "\u6B21\u306E\u554F\u984C\u3092\u6E96\u5099\u4E2D" : "\u5BFE\u6226\u4E2D"), " ", "\u30FB \u6B8B\u308A", " ", /* @__PURE__ */ React.createElement("span", { className: "pf-time" }, Math.max(0, (g.rules === "b2" ? g.endAt - time : g.timeoutMs - (time - g.startAt)) / 1e3).toFixed(
+            1
+          )), "\u79D2")), /* @__PURE__ */ React.createElement("div", { className: "pf-versus" }, /* @__PURE__ */ React.createElement("div", { className: "pf-self" }, /* @__PURE__ */ React.createElement("b", { className: "pf-name" }, selfName), m.mode === "B" ? /* @__PURE__ */ React.createElement("div", { "data-online-self": "1", style: { position: "relative" } }, /* @__PURE__ */ React.createElement(H2.HpBar, { v7: true, hp: (_f = self == null ? void 0 : self.hp) != null ? _f : 100, height: 22 }), (self == null ? void 0 : self.shield) && /* @__PURE__ */ React.createElement("span", { className: "or-shield-status" }, "\u{1F6E1} \u9632\u5FA1\u4E2D")) : /* @__PURE__ */ React.createElement("small", null, score, "\u70B9")), /* @__PURE__ */ React.createElement("div", { className: "v7-wnd or-opponent", "data-online-opponent": "1" }, /* @__PURE__ */ React.createElement("b", null, ((_g = m.opponent) == null ? void 0 : _g.name) || ((_i = (_h = m.members) == null ? void 0 : _h.find((x) => x.uid !== m.selfUid)) == null ? void 0 : _i.name) || "\u76F8\u624B"), /* @__PURE__ */ React.createElement("small", null, typeof opponent === "number" ? opponent + "\u70B9" : `HP ${(_k = (_j = opponent == null ? void 0 : opponent.hp) == null ? void 0 : _j.toFixed(1)) != null ? _k : 100}% \u30FB ${(opponent == null ? void 0 : opponent.score) || 0}\u70B9`), m.mode === "B" && /* @__PURE__ */ React.createElement(H2.HpBar, { v7: true, hp: (_l = opponent == null ? void 0 : opponent.hp) != null ? _l : 100, height: 8, label: false }))), /* @__PURE__ */ React.createElement("div", { className: "or-stat-grid" }, H2.v7Stat(
             m.mode === "A" ? "\u3042\u306A\u305F" : "SCORE",
             score,
             "#7FD8FF"
@@ -147,7 +150,7 @@
             m.mode === "A" ? "\u76F8\u624B" : "SOLVED",
             m.mode === "A" ? opponent || 0 : g.rules === "b2" ? `${(self == null ? void 0 : self.c) || 0}\u554F` : `${(self == null ? void 0 : self.c) || 0}/${N}`,
             "#FFB59C"
-          ), H2.v7Stat("COMBO", combo)), m.mode === "B" && /* @__PURE__ */ React.createElement("div", { "data-online-self": "1", style: { position: "relative" } }, /* @__PURE__ */ React.createElement(H2.HpBar, { v7: true, hp: (_i = self == null ? void 0 : self.hp) != null ? _i : 100, height: 22 }), (self == null ? void 0 : self.shield) && /* @__PURE__ */ React.createElement("span", { className: "or-shield-status" }, "\u{1F6E1} \u9632\u5FA1\u4E2D")), /* @__PURE__ */ React.createElement("div", { className: "or-progress", "aria-label": "\u5BFE\u6226\u306E\u9032\u884C" }, Array.from({ length: g.rules === "b2" ? 20 : N }, (_, i) => /* @__PURE__ */ React.createElement(
+          ), H2.v7Stat("COMBO", combo)), /* @__PURE__ */ React.createElement("div", { className: "or-progress", "aria-label": "\u5BFE\u6226\u306E\u9032\u884C" }, Array.from({ length: g.rules === "b2" ? 20 : N }, (_, i) => /* @__PURE__ */ React.createElement(
             "i",
             {
               key: i,
@@ -164,9 +167,7 @@
               onClick: () => onSpecial(kind)
             },
             info.label
-          ))), /* @__PURE__ */ React.createElement("p", { className: "or-connection", role: "status" }, counting ? "\u307E\u3082\u306A\u304F\u958B\u59CB" : ready ? "\u6B21\u306E\u554F\u984C\u3092\u6E96\u5099\u4E2D" : "\u5BFE\u6226\u4E2D", " ", "\u30FB \u6B8B\u308A", " ", Math.max(0, (g.rules === "b2" ? g.endAt - time : g.timeoutMs - (time - g.startAt)) / 1e3).toFixed(
-            1
-          ), "\u79D2"), extraControls),
+          ))), extraControls),
           /* @__PURE__ */ React.createElement("div", { className: "v7-main", inert: counting || frozen ? "" : void 0, "aria-hidden": counting || frozen || void 0 }, /* @__PURE__ */ React.createElement("div", { className: "or-feedback", "aria-live": "polite" }, /* @__PURE__ */ React.createElement(
             H2.TimingJudgment,
             {
@@ -194,7 +195,7 @@
               v7: true
             }
           )), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : m.daily ? "\u6700\u5F8C\u307E\u3067\u5B8C\u8D70\u3067\u30AF\u30EA\u30A2 \u30FB \u8AA4\u7B54\u304C\u3042\u3063\u3066\u3082\u7D9A\u3051\u3089\u308C\u307E\u3059" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
-          g.rules === "b2" && /* @__PURE__ */ React.createElement("div", { className: "or-b2-status" }, "\u5FC5\u6BBA\u30B2\u30FC\u30B8 ", (self == null ? void 0 : self.gauge) || 0, "% \u30FB \u304A\u90AA\u9B54 ", ((_j = self == null ? void 0 : self.cur) == null ? void 0 : _j.oj) || 0, "\u679A \u30FB \u30AB\u30A6\u30F3\u30BF\u30FC ", (self == null ? void 0 : self.pending) ? Math.max(0, (self.counterUntil - time) / 1e3).toFixed(1) + "\u79D2" : "\u2015"),
+          g.rules === "b2" && /* @__PURE__ */ React.createElement("div", { className: "or-b2-status" }, "\u5FC5\u6BBA\u30B2\u30FC\u30B8 ", (self == null ? void 0 : self.gauge) || 0, "% \u30FB \u304A\u90AA\u9B54 ", ((_m = self == null ? void 0 : self.cur) == null ? void 0 : _m.oj) || 0, "\u679A \u30FB \u30AB\u30A6\u30F3\u30BF\u30FC ", (self == null ? void 0 : self.pending) ? Math.max(0, (self.counterUntil - time) / 1e3).toFixed(1) + "\u79D2" : "\u2015"),
           iceBreak && /* @__PURE__ */ React.createElement("div", { className: "or-ice-break", "aria-hidden": "true" }, [0, 1, 2, 3, 4, 5, 6, 7].map((i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { left: i % 4 * 25 + "%", top: Math.floor(i / 4) * 50 + "%", "--ice-x": (i % 2 ? 1 : -1) * 120 + "px" } }))),
           frozen && /* @__PURE__ */ React.createElement("div", { className: "or-freeze", "aria-label": "FREEZE\u4E2D" }, /* @__PURE__ */ React.createElement("strong", null, "FREEZE!"), /* @__PURE__ */ React.createElement("b", null, Math.ceil((g.freezeUntil - time) / 1e3))),
           counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, (m.gameStartAt || g.startAt) - time > 3e3 ? "READY" : Math.max(

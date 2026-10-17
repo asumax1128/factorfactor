@@ -131,6 +131,28 @@ function trimDisplayWrapArgs(root, strict = true) {
   for (const bad of [", false, true", ", true, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final)))", ", false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final) || rating > 0))", ok + ", scoreBoost()", ", false, applyRating()", ", false"])
     assert.notEqual(len(bad), 1, 'must not be hidden from the audit: ' + bad);
 }
+// Ver.6.0 play frame: ONLY presentation hooks named pf-* may be added to class names (CSS scope ui-next/play-frame.css).
+// Any other class or text change, and every non-class change, is still audited. (The AST is post-JSX: className is an object property.)
+const PF_TOKEN = /(^|\s)pf-[\w-]+(?=\s|$)/g;
+const tidy = (v) => v.replace(PF_TOKEN, '$1').replace(/\s+/g, ' ').trim();
+function stripPfClasses(root) {
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'ObjectProperty' && (node.key?.name === 'className' || node.key?.value === 'className')) {
+      if (node.value?.type === 'StringLiteral') { node.value.value = tidy(node.value.value); delete node.value.extra; }
+      if (node.value?.type === 'TemplateLiteral') for (const q of node.value.quasis) { q.value.raw = q.value.raw.replace(PF_TOKEN, '$1').replace(/ {2,}/g, ' '); q.value.cooked = q.value.raw; }
+    }
+    for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(walk); else walk(v); }
+  };
+  walk(root); return root;
+}
+{
+  const el = (c) => stripPos(Babel.transform(`<div className="${c}" />;`, { presets: ['react'], ast: true, code: false }).ast.program.body.find((x) => x.type === 'ExpressionStatement').expression);
+  const run = (c) => JSON.stringify(stripPfClasses({ x: el(c) }));
+  assert.equal(run('a pf-x b'), run('a b'), 'pf-* hooks are normalised');
+  assert.notEqual(run('a pb b'), run('a b'), 'other class changes stay visible');
+  assert.notEqual(run('a pf b'), run('a b'), 'only pf-<name> tokens are normalised');
+}
 const withoutFrame = (s) => {
   const n = JSON.parse(s);
   // Only the new B2 final-result adapter is removed for this comparison.
@@ -160,6 +182,7 @@ const withoutFrame = (s) => {
   //   wrap(<BattleResult .../>, false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final))))
   // Any other extra argument, a different flag expression or a different second argument is NOT normalised and fails the audit.
   trimDisplayWrapArgs(n);
+  stripPfClasses(n);
   for (const statement of n.body.body) {
     for (const d of statement.declarations || [])
       if (d.id?.name === "wrap")

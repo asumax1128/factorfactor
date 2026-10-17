@@ -113,36 +113,66 @@
       const [iceBreak,setIceBreak]=useState(false), previousFreeze=useRef(false);
       useEffect(()=>{const was=previousFreeze.current;previousFreeze.current=frozen;if(was&&!frozen){setIceBreak(true);const t=setTimeout(()=>setIceBreak(false),450);return()=>clearTimeout(t)}},[frozen]);
       const N = H.DIFFICULTY_CONFIG[m.difficulty].clearCount;
+      const selfName = m.members?.find((x) => x.uid === m.selfUid)?.name || "あなた";
       return (
-        <H.BattleSurface>
+        <H.BattleSurface frame>
           <div
             className="v7-play or-battle"
             data-online-mode={m.mode}
             data-online-ready={!disabled && !counting && !frozen && !ready && !g.result}
           >
             <div className="v7-zone">
-              <div className="or-game-header">
-                <div>
-                  <div className="or-game-controls">
-                    <button
-                      className="v7-bar-btn"
-                      onClick={onLeave}
-                      disabled={disabled}
-                    >
-                      ✕ 退出
-                    </button>
-                    <button
-                      className="v7-bar-btn"
-                      aria-label={muted ? "音を出す" : "消音"}
-                      onClick={() => setMuted(!muted)}
-                    >
-                      {muted ? "🔇" : "🔊"}
-                    </button>
-                  </div>
-                  <span className="v7-chip">
-                    {m.mode === "A" ? "早い者勝ち" : "レース＋攻撃"} ・{" "}
-                    {label(m.difficulty)}
+              <div className="or-game-header pf-bar">
+                <div className="or-game-controls pf-ctl">
+                  <button
+                    className="v7-bar-btn pf-exit"
+                    onClick={onLeave}
+                    disabled={disabled}
+                  >
+                    ✕ 退出
+                  </button>
+                  <button
+                    className="v7-bar-btn pf-mute"
+                    aria-label={muted ? "音を出す" : "消音"}
+                    onClick={() => setMuted(!muted)}
+                  >
+                    {muted ? "🔇" : "🔊"}
+                  </button>
+                </div>
+                <span className="v7-chip pf-chip">
+                  {m.mode === "A" ? "早い者勝ち" : "レース＋攻撃"} ・{" "}
+                  {label(m.difficulty)}
+                </span>
+                <p className="or-connection pf-timer" role="status">
+                  <span className="pf-phase">
+                    {counting
+                      ? "まもなく開始"
+                      : ready
+                        ? "次の問題を準備中"
+                        : "対戦中"}
+                  </span>{" "}
+                  ・ 残り{" "}
+                  <span className="pf-time">
+                    {Math.max(0, ((g.rules === "b2" ? g.endAt-time : g.timeoutMs - (time - g.startAt))) / 1000).toFixed(
+                      1,
+                    )}
                   </span>
+                  秒
+                </p>
+              </div>
+              <div className="pf-versus">
+                <div className="pf-self">
+                  <b className="pf-name">{selfName}</b>
+                  {m.mode === "B" ? (
+                    <div data-online-self="1" style={{ position: "relative" }}>
+                      <H.HpBar v7 hp={self?.hp ?? 100} height={22} />
+                      {self?.shield && (
+                        <span className="or-shield-status">🛡 防御中</span>
+                      )}
+                    </div>
+                  ) : (
+                    <small>{score}点</small>
+                  )}
                 </div>
                 <div className="v7-wnd or-opponent" data-online-opponent="1">
                   <b>
@@ -155,6 +185,9 @@
                       ? opponent + "点"
                       : `HP ${opponent?.hp?.toFixed(1) ?? 100}% ・ ${opponent?.score || 0}点`}
                   </small>
+                  {m.mode === "B" && (
+                    <H.HpBar v7 hp={opponent?.hp ?? 100} height={8} label={false} />
+                  )}
                 </div>
               </div>
               <div className="or-stat-grid">
@@ -170,14 +203,6 @@
                 )}
                 {H.v7Stat("COMBO", combo)}
               </div>
-              {m.mode === "B" && (
-                <div data-online-self="1" style={{ position: "relative" }}>
-                  <H.HpBar v7 hp={self?.hp ?? 100} height={22} />
-                  {self?.shield && (
-                    <span className="or-shield-status">🛡 防御中</span>
-                  )}
-                </div>
-              )}
               <div className="or-progress" aria-label="対戦の進行">
                 {Array.from({ length: g.rules==='b2'?20:N }, (_, i) => (
                   <i
@@ -213,18 +238,6 @@
                   ))}
                 </div>
               )}
-              <p className="or-connection" role="status">
-                {counting
-                  ? "まもなく開始"
-                  : ready
-                    ? "次の問題を準備中"
-                    : "対戦中"}{" "}
-                ・ 残り{" "}
-                {Math.max(0, ((g.rules === "b2" ? g.endAt-time : g.timeoutMs - (time - g.startAt))) / 1000).toFixed(
-                  1,
-                )}
-                秒
-              </p>
               {extraControls}
             </div>
             <div className="v7-main" inert={counting || frozen ? "" : undefined} aria-hidden={counting || frozen || undefined}>
