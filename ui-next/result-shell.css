@@ -1,0 +1,79 @@
+/* Ver.6.0 ResultShell (loaded together with results.css). Tokens mirror .nbr so details/review/actions outside .nbr look identical. */
+.rs-scope,.nbr{--bg:#101720;--panel:#192430;--panel2:#192b38;--text:#e8f0f5;--muted:#9daebd;--accent:#72dfce;--line:#324354;--gold:#f6bd62;--heading:BHeading,'Yu Gothic',sans-serif;--body:BBody,'Yu Gothic',sans-serif;--number:BNumber,sans-serif}
+.rs-scope{color:var(--text);font-family:var(--body);text-align:left;line-height:1.6;min-width:0}
+.rs-scope *{box-sizing:border-box}
+.rs-details{margin:0 0 14px;padding:clamp(12px,3vw,20px);border:1px solid var(--line);border-radius:12px;background:linear-gradient(140deg,var(--panel2),#172330);color:var(--text)}
+.rs-details h3{font:900 18px/1.5 var(--heading);margin:0 0 10px}
+.rs-details p,.rs-details small{color:var(--muted)}
+.rs-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.rs-chip{flex:1 1 110px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#101a23}
+.rs-chip b{display:block;font:900 14px var(--heading)}.rs-chip div{font:700 20px var(--number)}.rs-chip small{display:block}
+.rs-qlist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rs-q{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#101a23;font-size:13px}
+.rs-q[data-reversal=true]{border-color:var(--gold);background:#2a2412}
+.rs-q b{font-weight:900}.rs-q div{color:var(--muted)}
+.rs-chart{width:100%;display:block;max-width:100%;height:auto}
+.rs-chart .grid{stroke:#344c60}.rs-chart text{fill:#9daebd}
+/* review card */
+.rs-review{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden}
+.rs-review-toggle{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:0;background:transparent;color:var(--text);font:900 15px var(--heading);text-align:left;cursor:pointer}
+.rs-review-only{display:flex;align-items:center;gap:8px;padding:2px 14px 8px;font-size:12px;color:var(--muted)}
+.rs-review-only input{width:20px;height:20px;accent-color:var(--accent)}
+.rs-review-list{padding:0 14px 12px}
+.rs-review-row{padding:8px 0;border-top:1px solid var(--line)}
+.rs-review-meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted)}
+.rs-review-meta [data-good=true]{color:var(--accent)}.rs-review-meta [data-good=false]{color:#ff9a86}
+.rs-review-body{font:900 16px/1.9 var(--heading);overflow-wrap:anywhere}
+.rs-review-body .rs-ans{color:var(--accent)}
+/* actions: the only fixed-position element, inside the single scroller */
+.rs-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:10px;padding:12px 0 calc(10px + env(safe-area-inset-bottom));margin-top:6px;background:linear-gradient(to bottom,transparent,var(--bg) 28%)}
+.rs-actions[data-busy]{pointer-events:none;opacity:.6}
+.rs-actions .rs-note{margin:0;text-align:center;font-size:11px;color:var(--muted)}
+.rs-ready{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.rs-ready span{padding:2px 10px;border-radius:99px;font-size:11px;font-weight:900;background:#0b141e;color:var(--muted)}
+.rs-ready span[data-ready=true]{background:#1f5f54;color:#fff}
+.rs-btn{min-height:48px;padding:10px 18px;border-radius:8px;border:1px solid var(--line);font:900 16px/1.3 var(--heading);cursor:pointer;width:100%;color:var(--text);background:var(--panel)}
+.rs-btn:disabled{opacity:.5;cursor:not-allowed}
+.rs-btn.rs-primary{background:linear-gradient(#72dfce,#52c2b0);color:#07201c;border-color:#a1efe2}
+.rs-btn.rs-gold{background:linear-gradient(#f6bd62,#e0a343);color:#2b1d03;border-color:#ffd991}
+.rs-btn.rs-quiet{min-height:44px;font-size:14px;background:transparent;color:var(--muted)}
+.rs-btn:focus-visible,.rs-review-toggle:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* title reveal */
+.rs-title{margin:0 0 14px;padding:14px;border:1px solid var(--gold);border-radius:12px;background:linear-gradient(140deg,#35290f,#241d0e);text-align:center}
+.rs-title h3{font:900 15px var(--heading);color:var(--gold);margin:0 0 10px}
+.rs-title-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.rs-title-card{min-width:84px;max-width:150px;padding:10px 12px;border-radius:10px;background:#101720;border:1px solid #6b5420;display:flex;flex-direction:column;gap:2px;align-items:center}
+.rs-title-card[data-revealed=true]{animation:rs-flip 600ms ease both}
+.rs-title-icon{font-size:30px;line-height:1}
+.rs-title-card b{font:900 13px var(--heading);color:var(--text)}.rs-title-card small{font-size:10px;color:var(--muted)}
+.rs-title-back{width:80px;height:88px;justify-content:center;font:900 30px var(--heading);color:#fff;background:linear-gradient(135deg,#7b61ff,#ff2e63);border:0}
+@keyframes rs-flip{0%{transform:perspective(600px) rotateY(180deg) scale(.7)}60%{transform:perspective(600px) rotateY(0) scale(1.08)}100%{transform:none}}
+@media(prefers-reduced-motion:reduce){.rs-title-card[data-revealed=true]{animation:none}}
+@media(min-width:700px){.rs-actions{flex-direction:row;flex-wrap:wrap;justify-content:center}.rs-actions .rs-btn{width:auto;min-width:200px}.rs-actions .rs-note,.rs-actions .rs-ready{flex-basis:100%}}
+@media(max-height:450px){.rs-actions{flex-direction:row;flex-wrap:wrap;padding:6px 0}.rs-actions .rs-btn{width:auto;flex:1 1 150px;min-height:44px}}
+/* solo ranking submit (name entry / send / retry / skip) */
+.rs-net{margin:0 0 14px;padding:14px;border:1px solid #456267;border-left-width:4px;border-radius:10px;background:var(--panel2,#192b38);color:var(--text,#e8f0f5)}
+.rs-net[data-net=pending]{border-color:var(--accent,#72dfce)}.rs-net[data-net=sending]{border-color:#83c8ff}.rs-net[data-net=sent]{border-color:var(--accent,#72dfce)}.rs-net[data-net=error]{border-color:#ff8a75}
+.rs-net-msg{margin:0 0 10px;text-align:center;font-size:13px;font-weight:700;color:var(--text,#e8f0f5)}
+.rs-net-ok{color:var(--accent,#72dfce)}
+.rs-net-row{display:flex;gap:8px;align-items:stretch}
+.rs-net-row .rs-btn{width:auto;min-width:96px;flex:0 0 auto}
+.rs-input{flex:1 1 auto;min-width:0;min-height:48px;padding:8px 12px;border-radius:8px;border:1px solid var(--line,#324354);background:#0b141e;color:var(--text,#e8f0f5);font:700 16px var(--body,sans-serif)}
+.rs-input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.rs-net .rs-quiet{margin-top:8px;width:100%}
+/* random-match result keeps its legacy hooks (.or-result / data-result-kind) but uses the shared dark look */
+.or-app .or-result.rs-rated,.or-menu .or-result.rs-rated{background:transparent;color:var(--text,#e8f0f5);border:0;overflow:visible;padding:0;text-align:left}
+.or-result.rs-rated .or-victory-rays{border-radius:12px;opacity:.5}
+.or-result.rs-rated .rs-rate{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);margin:0 0 12px}
+.or-result.rs-rated .or-delta{font:700 28px/1.3 var(--number);color:var(--accent);margin:0 0 4px;display:block}
+.or-result.rs-rated .rs-rate p{margin:0 0 8px;font:700 18px var(--number);color:var(--text)}
+.or-result.rs-rated .or-exp{padding:10px 14px;border-radius:8px;background:#0b141e;border:1px solid var(--line);margin:8px 0 0;font-size:15px;color:var(--text)}
+.or-result.rs-rated .or-exp b{font:700 24px var(--number);color:var(--gold)}
+.or-result.rs-rated .rs-origin{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.or-result.rs-rated{overflow:visible;background:transparent;border:0;padding:0;text-align:left;color:var(--text,#e8f0f5)}
+.rs-page{min-height:100dvh;background:#101720;padding:max(12px,env(safe-area-inset-top)) 12px 12px;box-sizing:border-box}
+.rs-page .rs-scope{max-width:880px;margin:0 auto}
+.rs-status{margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:13px;font-weight:700}
+.rs-status-err{border-color:#ff8a75;color:#ffb59c}
+.or-result.rs-rated h3,.or-victory.rs-rated h3,.or-result.rs-rated .nbr h3{color:var(--text,#e8f0f5);text-shadow:none;animation:none;font-size:inherit;margin:0;position:static}
+.or-result.rs-rated .rs-title h3{color:var(--gold)}

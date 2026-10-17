@@ -204,7 +204,7 @@
           !counting && time < (m.gameStartAt || g.startAt) + 550 && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", style: { background: "transparent", pointerEvents: "none" }, "aria-label": "\u5BFE\u6226\u958B\u59CB" }, "GO!")
         ));
       }
-      function Result({ H: H2, m, state, acct, titles: titles2, badgesBefore, busy, onExit }) {
+      function ResultLegacy({ H: H2, m, state, acct, titles: titles2, badgesBefore, busy, onExit }) {
         var _a, _b, _c, _d;
         const won = m.outcome === "win", r = (_b = (_a = m.receipt) == null ? void 0 : _a.players) == null ? void 0 : _b[acct.key];
         const badges = Object.keys(state.badges || {}).filter(
@@ -238,6 +238,61 @@
           badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "or-new-title", "data-new-title": "1" }, "\u2728 \u65B0\u3057\u3044\u79F0\u53F7\uFF01", badges.map((k) => /* @__PURE__ */ React.createElement("p", { key: k }, titles2[k]))),
           /* @__PURE__ */ React.createElement("button", { disabled: busy, className: "or-primary", onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B")
         );
+      }
+      function Result(props) {
+        var _a, _b, _c, _d;
+        const { H: H2, m, state, acct, titles: titles2, badgesBefore, busy, onExit } = props;
+        const NR = root.NextResults;
+        if (!(NR && NR.ResultActions && NR.BattleSummary && NR.MinimalSummary && NR.TitleReveal)) return /* @__PURE__ */ React.createElement(ResultLegacy, { ...props });
+        const won = m.outcome === "win", r = (_b = (_a = m.receipt) == null ? void 0 : _a.players) == null ? void 0 : _b[acct.key];
+        const newTitles = Object.keys(state.badges || {}).filter((k) => !badgesBefore[k] && titles2[k]);
+        useEffect(() => {
+          if (won) H2.CombatFX.victory();
+          return () => H2.CombatFX.cancel();
+        }, [m.id]);
+        const names = useMemo(() => Object.fromEntries((m.members || []).map((u) => {
+          var _a2;
+          return [u.uid, u.uid === "_ghost" ? (_a2 = m.opponent) == null ? void 0 : _a2.name : u.name];
+        })), [m.id]);
+        const model = useMemo(() => {
+          if (!m.members || !m.selfUid || !(m.mode === "A" || m.rules === "b2")) return null;
+          try {
+            return NR.ResultModel.build({
+              kind: m.mode === "A" ? "A" : "B",
+              me: m.selfUid,
+              ids: m.members.map((u) => u.uid),
+              names,
+              outcome: { win: "w", draw: "d", lose: "l" }[m.outcome] || "l",
+              reasonText: "",
+              A: m.mode === "A" ? { report: m.aResult } : void 0,
+              B: m.mode !== "A" ? { game: m.game, trace: m.bResult } : void 0
+            });
+          } catch (e) {
+            return null;
+          }
+        }, [m.id, m.outcome]);
+        const note = m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`;
+        const reveal = /* @__PURE__ */ React.createElement(
+          NR.TitleReveal,
+          {
+            titles: newTitles.map((k) => {
+              var _a2, _b2;
+              return { id: k, icon: ((_b2 = (_a2 = H2.nickOf) == null ? void 0 : _a2.call(H2, k)) == null ? void 0 : _b2.icon) || "\u{1F3C5}", label: titles2[k] };
+            }),
+            revealKey: `${acct.key}:${m.id}`,
+            fx: { sound: () => {
+              var _a2;
+              return (_a2 = H2.fxSound) == null ? void 0 : _a2.call(H2, "badge");
+            }, confetti: () => {
+              var _a2, _b2;
+              return (_b2 = (_a2 = H2.FX) == null ? void 0 : _a2.confetti) == null ? void 0 : _b2.call(_a2, 30);
+            } }
+          }
+        );
+        const growth = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "rs-rate" }, /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", Math.round((_c = r == null ? void 0 : r.delta) != null ? _c : 0) > 0 ? "+" : "", formatRating((_d = r == null ? void 0 : r.delta) != null ? _d : 0)), /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)), m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0))), reveal);
+        const notes = /* @__PURE__ */ React.createElement("p", { className: "rs-origin" }, note);
+        const outcome = { win: "w", draw: "d", lose: "l" }[m.outcome] || "l";
+        return /* @__PURE__ */ React.createElement("section", { className: `or-result rs-rated ${won ? "or-victory" : "or-defeat"}`, "data-result-kind": m.outcome }, won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(NR.ResultShell, { kind: "R", outcome: m.outcome, busy }, model ? /* @__PURE__ */ React.createElement(NR.BattleSummary, { model, notes, growth }) : /* @__PURE__ */ React.createElement(NR.MinimalSummary, { outcome: m.outcome, methodLabel: m.mode === "A" ? "A\u65B9\u5F0F" : m.mode === "B" ? "B\u65B9\u5F0F" : "\u30E9\u30F3\u30C0\u30E0\u5BFE\u6226", notes, growth }), m.rules === "b2" && /* @__PURE__ */ React.createElement(NR.BDetails, { report: m.bResult, me: m.selfUid, names }), m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names }), /* @__PURE__ */ React.createElement(NR.ResultActions, { busy }, /* @__PURE__ */ React.createElement(NR.ResultButton, { tone: "primary", disabled: busy, onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))));
       }
       function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false }) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;

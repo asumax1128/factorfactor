@@ -219,7 +219,7 @@ const fs = require("fs");
       );
       assert.match(
         await p.locator("#result-audit").innerText(),
-        outcome === "win" ? /勝利！.*VICTORY！/s : /敗北/,
+        outcome === "win" ? /WIN!/ : /LOSE/,
       );
     }
     assert.deepEqual(t.errors, []);

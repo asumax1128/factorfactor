@@ -87,7 +87,7 @@ function build(input){
  const get=id=>part.rows.find(r=>r.id===id);
  if(haveScore)tiles.push({id:'score',label:'得点',value:sc[me],unit:'点'});
  for(const[id,label]of kind==='A'?[['won','取った問題'],['combo','最大コンボ'],['perfect','Perfect']]:[['correct','正解数'],['combo','最大コンボ'],['perfect','Perfect']]){const r=get(id);if(r)tiles.push({id,label,value:r.values[me],unit:r.unit})}
- return{kind,methodLabel:kind==='A'?'A方式':'B方式',outcome:result,multi,place,word:result==='win'?'WIN!':result==='draw'?'DRAW':multi&&place?`${place}位`:'LOSE…',
+ return{kind,methodLabel:kind==='A'?'A方式':'B方式',outcome:result,multi,place,word:result==='win'?'WIN!':result==='draw'?'DRAW':multi&&place?`${place}位`:'LOSE',
   reasonText:input.reasonText||'',players,tiles,rows:part.rows,extras:part.extras,highlights:part.hl,
   hiddenRows:part.hidden,analysisAvailable:part.analysis};
 }
