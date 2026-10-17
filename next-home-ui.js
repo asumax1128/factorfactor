@@ -1256,6 +1256,29 @@
     }
   });
 
+  // src/title-equip-next.cjs
+  var require_title_equip_next = __commonJS({
+    "src/title-equip-next.cjs"(exports, module) {
+      "use strict";
+      var catalog2 = require_title_catalog_next();
+      var known = new Set(catalog2.titles.map((t) => t.id));
+      function route(id, { earned, legacyEquippable, ratedEarned }) {
+        if (!known.has(id) || !earned.has(id)) return null;
+        if (legacyEquippable.has(id)) return "nick";
+        if (ratedEarned.has(id)) return "rated";
+        return null;
+      }
+      function reason(id, { real, earned, routeOf }) {
+        if (!real) return "\u30B2\u30B9\u30C8\u306F\u79F0\u53F7\u3092\u88C5\u5099\u3067\u304D\u307E\u305B\u3093";
+        if (!earned.has(id)) return "\u672A\u53D6\u5F97\u306E\u305F\u3081\u88C5\u5099\u3067\u304D\u307E\u305B\u3093";
+        if (!routeOf) return "\u3053\u306E\u79F0\u53F7\u306F\u73FE\u5728\u306E\u88C5\u5099\u6A5F\u80FD\u306B\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u305B\u3093";
+        return "";
+      }
+      var SLOW_MS = 6e3;
+      module.exports = { route, reason, SLOW_MS };
+    }
+  });
+
   // src/next-navigation.cjs
   var require_next_navigation = __commonJS({
     "src/next-navigation.cjs"(exports, module) {
@@ -1381,7 +1404,13 @@
       done();
     } }, /* @__PURE__ */ React.createElement("div", { className: "next-title-particles", "aria-hidden": "true" }, Array.from({ length: 18 }, (_, i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { "--i": i } }))), /* @__PURE__ */ React.createElement("div", { className: "next-title-emblem", "aria-hidden": "true" }, "\xD7"), /* @__PURE__ */ React.createElement("div", { className: "next-title-slash", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "next-title-reveal" }, /* @__PURE__ */ React.createElement("p", null, "\u7279\u5225\u79F0\u53F7\u3092\u7372\u5F97"), /* @__PURE__ */ React.createElement("img", { src: "ui-next/logo-official.png", alt: "FACTOR\xD7FACTOR" }), /* @__PURE__ */ React.createElement("strong", null, "FACTOR\xD7FACTOR")), /* @__PURE__ */ React.createElement("div", { className: "next-title-controls" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSound((x) => !x), "aria-pressed": sound }, "\u97F3\u58F0", sound ? "ON" : "OFF"), /* @__PURE__ */ React.createElement("button", { autoFocus: true, onClick: done }, reducedMotion ? "\u9589\u3058\u308B" : "\u30B9\u30AD\u30C3\u30D7\u30FB\u9589\u3058\u308B")));
   }
-  function TitleInventory({ earnedIds = [], flags = [], equipped, accountKey, muted = true, presentationStore = null }) {
+  function TitleEquipControl({ equip, id, name, earned }) {
+    var _a;
+    const route = equip.routeOf(id), on = equip.isEquipped(id), st = ((_a = equip.status) == null ? void 0 : _a.id) === id ? equip.status : null, reason = equip.reasonOf(id, earned);
+    const busy = equip.busy;
+    return /* @__PURE__ */ React.createElement("div", { className: "next-title-equip", "data-title-equip": id, "data-equip-state": on ? "on" : route ? "off" : "disabled" }, on && /* @__PURE__ */ React.createElement("span", { className: "next-title-equipped", "data-equipped": true }, "\u2714 \u88C5\u5099\u4E2D"), route && !on && /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn", disabled: busy, onClick: () => equip.onEquip(id), "aria-label": name + "\u3092\u88C5\u5099\u3059\u308B" }, "\u88C5\u5099\u3059\u308B"), route === "nick" && on && /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn off", disabled: busy, onClick: () => equip.onUnequip(id), "aria-label": name + "\u3092\u306F\u305A\u3059" }, "\u306F\u305A\u3059"), !route && /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn", disabled: true, "aria-label": name + "\u3092\u88C5\u5099\u3059\u308B", "aria-describedby": "equip-why-" + id }, "\u88C5\u5099\u3059\u308B"), reason && /* @__PURE__ */ React.createElement("span", { className: "next-title-equip-why", id: "equip-why-" + id }, reason), st && /* @__PURE__ */ React.createElement("span", { className: "next-title-equip-status " + st.state, role: st.state === "failed" ? "alert" : "status", "data-equip-status": st.state }, st.state === "saving" ? st.slow ? "\u4FDD\u5B58\u4E2D\u2026\uFF08\u901A\u4FE1\u304C\u9045\u308C\u3066\u3044\u307E\u3059\u3002\u305D\u306E\u307E\u307E\u304A\u5F85\u3061\u304F\u3060\u3055\u3044\uFF09" : "\u4FDD\u5B58\u4E2D\u2026" : st.state === "saved" ? st.message : st.message));
+  }
+  function TitleInventory({ earnedIds = [], flags = [], equipped, accountKey, muted = true, presentationStore = null, equip = null }) {
     var _a;
     const state = compat.read({ legacyEarned: earnedIds, flags, equipped }), [filter, setFilter] = React.useState("all"), [scene, setScene] = React.useState(false);
     const [presentationError, setPresentationError] = React.useState("");
@@ -1420,7 +1449,7 @@
     };
     return /* @__PURE__ */ React.createElement("section", { className: "next-title-inventory", "data-title-inventory": true }, /* @__PURE__ */ React.createElement("h3", null, "\u79F0\u53F7\u4E00\u89A7"), /* @__PURE__ */ React.createElement("p", null, "\u901A\u5E38\u79F0\u53F7 ", state.normal.length, " / 100"), /* @__PURE__ */ React.createElement("div", { role: "group", "aria-label": "\u79F0\u53F7\u306E\u7D5E\u308A\u8FBC\u307F" }, [["all", "\u3059\u3079\u3066"], ["earned", "\u53D6\u5F97\u6E08\u307F"], ["locked", "\u672A\u53D6\u5F97"]].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, "aria-pressed": filter === id, onClick: () => setFilter(id) }, label))), /* @__PURE__ */ React.createElement("ol", null, catalog.titles.filter((t) => filter === "all" || filter === "earned" === !!state.earned[t.id]).map((t) => {
       const e = state.earned[t.id];
-      return /* @__PURE__ */ React.createElement("li", { key: t.id, "data-title-id": t.id }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("span", null, "No.", t.number), /* @__PURE__ */ React.createElement("strong", null, t.name), /* @__PURE__ */ React.createElement("span", { "aria-label": `${t.stars}\u3064\u661F` }, "\u2605".repeat(t.stars))), /* @__PURE__ */ React.createElement("p", null, t.stars <= 3 ? t.condition : "\uFF1F\uFF1F\uFF1F"), /* @__PURE__ */ React.createElement("small", null, e ? "\u53D6\u5F97\u6E08\u307F" : "\u672A\u53D6\u5F97", equipped === t.id ? " \u30FB \u88C5\u5099\u4E2D" : "", (e == null ? void 0 : e.at) ? ` \u30FB ${new Date(e.at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }) + (e.dateWasUnknown ? "\uFF08\u78BA\u8A8D\u65E5\u30FB\u53D6\u5F97\u65E5\u4E0D\u660E\uFF09" : "")}` : e ? " \u30FB \u53D6\u5F97\u65E5\u672A\u8A18\u9332" : ""));
+      return /* @__PURE__ */ React.createElement("li", { key: t.id, "data-title-id": t.id }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("span", null, "No.", t.number), /* @__PURE__ */ React.createElement("strong", null, t.name), /* @__PURE__ */ React.createElement("span", { "aria-label": `${t.stars}\u3064\u661F` }, "\u2605".repeat(t.stars))), /* @__PURE__ */ React.createElement("p", null, t.stars <= 3 ? t.condition : "\uFF1F\uFF1F\uFF1F"), /* @__PURE__ */ React.createElement("small", null, e ? "\u53D6\u5F97\u6E08\u307F" : "\u672A\u53D6\u5F97", equipped === t.id ? " \u30FB \u88C5\u5099\u4E2D" : "", (e == null ? void 0 : e.at) ? ` \u30FB ${new Date(e.at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }) + (e.dateWasUnknown ? "\uFF08\u78BA\u8A8D\u65E5\u30FB\u53D6\u5F97\u65E5\u4E0D\u660E\uFF09" : "")}` : e ? " \u30FB \u53D6\u5F97\u65E5\u672A\u8A18\u9332" : ""), equip && /* @__PURE__ */ React.createElement(TitleEquipControl, { equip, id: t.id, name: t.name, earned: !!e }));
     })), state.hiddenOwned && /* @__PURE__ */ React.createElement("section", { className: "next-title-special" }, /* @__PURE__ */ React.createElement("h4", null, "FACTOR\xD7FACTOR"), /* @__PURE__ */ React.createElement("p", null, "\u7279\u5225\u79F0\u53F7\u30FB\u53D6\u5F97\u6E08\u307F"), /* @__PURE__ */ React.createElement("button", { onClick: () => setScene(true) }, "\u7372\u5F97\u6F14\u51FA\u3092\u518D\u8996\u8074")), /* @__PURE__ */ React.createElement("p", null, "\u672A\u516C\u958B\u306E\u53D6\u5F97\u6761\u4EF6\u306F\uFF1F\uFF1F\uFF1F\u3068\u8868\u793A\u3057\u307E\u3059\u3002"), presentationError && state.hiddenOwned && /* @__PURE__ */ React.createElement("p", { role: "alert" }, presentationError), scene && state.hiddenOwned && /* @__PURE__ */ React.createElement(TitleCinematic, { muted, reducedMotion: (_a = window.matchMedia) == null ? void 0 : _a.call(window, "(prefers-reduced-motion: reduce)").matches, onFinish: closeScene }));
   }
 
@@ -1428,6 +1457,7 @@
   var model = require_profile_read();
   var titles = require_title_catalog_next();
   var TitleClient = require_title_client_next();
+  var TitleEquip = require_title_equip_next();
   function createProfile(H) {
     const { RatingDisplay, RatingHistory, levelOf, isReal, useDailyTitles, useFbValue, useFbReady, weekKey, now, nickOf, badgesOf, activeAchievements, skinCatalog } = H;
     const integer = (n) => n === null || n === void 0 ? "\u672A\u8A18\u9332" : n.toLocaleString("ja-JP");
@@ -1472,7 +1502,52 @@
         const t = titles.titles.find((t2) => t2.id === id);
         if (t) earned.set(id, t.name);
       }
-      const equipped = [stats == null ? void 0 : stats.nick, profile == null ? void 0 : profile.title].filter(Boolean).map((id) => {
+      const [eqNick, setEqNick] = React.useState((stats == null ? void 0 : stats.nick) || ""), [eqTitle, setEqTitle] = React.useState((profile == null ? void 0 : profile.title) || ""), [eqStatus, setEqStatus] = React.useState(null), eqBusy = React.useRef(false), eqSlow = React.useRef(0);
+      React.useEffect(() => {
+        if (!eqBusy.current) setEqNick((stats == null ? void 0 : stats.nick) || "");
+      }, [stats == null ? void 0 : stats.nick]);
+      React.useEffect(() => {
+        if (!eqBusy.current) setEqTitle((profile == null ? void 0 : profile.title) || "");
+      }, [profile == null ? void 0 : profile.title]);
+      React.useEffect(() => () => clearTimeout(eqSlow.current), []);
+      const legacyEquippable = new Set(badgesOf(stats || {}).map((b) => b.id).filter((id) => visible.has(id) && nickOf(id)));
+      const ratedEarned = new Set(Object.entries((profile == null ? void 0 : profile.badges) || {}).filter(([, v]) => v === true).map(([id]) => id));
+      const routeOf = (id) => real && H.equipNick && H.equipRatedTitle ? TitleEquip.route(id, { earned: new Set(earned.keys()), legacyEquippable, ratedEarned }) : null;
+      const isEquipped = (id) => eqNick === id || eqTitle === id;
+      const doEquip = (id, clear) => {
+        const r = routeOf(id);
+        if (!r || eqBusy.current) return;
+        eqBusy.current = true;
+        setEqStatus({ id, state: "saving", slow: false });
+        clearTimeout(eqSlow.current);
+        eqSlow.current = setTimeout(() => setEqStatus((s) => s && s.id === id && s.state === "saving" ? { ...s, slow: true } : s), TitleEquip.SLOW_MS);
+        const task = r === "nick" ? H.equipNick(acct.key, clear ? null : id) : H.equipRatedTitle(acct, id);
+        Promise.resolve(task).then(() => {
+          if (r === "nick") setEqNick(clear ? "" : id);
+          else setEqTitle(id);
+          setEqStatus({ id, state: "saved", message: clear ? "\u79F0\u53F7\u3092\u306F\u305A\u3057\u307E\u3057\u305F" : "\u79F0\u53F7\u3092\u88C5\u5099\u3057\u307E\u3057\u305F" });
+        }).catch(() => {
+          setEqStatus({ id, state: "failed", message: "\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\uFF08\u88C5\u5099\u306F\u5909\u66F4\u3055\u308C\u3066\u3044\u307E\u305B\u3093\uFF09" });
+        }).finally(() => {
+          eqBusy.current = false;
+          clearTimeout(eqSlow.current);
+          setEqBusyTick((x) => x + 1);
+        });
+      };
+      const [, setEqBusyTick] = React.useState(0);
+      const equipUi = H.equipNick && H.equipRatedTitle ? {
+        routeOf,
+        isEquipped,
+        status: eqStatus,
+        busy: eqBusy.current || real === false,
+        reasonOf: (id, isEarned) => {
+          const r = routeOf(id);
+          return r === "rated" && isEquipped(id) ? "\u30E9\u30F3\u30AD\u30F3\u30B0\u79F0\u53F7\u3067\u3059\u3002\u5225\u306E\u79F0\u53F7\u3092\u88C5\u5099\u3057\u3066\u5909\u66F4\u3067\u304D\u307E\u3059\uFF08\u89E3\u9664\u306F\u3067\u304D\u307E\u305B\u3093\uFF09" : TitleEquip.reason(id, { real, earned: isEarned ? /* @__PURE__ */ new Set([id]) : /* @__PURE__ */ new Set(), routeOf: r });
+        },
+        onEquip: (id) => doEquip(id, false),
+        onUnequip: (id) => doEquip(id, true)
+      } : null;
+      const equipped = [eqNick, eqTitle].filter(Boolean).map((id) => {
         var _a2, _b2;
         return { id, name: ((_a2 = titles.titles.find((t) => t.id === id)) == null ? void 0 : _a2.name) || ((_b2 = nickOf(id)) == null ? void 0 : _b2.label) || id };
       });
@@ -1488,7 +1563,7 @@
       } }, label))), /* @__PURE__ */ React.createElement("div", { role: "tabpanel", id: "profile-" + tab, "aria-labelledby": "profile-tab-" + tab }, tab === "summary" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => {
         const r = real ? profile === null && d === "normal" ? { value: null, note: "\u672A\u8A18\u9332" } : RatingDisplay.current(profile, stats, d) : { value: null, note: "" };
         return /* @__PURE__ */ React.createElement(Panel, { key: d, title: d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB" }, /* @__PURE__ */ React.createElement(MetricGrid, null, /* @__PURE__ */ React.createElement(Stat, { label: "\u73FE\u5728\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: RatingDisplay.format(r.value), note: r.note }), /* @__PURE__ */ React.createElement(Stat, { label: "\u6B74\u4EE3\u6700\u9AD8\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0", value: real ? RatingDisplay.format(RatingHistory.highest(profile, stats, [d])) : "\u2015" })));
-      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, titleSaveFailed && /* @__PURE__ */ React.createElement("p", { role: "status", className: "next-note", "data-title-save-failed": true }, "\u65B0\u79F0\u53F7\u306E\u4FDD\u5B58\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(TitleInventory, { presentationStore, accountKey: acct.key, muted, earnedIds: authority ? [] : [...earned.keys()], flags: authority ? [Object.fromEntries(Object.entries((authoritySnapshot == null ? void 0 : authoritySnapshot.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), authorityAwards] : [profile == null ? void 0 : profile.badges, ...clientTitles ? [Object.fromEntries(Object.entries(((_f = clientTitles.snapshot) == null ? void 0 : _f.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), clientTitles.awards] : []], equipped: stats == null ? void 0 : stats.nick })), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
+      })), /* @__PURE__ */ React.createElement(Panel, { title: "\u4FDD\u5B58\u6E08\u307F\u306E\u6210\u7E3E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["maxStreak", "\u6700\u9AD8\u9023\u52DD"], ["perfects", "Perfect"], ["comebacks", "\u9006\u8EE2\u52DD\u3061"], ["tourWins", "\u5927\u4F1A\u512A\u52DD"], ["bestMs", "\u6700\u901F\u6B63\u89E3"], ["maxCombo", "\u6700\u5927\u30B3\u30F3\u30DC"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: key === "bestMs" && data.metrics[key] !== null ? (data.metrics[key] / 1e3).toFixed(2) + "\u79D2" : integer(data.metrics[key]) }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u5404\u7D2F\u7A4D\u5024\u306F\u65E2\u5B58\u306E\u4FDD\u5B58\u8A18\u9332\u3067\u3059\u3002\u4FDD\u5B58\u4E16\u4EE3\u306E\u7570\u306A\u308B\u5BFE\u6226\u6570\u3092\u8DB3\u3057\u5408\u308F\u305B\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Panel, { title: "\u9031\u9593\u30DC\u30B9\u306E\u53C2\u52A0\u30FB\u8CA2\u732E" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["weeks", "\u53C2\u52A0\u9031\u6570"], ["kills", "\u8A0E\u4F10\u8CA2\u732E"], ["best", "\u904E\u53BB\u6700\u9AD8\u30C0\u30E1\u30FC\u30B8"], ["maxStreak", "\u6700\u9AD8\u9023\u7D9A\u53C2\u52A0\u9031"]].map(([key, label]) => /* @__PURE__ */ React.createElement(Stat, { key, label, value: integer(data.weekly[key]) })), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u30C0\u30E1\u30FC\u30B8", value: integer(model.number(mine == null ? void 0 : mine.d)) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u4ECA\u9031\u306E\u51FA\u6483\u8A18\u9332", value: integer(model.number(mine == null ? void 0 : mine.s)), note: "\u5B8C\u8D70\u56DE\u6570\u3068\u306F\u5225\u306E\u8A18\u9332\u3067\u3059" })))), tab === "records" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u6226\u3068\u5F93\u6765\u306E\u8A18\u9332\u306F\u3001\u540C\u3058\u8A66\u5408\u3092\u542B\u3080\u53EF\u80FD\u6027\u304C\u3042\u308B\u305F\u3081\u5225\u3005\u306B\u8868\u793A\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226", value: data.rated[d] }))), /* @__PURE__ */ React.createElement(Record, { label: "\u5F93\u6765\u306E\u5BFE\u6226\u8A18\u9332\uFF08\u4FDD\u5B58\u6E08\u307F\u901A\u7B97\uFF09", value: data.legacy }), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["A", "B", "C"].map((m) => /* @__PURE__ */ React.createElement(Record, { key: m, label: m + "\u65B9\u5F0F\uFF08\u5F93\u6765\u306E\u4FDD\u5B58\u8A18\u9332\uFF09", value: data.modes[m] }))), /* @__PURE__ */ React.createElement("p", { className: "next-note" }, "B\u65B9\u5F0F\u306F\u5171\u6709\u3059\u308Bstats.B\u3092\u4E00\u5EA6\u3060\u3051\u8868\u793A\u3057\u3066\u3044\u307E\u3059\u3002\u6B20\u640D\u3057\u305F\u52DD\u6557\u306F0\u3068\u4EEE\u5B9A\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "next-profile-columns" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(Record, { key: d, label: (d === "easy" ? "\u30A4\u30FC\u30B8\u30FC" : "\u30CE\u30FC\u30DE\u30EB") + "\u30FB\u30B4\u30FC\u30B9\u30C8\uFF0FBOT\u8A18\u9332", value: data.ghosts[d] })))), tab === "rewards" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Panel, { title: "\u53D6\u5F97\u79F0\u53F7" }, titleSaveFailed && /* @__PURE__ */ React.createElement("p", { role: "status", className: "next-note", "data-title-save-failed": true }, "\u65B0\u79F0\u53F7\u306E\u4FDD\u5B58\u3092\u78BA\u8A8D\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u304F\u3060\u3055\u3044\u3002"), /* @__PURE__ */ React.createElement(TitleInventory, { presentationStore, accountKey: acct.key, muted, earnedIds: authority ? [] : [...earned.keys()], flags: authority ? [Object.fromEntries(Object.entries((authoritySnapshot == null ? void 0 : authoritySnapshot.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), authorityAwards] : [profile == null ? void 0 : profile.badges, ...clientTitles ? [Object.fromEntries(Object.entries(((_f = clientTitles.snapshot) == null ? void 0 : _f.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), clientTitles.awards] : []], equipped: eqNick, equip: equipUi })), /* @__PURE__ */ React.createElement(Panel, { title: "\u304D\u305B\u304B\u3048\u88C5\u5099" }, /* @__PURE__ */ React.createElement(MetricGrid, null, [["tile", "\u30BF\u30A4\u30EB"], ["bg", "\u80CC\u666F"], ["fx", "\u30A8\u30D5\u30A7\u30AF\u30C8"]].map(([key, label]) => {
         const id = skin == null ? void 0 : skin[key], item = skinCatalog[key].find((x) => x.id === id);
         return /* @__PURE__ */ React.createElement(Stat, { key, label, value: id ? (item == null ? void 0 : item.name) || id : "\u672A\u8A18\u9332" });
       }))))));

@@ -3,6 +3,7 @@ import {Panel,Stat,MetricGrid,BackButton} from './next-ui.jsx';
 const model=require('./profile-read.cjs');
 const titles=require('./title-catalog-next.json');
 const TitleClient=require('./title-client-next.cjs');
+const TitleEquip=require('./title-equip-next.cjs');
 export function createProfile(H){
  const {RatingDisplay,RatingHistory,levelOf,isReal,useDailyTitles,useFbValue,useFbReady,weekKey,now,nickOf,badgesOf,activeAchievements,skinCatalog}=H;
  const integer=n=>n===null||n===undefined?'未記録':n.toLocaleString('ja-JP');
@@ -31,7 +32,32 @@ export function createProfile(H){
   for(const b of badgesOf(stats||{}))if(visible.has(b.id))earned.set(b.id,b.label);
   for(const flags of [profile?.badges,daily])for(const [id,value]of Object.entries(flags||{}))if(value===true)earned.set(id,titles.titles.find(t=>t.id===id)?.name||nickOf(id)?.label||id);
   for(const [id]of earned){const t=titles.titles.find(t=>t.id===id);if(t)earned.set(id,t.name)}
-  const equipped=[stats?.nick,profile?.title].filter(Boolean).map(id=>({id,name:titles.titles.find(t=>t.id===id)?.name||nickOf(id)?.label||id}));
+  // Equip state: shown only after the existing save succeeds (never optimistic); re-synced from the live record.
+  const [eqNick,setEqNick]=React.useState(stats?.nick||''),[eqTitle,setEqTitle]=React.useState(profile?.title||''),[eqStatus,setEqStatus]=React.useState(null),eqBusy=React.useRef(false),eqSlow=React.useRef(0);
+  React.useEffect(()=>{if(!eqBusy.current)setEqNick(stats?.nick||'')},[stats?.nick]);
+  React.useEffect(()=>{if(!eqBusy.current)setEqTitle(profile?.title||'')},[profile?.title]);
+  React.useEffect(()=>()=>clearTimeout(eqSlow.current),[]);
+  const legacyEquippable=new Set(badgesOf(stats||{}).map(b=>b.id).filter(id=>visible.has(id)&&nickOf(id)));
+  const ratedEarned=new Set(Object.entries(profile?.badges||{}).filter(([,v])=>v===true).map(([id])=>id));
+  const routeOf=id=>real&&H.equipNick&&H.equipRatedTitle?TitleEquip.route(id,{earned:new Set(earned.keys()),legacyEquippable,ratedEarned}):null;
+  const isEquipped=id=>eqNick===id||eqTitle===id;
+  const doEquip=(id,clear)=>{
+   const r=routeOf(id);if(!r||eqBusy.current)return;
+   eqBusy.current=true;setEqStatus({id,state:'saving',slow:false});
+   clearTimeout(eqSlow.current);eqSlow.current=setTimeout(()=>setEqStatus(s=>s&&s.id===id&&s.state==='saving'?{...s,slow:true}:s),TitleEquip.SLOW_MS);
+   const task=r==='nick'?H.equipNick(acct.key,clear?null:id):H.equipRatedTitle(acct,id);
+   Promise.resolve(task).then(()=>{
+    if(r==='nick')setEqNick(clear?'':id);else setEqTitle(id);
+    setEqStatus({id,state:'saved',message:clear?'称号をはずしました':'称号を装備しました'});
+   }).catch(()=>{
+    setEqStatus({id,state:'failed',message:'保存できませんでした。通信状態をご確認のうえ、もう一度お試しください（装備は変更されていません）'});
+   }).finally(()=>{eqBusy.current=false;clearTimeout(eqSlow.current);setEqBusyTick(x=>x+1)});
+  };
+  const [,setEqBusyTick]=React.useState(0);
+  const equipUi=H.equipNick&&H.equipRatedTitle?{routeOf,isEquipped,status:eqStatus,busy:eqBusy.current||real===false,
+   reasonOf:(id,isEarned)=>{const r=routeOf(id);return r==='rated'&&isEquipped(id)?'ランキング称号です。別の称号を装備して変更できます（解除はできません）':TitleEquip.reason(id,{real,earned:isEarned?new Set([id]):new Set(),routeOf:r})},
+   onEquip:id=>doEquip(id,false),onUnequip:id=>doEquip(id,true)}:null;
+  const equipped=[eqNick,eqTitle].filter(Boolean).map(id=>({id,name:titles.titles.find(t=>t.id===id)?.name||nickOf(id)?.label||id}));
   const skin=stats?.skin;
   return <main className="next-profile" data-next-profile>
    <div className="next-toolbar"><BackButton onClick={onBack}/><button className="small-button" onClick={onWardrobe}>きせかえ</button><button className="small-button" onClick={onLegacy}>称号の装備・詳細記録</button></div>
@@ -48,7 +74,7 @@ export function createProfile(H){
     <Panel title="週間ボスの参加・貢献"><MetricGrid>{[['weeks','参加週数'],['kills','討伐貢献'],['best','過去最高ダメージ'],['maxStreak','最高連続参加週']].map(([key,label])=><Stat key={key} label={label} value={integer(data.weekly[key])}/>)}<Stat label="今週のダメージ" value={integer(model.number(mine?.d))}/><Stat label="今週の出撃記録" value={integer(model.number(mine?.s))} note="完走回数とは別の記録です"/></MetricGrid></Panel>
    </>}
    {tab==='records'&&<><p className="next-note">レーティング戦と従来の記録は、同じ試合を含む可能性があるため別々に表示します。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・レーティング対戦'} value={data.rated[d]}/>)}</div><Record label="従来の対戦記録（保存済み通算）" value={data.legacy}/><div className="next-profile-columns">{['A','B','C'].map(m=><Record key={m} label={m+'方式（従来の保存記録）'} value={data.modes[m]}/>)}</div><p className="next-note">B方式は共有するstats.Bを一度だけ表示しています。欠損した勝敗は0と仮定しません。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・ゴースト／BOT記録'} value={data.ghosts[d]}/>)}</div></>}
-   {tab==='rewards'&&<><Panel title="取得称号">{titleSaveFailed&&<p role="status" className="next-note" data-title-save-failed>新称号の保存を確認できませんでした。通信状態をご確認ください。</p>}<TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={authority?[]:[...earned.keys()]} flags={authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])]} equipped={stats?.nick}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
+   {tab==='rewards'&&<><Panel title="取得称号">{titleSaveFailed&&<p role="status" className="next-note" data-title-save-failed>新称号の保存を確認できませんでした。通信状態をご確認ください。</p>}<TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={authority?[]:[...earned.keys()]} flags={authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])]} equipped={eqNick} equip={equipUi}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
    </div>
   </main>;
  }
