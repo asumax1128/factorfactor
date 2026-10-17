@@ -76,7 +76,7 @@ const { chromium, context } = require("./browser-harness.cjs");
           .count(),
         0,
       );
-      const boxes = await p.locator("section > button").evaluateAll((es) =>
+      const boxes = await p.locator("section .or-difficulty").evaluateAll((es) =>
         es.map((e) => {
           let r = e.getBoundingClientRect();
           return { x: r.x, y: r.y, w: r.width, h: r.height };

@@ -3,6 +3,8 @@ const assert = require("node:assert/strict"),
   cp = require("node:child_process");
 const { chromium, context, sleep } = require("./browser-harness.cjs");
 const MENU_FONT = 'BBody, "Yu Gothic", sans-serif';
+// Ver.6.0: the random-match screens now share the approved BHeading token with the new lobby.
+const RATED_MENU_FONT = 'BHeading, "Yu Gothic", sans-serif';
 const RATED_FONT = '"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif';
 const html = fs.readFileSync("index.html", "utf8");
 const before = cp.execFileSync("git", ["show", "42032d2:index.html"], {
@@ -89,7 +91,7 @@ const ui =
           w: e.clientWidth,
           scroll: e.scrollWidth,
         }));
-        assert.equal(v.family, RATED_FONT, "rated battle screen keeps its own Zen Maru Gothic stack");
+        assert.equal(v.family, RATED_MENU_FONT, "random-match menu uses the Ver.6.0 BHeading token");
         assert.equal(v.weight, "900");
         assert(v.scroll <= v.w + 1, "UI text fits its button");
       }

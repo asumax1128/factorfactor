@@ -295,11 +295,11 @@
         return /* @__PURE__ */ React.createElement("section", { className: `or-result rs-rated ${won ? "or-victory" : "or-defeat"}`, "data-result-kind": m.outcome }, won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(NR.ResultShell, { kind: "R", outcome: m.outcome, busy }, model ? /* @__PURE__ */ React.createElement(NR.BattleSummary, { model, notes, growth }) : /* @__PURE__ */ React.createElement(NR.MinimalSummary, { outcome: m.outcome, methodLabel: m.mode === "A" ? "A\u65B9\u5F0F" : m.mode === "B" ? "B\u65B9\u5F0F" : "\u30E9\u30F3\u30C0\u30E0\u5BFE\u6226", notes, growth }), m.rules === "b2" && /* @__PURE__ */ React.createElement(NR.BDetails, { report: m.bResult, me: m.selfUid, names }), m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names }), /* @__PURE__ */ React.createElement(NR.ResultActions, { busy }, /* @__PURE__ */ React.createElement(NR.ResultButton, { tone: "primary", disabled: busy, onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))));
       }
       function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false }) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
         const [state, setState] = useState(null), [error, setError] = useState(""), [feedback, setFeedback] = useState(null), [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select"
         ), [tab, setTab] = useState("easy"), [hyperChoice, setHyperChoice] = useState(false), [busy, setBusy] = useState(false), [selectedPlayer, setSelectedPlayer] = useState(null), [muted, setMuted] = H.useGameMute();
-        const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null), requests = useRef(Promise.resolve()), actionPending = useRef(false), pollingPaused = useRef(false), feedbackTimer = useRef(null), badgesBefore = useRef(null), initializing = useRef(true);
+        const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null), requests = useRef(Promise.resolve()), actionPending = useRef(false), pollingPaused = useRef(false), feedbackTimer = useRef(null), searchDiffRef = useRef(null), badgesBefore = useRef(null), initializing = useRef(true);
         const sound = H.useBattleSound(muted);
         const [spark] = useState(
           () => H.createTransport && (acct == null ? void 0 : acct.key) ? H.createTransport(acct) : null
@@ -510,18 +510,27 @@
         useEffect(() => {
           seq.current = (g == null ? void 0 : g.acceptedSeq) || 0;
         }, [m == null ? void 0 : m.id]);
+        const omScreens = ["select", "ghostMenu", "wait", "vote"], searchDiff = searchDiffRef, backLocked = ["wait", "vote"].includes(screen), myVote = ((_a = m == null ? void 0 : m.votes) == null ? void 0 : _a[m == null ? void 0 : m.selfUid]) || null, otherVoted = !!((_b = m == null ? void 0 : m.members) == null ? void 0 : _b.some(
+          (x) => {
+            var _a2;
+            return x.uid !== m.selfUid && ((_a2 = m.votes) == null ? void 0 : _a2[x.uid]);
+          }
+        )), voteLeft = screen === "vote" && (m == null ? void 0 : m.voteEnd) ? Math.max(0, Math.ceil((m.voteEnd - time) / 1e3)) : null;
         return /* @__PURE__ */ React.createElement(
           "main",
           {
-            className: `or-app ${screen === "play" ? "or-playing" : "or-menu"}`
+            className: `or-app ${screen === "play" ? "or-playing" : "or-menu"}${omScreens.includes(screen) ? " om" : ""}`,
+            "data-or-screen": screen,
+            "data-or-view": view
           },
           /* @__PURE__ */ React.createElement(H.FontImport, null),
           ["play", "result"].includes(screen) && /* @__PURE__ */ React.createElement(H.FxLayer, { level: 112, combat: true }),
           screen !== "play" && !(rankingMode && view === "ratings" && root.NextRanking) && /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement(
             "button",
             {
+              "aria-describedby": backLocked ? "om-back-reason" : void 0,
               onClick: () => {
-                if (["wait", "vote", "play"].includes(screen)) {
+                if (backLocked) {
                   setError(
                     "\u691C\u7D22\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u3001\u307E\u305F\u306F\u5BFE\u6226\u304B\u3089\u9000\u51FA\u3057\u3066\u304B\u3089\u623B\u3063\u3066\u304F\u3060\u3055\u3044"
                   );
@@ -535,17 +544,17 @@
                 }
                 onExit();
               },
-              disabled: busy
+              disabled: busy || backLocked
             },
             initialGhost ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u3078\u623B\u308B"
-          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : view === "ghosts" ? "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : initialGhost || ["bounty", "profile"].includes(m == null ? void 0 : m.origin) ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_a = root.FactorVersion) == null ? void 0 : _a.label), /* @__PURE__ */ React.createElement(
+          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : view === "ghosts" ? "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : initialGhost || ["bounty", "profile"].includes(m == null ? void 0 : m.origin) ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_c = root.FactorVersion) == null ? void 0 : _c.label), /* @__PURE__ */ React.createElement(
             "button",
             {
               "aria-label": muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3",
               onClick: () => setMuted(!muted)
             },
             muted ? "\u{1F507}" : "\u{1F50A}"
-          )),
+          ), backLocked && /* @__PURE__ */ React.createElement("p", { id: "om-back-reason", className: "om-back-reason" }, screen === "wait" ? "\u691C\u7D22\u4E2D\u306F\u623B\u308C\u307E\u305B\u3093\u3002\u300C\u691C\u7D22\u3092\u30AD\u30E3\u30F3\u30BB\u30EB\u300D\u3067\u691C\u7D22\u3092\u6B62\u3081\u3066\u304B\u3089\u623B\u3063\u3066\u304F\u3060\u3055\u3044\u3002" : "\u5BFE\u6226\u306E\u6E96\u5099\u4E2D\u306F\u623B\u308C\u307E\u305B\u3093\u3002\u300C\u958B\u59CB\u524D\u306B\u9000\u51FA\u300D\u3092\u9078\u3093\u3067\u304B\u3089\u623B\u3063\u3066\u304F\u3060\u3055\u3044\u3002")),
           error && /* @__PURE__ */ React.createElement("section", { role: "alert" }, /* @__PURE__ */ React.createElement("p", null, error), /* @__PURE__ */ React.createElement(
             "button",
             {
@@ -559,39 +568,45 @@
             },
             "\u518D\u8A66\u884C\u30FB\u6700\u65B0\u7D50\u679C\u3092\u78BA\u8A8D"
           )),
-          screen === "select" && !initialGhost && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u96E3\u6613\u5EA6\u3092\u9078\u3093\u3067\u5BFE\u6226"), ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
+          screen === "select" && !initialGhost && view === "ghosts" && !state && /* @__PURE__ */ React.createElement("section", { className: "om-card", "data-om": "loading", role: "status" }, /* @__PURE__ */ React.createElement("h3", null, "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059"), /* @__PURE__ */ React.createElement("p", null, "\u63A5\u7D9A\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026")),
+          screen === "select" && !initialGhost && !(view === "ghosts" && !state) && /* @__PURE__ */ React.createElement("section", { className: "om-card", "data-om": "select" }, /* @__PURE__ */ React.createElement("h3", null, "\u96E3\u6613\u5EA6\u3092\u9078\u3093\u3067\u5BFE\u6226"), /* @__PURE__ */ React.createElement("p", { className: "om-lead" }, "\u76F8\u624B\u304C\u898B\u3064\u304B\u3063\u305F\u3089\u3001\u65B9\u5F0F\uFF08A\uFF0FB\uFF09\u3092\u9078\u3073\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "om-choices" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement(
             "button",
             {
               key: d,
-              className: "or-difficulty",
+              className: "or-difficulty om-choice",
               style: { "--difficulty-color": H.DIFFICULTY_CONFIG[d].color },
               disabled: busy || !(acct == null ? void 0 : acct.key),
-              onClick: () => send({ type: "enqueue", difficulty: d })
+              onClick: () => {
+                searchDiff.current = d;
+                send({ type: "enqueue", difficulty: d });
+              }
             },
             label(d),
             "\u3067\u76F8\u624B\u3092\u63A2\u3059"
-          ))),
-          screen === "ghostMenu" && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\u3092\u9078\u3076"), !hyperChoice ? /* @__PURE__ */ React.createElement(React.Fragment, null, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement("button", { key: d, className: "or-difficulty", style: { "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }, disabled: busy || !(acct == null ? void 0 : acct.key) || !(state == null ? void 0 : state.ghostReady), onClick: () => send({ type: "randomGhost", difficulty: d, kind: "ghost" }) }, label(d), "\u30B4\u30FC\u30B9\u30C8")), /* @__PURE__ */ React.createElement("button", { disabled: busy || !(acct == null ? void 0 : acct.key) || !(state == null ? void 0 : state.ghostReady), onClick: () => setHyperChoice(true) }, "\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", null, "\u5404\u96E3\u6613\u5EA6\u306E\u30E9\u30F3\u30AD\u30F3\u30B0TOP10\u304B\u3089\u62BD\u9078\u3057\u307E\u3059\u3002\u9806\u4F4D\u304C\u9AD8\u3044\u307B\u3069\u9078\u3070\u308C\u3084\u3059\u304F\u3001\u5B66\u7FD2\u8A18\u933220\u554F\u672A\u6E80\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u5019\u88DC\u306B\u5165\u308A\u307E\u305B\u3093\u3002"), ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement("button", { key: d, className: "or-difficulty", style: { "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }, disabled: busy, onClick: () => send({ type: "randomGhost", difficulty: d, kind: "hyper" }) }, label(d), "\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8")), /* @__PURE__ */ React.createElement("button", { onClick: () => setHyperChoice(false) }, "\u30B4\u30FC\u30B9\u30C8\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))),
-          screen === "select" && initialGhost && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226"), /* @__PURE__ */ React.createElement("p", null, "\u5BFE\u8C61\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u5B66\u7FD2\u8A18\u9332\u3067\u5BFE\u6226\u3057\u307E\u3059\u3002\u516C\u5F0F\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30FB\u4EBA\u9593\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement(
+          )))),
+          screen === "ghostMenu" && /* @__PURE__ */ React.createElement("section", { className: "om-card", "data-om": "ghost" }, /* @__PURE__ */ React.createElement("h3", null, "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\u3092\u9078\u3076"), !(state == null ? void 0 : state.ghostReady) && /* @__PURE__ */ React.createElement("p", { className: "om-note", role: "status" }, "\u30B4\u30FC\u30B9\u30C8\u6A5F\u80FD\u306E\u6E96\u5099\u4E2D\u3067\u3059"), !hyperChoice ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "om-choices" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement("button", { key: d, className: "or-difficulty om-choice", style: { "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }, disabled: busy || !(acct == null ? void 0 : acct.key) || !(state == null ? void 0 : state.ghostReady), onClick: () => send({ type: "randomGhost", difficulty: d, kind: "ghost" }) }, label(d), "\u30B4\u30FC\u30B9\u30C8")), /* @__PURE__ */ React.createElement("button", { className: "om-choice om-hyper-entry", disabled: busy || !(acct == null ? void 0 : acct.key) || !(state == null ? void 0 : state.ghostReady), onClick: () => setHyperChoice(true) }, "\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8"))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "om-lead" }, "\u5404\u96E3\u6613\u5EA6\u306E\u30E9\u30F3\u30AD\u30F3\u30B0TOP10\u304B\u3089\u62BD\u9078\u3057\u307E\u3059\u3002\u9806\u4F4D\u304C\u9AD8\u3044\u307B\u3069\u9078\u3070\u308C\u3084\u3059\u304F\u3001\u5B66\u7FD2\u8A18\u933220\u554F\u672A\u6E80\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u5019\u88DC\u306B\u5165\u308A\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("div", { className: "om-choices" }, ["easy", "normal"].map((d) => /* @__PURE__ */ React.createElement("button", { key: d, className: "or-difficulty om-choice", style: { "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }, disabled: busy, onClick: () => send({ type: "randomGhost", difficulty: d, kind: "hyper" }) }, label(d), "\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8"))), /* @__PURE__ */ React.createElement("button", { className: "om-secondary", onClick: () => setHyperChoice(false) }, "\u30B4\u30FC\u30B9\u30C8\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))),
+          screen === "select" && initialGhost && /* @__PURE__ */ React.createElement("section", { className: "om-card", "data-om": "direct-ghost" }, /* @__PURE__ */ React.createElement("h3", null, "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226"), /* @__PURE__ */ React.createElement("p", { className: "om-lead" }, "\u5BFE\u8C61\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u5B66\u7FD2\u8A18\u9332\u3067\u5BFE\u6226\u3057\u307E\u3059\u3002\u516C\u5F0F\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30FB\u4EBA\u9593\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement(
             "button",
             {
+              className: "om-primary",
               disabled: busy,
               onClick: () => send({ type: "directGhost", ...initialGhost })
             },
             "\u6307\u540D\u5BFE\u6226\u3092\u518D\u8A66\u884C"
           )),
-          screen === "wait" && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("div", { className: "or-search-icon", "aria-hidden": "true" }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("h3", null, "\u5BFE\u6226\u76F8\u624B\u3092\u63A2\u3057\u3066\u3044\u307E\u3059"), /* @__PURE__ */ React.createElement("p", { className: "or-elapsed", "aria-label": "\u691C\u7D22\u7D4C\u904E\u6642\u9593" }, Math.max(
+          screen === "wait" && /* @__PURE__ */ React.createElement("section", { className: "om-card om-wait", "data-om": "wait", role: "status", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("div", { className: "or-search-icon", "aria-hidden": "true" }, "\u{1F50D}"), /* @__PURE__ */ React.createElement("h3", null, "\u5BFE\u6226\u76F8\u624B\u3092\u63A2\u3057\u3066\u3044\u307E\u3059"), searchDiff.current && /* @__PURE__ */ React.createElement("p", { className: "om-chip", style: { "--difficulty-color": H.DIFFICULTY_CONFIG[searchDiff.current].color } }, label(searchDiff.current)), /* @__PURE__ */ React.createElement("p", { className: "or-elapsed", "aria-label": "\u691C\u7D22\u7D4C\u904E\u6642\u9593" }, Math.max(
             0,
             (time - ((state == null ? void 0 : state.searchStarted) || time)) / 1e3
-          ).toFixed(1), "\u79D2"), /* @__PURE__ */ React.createElement("p", null, state.ghostReady ? "5\u79D2\u3067\u4EBA\u9593\u304C\u898B\u3064\u304B\u3089\u306A\u3051\u308C\u3070\u30B4\u30FC\u30B9\u30C8\u30FBBOT\u304C\u4E71\u5165\u3057\u307E\u3059" : "\u4EBA\u9593\u306E\u5BFE\u6226\u76F8\u624B\u3092\u63A2\u3057\u3066\u3044\u307E\u3059"), /* @__PURE__ */ React.createElement(
+          ).toFixed(1), "\u79D2"), /* @__PURE__ */ React.createElement("p", { className: "om-lead" }, state.ghostReady ? "5\u79D2\u3067\u4EBA\u9593\u304C\u898B\u3064\u304B\u3089\u306A\u3051\u308C\u3070\u30B4\u30FC\u30B9\u30C8\u30FBBOT\u304C\u4E71\u5165\u3057\u307E\u3059" : "\u4EBA\u9593\u306E\u5BFE\u6226\u76F8\u624B\u3092\u63A2\u3057\u3066\u3044\u307E\u3059"), /* @__PURE__ */ React.createElement(
             "button",
             {
+              className: "om-secondary",
               disabled: busy,
               onClick: () => send({ type: "cancel", ticket: state.ticket })
             },
             "\u691C\u7D22\u3092\u30AD\u30E3\u30F3\u30BB\u30EB"
           )),
-          screen === "vote" && /* @__PURE__ */ React.createElement("section", null, m.opponent && /* @__PURE__ */ React.createElement(
+          screen === "vote" && /* @__PURE__ */ React.createElement("section", { className: "om-card om-vote", "data-om": "vote" }, m.opponent && /* @__PURE__ */ React.createElement(
             "div",
             {
               className: `or-intrusion ${m.opponent.type === "hyper" ? "or-hyper" : ""}`,
@@ -607,17 +622,19 @@
               "\u30C0\u30A4\u30E4",
               "\u30DE\u30B9\u30BF\u30FC"
             ][m.opponent.rank], " ", "\u30FB \u30EC\u30FC\u30C8", formatRating(m.opponent.rating))
-          ), /* @__PURE__ */ React.createElement("h3", null, label(m.difficulty), " \u30FB \u65B9\u5F0F\u3092\u9078\u3076"), /* @__PURE__ */ React.createElement("p", null, "\u96E3\u6613\u5EA6\u306F\u56FA\u5B9A\u3067\u3059\u3002\u65B9\u5F0F\u304C\u5206\u304B\u308C\u305F\u5834\u5408\u30FB\u6642\u9593\u5207\u308C\u306F\u30E9\u30F3\u30C0\u30E0\u306B\u6C7A\u307E\u308A\u307E\u3059\u3002"), ["A", "B"].map((mode) => /* @__PURE__ */ React.createElement(
+          ), /* @__PURE__ */ React.createElement("h3", null, label(m.difficulty), " \u30FB \u65B9\u5F0F\u3092\u9078\u3076"), /* @__PURE__ */ React.createElement("p", { className: "om-lead" }, "\u96E3\u6613\u5EA6\u306F\u56FA\u5B9A\u3067\u3059\u3002\u65B9\u5F0F\u304C\u5206\u304B\u308C\u305F\u5834\u5408\u30FB\u6642\u9593\u5207\u308C\u306F\u30E9\u30F3\u30C0\u30E0\u306B\u6C7A\u307E\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("div", { className: "om-status", role: "status", "aria-live": "polite" }, /* @__PURE__ */ React.createElement("span", { "data-om-vote": "self" }, "\u3042\u306A\u305F\uFF1A", myVote ? `${myVote}\u306B\u6295\u7968\u6E08\u307F` : "\u672A\u6295\u7968"), !m.opponent && /* @__PURE__ */ React.createElement("span", { "data-om-vote": "opponent" }, "\u76F8\u624B\uFF1A", otherVoted ? "\u6295\u7968\u6E08\u307F" : "\u6295\u7968\u5F85\u3061"), voteLeft !== null && /* @__PURE__ */ React.createElement("span", { "data-om-vote": "timer" }, "\u6B8B\u308A", voteLeft, "\u79D2")), /* @__PURE__ */ React.createElement("div", { className: "om-choices" }, ["A", "B"].map((mode) => /* @__PURE__ */ React.createElement("div", { className: "om-opt", key: mode, "data-selected": myVote === mode ? "true" : "false" }, /* @__PURE__ */ React.createElement(
             "button",
             {
-              key: mode,
+              className: "om-choice",
+              "aria-pressed": myVote === mode,
               disabled: busy,
               onClick: () => send({ type: "vote", matchId: m.id, mode })
             },
             mode === "A" ? "A\uFF1A\u65E9\u3044\u8005\u52DD\u3061" : "B\uFF1A\u30EC\u30FC\u30B9\uFF0B\u653B\u6483"
-          )), /* @__PURE__ */ React.createElement(
+          ), myVote === mode && /* @__PURE__ */ React.createElement("span", { className: "om-mark", "aria-hidden": "true" }, "\u2714 \u6295\u7968\u6E08\u307F")))), /* @__PURE__ */ React.createElement(
             "button",
             {
+              className: "om-secondary",
               disabled: busy,
               onClick: () => send({ type: "leave", matchId: m.id })
             },
@@ -705,7 +722,7 @@
               onClick: () => setTab(d)
             },
             label(d)
-          ))), /* @__PURE__ */ React.createElement("section", { className: "or-self", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("h3", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, ((_c = (_b = state == null ? void 0 : state.ratings) == null ? void 0 : _b[tab]) == null ? void 0 : _c.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(state.ratings[tab].rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_f = (_e = (_d = state == null ? void 0 : state.ratings) == null ? void 0 : _d[tab]) == null ? void 0 : _e.games) != null ? _f : 0, "\u6226"), !!((_i = (_h = (_g = state == null ? void 0 : state.ratings) == null ? void 0 : _g[tab]) == null ? void 0 : _h.ghost) == null ? void 0 : _i.games) && /* @__PURE__ */ React.createElement("p", null, "\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A", state.ratings[tab].ghost.games, "\u6226"), /* @__PURE__ */ React.createElement("p", null, ((_j = state == null ? void 0 : state.ranks) == null ? void 0 : _j[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", { className: "or-rule" }, tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30A4\u30FC\u30B8\u30FC\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30CE\u30FC\u30DE\u30EB\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), !state ? /* @__PURE__ */ React.createElement("p", null, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026") : !((_l = (_k = state.rankings) == null ? void 0 : _k[tab]) == null ? void 0 : _l.length) ? /* @__PURE__ */ React.createElement("p", null, "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093") : /* @__PURE__ */ React.createElement("ol", { className: "or-ranking" }, state.rankings[tab].map((r) => {
+          ))), /* @__PURE__ */ React.createElement("section", { className: "or-self", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("h3", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, ((_e = (_d = state == null ? void 0 : state.ratings) == null ? void 0 : _d[tab]) == null ? void 0 : _e.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(state.ratings[tab].rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_h = (_g = (_f = state == null ? void 0 : state.ratings) == null ? void 0 : _f[tab]) == null ? void 0 : _g.games) != null ? _h : 0, "\u6226"), !!((_k = (_j = (_i = state == null ? void 0 : state.ratings) == null ? void 0 : _i[tab]) == null ? void 0 : _j.ghost) == null ? void 0 : _k.games) && /* @__PURE__ */ React.createElement("p", null, "\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A", state.ratings[tab].ghost.games, "\u6226"), /* @__PURE__ */ React.createElement("p", null, ((_l = state == null ? void 0 : state.ranks) == null ? void 0 : _l[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", { className: "or-rule" }, tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30A4\u30FC\u30B8\u30FC\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30CE\u30FC\u30DE\u30EB\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), !state ? /* @__PURE__ */ React.createElement("p", null, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026") : !((_n = (_m = state.rankings) == null ? void 0 : _m[tab]) == null ? void 0 : _n.length) ? /* @__PURE__ */ React.createElement("p", null, "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093") : /* @__PURE__ */ React.createElement("ol", { className: "or-ranking" }, state.rankings[tab].map((r) => {
             var _a2, _b2, _c2, _d2;
             return /* @__PURE__ */ React.createElement("li", { key: r.key }, /* @__PURE__ */ React.createElement("span", null, r.rank, "\u4F4D"), /* @__PURE__ */ React.createElement("div", { className: "or-player" }, /* @__PURE__ */ React.createElement(
               "button",
@@ -747,7 +764,7 @@
             H.PlayerProfile,
             {
               name: selectedPlayer.name,
-              st: ((_m = selectedPlayer.cosmetics) == null ? void 0 : _m.stats) || {},
+              st: ((_o = selectedPlayer.cosmetics) == null ? void 0 : _o.stats) || {},
               acctKey: selectedPlayer.key,
               me: selectedPlayer.key === acct.key,
               nameOf: () => "",

@@ -435,6 +435,7 @@
         actionPending = useRef(false),
         pollingPaused = useRef(false),
         feedbackTimer = useRef(null),
+        searchDiffRef = useRef(null),
         badgesBefore = useRef(null),
         initializing = useRef(true);
       const sound = H.useBattleSound(muted);
@@ -661,9 +662,22 @@
       useEffect(() => {
         seq.current = g?.acceptedSeq || 0;
       }, [m?.id]);
+      const omScreens = ["select", "ghostMenu", "wait", "vote"],
+        searchDiff = searchDiffRef,
+        backLocked = ["wait", "vote"].includes(screen),
+        myVote = m?.votes?.[m?.selfUid] || null,
+        otherVoted = !!m?.members?.some(
+          (x) => x.uid !== m.selfUid && m.votes?.[x.uid],
+        ),
+        voteLeft =
+          screen === "vote" && m?.voteEnd
+            ? Math.max(0, Math.ceil((m.voteEnd - time) / 1000))
+            : null;
       return (
         <main
-          className={`or-app ${screen === "play" ? "or-playing" : "or-menu"}`}
+          className={`or-app ${screen === "play" ? "or-playing" : "or-menu"}${omScreens.includes(screen) ? " om" : ""}`}
+          data-or-screen={screen}
+          data-or-view={view}
         >
           <H.FontImport />
           {["play", "result"].includes(screen) && (
@@ -672,8 +686,9 @@
           {screen !== "play" && !(rankingMode && view === "ratings" && root.NextRanking) && (
             <header>
               <button
+                aria-describedby={backLocked ? "om-back-reason" : undefined}
                 onClick={() => {
-                  if (["wait", "vote", "play"].includes(screen)) {
+                  if (backLocked) {
                     setError(
                       "検索をキャンセル、または対戦から退出してから戻ってください",
                     );
@@ -687,7 +702,7 @@
                   }
                   onExit();
                 }}
-                disabled={busy}
+                disabled={busy || backLocked}
               >
                 {initialGhost ? "一覧へ戻る" : "オンラインへ戻る"}
               </button>
@@ -706,6 +721,13 @@
               >
                 {muted ? "🔇" : "🔊"}
               </button>
+              {backLocked && (
+                <p id="om-back-reason" className="om-back-reason">
+                  {screen === "wait"
+                    ? "検索中は戻れません。「検索をキャンセル」で検索を止めてから戻ってください。"
+                    : "対戦の準備中は戻れません。「開始前に退出」を選んでから戻ってください。"}
+                </p>
+              )}
             </header>
           )}
           {error && (
@@ -726,40 +748,58 @@
               </button>
             </section>
           )}
-          {screen === "select" && !initialGhost && (
-            <section>
-              <h3>難易度を選んで対戦</h3>
-              {["easy", "normal"].map((d) => (
-                <button
-                  key={d}
-                  className="or-difficulty"
-                  style={{ "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }}
-                  disabled={busy || !acct?.key}
-                  onClick={() => send({ type: "enqueue", difficulty: d })}
-                >
-                  {label(d)}で相手を探す
-                </button>
-              ))}
+          {screen === "select" && !initialGhost && view === "ghosts" && !state && (
+            <section className="om-card" data-om="loading" role="status">
+              <h3>ゴースト対戦を準備しています</h3>
+              <p>接続を確認しています…</p>
             </section>
           )}
-          {screen === 'ghostMenu' && <section>
+          {screen === "select" && !initialGhost && !(view === "ghosts" && !state) && (
+            <section className="om-card" data-om="select">
+              <h3>難易度を選んで対戦</h3>
+              <p className="om-lead">相手が見つかったら、方式（A／B）を選びます。</p>
+              <div className="om-choices">
+                {["easy", "normal"].map((d) => (
+                  <button
+                    key={d}
+                    className="or-difficulty om-choice"
+                    style={{ "--difficulty-color": H.DIFFICULTY_CONFIG[d].color }}
+                    disabled={busy || !acct?.key}
+                    onClick={() => {
+                      searchDiff.current = d;
+                      send({ type: "enqueue", difficulty: d });
+                    }}
+                  >
+                    {label(d)}で相手を探す
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {screen === 'ghostMenu' && <section className="om-card" data-om="ghost">
             <h3>ゴースト対戦を選ぶ</h3>
+            {!state?.ghostReady && <p className="om-note" role="status">ゴースト機能の準備中です</p>}
             {!hyperChoice ? <>
-              {['easy','normal'].map(d=><button key={d} className="or-difficulty" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'ghost'})}>{label(d)}ゴースト</button>)}
-              <button disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>setHyperChoice(true)}>ハイパーゴースト</button>
+              <div className="om-choices">
+                {['easy','normal'].map(d=><button key={d} className="or-difficulty om-choice" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'ghost'})}>{label(d)}ゴースト</button>)}
+                <button className="om-choice om-hyper-entry" disabled={busy||!acct?.key||!state?.ghostReady} onClick={()=>setHyperChoice(true)}>ハイパーゴースト</button>
+              </div>
             </> : <>
-              <p>各難易度のランキングTOP10から抽選します。順位が高いほど選ばれやすく、学習記録20問未満のプレイヤーは候補に入りません。</p>
-              {['easy','normal'].map(d=><button key={d} className="or-difficulty" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'hyper'})}>{label(d)}ハイパーゴースト</button>)}
-              <button onClick={()=>setHyperChoice(false)}>ゴーストメニューへ戻る</button>
+              <p className="om-lead">各難易度のランキングTOP10から抽選します。順位が高いほど選ばれやすく、学習記録20問未満のプレイヤーは候補に入りません。</p>
+              <div className="om-choices">
+                {['easy','normal'].map(d=><button key={d} className="or-difficulty om-choice" style={{'--difficulty-color':H.DIFFICULTY_CONFIG[d].color}} disabled={busy} onClick={()=>send({type:'randomGhost',difficulty:d,kind:'hyper'})}>{label(d)}ハイパーゴースト</button>)}
+              </div>
+              <button className="om-secondary" onClick={()=>setHyperChoice(false)}>ゴーストメニューへ戻る</button>
             </>}
           </section>}
           {screen === "select" && initialGhost && (
-            <section>
+            <section className="om-card" data-om="direct-ghost">
               <h3>指名ゴースト対戦</h3>
-              <p>
+              <p className="om-lead">
                 対象プレイヤーの学習記録で対戦します。公式レーティング・人間対戦数は変更しません。
               </p>
               <button
+                className="om-primary"
                 disabled={busy}
                 onClick={() => send({ type: "directGhost", ...initialGhost })}
               >
@@ -768,11 +808,16 @@
             </section>
           )}
           {screen === "wait" && (
-            <section>
+            <section className="om-card om-wait" data-om="wait" role="status" aria-live="polite">
               <div className="or-search-icon" aria-hidden="true">
                 🔍
               </div>
               <h3>対戦相手を探しています</h3>
+              {searchDiff.current && (
+                <p className="om-chip" style={{ "--difficulty-color": H.DIFFICULTY_CONFIG[searchDiff.current].color }}>
+                  {label(searchDiff.current)}
+                </p>
+              )}
               <p className="or-elapsed" aria-label="検索経過時間">
                 {Math.max(
                   0,
@@ -780,12 +825,13 @@
                 ).toFixed(1)}
                 秒
               </p>
-              <p>
+              <p className="om-lead">
                 {state.ghostReady
                   ? "5秒で人間が見つからなければゴースト・BOTが乱入します"
                   : "人間の対戦相手を探しています"}
               </p>
               <button
+                className="om-secondary"
                 disabled={busy}
                 onClick={() => send({ type: "cancel", ticket: state.ticket })}
               >
@@ -794,7 +840,7 @@
             </section>
           )}
           {screen === "vote" && (
-            <section>
+            <section className="om-card om-vote" data-om="vote">
               {m.opponent && (
                 <div
                   className={`or-intrusion ${m.opponent.type === "hyper" ? "or-hyper" : ""}`}
@@ -824,19 +870,41 @@
                 </div>
               )}
               <h3>{label(m.difficulty)} ・ 方式を選ぶ</h3>
-              <p>
+              <p className="om-lead">
                 難易度は固定です。方式が分かれた場合・時間切れはランダムに決まります。
               </p>
-              {["A", "B"].map((mode) => (
-                <button
-                  key={mode}
-                  disabled={busy}
-                  onClick={() => send({ type: "vote", matchId: m.id, mode })}
-                >
-                  {mode === "A" ? "A：早い者勝ち" : "B：レース＋攻撃"}
-                </button>
-              ))}
+              <div className="om-status" role="status" aria-live="polite">
+                <span data-om-vote="self">
+                  あなた：{myVote ? `${myVote}に投票済み` : "未投票"}
+                </span>
+                {!m.opponent && (
+                  <span data-om-vote="opponent">
+                    相手：{otherVoted ? "投票済み" : "投票待ち"}
+                  </span>
+                )}
+                {voteLeft !== null && (
+                  <span data-om-vote="timer">残り{voteLeft}秒</span>
+                )}
+              </div>
+              <div className="om-choices">
+                {["A", "B"].map((mode) => (
+                  <div className="om-opt" key={mode} data-selected={myVote === mode ? "true" : "false"}>
+                    <button
+                      className="om-choice"
+                      aria-pressed={myVote === mode}
+                      disabled={busy}
+                      onClick={() => send({ type: "vote", matchId: m.id, mode })}
+                    >
+                      {mode === "A" ? "A：早い者勝ち" : "B：レース＋攻撃"}
+                    </button>
+                    {myVote === mode && (
+                      <span className="om-mark" aria-hidden="true">✔ 投票済み</span>
+                    )}
+                  </div>
+                ))}
+              </div>
               <button
+                className="om-secondary"
                 disabled={busy}
                 onClick={() => send({ type: "leave", matchId: m.id })}
               >

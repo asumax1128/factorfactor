@@ -47,7 +47,7 @@ const fs = require("fs");
       .waitFor();
     const styles = await p.locator(".or-difficulty").evaluateAll((es) =>
       es.map((e) => ({
-        color: getComputedStyle(e).borderTopColor,
+        color: getComputedStyle(e).borderLeftColor,
         bg: getComputedStyle(e).backgroundColor,
       })),
     );
