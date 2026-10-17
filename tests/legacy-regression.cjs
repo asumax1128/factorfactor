@@ -233,7 +233,10 @@ for (const [name, value] of Object.entries(before)) {
     ].includes(name)
   )
     continue;
-  assert.equal(after[name], value, "Shared function changed: " + name);
+  // Ver.6.0 (owner-approved): Nick may resolve its label with titleLabelOf (BADGES first, then the title catalog)
+  // instead of nickOf. That single identifier swap is the ONLY normalised difference; the rest of Nick is audited.
+  const now = name === "Nick" ? after[name].split('"name":"titleLabelOf"').join('"name":"nickOf"') : after[name];
+  assert.equal(now, value, "Shared function changed: " + name);
   unchanged++;
 }
 console.log(

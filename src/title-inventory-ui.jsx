@@ -8,15 +8,28 @@ export function TitleCinematic({muted=false,reducedMotion=false,onFinish=()=>{}}
  return <dialog ref={ref} className={'next-title-cinematic '+(reducedMotion?'reduced':'')} aria-label="称号獲得演出" onCancel={e=>{e.preventDefault();done()}}><div className="next-title-particles" aria-hidden="true">{Array.from({length:18},(_,i)=><i key={i} style={{'--i':i}}/>)}</div><div className="next-title-emblem" aria-hidden="true">×</div><div className="next-title-slash" aria-hidden="true"/><div className="next-title-reveal"><p>特別称号を獲得</p><img src="ui-next/logo-official.png" alt="FACTOR×FACTOR"/><strong>FACTOR×FACTOR</strong></div><div className="next-title-controls"><button onClick={()=>setSound(x=>!x)} aria-pressed={sound}>音声{sound?'ON':'OFF'}</button><button autoFocus onClick={done}>{reducedMotion?'閉じる':'スキップ・閉じる'}</button></div></dialog>;
 }
 export function TitleEquipControl({equip,id,name,earned}){
- const route=equip.routeOf(id),on=equip.isEquipped(id),st=equip.status?.id===id?equip.status:null,reason=equip.reasonOf(id,earned);
- const busy=equip.busy;
+ const route=equip.routeOf(id,earned),on=equip.isEquipped(id),st=equip.status?.id===id?equip.status:null,reason=equip.reasonOf(id,earned);
+ const busy=equip.busy,rating=equip.ratingTitle?.id===id&&!on;
  return <div className="next-title-equip" data-title-equip={id} data-equip-state={on?'on':route?'off':'disabled'}>
   {on&&<span className="next-title-equipped" data-equipped>✔ 装備中</span>}
   {route&&!on&&<button type="button" className="next-title-equip-btn" disabled={busy} onClick={()=>equip.onEquip(id)} aria-label={name+'を装備する'}>装備する</button>}
-  {route==='nick'&&on&&<button type="button" className="next-title-equip-btn off" disabled={busy} onClick={()=>equip.onUnequip(id)} aria-label={name+'をはずす'}>はずす</button>}
+  {route&&on&&<button type="button" className="next-title-equip-btn off" disabled={busy} onClick={()=>equip.onUnequip(id)} aria-label={name+'をはずす'}>はずす</button>}
   {!route&&<button type="button" className="next-title-equip-btn" disabled aria-label={name+'を装備する'} aria-describedby={'equip-why-'+id}>装備する</button>}
   {reason&&<span className="next-title-equip-why" id={'equip-why-'+id}>{reason}</span>}
-  {st&&<span className={'next-title-equip-status '+st.state} role={st.state==='failed'?'alert':'status'} data-equip-status={st.state}>{st.state==='saving'?(st.slow?'保存中…（通信が遅れています。そのままお待ちください）':'保存中…'):st.state==='saved'?st.message:st.message}</span>}
+  {rating&&<span className="next-title-equip-why" data-rating-title-note>ランキング称号として設定中です（従来の設定。ここでは変更しません）</span>}
+  {st&&<span className={'next-title-equip-status '+st.state} role={st.state==='failed'?'alert':'status'} data-equip-status={st.state}>{st.state==='saving'?(st.slow?'保存中…（通信が遅れています。そのままお待ちください）':'保存中…'):st.message}</span>}
+ </div>
+}
+// Summary of the current equip slot. Also the only place that can clear an equipped legacy title that is not in the 100-title list.
+export function TitleEquipCurrent({equip}){
+ const cur=equip.current,listed=id=>id===catalog.hidden.id||catalog.titles.some(t=>t.id===id);
+ const stx=equip.status&&!listed(equip.status.id)?equip.status:null;   // status of a title that has no row in the list (legacy-only id)
+ const statusEl=stx&&<span className={'next-title-equip-status '+stx.state} role={stx.state==='failed'?'alert':'status'} data-equip-status={stx.state}>{stx.state==='saving'?'保存中…':stx.message}</span>;
+ if(!cur)return statusEl?<div className="next-title-equip-current" data-equip-current-result>{statusEl}</div>:null;
+ return <div className="next-title-equip-current" data-equip-current={cur.id}>
+  <span>現在の装備：〈{cur.label}〉{!cur.inCatalog&&'（従来の称号）'}</span>
+  <button type="button" className="next-title-equip-btn off" disabled={equip.busy||!equip.real} onClick={()=>equip.onUnequip(cur.id)} aria-label="装備中の称号をはずす">はずす</button>
+  {statusEl}
  </div>
 }
 export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=true,presentationStore=null,equip=null}){
@@ -30,5 +43,5 @@ export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=
  },[state.hiddenOwned,presentationKey,presentationStore]);
  const closeScene=()=>{setScene(false);if(presentationStore){presentationStore.acknowledge().then(()=>setPresentationError('')).catch(()=>setPresentationError('閲覧状況を保存できませんでした。再視聴後に再試行します。'));return;}if(presentationKey)try{localStorage.setItem(presentationKey,'seen')}catch(e){}};
 
- return <section className="next-title-inventory" data-title-inventory><h3>称号一覧</h3><p>通常称号 {state.normal.length} / 100</p><div role="group" aria-label="称号の絞り込み">{[['all','すべて'],['earned','取得済み'],['locked','未取得']].map(([id,label])=><button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><ol>{catalog.titles.filter(t=>filter==='all'||(filter==='earned')===!!state.earned[t.id]).map(t=>{const e=state.earned[t.id];return <li key={t.id} data-title-id={t.id}><header><span>No.{t.number}</span><strong>{t.name}</strong><span aria-label={`${t.stars}つ星`}>{'★'.repeat(t.stars)}</span></header><p>{t.stars<=3?t.condition:'？？？'}</p><small>{e?'取得済み':'未取得'}{equipped===t.id?' ・ 装備中':''}{e?.at?` ・ ${new Date(e.at).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'})+(e.dateWasUnknown?'（確認日・取得日不明）':'')}`:e?' ・ 取得日未記録':''}</small>{equip&&<TitleEquipControl equip={equip} id={t.id} name={t.name} earned={!!e}/>}</li>})}</ol>{state.hiddenOwned&&<section className="next-title-special"><h4>FACTOR×FACTOR</h4><p>特別称号・取得済み</p><button onClick={()=>setScene(true)}>獲得演出を再視聴</button></section>}<p>未公開の取得条件は？？？と表示します。</p>{presentationError&&state.hiddenOwned&&<p role="alert">{presentationError}</p>}{scene&&state.hiddenOwned&&<TitleCinematic muted={muted} reducedMotion={window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} onFinish={closeScene}/>}</section>;
+ return <section className="next-title-inventory" data-title-inventory><h3>称号一覧</h3>{equip&&<TitleEquipCurrent equip={equip}/>}<p>通常称号 {state.normal.length} / 100</p><div role="group" aria-label="称号の絞り込み">{[['all','すべて'],['earned','取得済み'],['locked','未取得']].map(([id,label])=><button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><ol>{catalog.titles.filter(t=>filter==='all'||(filter==='earned')===!!state.earned[t.id]).map(t=>{const e=state.earned[t.id];return <li key={t.id} data-title-id={t.id}><header><span>No.{t.number}</span><strong>{t.name}</strong><span aria-label={`${t.stars}つ星`}>{'★'.repeat(t.stars)}</span></header><p>{t.stars<=3?t.condition:'？？？'}</p><small>{e?'取得済み':'未取得'}{equipped===t.id?' ・ 装備中':''}{e?.at?` ・ ${new Date(e.at).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'})+(e.dateWasUnknown?'（確認日・取得日不明）':'')}`:e?' ・ 取得日未記録':''}</small>{equip&&<TitleEquipControl equip={equip} id={t.id} name={t.name} earned={!!e}/>}</li>})}</ol>{state.hiddenOwned&&<section className="next-title-special"><h4>FACTOR×FACTOR</h4><p>特別称号・取得済み</p><button onClick={()=>setScene(true)}>獲得演出を再視聴</button>{equip&&<TitleEquipControl equip={equip} id={catalog.hidden.id} name={catalog.hidden.name} earned={true}/>}</section>}<p>未公開の取得条件は？？？と表示します。</p>{presentationError&&state.hiddenOwned&&<p role="alert">{presentationError}</p>}{scene&&state.hiddenOwned&&<TitleCinematic muted={muted} reducedMotion={window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} onFinish={closeScene}/>}</section>;
 }

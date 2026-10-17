@@ -3389,8 +3389,10 @@ async function migrateGuest(acct) {
   } catch (e) {}
 }
 const nickOf = id => BADGES.find(b => b.id === id) || null;
+// 装備中の称号の表示名：旧実績(BADGES)を優先し、無い称号(通常15件・隠し1件)は称号カタログから引く。
+const titleLabelOf = id => nickOf(id) || (window.TitleLabelsNext && window.TitleLabelsNext.of(id)) || null;
 function Nick({ id, size = 10, block }) {
-  const b = nickOf(id);
+  const b = titleLabelOf(id);
   if (!b) return null;
   const el = <span className="font-black whitespace-nowrap" style={{ color: '#b7791f', fontSize: size, fontFamily: "'Zen Maru Gothic', sans-serif" }}>〈{b.icon}{b.label}〉</span>;
   return block ? <div className="leading-none truncate">{el}</div> : el;
@@ -9735,11 +9737,6 @@ function AResultDetails({ report, me, names = {} }) {
 }
 // 二つ名(称号)の保存。旧モーダルと新プロフィールで同じ処理を使う（保存先 accounts/<key>/stats/nick・形式は従来どおり）。
 const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(id || null);
-// ランキング称号(onlineSparkV1 profile.title)の変更。ランキング画面と同じ equipTitle コマンドを同じトランスポートで送る。
-const equipRatedTitle = async (acct, title) => {
-  const t = window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot: makeBotProfile, learning: (id, rows) => flushOnlineLearn(acct, id, rows) });
-  try { await t.request({ type: 'equipTitle', title }); } finally { t.close(); }
-};
 function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   st = st || {};
   const historicalProfile = useRatingHistoryProfile(acctKey);
@@ -11268,7 +11265,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({equipNick,equipRatedTitle,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');

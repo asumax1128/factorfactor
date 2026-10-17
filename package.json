@@ -29,7 +29,7 @@
     "test:v6-c-hidden": "node tests/v6-c-hidden-browser.cjs",
     "test:title-client": "node --test tests/title-client-next.test.cjs && node tests/title-client-browser.cjs",
     "test:ranking-ui": "node tests/ranking-ui-browser.cjs && node tests/ranking-hub-browser.cjs",
-    "test:v6-title-equip": "node tests/v6-title-equip-browser.cjs",
+    "test:v6-title-equip": "node --test tests/title-equip-next.test.cjs && node tests/v6-title-equip-browser.cjs",
     "test:v6-play-frame": "node tests/v6-play-frame-browser.cjs",
     "test:v6-online-menu": "node tests/v6-online-menu-browser.cjs && node tests/v6-vote-state-browser.cjs",
     "test:result-shell": "node tests/next-battle-result-browser.cjs && node tests/result-solo-actions-browser.cjs && node tests/result-rated-browser.cjs && node tests/tournament-b2-browser.cjs",
