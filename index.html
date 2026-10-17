@@ -9736,7 +9736,8 @@ function AResultDetails({ report, me, names = {} }) {
   </section>;
 }
 // 二つ名(称号)の保存。旧モーダルと新プロフィールで同じ処理を使う（保存先 accounts/<key>/stats/nick・形式は従来どおり）。
-const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(id || null);
+// id が文字列なら（""＝明示的な装備解除 を含め）そのまま保存、それ以外は消去。
+const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(typeof id === 'string' ? id : null);
 function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   st = st || {};
   const historicalProfile = useRatingHistoryProfile(acctKey);
@@ -9752,7 +9753,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
   const pickNick = id => {
     const v = nick === id ? '' : id;
     setNick(v);
-    if (FB.db) equipNick(acctKey, v).catch(() => {});
+    if (FB.db) equipNick(acctKey, v).catch(() => {}); // v === '' は明示的な装備解除（新プロフィールと同じ）
     if (v) { const b = nickOf(v); FX.text(window.innerWidth / 2, window.innerHeight / 2, `〈${b.icon}${b.label}〉`, '#ffd54a', 26); fxSound('badge'); }
   };
   const box = (label, v, color, sub) => (
@@ -11243,7 +11244,7 @@ async function flushOnlineLearn(acct,matchId,rows,extra) {
   if(fresh&&extra){const ev={ok:0,pf:0,pt:{},lv:{},...extra};rows.forEach(r=>{if(!r.ok)return;ev.ok++;if(r.j==='Perfect')ev.pf++;if(r.pid)ev.pt[r.pid]=(ev.pt[r.pid]||0)+1;if(r.lv)ev.lv['L'+r.lv]=(ev.lv['L'+r.lv]||0)+1;});await missionEvent(acct,ev);}
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerProfile, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;
+const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerProfile, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;
 const OnlineRatedApp = OnlineComponents?.App;
 function DailyMissionsView({acct,onMode}){const prof=useProf(acct,0),mis=useMissions(acct,prof);return <section><MissionList acct={acct} rows={mis.rows} onGo={r=>onMode?.(r.go==='drilllv'||r.go==='drillpt'?'learn':r.go,r.go==='drillpt'?{drill:{lv:r.lv,pid:r.pid}}:r.go==='drilllv'?{drill:{lv:r.lv}}:null)}/></section>;}
 async function completeDailySolo(acct,attempt,game){

@@ -14,6 +14,20 @@
         return ((_a = H.DIFFICULTY_CONFIG[d]) == null ? void 0 : _a.label) || d;
       };
       const formatRating = H.RatingDisplay.format;
+      const titleValid = (id) => {
+        var _a, _b;
+        return !!(((_a = H.nickOf) == null ? void 0 : _a.call(H, id)) || ((_b = root.TitleLabelsNext) == null ? void 0 : _b.of(id)));
+      };
+      const rowTitle = (r, titles2) => {
+        var _a, _b, _c, _d;
+        const D = root.TitleDisplayNext;
+        if (!D)
+          return titles2[r.title] ? /* @__PURE__ */ React.createElement("small", null, titles2[r.title]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: (_b = (_a = r.cosmetics) == null ? void 0 : _a.stats) == null ? void 0 : _b.nick, block: true });
+        const d = D.resolve({ nick: (_d = (_c = r.cosmetics) == null ? void 0 : _c.stats) == null ? void 0 : _d.nick, title: r.title }, { valid: titleValid });
+        if (d.state === "nick") return H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: d.id, block: true });
+        if (d.state === "compat") return titles2[d.id] ? /* @__PURE__ */ React.createElement("small", null, titles2[d.id]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: d.id, block: true });
+        return null;
+      };
       const titles = {
         easy_adept: "\u30A4\u30FC\u30B8\u30FC\u306E\u9054\u4EBA",
         easy_master: "\u30A4\u30FC\u30B8\u30FC\u30DE\u30B9\u30BF\u30FC",
@@ -700,7 +714,7 @@
             const rows = ((_b2 = state == null ? void 0 : state.rankings) == null ? void 0 : _b2[tab]) || [];
             const status = !state ? "loading" : rows.length ? "ok" : "empty";
             return /* @__PURE__ */ React.createElement("div", { className: "rk-rating", "data-ranking": "rating" }, /* @__PURE__ */ React.createElement(R.RankingHead, { title: "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30E9\u30F3\u30AD\u30F3\u30B0" }), /* @__PURE__ */ React.createElement(R.Segmented, { label: "\u30E9\u30F3\u30AD\u30F3\u30B0\u306E\u96E3\u6613\u5EA6", items: [["easy", label("easy")], ["normal", label("normal")]], value: tab, onChange: setTab }), /* @__PURE__ */ React.createElement("section", { className: "rk-selfcard", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("span", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, (mine == null ? void 0 : mine.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(mine.rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_c2 = mine == null ? void 0 : mine.games) != null ? _c2 : 0, "\u6226", !!((_d2 = mine == null ? void 0 : mine.ghost) == null ? void 0 : _d2.games) && `\u30FB\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A${mine.ghost.games}\u6226`), /* @__PURE__ */ React.createElement("p", null, ((_e2 = state == null ? void 0 : state.ranks) == null ? void 0 : _e2[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("p", { className: "rk-foot" }, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0 \uFF0F ", tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30A4\u30FC\u30B8\u30FC\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30CE\u30FC\u30DE\u30EB\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), /* @__PURE__ */ React.createElement(R.ListState, { status, message: status === "loading" ? "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026" : "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093" }), status === "ok" && /* @__PURE__ */ React.createElement(R.RankList, { label: label(tab) + "\u30E9\u30F3\u30AD\u30F3\u30B0" }, rows.map((r) => {
-              var _a3, _b3, _c3, _d3;
+              var _a3, _b3;
               return /* @__PURE__ */ React.createElement(
                 R.RankRow,
                 {
@@ -710,8 +724,8 @@
                   onName: () => setSelectedPlayer(r),
                   self: !!(acct == null ? void 0 : acct.key) && r.key === acct.key,
                   value: formatRating(r.rating),
-                  extra: /* @__PURE__ */ React.createElement(React.Fragment, null, titles[r.title] ? /* @__PURE__ */ React.createElement("small", null, titles[r.title]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: (_b3 = (_a3 = r.cosmetics) == null ? void 0 : _a3.stats) == null ? void 0 : _b3.nick, block: true }), H.BadgeIcons && /* @__PURE__ */ React.createElement(H.BadgeIcons, { st: ((_c3 = r.cosmetics) == null ? void 0 : _c3.stats) || {}, max: 4 })),
-                  sub: `\u4EBA\u9593\u5BFE\u6226 ${r.statsKnown ? r.games : "\u2015"}\u6226\u30FB\u52DD\u5229 ${r.statsKnown ? r.w : "\u2015"}\u30FB\u6557\u5317 ${r.statsKnown ? r.l : "\u2015"}\u30FB\u52DD\u7387 ${r.statsKnown && r.games ? `${Math.round(r.w / r.games * 100)}%` : "\u2015"}` + (((_d3 = r.ghost) == null ? void 0 : _d3.games) ? `\u3000\u4E71\u5165\u5BFE\u6226\uFF1A${r.ghost.games}\u6226\u30FB${r.ghost.w}\u52DD ${r.ghost.l}\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09` : "") + (!r.statsKnown ? "\u3000\u65E7\u30EC\u30FC\u30C8\u3092\u5F15\u304D\u7D99\u3044\u3060\u8A18\u9332\u3067\u3059\u3002\u96E3\u6613\u5EA6\u5225\u306E\u6226\u7E3E\u306F\u672A\u8A18\u9332\u3002" : "")
+                  extra: /* @__PURE__ */ React.createElement(React.Fragment, null, rowTitle(r, titles), H.BadgeIcons && /* @__PURE__ */ React.createElement(H.BadgeIcons, { st: ((_a3 = r.cosmetics) == null ? void 0 : _a3.stats) || {}, max: 4 })),
+                  sub: `\u4EBA\u9593\u5BFE\u6226 ${r.statsKnown ? r.games : "\u2015"}\u6226\u30FB\u52DD\u5229 ${r.statsKnown ? r.w : "\u2015"}\u30FB\u6557\u5317 ${r.statsKnown ? r.l : "\u2015"}\u30FB\u52DD\u7387 ${r.statsKnown && r.games ? `${Math.round(r.w / r.games * 100)}%` : "\u2015"}` + (((_b3 = r.ghost) == null ? void 0 : _b3.games) ? `\u3000\u4E71\u5165\u5BFE\u6226\uFF1A${r.ghost.games}\u6226\u30FB${r.ghost.w}\u52DD ${r.ghost.l}\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09` : "") + (!r.statsKnown ? "\u3000\u65E7\u30EC\u30FC\u30C8\u3092\u5F15\u304D\u7D99\u3044\u3060\u8A18\u9332\u3067\u3059\u3002\u96E3\u6613\u5EA6\u5225\u306E\u6226\u7E3E\u306F\u672A\u8A18\u9332\u3002" : "")
                 }
               );
             })));
@@ -724,7 +738,7 @@
             },
             label(d)
           ))), /* @__PURE__ */ React.createElement("section", { className: "or-self", "aria-label": "\u81EA\u5206\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" }, /* @__PURE__ */ React.createElement("h3", null, label(tab), " \u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), /* @__PURE__ */ React.createElement("strong", { className: "or-rating" }, ((_e = (_d = state == null ? void 0 : state.ratings) == null ? void 0 : _d[tab]) == null ? void 0 : _e.rating) == null ? "\u8AAD\u8FBC\u4E2D" : formatRating(state.ratings[tab].rating)), /* @__PURE__ */ React.createElement("p", null, "\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u6226 ", (_h = (_g = (_f = state == null ? void 0 : state.ratings) == null ? void 0 : _f[tab]) == null ? void 0 : _g.games) != null ? _h : 0, "\u6226"), !!((_k = (_j = (_i = state == null ? void 0 : state.ratings) == null ? void 0 : _i[tab]) == null ? void 0 : _j.ghost) == null ? void 0 : _k.games) && /* @__PURE__ */ React.createElement("p", null, "\u30B4\u30FC\u30B9\u30C8\u30FBBOT\uFF1A", state.ratings[tab].ghost.games, "\u6226"), /* @__PURE__ */ React.createElement("p", null, ((_l = state == null ? void 0 : state.ranks) == null ? void 0 : _l[tab]) ? `\u81EA\u5206\u306E\u9806\u4F4D\uFF1A${state.ranks[tab]}\u4F4D` : "\u81EA\u5206\u306E\u9806\u4F4D\uFF1A\u672A\u63B2\u8F09")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, label(tab), "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", { className: "or-rule" }, tab === "easy" ? "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30A4\u30FC\u30B8\u30FC\u30EC\u30FC\u30C6\u30A3\u30F3\u30B01501\u4EE5\u4E0A\uFF08\u5BFE\u6226\u6570\u4E0D\u554F\uFF09" : "\u63B2\u8F09\u6761\u4EF6\uFF1A\u30CE\u30FC\u30DE\u30EB\u306E\u6709\u52B9\u306A\u4EBA\u9593\u5BFE\u62263\u6226\u4EE5\u4E0A"), !state ? /* @__PURE__ */ React.createElement("p", null, "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026") : !((_n = (_m = state.rankings) == null ? void 0 : _m[tab]) == null ? void 0 : _n.length) ? /* @__PURE__ */ React.createElement("p", null, "\u63B2\u8F09\u6761\u4EF6\u3092\u6E80\u305F\u3059\u30D7\u30EC\u30A4\u30E4\u30FC\u306F\u307E\u3060\u3044\u307E\u305B\u3093") : /* @__PURE__ */ React.createElement("ol", { className: "or-ranking" }, state.rankings[tab].map((r) => {
-            var _a2, _b2, _c2, _d2;
+            var _a2, _b2;
             return /* @__PURE__ */ React.createElement("li", { key: r.key }, /* @__PURE__ */ React.createElement("span", null, r.rank, "\u4F4D"), /* @__PURE__ */ React.createElement("div", { className: "or-player" }, /* @__PURE__ */ React.createElement(
               "button",
               {
@@ -732,10 +746,10 @@
                 onClick: () => setSelectedPlayer(r)
               },
               r.name
-            ), titles[r.title] ? /* @__PURE__ */ React.createElement("small", null, titles[r.title]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: (_b2 = (_a2 = r.cosmetics) == null ? void 0 : _a2.stats) == null ? void 0 : _b2.nick, block: true }), H.BadgeIcons && /* @__PURE__ */ React.createElement(
+            ), rowTitle(r, titles), H.BadgeIcons && /* @__PURE__ */ React.createElement(
               H.BadgeIcons,
               {
-                st: ((_c2 = r.cosmetics) == null ? void 0 : _c2.stats) || {},
+                st: ((_a2 = r.cosmetics) == null ? void 0 : _a2.stats) || {},
                 max: 4
               }
             )), /* @__PURE__ */ React.createElement("strong", null, formatRating(r.rating)), /* @__PURE__ */ React.createElement(
@@ -748,7 +762,7 @@
               /* @__PURE__ */ React.createElement("span", null, "\u52DD\u5229 ", r.statsKnown ? r.w : "\u2015"),
               /* @__PURE__ */ React.createElement("span", null, "\u6557\u5317 ", r.statsKnown ? r.l : "\u2015"),
               /* @__PURE__ */ React.createElement("span", null, "\u52DD\u7387", " ", r.statsKnown && r.games ? `${Math.round(r.w / r.games * 100)}%` : "\u2015"),
-              !!((_d2 = r.ghost) == null ? void 0 : _d2.games) && /* @__PURE__ */ React.createElement("small", null, "\u4E71\u5165\u5BFE\u6226\uFF1A", r.ghost.games, "\u6226\u30FB", r.ghost.w, "\u52DD", " ", r.ghost.l, "\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09"),
+              !!((_b2 = r.ghost) == null ? void 0 : _b2.games) && /* @__PURE__ */ React.createElement("small", null, "\u4E71\u5165\u5BFE\u6226\uFF1A", r.ghost.games, "\u6226\u30FB", r.ghost.w, "\u52DD", " ", r.ghost.l, "\u6557\uFF08\u4EBA\u9593\u6226\u7E3E\u3068\u306F\u5225\u96C6\u8A08\uFF09"),
               !r.statsKnown && /* @__PURE__ */ React.createElement("small", null, "\u65E7\u30EC\u30FC\u30C8\u3092\u5F15\u304D\u7D99\u3044\u3060\u8A18\u9332\u3067\u3059\u3002\u96E3\u6613\u5EA6\u5225\u306E\u6226\u7E3E\u306F\u672A\u8A18\u9332\u3002")
             ));
           })))), !!Object.keys((state == null ? void 0 : state.badges) || {}).length && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h3", null, "\u7372\u5F97\u3057\u305F\u79F0\u53F7"), /* @__PURE__ */ React.createElement("div", { className: "or-titles" }, Object.keys(state.badges).filter((k) => state.badges[k]).map((k) => /* @__PURE__ */ React.createElement(
@@ -756,7 +770,15 @@
             {
               key: k,
               disabled: busy,
-              onClick: () => send({ type: "equipTitle", title: k })
+              onClick: () => (
+                // existing equipTitle (profile.title, kept for old clients) + the unified equip slot (stats/nick), so every screen agrees
+                send({ type: "equipTitle", title: k }).then((v) => {
+                  if (v && H.equipNick && (acct == null ? void 0 : acct.key) && titleValid(k))
+                    return H.equipNick(acct.key, k).catch(
+                      () => setError("\u7D71\u4E00\u306E\u88C5\u5099\u67A0\u3078\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044")
+                    );
+                })
+              )
             },
             titles[k],
             "\u3092\u88C5\u5099"

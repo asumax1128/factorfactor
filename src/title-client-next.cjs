@@ -73,7 +73,7 @@ async function sync({db,account,computeBadgeIds=()=>[]}){
   else if(isEmpty(stats)){canFreeze=false;freezeDeferred='STATS_EMPTY';}
  }
  const legacy=legacyIds({badgeIds:computeBadgeIds(stats||{}),flags:[daily,stats?.ghostTitles,sparkProfile?.badges]});
- const p=plan({account:key,snapshot,awards,legacy,equipped:stats?.nick??null,facts:{sparkProfile},canFreeze});
+ const p=plan({account:key,snapshot,awards,legacy,equipped:stats?.nick||null,facts:{sparkProfile},canFreeze});
  let snapshotError=null;
  if(p.snapshot){
   try{await sRef.set(p.snapshot);}catch(e){/* a concurrent device froze it first, or rules deny: re-read decides */}

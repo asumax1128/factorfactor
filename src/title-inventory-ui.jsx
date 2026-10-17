@@ -9,14 +9,14 @@ export function TitleCinematic({muted=false,reducedMotion=false,onFinish=()=>{}}
 }
 export function TitleEquipControl({equip,id,name,earned}){
  const route=equip.routeOf(id,earned),on=equip.isEquipped(id),st=equip.status?.id===id?equip.status:null,reason=equip.reasonOf(id,earned);
- const busy=equip.busy,rating=equip.ratingTitle?.id===id&&!on;
+ const busy=equip.busy,compat=equip.compatId===id;
  return <div className="next-title-equip" data-title-equip={id} data-equip-state={on?'on':route?'off':'disabled'}>
   {on&&<span className="next-title-equipped" data-equipped>✔ 装備中</span>}
   {route&&!on&&<button type="button" className="next-title-equip-btn" disabled={busy} onClick={()=>equip.onEquip(id)} aria-label={name+'を装備する'}>装備する</button>}
   {route&&on&&<button type="button" className="next-title-equip-btn off" disabled={busy} onClick={()=>equip.onUnequip(id)} aria-label={name+'をはずす'}>はずす</button>}
   {!route&&<button type="button" className="next-title-equip-btn" disabled aria-label={name+'を装備する'} aria-describedby={'equip-why-'+id}>装備する</button>}
   {reason&&<span className="next-title-equip-why" id={'equip-why-'+id}>{reason}</span>}
-  {rating&&<span className="next-title-equip-why" data-rating-title-note>ランキング称号として設定中です（従来の設定。ここでは変更しません）</span>}
+  {compat&&<span className="next-title-equip-why" data-rating-title-note>従来のランキング称号を表示中です。はずす、または別の称号を装備すると、統一の装備枠の設定に切り替わります。</span>}
   {st&&<span className={'next-title-equip-status '+st.state} role={st.state==='failed'?'alert':'status'} data-equip-status={st.state}>{st.state==='saving'?(st.slow?'保存中…（通信が遅れています。そのままお待ちください）':'保存中…'):st.message}</span>}
  </div>
 }
@@ -27,7 +27,7 @@ export function TitleEquipCurrent({equip}){
  const statusEl=stx&&<span className={'next-title-equip-status '+stx.state} role={stx.state==='failed'?'alert':'status'} data-equip-status={stx.state}>{stx.state==='saving'?'保存中…':stx.message}</span>;
  if(!cur)return statusEl?<div className="next-title-equip-current" data-equip-current-result>{statusEl}</div>:null;
  return <div className="next-title-equip-current" data-equip-current={cur.id}>
-  <span>現在の装備：〈{cur.label}〉{!cur.inCatalog&&'（従来の称号）'}</span>
+  <span>現在の装備：〈{cur.label}〉{!cur.inCatalog&&cur.label!=='表示できない称号'&&'（従来の称号）'}</span>
   <button type="button" className="next-title-equip-btn off" disabled={equip.busy||!equip.real} onClick={()=>equip.onUnequip(cur.id)} aria-label="装備中の称号をはずす">はずす</button>
   {statusEl}
  </div>

@@ -6,6 +6,17 @@
       root.OnlineSpark?.performance?.mark(kind, detail);
     const label = (d) => H.DIFFICULTY_CONFIG[d]?.label || d;
     const formatRating = H.RatingDisplay.format;
+    // Ver.6.0 display rule (stats.nick > "" means cleared > legacy profile.title only when nick is absent).
+    const titleValid = (id) => !!(H.nickOf?.(id) || root.TitleLabelsNext?.of(id));
+    const rowTitle = (r, titles) => {
+      const D = root.TitleDisplayNext;
+      if (!D)
+        return titles[r.title] ? <small>{titles[r.title]}</small> : H.Nick && <H.Nick id={r.cosmetics?.stats?.nick} block />;
+      const d = D.resolve({ nick: r.cosmetics?.stats?.nick, title: r.title }, { valid: titleValid });
+      if (d.state === "nick") return H.Nick && <H.Nick id={d.id} block />;
+      if (d.state === "compat") return titles[d.id] ? <small>{titles[d.id]}</small> : H.Nick && <H.Nick id={d.id} block />;
+      return null;
+    };
     const titles = {
       easy_adept: "イージーの達人",
       easy_master: "イージーマスター",
@@ -1008,7 +1019,7 @@
                           <R.RankRow key={r.key} rank={r.rank} name={r.name} onName={() => setSelectedPlayer(r)} self={!!acct?.key && r.key === acct.key}
                             value={formatRating(r.rating)}
                             extra={<>
-                              {titles[r.title] ? <small>{titles[r.title]}</small> : H.Nick && <H.Nick id={r.cosmetics?.stats?.nick} block />}
+                              {rowTitle(r, titles)}
                               {H.BadgeIcons && <H.BadgeIcons st={r.cosmetics?.stats || {}} max={4} />}
                             </>}
                             sub={`人間対戦 ${r.statsKnown ? r.games : "―"}戦・勝利 ${r.statsKnown ? r.w : "―"}・敗北 ${r.statsKnown ? r.l : "―"}・勝率 ${r.statsKnown && r.games ? `${Math.round((r.w / r.games) * 100)}%` : "―"}`
@@ -1072,13 +1083,7 @@
                           >
                             {r.name}
                           </button>
-                          {titles[r.title] ? (
-                            <small>{titles[r.title]}</small>
-                          ) : (
-                            H.Nick && (
-                              <H.Nick id={r.cosmetics?.stats?.nick} block />
-                            )
-                          )}
+                          {rowTitle(r, titles)}
                           {H.BadgeIcons && (
                             <H.BadgeIcons
                               st={r.cosmetics?.stats || {}}
@@ -1131,7 +1136,15 @@
                         <button
                           key={k}
                           disabled={busy}
-                          onClick={() => send({ type: "equipTitle", title: k })}
+                          onClick={() =>
+                            // existing equipTitle (profile.title, kept for old clients) + the unified equip slot (stats/nick), so every screen agrees
+                            send({ type: "equipTitle", title: k }).then((v) => {
+                              if (v && H.equipNick && acct?.key && titleValid(k))
+                                return H.equipNick(acct.key, k).catch(() =>
+                                  setError("統一の装備枠へ保存できませんでした。通信状態をご確認のうえ、もう一度お試しください"),
+                                );
+                            })
+                          }
                         >
                           {titles[k]}を装備
                         </button>
