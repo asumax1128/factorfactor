@@ -15,7 +15,7 @@ const holder = () => ({ rating: 1600, exp: 900, games: 40, w: 25, l: 12, d: 3, A
       const t = await open({ tree });
       assert.deepEqual(await t.page.evaluate(() => [typeof window.TitleKeepNext.ensureKeep, typeof window.TitleKeepNext.freezeOnLogin, typeof window.FXF_KEEP_DIAG.note]), ["function", "function", "function"], "the bundle publishes the keep module and the diagnostics exist");
       const s = tree.games.factor.accounts.ateacher.stats;
-      assert.equal(s.tk.v, 1); assert.deepEqual(s.tk.ids, { handi: 1, streak10: 1, streak30: 1 });
+      assert.equal(s.tk.v, 1); assert.deepEqual(s.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1 });
       assert.deepEqual(s.tv2.base, { games: 40, Aw: 12, Bw: 13 });
       const { tk, tv2, ...rest } = s; assert.deepEqual(rest, before, "old stats and the equipped title are untouched");
       assert.equal(t.writes.filter(isStatsWrite).length, 1, "exactly one stats write");

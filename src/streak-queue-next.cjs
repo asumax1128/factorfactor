@@ -45,8 +45,7 @@ function create({ db, key, storage }) {
   function enqueue(e) {
     if (!Spark.validEntry(e)) return false;
     const q = read();
-    const at = q.findIndex((x) => x.id === e.id);
-    if (at < 0) q.push(e); else if (e.kind === 'ratings') q[at] = e; // a newer rating snapshot replaces the waiting one
+    if (!q.some((x) => x.id === e.id)) q.push(e);
     write(q.slice(-Streak.LEDGER_MAX));
     return true;
   }

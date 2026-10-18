@@ -22,18 +22,17 @@ test("online_first: one online match against a registered player or a Spark huma
   assert.equal(has({ vs: { ab: { w: 1 } } }, "online_first"), true);
   assert.equal(has({ og: 1 }, "online_first"), true);
 });
-test("wins100_ab and dual50 add room wins and Spark wins by method (C and ghost wins are not counted)", () => {
+test("wins100_ab adds room wins and Spark wins by method (C and ghost wins are not counted); dual50 (二刀皆伝) is deferred and never acquired", () => {
   assert.equal(has({ A: { w: 60 }, B: { w: 39 } }, "wins100_ab"), false);
   assert.equal(has({ A: { w: 60 }, B: { w: 30 }, sw: { B: 10 } }, "wins100_ab"), true);
-  assert.equal(has({ A: { w: 50 }, B: { w: 49 } }, "dual50"), false);
-  assert.equal(has({ A: { w: 20 }, B: { w: 20 }, sw: { A: 30, B: 30 } }, "dual50"), true);
-  assert.equal(has({ A: { w: 100 }, B: { w: 0 } }, "dual50"), false);
   assert.equal(has({ C: { w: 999 } }, "wins100_ab"), false);
+  assert.equal(has({ A: { w: 20 }, B: { w: 20 }, sw: { A: 30, B: 30 } }, "dual50"), false, "公開延期: 新規取得を保留");
+  assert.equal(has({ A: { w: 1000 }, B: { w: 1000 } }, "dual50"), false);
 });
 // the exact statements from the result screen
 const line = (re) => { const m = html.split("\n").filter((l) => re.test(l)); return m; };
 const giantLine = line(/add\.giant250Wins = 1/)[0].trim().replace(/\/\/.*$/, "");
-const run250 = (ctx) => { const add = {}; vm.runInNewContext(giantLine, { add, RATING_INIT: 1500, ...ctx }); return add; };
+const run250 = (ctx) => { const add = {}; vm.runInNewContext(giantLine, { add, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), ...ctx }); return add; };
 test("giant250: a registered opponent who was 250+ above at the start and lost to me; 249, CPU/guests, losses and teammates do not count", () => {
   const base = { foesR: ["b"], accts: { b: "kb" }, rel: () => "w", rt: { me: 1500, b: 1750 }, me: "me" };
   assert.deepEqual(run250(base), { giant250Wins: 1 });

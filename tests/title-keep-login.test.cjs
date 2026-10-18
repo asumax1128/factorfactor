@@ -37,7 +37,7 @@ test("first login after Ver.6.0: tk/tv2 are frozen from the real stats, nothing 
   const before = clone(st.value);
   assert.deepEqual(await run(db), { status: "frozen" });
   assert.equal(st.commits, 1);
-  assert.deepEqual(st.value.tk, { v: 1, at: 777, ids: { handi: 1, streak10: 1, streak30: 1 } });
+  assert.deepEqual(st.value.tk, { v: 1, at: 777, ids: { dual: 1, handi: 1, streak10: 1, streak30: 1 } });
   assert.deepEqual(st.value.tv2.base, { games: 50, Aw: 20, Bw: 18 });
   const { tk, tv2, ...rest } = st.value;
   assert.deepEqual(rest, before, "old stats, nick (equipment) and every counter untouched");
@@ -69,7 +69,7 @@ test("a transaction that starts from an empty cache is never committed as an emp
   const { db, st } = makeDb(holder(), { staleFirst: true });
   assert.deepEqual(await run(db), { status: "frozen" });
   assert.equal(st.commits, 1);
-  assert.deepEqual(st.value.tk.ids, { handi: 1, streak10: 1, streak30: 1 });
+  assert.deepEqual(st.value.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1 });
 });
 test("a transaction failure writes nothing, reports a code, and the holder is still held (next login retries)", async () => {
   const { db, st } = makeDb(holder(), { txError: true });
@@ -91,7 +91,7 @@ test("two devices logging in together freeze once; a Ver.5.25 writer racing in b
   const r1 = await run(a.db);
   assert.equal(r1.status, "frozen");
   assert.equal(a.st.value.maxStreak, 41);
-  assert.deepEqual(a.st.value.tk.ids, { handi: 1, streak10: 1, streak30: 1 }, "built from the data that was committed");
+  assert.deepEqual(a.st.value.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1 }, "built from the data that was committed");
   assert.deepEqual(await run(a.db), { status: "present" }, "the second device does nothing");
   assert.equal(a.st.commits, 1);
 });
@@ -99,7 +99,7 @@ test("an unusable tk is rebuilt from the legacy counters; a missing tv2 is added
   const s = holder(); s.tk = { v: 1, ids: { handi: 0 } };
   const { db, st } = makeDb(s);
   assert.deepEqual(await run(db), { status: "frozen" });
-  assert.deepEqual(st.value.tk.ids, { handi: 1, streak10: 1, streak30: 1 });
+  assert.deepEqual(st.value.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1 });
   const t = holder(); Keep.ensureKeep(t, 1); delete t.tv2;
   const m = makeDb(t);
   assert.deepEqual(await run(m.db), { status: "frozen" });

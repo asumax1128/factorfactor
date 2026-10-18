@@ -11,8 +11,9 @@
 //
 // A1 only creates these records. It never changes how a title is earned or shown.
 
-// Frozen copies of the legacy conditions (index.html BADGES, exact same expressions). Do NOT edit these when the live
+// Frozen copies of the legacy conditions (index.html BADGES, exact same expressions as Ver.5.25). Do NOT edit these when the live
 // conditions change: they define what "already held" meant under Ver.5.25.
+const isObjLocal = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const LEGACY_TESTS = Object.freeze({
   handi: (st) => (st.handiWins || 0) >= 1,
   streak10: (st) => (st.maxStreak || 0) >= 10,
@@ -22,6 +23,13 @@ const LEGACY_TESTS = Object.freeze({
   cancel500: (st) => (st.cancelTotal || 0) >= 500,
   cancel2000: (st) => (st.cancelTotal || 0) >= 2000,
   darkhorse: (st) => (st.darkHorse || 0) >= 1,
+  // Ver.6.0 release adjustment: titles whose NEW acquisition is suspended (deferred) keep their legacy holders through tk.
+  dual: (st) => ((isObjLocal(st.A) ? st.A.w : 0) || 0) >= 10 && ((isObjLocal(st.B) ? st.B.w : 0) || 0) >= 10,
+  rgold: (st) => (st.maxRating || 0) >= 1580,
+  master1600: (st) => (st.maxRating || 0) >= 1600,
+  master1700: (st) => (st.maxRating || 0) >= 1700,
+  rmaster: (st) => (st.maxRating || 0) >= 1820,
+  master1900: (st) => (st.maxRating || 0) >= 1900,
 });
 const KEEP_IDS = Object.freeze(Object.keys(LEGACY_TESTS));
 

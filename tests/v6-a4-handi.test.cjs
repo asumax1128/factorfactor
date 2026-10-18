@@ -19,7 +19,7 @@ function world(initial, { keep = Keep } = {}) {
   const sandbox = {
     window: keep ? { TitleKeepNext: keep } : {},
     titleLabelOf: (id) => Labels.resolve(id, null),
-    isReal: () => true, DBX: null, RATING_INIT: 1500, SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
+    isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
     FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} },
     FB: { db: { ref: () => ({ transaction: async (cb) => {
       const out = cb(db.value === null ? null : clone(db.value));

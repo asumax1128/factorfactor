@@ -8,7 +8,7 @@ const code = cut("const BADGES = [", "function AchievementAuditPanel") + "\n" + 
 function world(initial) {
   const store = { value: clone(initial) };
   const sandbox = {
-    window: { TitleKeepNext: Keep }, console, titleLabelOf: (id) => Labels.resolve(id, null), isReal: (a) => !!(a && a.key), DBX: null, RATING_INIT: 1500, SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
+    window: { TitleKeepNext: Keep }, console, titleLabelOf: (id) => Labels.resolve(id, null), isReal: (a) => !!(a && a.key), DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
     FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(),
     FB: { db: { ref: () => ({ transaction: async (cb) => { const out = cb(clone(store.value)); if (out === undefined) return { committed: false }; store.value = clone(out); return { committed: true }; } }) } },
   };

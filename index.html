@@ -1988,6 +1988,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     const gotExp = finalCaught > 0 ? 5 + finalCaught * 2 + (finalCaught >= DIFFICULTY_CONFIG[difficulty].clearCount ? 20 : 0) : 0;
     setSoloExp(null);
     if (gotExp) addExp(acct, gotExp).then(r => setSoloExp(r));
+    if (nextScreen === 'gameover') statsTx(acct, s => { s.soloPlays = (s.soloPlays || 0) + 1; }); // Ver.6.0：ソロの完了したプレイを1回（やめるは含まない）。通算戦数用
     setRunSummary({ maxCombo: soloMaxCombo.current, log: runLogRef.current.slice() }); // 表示専用：リセット前の写し
     flushLearn(acct, learnRef.current, { solo: 1, clear: finalCaught >= DIFFICULTY_CONFIG[difficulty].clearCount ? 1 : 0, combo: soloMaxCombo.current }); learnRef.current = []; soloMaxCombo.current = 0;
     // 自分の過去ベストを更新したら、次からのゴーストにする
@@ -7598,12 +7599,12 @@ const CPU_LEVELS = {
 const BADGES = [
   ...[['daily_easy_king','DEキング','イージー'],['daily_normal_king','DNキング','ノーマル'],['daily_hard_king','DHキング','ハード'],['daily_king','デイリーキング','全3部門']].map(([id,label,d])=>({id,g:id,r:4,icon:'👑',label,desc:`デイリー${d}優勝`,test:st=>!!st.dailyTitles?.[id]})),
   // g：系統（同じ系統は一番上だけ名前の横に出す） r：めずらしさ（大きいほど先に出す） desc：取り方
-  { id: 'first', g: 'first', r: 1, icon: '🌱', label: 'はじめの一歩', desc: '初めて勝つ', test: st => (st.w || 0) >= 1 },
-  { id: 'lose50', g: 'lose', r: 2, icon: '🧱', label: '七転び八起き', desc: '負け50回（それでも続けた！）', test: st => (st.l || 0) >= 50 },
-  { id: 'games100', g: 'games', r: 2, icon: '💯', label: '百戦錬磨', desc: '100戦する', test: st => (st.games || 0) + (+st.sg || 0) + (+st.gg || 0) >= 100 },
+  { id: 'first', g: 'first', r: 1, icon: '🌱', label: 'はじめの一歩', desc: '初めて勝つ', test: st => (st.w || 0) + (+st.sWins || 0) >= 1 },
+  { id: 'lose50', g: 'lose', r: 2, icon: '🧱', label: '七転び八起き', desc: '負け50回（それでも続けた！）', test: st => (st.l || 0) + (+st.sLoss || 0) >= 50 },
+  { id: 'games100', g: 'games', r: 2, icon: '💯', label: '百戦錬磨', desc: '100戦する', test: st => (st.games || 0) + (+st.sg || 0) + (+st.gg || 0) + (+st.soloPlays || 0) + (+(st.wk || {}).runs || 0) >= 100 },
   { id: 'rival20', g: 'rival', r: 2, icon: '🤝', label: '永遠のライバル', desc: '同じ相手と20戦', test: st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20) },
   { id: 'wide10', g: 'wide', r: 1, icon: '🌏', label: '顔が広い', desc: '10人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 10 },
-  { id: 'dual', g: 'dual', r: 2, icon: '⚖️', label: '二刀流', desc: 'A・Bそれぞれで10勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) >= 10 && ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 10 },
+  { id: 'dual', g: 'dual', r: 2, icon: '⚖️', label: '二刀流', desc: 'A・Bそれぞれで10勝', test: st => keptTitle(st, 'dual', s => ((s.A || {}).w || 0) >= 10 && ((s.B || {}).w || 0) >= 10) }, /* Ver.6.0 公開調整：新規取得を保留（既得はtkで保護） */
   { id: 'streak10', g: 'streak', r: 2, icon: '🔥', label: '10連勝', desc: '10連勝する', test: st => ((st.sk || {}).best || 0) >= 10 || keptTitle(st, 'streak10', s => (s.maxStreak || 0) >= 10) },
   { id: 'streak30', g: 'streak', r: 4, icon: '🔥', label: '30連勝', desc: '30連勝する', test: st => ((st.sk || {}).best || 0) >= 30 || keptTitle(st, 'streak30', s => (s.maxStreak || 0) >= 30) },
   { id: 'streak50', g: 'streak', r: 5, icon: '🔥', label: '50連勝', desc: '50連勝する', test: st => ((st.sk || {}).best || 0) >= 50 || keptTitle(st, 'streak50', s => (s.maxStreak || 0) >= 50) },
@@ -7614,7 +7615,7 @@ const BADGES = [
   { id: 'perfect1000', g: 'perfect', r: 5, icon: '👑', label: 'Perfect 1000回', desc: 'Perfect を通算1000回', test: st => (st.perfects || 0) >= 1000 },
   { id: 'comeback', g: 'comeback', r: 2, icon: '🔄', label: '逆転勝ち', desc: '不利な展開からひっくり返して勝つ', test: st => (st.comebacks || 0) >= 1 },
   { id: 'comeback10', g: 'comeback', r: 4, icon: '🔄', label: '逆転の鬼', desc: '逆転勝ち10回', test: st => (st.comebacks || 0) >= 10 },
-  { id: 'master1700', g: 'master', r: 4, icon: '👑', label: '因数分解マスター', desc: 'レート1700に到達', test: st => Math.max(st.maxRating || 0, (st.sx || {}).e || 0) >= 1700 },
+  { id: 'master1700', g: 'master', r: 4, icon: '👑', label: '因数分解マスター', desc: 'レート1700に到達', test: st => keptTitle(st, 'master1700', s => (s.maxRating || 0) >= 1700) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
   { id: 'tour1', g: 'tour', r: 3, icon: '🏆', label: 'クラス王', desc: 'クラス大会で優勝', test: st => (st.tourWins || 0) >= 1 },
   { id: 'tour3', g: 'tour', r: 5, icon: '🏆', label: '三冠王', desc: 'クラス大会で3回優勝', test: st => (st.tourWins || 0) >= 3 },
   { id: 'flash', g: 'flash', r: 3, icon: '⚡', label: '光速の因数分解', desc: '1問を1秒以内に正解', test: st => st.bestMs != null && st.bestMs <= 1000 },
@@ -7630,9 +7631,9 @@ const BADGES = [
   { id: 'lv9', g: 'lv9', r: 4, icon: '🧠', label: 'Lv.9の壁', desc: 'Lv.9の問題を Perfect で正解', test: st => (st.lv9p || 0) >= 1 },
   { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '🐸', label: 'お手つき大王', desc: 'Aでお手つき通算100回', test: st => (st.otetsuki || 0) >= 100 },
   { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★を背負って勝つ', test: st => (st.handiSelf || 0) >= 1 || (() => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes('handi'); } catch (e) {} return (st.handiWins || 0) >= 1; })() },
-  { id: 'games300', g: 'games', r: 4, icon: '🏯', label: '修行の道', desc: '300戦する', test: st => (st.games || 0) + (+st.sg || 0) + (+st.gg || 0) >= 300 },
-  { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => Math.max(st.maxRating || 0, (st.sx || {}).e || 0) >= 1600 },
-  { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => Math.max(st.maxRating || 0, (st.sx || {}).e || 0) >= 1900 },
+  { id: 'games300', g: 'games', r: 4, icon: '🏯', label: '修行の道', desc: '300戦する', test: st => (st.games || 0) + (+st.sg || 0) + (+st.gg || 0) + (+st.soloPlays || 0) + (+(st.wk || {}).runs || 0) >= 300 },
+  { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => keptTitle(st, 'master1600', s => (s.maxRating || 0) >= 1600) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
+  { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => keptTitle(st, 'master1900', s => (s.maxRating || 0) >= 1900) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
   { id: 'combo30', g: 'combo', r: 4, icon: '🌋', label: 'コンボの神', desc: '1試合で30コンボ', test: st => (st.maxCombo || 0) >= 30 },
   { id: 'cancel2000', g: 'cancel', r: 4, icon: '🏰', label: '難攻不落', desc: '攻撃を累計2000回無効化', test: st => (st.cancelFull || 0) >= 2000 || keptTitle(st, 'cancel2000', s => (s.cancelTotal || 0) >= 2000) },
   { id: 'ojama500', g: 'ojama', r: 4, icon: '😈', label: 'おじゃま魔王', desc: 'おじゃまタイルを通算500枚送る', test: st => (st.ojSent || 0) >= 500 },
@@ -7648,8 +7649,8 @@ const BADGES = [
   { id: 'calm', g: 'calm', r: 3, icon: '🧘', label: '冷静沈着', desc: 'Aでお手つき0のまま、6問以上取って勝つ', test: st => (st.calmWins || 0) >= 1 },
   { id: 'flawless', g: 'flawless', r: 3, icon: '💎', label: '無傷の勝利', desc: 'Bで攻撃を一度も受けずに勝つ', test: st => (st.flawlessWins || 0) >= 1 },
   { id: 'nosp', g: 'nosp', r: 3, icon: '🥋', label: '必殺技いらず', desc: 'B方式で必殺技を一度も使わずに勝つ', test: st => (st.noSpWins || 0) >= 1 },
-  { id: 'rgold', g: 'rank', r: 2, icon: '🥇', label: 'ゴールドの風格', desc: 'ランク帯ゴールド（レート1580）に到達', test: st => Math.max(st.maxRating || 0, (st.sx || {}).e || 0) >= 1580 },
-  { id: 'rmaster', g: 'rank', r: 4, icon: '👑', label: '頂点に立つ者', desc: 'ランク帯マスター（レート1820）に到達', test: st => Math.max(st.maxRating || 0, (st.sx || {}).e || 0) >= 1820 },
+  { id: 'rgold', g: 'rank', r: 2, icon: '🥇', label: 'ゴールドの風格', desc: 'ランク帯ゴールド（レート1580）に到達', test: st => keptTitle(st, 'rgold', s => (s.maxRating || 0) >= 1580) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
+  { id: 'rmaster', g: 'rank', r: 4, icon: '👑', label: '頂点に立つ者', desc: 'ランク帯マスター（レート1820）に到達', test: st => keptTitle(st, 'rmaster', s => (s.maxRating || 0) >= 1820) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
   { id: 'bounty1', g: 'bounty', r: 2, icon: '💰', label: '賞金稼ぎ', desc: '懸賞金がかかった相手に勝つ', test: st => (st.bountyWins || 0) >= 1 },
   { id: 'bounty10', g: 'bounty', r: 4, icon: '🤠', label: '伝説のハンター', desc: '懸賞金がかかった相手に通算10回勝つ', test: st => (st.bountyWins || 0) >= 10 },
   { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
@@ -7690,7 +7691,7 @@ const BADGES = [
   /* Ver.6.0 第9工程B：正式カタログの新称号（ID・名称・条件は src/title-catalog-next.json が唯一の基準） */
   { id: 'online_first', g: 'online', r: 1, icon: '📯', label: '開戦の狼煙', desc: 'オンライン対戦を初めて1試合完了', test: st => (st.og || 0) >= 1 || Object.keys(st.vs || {}).length >= 1 },
   { id: 'wins100_ab', g: 'wins100', r: 3, icon: '🗡️', label: '百人斬り', desc: 'A・B方式のオンライン対戦合算で通算100勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) + ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 100 },
-  { id: 'dual50', g: 'dual', r: 4, icon: '☯️', label: '二刀皆伝', desc: 'A・B方式でそれぞれ通算50勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) >= 50 && ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 50 },
+  { id: 'dual50', g: 'dual', r: 4, icon: '☯️', label: '二刀皆伝', desc: 'A・B方式でそれぞれ通算50勝', test: () => false }, /* Ver.6.0 公開調整：二刀皆伝は公開延期（新規取得を保留。既得者はまだ存在しない） */
   { id: 'giant250', g: 'giant', r: 5, icon: '🐲', label: '王者喰らい', desc: '対戦開始時にレーティング250以上高い相手に勝利', test: st => (st.giant250Wins || 0) >= 1 },
   { id: 'flash3', g: 'flash', r: 5, icon: '⚡', label: '神速の領域', desc: '1試合中に1秒以内の正解を3回', test: st => (st.flash3 || 0) >= 1 },
   { id: 'accuracy10', g: 'accuracy', r: 4, icon: '🎯', label: '百発百中', desc: '1試合10問以上正解、誤答0・時間切れ0（勝敗不問）', test: st => (st.accuracy10 || 0) >= 1 },
@@ -8054,10 +8055,10 @@ async function recordMatch(acct, info) {
         if (v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 前回負けた相手に勝った
         r[v.o] = (r[v.o] || 0) + 1; r.last = v.o;
       });
-      // 何日続けて対戦しているか（端末の日付で数える）
-      const dkey = t => { const x = new Date(t); return `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`; };
-      const today = dkey(Date.now()), yest = dkey(Date.now() - 86400000);
-      if (s.lastDay !== today) { s.dayStreak = s.lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
+      // 何日続けて対戦しているか（Ver.6.0：日本時間JSTで数える。旧版の「2026-10-5」形式の記録も同じ日として扱う）
+      const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
+      const today = jstDate(fbNow()), yest = jstDate(fbNow() - 86400000), lastDay = canonDay(s.lastDay);
+      if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
       if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
       else if (o === 'l') s.streak = 0;
@@ -11344,7 +11345,7 @@ async function completeDailySolo(acct,attempt,game){
  let submit=false;
  // Shared learning/delivery receipt. Replaying this result cannot double EXP.
  await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.dailySoloSeen ||= {};submit=!p.dailySoloSeen[attempt.id];if(submit){p.dailySoloSeen[attempt.id]=true;applyLearn(p,game.hist||[]);}return p;});
- if(submit){await missionEvent(acct,{daily:1,ok:game.correct,pf:game.hist.filter(h=>h.j==='Perfect').length});if(entry.score>0&&GAS_ENDPOINT_URL)await submitNetScore(entry);}
+ if(submit){statsTx(acct,s=>{s.soloPlays=(s.soloPlays||0)+1;});await missionEvent(acct,{daily:1,ok:game.correct,pf:game.hist.filter(h=>h.j==='Perfect').length});if(entry.score>0&&GAS_ENDPOINT_URL)await submitNetScore(entry);}
 }
 const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame,TournamentFinal:TournamentB2Final}).App : null;
 const NewDailyApp = window.DailyFactory && OnlineComponents ? window.DailyFactory({FB,DIFFICULTY_CONFIG,useGameMute,getJudgment,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,RatingDisplay,MathText,formatFactorTile,timingVisual,useBattleSound,Missions:DailyMissionsView,onCompleted:completeDailySolo,BattleView:OnlineComponents.BattleView}).App : null;

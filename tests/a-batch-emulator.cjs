@@ -15,7 +15,7 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
   try {
     app.auth().useEmulator('http://127.0.0.1:9099', { disableWarnings: true }); app.database().useEmulator('127.0.0.1', 9000);
     const { user } = await app.auth().signInAnonymously(); const db = app.database();
-    const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500, SEASON0: '2026-10', seasonKey: () => '2026-10', seasonReset: (r) => r, FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} }, prevWeek: () => '', FB: { db } };
+    const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: '2026-10', seasonKey: () => '2026-10', seasonReset: (r) => r, FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} }, prevWeek: () => '', FB: { db } };
     vm.createContext(sandbox);
     vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { badgesOf, statsTx, recordMatch, misRunStep };', sandbox);
     const api = sandbox.api, path = (k) => `games/factor/accounts/${k}/stats`;
@@ -74,20 +74,20 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     await api.recordMatch({ key: 'c2' }, info({ cancelFull: 1, cancelTotal: 2 }, { outcome: 'l' }));
     v = await get('c2'); assert.equal(has(v, 'cancel2000') && has(v, 'cancel500'), true); assert.equal(v.cancelTotal, 2602); assert.equal(v.nick, 'cancel2000'); assert.deepEqual(Object.keys(v.tk.ids).sort(), ['cancel2000', 'cancel500']);
     console.log('PASS A8 (real RTDB): 500 complete cancellations grant cancel500; the old amount holder keeps both titles and the equipped title');
-    // A9: Spark results through the real queue and real transactions
+    // A9 + release adjustment: Spark results through the real queue and real transactions
     const mem2 = () => { const m = new Map(); return { getItem: (k) => m.has(k) ? m.get(k) : null, setItem: (k, x) => m.set(k, String(x)), removeItem: (k) => m.delete(k) }; };
     const st9 = mem2(), q9 = Queue.create({ db, key: 'n1', storage: st9 });
-    q9.enqueue({ kind: 'ratings', id: 'rt-n1', e: 1590, n: 1500 });
-    for (let i = 0; i < 6; i++) q9.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: 'w', s: 's', m: 'B', re: 1600 + i });
+    for (let i = 0; i < 6; i++) q9.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: i < 5 ? 'w' : 'l', s: 's', m: 'B', h: 1 });
     await q9.flush();
     v = await get('n1');
-    assert.equal(v.sg, 6); assert.equal(v.sw.B, 6); assert.equal(v.sx.e, 1605);
-    assert.equal(has(v, 'games100'), true, '95 room + 6 Spark games'); assert.equal(has(v, 'dual'), true, 'A 10 + B 4 room + 6 Spark B wins');
-    assert.equal(has(v, 'master1600'), true); assert.equal(has(v, 'master1700'), false);
+    assert.equal(v.sg, 6); assert.equal(v.sWins, 5); assert.equal(v.sLoss, 1); assert.equal(v.sw.B, 5); assert.equal(v.og, 6);
+    assert.equal(has(v, 'games100'), true, '95 room + 6 Spark games'); assert.equal(has(v, 'first'), true);
+    assert.equal(has(v, 'dual'), false, 'dual is deferred: Spark wins and the old counters grant nothing new'); assert.equal(has(v, 'master1600'), false);
     const q9b = Queue.create({ db, key: 'n1', storage: st9 });
-    for (let i = 0; i < 6; i++) q9b.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: 'w', s: 's', m: 'B' });
-    await q9b.flush(); v = await get('n1'); assert.equal(v.sg, 6); assert.equal(v.sw.B, 6);
-    console.log('PASS A9 (real RTDB): Spark games / wins by method / rating mirror land once and unlock games100, dual and the rating titles; resends add nothing');
+    for (let i = 0; i < 6; i++) q9b.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: 'w', s: 's', m: 'B', h: 1 });
+    await q9b.flush(); v = await get('n1'); assert.equal(v.sg, 6); assert.equal(v.sWins, 5); assert.equal(v.sw.B, 5);
+    await api.statsTx({ key: 'n1' }, (s) => { s.soloPlays = (s.soloPlays || 0) + 1; }); v = await get('n1'); assert.equal(v.soloPlays, 1);
+    console.log('PASS A9 (real RTDB): Spark games / wins / losses land once, solo plays add up; deferred titles stay closed; resends add nothing');
     // B: new catalog titles through real transactions
     const rb = await api.recordMatch({ key: 'b1' }, info({ flash3: 1, accuracy10: 1, giant250Wins: 1 }));
     v = await get('b1');

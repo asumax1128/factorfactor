@@ -10,11 +10,11 @@ const scope = { window: {} };
 vm.createContext(scope);
 vm.runInContext(badgesSrc + "\nthis.B = BADGES.map(b => ({ id: b.id, src: String(b.test), test: b.test }));", scope);
 const live = new Map(scope.B.map((b) => [b.id, b]));
-const CHANGED = ["handi", "mis7", "darkhorse", "streak10", "streak30", "streak50", "cancel500", "cancel2000"]; // live conditions switched to the official ones on purpose (steps A4+); the frozen copies stay the 5.25 ones
+const CHANGED = ["handi", "mis7", "darkhorse", "streak10", "streak30", "streak50", "cancel500", "cancel2000", "dual", "rgold", "master1600", "master1700", "rmaster", "master1900"]; // live conditions switched to the official ones on purpose (steps A4+); the frozen copies stay the 5.25 ones
 const norm = (f) => String(f).replace(/\s+/g, "").replace(/^\(st\)=>/, "st=>");
 
 test("the 8 frozen legacy conditions are exactly the current BADGES conditions", () => {
-  assert.deepEqual([...Keep.KEEP_IDS].sort(), ["cancel2000", "cancel500", "darkhorse", "handi", "mis7", "streak10", "streak30", "streak50"]);
+  assert.deepEqual([...Keep.KEEP_IDS].sort(), ["cancel2000", "cancel500", "darkhorse", "dual", "handi", "master1600", "master1700", "master1900", "mis7", "rgold", "rmaster", "streak10", "streak30", "streak50"]);
   // A4 (owner-approved): the LIVE handi condition changed on purpose (self ★★★ win); the frozen copy stays the 5.25 one.
   // Without a keep module and without tk the live handi falls back to the legacy counter, so the value checks below still hold.
   for (const id of Keep.KEEP_IDS.filter((x) => !CHANGED.includes(x))) assert.equal(norm(Keep.LEGACY_TESTS[id]), norm(live.get(id).src), id + " source");
@@ -34,7 +34,7 @@ test("holders are frozen into tk, non-holders are not, totals are recorded as th
   const before = clone(s);
   const r = Keep.ensureKeep(s, 111);
   assert.deepEqual(r, { tk: true, tv2: true });
-  assert.deepEqual(s.tk, { v: 1, at: 111, ids: { handi: 1, streak10: 1 } });
+  assert.deepEqual(s.tk, { v: 1, at: 111, ids: { dual: 1, handi: 1, streak10: 1 } });
   assert.deepEqual(s.tv2, { v: 1, since: 111, base: { games: 40, Aw: 20, Bw: 15 } });
   for (const k of Object.keys(before)) assert.deepEqual(s[k], before[k], "old stats untouched: " + k);
 });
@@ -130,7 +130,7 @@ test("a stale first attempt (null cache) never commits an empty tk over real his
   const ref = new MockRef({ handiWins: 3, maxStreak: 51, games: 80, A: { w: 40 }, B: { w: 30 } });
   await ref.transaction(keepTx(), { staleFirst: true });
   assert.equal(ref.commits.length, 1);
-  assert.deepEqual(ref.value.tk.ids, { handi: 1, streak10: 1, streak30: 1, streak50: 1 });
+  assert.deepEqual(ref.value.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1, streak50: 1 });
   assert.deepEqual(ref.value.tv2.base, { games: 80, Aw: 40, Bw: 30 });
 });
 test("aborted / failed transactions change nothing, and every legacy holder is still held", async () => {

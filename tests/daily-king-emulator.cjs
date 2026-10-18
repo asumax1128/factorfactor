@@ -13,12 +13,14 @@ const Daily = require('../src/daily-client.cjs'), D = Daily.model;
     app.auth().useEmulator('http://127.0.0.1:9099', { disableWarnings: true }); app.database().useEmulator('127.0.0.1', 9000);
     const { user } = await app.auth().signInAnonymously(), db = app.database(), uid = user.uid;
     const DIVS = ['easy', 'normal', 'hard'], B = D.epoch(Date.now()) - 40;
-    const accounts = ['kgsame', 'kgdiff', 'kgtwo', 'kgnoday', 'kgbadday', 'kgretro', 'kgscan', 'kgcum', 'kgflags', 'kghold', 'kgdup', 'other'];
+    const accounts = ['kgsame', 'kgdiff', 'kgtwo', 'kgnoday', 'kgbadday', 'kgretro', 'kgscan', 'kgcum', 'kgflags', 'kghold', 'kgdup', 'kgpre', 'other'];
     const fin = (key, day, extra = {}) => ({ score: 100, cleared: true, elapsed: 50000, correct: 9, confirmedAt: 1000, id: 'x', key, day, name: 'N', slot: 0, sortKey: 's', ...extra });
     const tree = { logins: Object.fromEntries(accounts.map((k) => [k, { [uid]: 'x' }])), accounts: Object.fromEntries(accounts.map((k) => [k, { name: k, stats: { exp: 7, nick: '' } }])), dailyV2: { finals: {}, playedDays: {}, awardCursor: {}, titles: {} } };
     const win = (day, winners) => { for (const d of DIVS) (tree.dailyV2.finals[day] ||= {})[d] = fin(winners[d], day); };
     const played = (k, ...days) => { for (const d of days) (tree.dailyV2.playedDays[k] ||= {})[d] = true; };
     const loser = 'other';
+    // 0. same day, all three divisions, but BEFORE the release day (test records made before the public start)
+    win(B + 30, { easy: 'kgpre', normal: 'kgpre', hard: 'kgpre' }); played('kgpre', B + 30);
     // 1. same day, all three divisions
     win(B + 1, { easy: 'kgsame', normal: 'kgsame', hard: 'kgsame' }); played('kgsame', B + 1);
     // 2. three divisions won on three different days (the old cumulative bug)
@@ -47,7 +49,9 @@ const Daily = require('../src/daily-client.cjs'), D = Daily.model;
     win(B + 19, { easy: 'kgdup', normal: 'kgdup', hard: 'kgdup' }); played('kgdup', B + 19);
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor'), tree));
     const store = (m) => ({ getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => void m.set(k, String(v)), removeItem: (k) => void m.delete(k) });
-    const clientFor = (k, m = new Map()) => ({ c: Daily.create({ db, uid, account: { key: k, name: k }, storage: store(m) }), m });
+    // the test days are in the past (before 2026-10-24 JST), so the release threshold is moved to the first test day for every scenario
+    // except the dedicated pre-release checks, which use the real default
+    const clientFor = (k, m = new Map(), kingFromDay = B) => ({ c: Daily.create({ db, uid, account: { key: k, name: k }, storage: store(m), kingFromDay }), m });
     const titles = async (k) => (await db.ref(`games/factor/dailyV2/titles/${k}`).get()).val() || {};
     const snapshotOthers = async () => { let out; await env.withSecurityRulesDisabled(async (c) => { out = JSON.stringify((await require('firebase/database').get(ref(c.database(), 'games/factor'))).val()); }); return out; };
     const before = JSON.parse(await snapshotOthers());
@@ -64,15 +68,18 @@ const Daily = require('../src/daily-client.cjs'), D = Daily.model;
     console.log('PASS two divisions on one day: not granted');
     for (const k of ['kgnoday', 'kgbadday']) { await clientFor(k).c.awards(); assert.equal((await titles(k)).daily_king, undefined, k); }
     console.log('PASS a final with no day, or a different day: nothing is granted (no guessing)');
-    // retro
-    await clientFor('kgretro').c.awards(); assert.equal((await titles('kgretro')).daily_king, true);
-    console.log('PASS retro: three records storing the same day, proven by that day finals: granted');
-    const scan = clientFor('kgscan'); await scan.c.awards(); assert.equal((await titles('kgscan')).daily_king, true);
-    console.log('PASS retro: a real same-day triple found among the days played (first-win days differ): granted');
+    // NO retroactive grant: days behind the cursor are never looked at, and the stored same-day title records alone grant nothing
+    await clientFor('kgretro').c.awards(); assert.equal((await titles('kgretro')).daily_king, undefined);
+    console.log('PASS no retro: a same-day triple behind the cursor (stored in the three title records) is NOT granted any more');
+    const scan = clientFor('kgscan'); await scan.c.awards(); assert.equal((await titles('kgscan')).daily_king, undefined);
     const cum = clientFor('kgcum'); await cum.c.awards(); assert.equal((await titles('kgcum')).daily_king, undefined);
-    assert.equal(cum.m.get('fxf_daily_king_scan_v1:kgcum'), String(B + 16), 'the scan is remembered once it succeeded');
-    await cum.c.awards(); assert.equal((await titles('kgcum')).daily_king, undefined);
-    console.log('PASS retro: an unprovable cumulative past is not granted (and is scanned once per device)');
+    assert.equal(cum.m.size, 0, 'no scan marker: the retroactive scan is gone'); await cum.c.awards(); assert.equal((await titles('kgcum')).daily_king, undefined);
+    console.log('PASS no retro: nothing is scanned or remembered; unprovable and provable pasts alike are not granted');
+    // release day threshold: with the real default (2026-10-24 JST) a same-day triple on a pre-release day grants nothing
+    const pre = Daily.create({ db, uid, account: { key: 'kgpre', name: 'kgpre' }, storage: store(new Map()) });
+    await pre.awards(); t = await titles('kgpre'); assert.equal(t.daily_king, undefined); for (const id of Object.values(D.awardIds)) assert.ok(t[id], 'the three division titles themselves are unaffected');
+    await clientFor('kgpre', new Map(), D.epoch(Date.now()) - 40 + 31).c.awards(); assert.equal((await titles('kgpre')).daily_king, undefined, 'a threshold after the day also blocks it');
+    console.log('PASS before the release day (default threshold 2026-10-24 JST) a same-day triple grants nothing; the division titles are unaffected');
     await clientFor('kgflags').c.awards(); t = await titles('kgflags'); assert.equal(t.daily_king, undefined);
     console.log('PASS three bare division flags without a proven day: not granted');
     await clientFor('kghold').c.awards(); assert.equal((await titles('kghold')).daily_king, true);

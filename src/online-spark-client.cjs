@@ -165,7 +165,6 @@ function create({
     if (p) {
       ownProfile = p;
       ensured = true;
-      skRatings(p);
       return p;
     }
     const legacy = (await db.ref(`games/factor/accounts/${key}`).get()).val();
@@ -241,17 +240,8 @@ function create({
     const m=(await db.ref(`${ROOT}/matches/${matchId}`).get()).val();watchMatch(m);return m;
   }
   // Ver.6.0 A7: a settled Spark match (human / BOT-type, not a ghost match) also counts for the official win streak.
-  let skRatingsSent = false;
   const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
   const skFlush = () => skQueue.flush();
-  // Ver.6.0 A9: mirror the highest Spark ratings into the account stats (rating titles), once per login
-  const skRatings = (p) => {
-    try {
-      if (skRatingsSent || !p?.easy) return;
-      skRatingsSent = true;
-      if (skQueue.enqueue({ kind: "ratings", id: `rt-${key}`, e: p.easy.maxRating, n: p.normal?.maxRating })) skFlush().catch(() => {});
-    } catch (_) {}
-  };
   const skEnqueue = (e) => skQueue.enqueue(e);
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
@@ -306,7 +296,6 @@ function create({
       skEnqueue({
         id: `s-${m.id}`, t: m.receipt.at, o, s: "s",
         ...(m.mode === "A" || m.mode === "B" ? { m: m.mode } : {}), ...(g ? { g: 1 } : {}), ...(!m.opponent ? { h: 1 } : {}),
-        ...(ownProfile?.easy ? { re: ownProfile.easy.maxRating, rn: ownProfile.normal?.maxRating } : {}),
       });
     }
     skFlush().catch(() => {});

@@ -80,3 +80,6 @@ online_first(5)・wins100_ab(7)・dual50(15)・giant250(23)・easy_adept(30)・e
 | B | tour_streak2 | クラス大会2大会連続優勝（欠場で途切れる） | **未実装**（大会の並び・参加名簿が必要） |
 | C | factor_factor | ★5の異なる15種類（自身は数えない） | 実装（`stats.ff`で保存・取り消さない） |
 共通：既得の称号・装備(`stats/nick`)・旧統計(`handiWins`/`misDays`/`maxStreak`/`darkHorse`/`cancelTotal`/`games`/`A.w`/`B.w`/`maxRating` など)は削除・変更しない。保護は `stats.tk`（A1/A1b）。本番Firebase・Security Rulesは変更していない。
+
+### 9-追記 公開前の最終調整（2026-10-24公開に向けた所有者仕様）
+上の表のうち次を変更：`dual`・`dual50`・レート関連5件（`rgold master1600 master1700 rmaster master1900`）は**新規取得を停止（既得は`tk`で維持、11月のレート制度再設計／Ver.6.1まで）**、`games100/300`は**CPU練習以外の全正式モード**、`first`/`lose50`は**Sparkの正式な勝敗を含む**、`daily7/30`は**JST**、`daily_king`は**公開日(2026-10-24 JST)以降の同一日のみ・遡及なし**。詳細と分類は `V6_HANDOFF.md` の「第9工程 公開前の最終調整」。

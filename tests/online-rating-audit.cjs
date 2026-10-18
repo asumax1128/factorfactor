@@ -19,7 +19,7 @@ async function codeAudit() {
   let stats = { rating: 1500, games: 0, season: "2026-10" };
   const scope = vm.createContext({
     DBX: null,
-    RATING_INIT: 1500,
+    RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(),
     seasonKey: () => "2026-10",
     SEASON0: "2026-10",
     seasonReset: (r) => r,

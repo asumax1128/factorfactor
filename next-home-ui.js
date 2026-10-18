@@ -1345,6 +1345,7 @@
   var require_title_keep_next = __commonJS({
     "src/title-keep-next.cjs"(exports, module) {
       "use strict";
+      var isObjLocal = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
       var LEGACY_TESTS = Object.freeze({
         handi: (st) => (st.handiWins || 0) >= 1,
         streak10: (st) => (st.maxStreak || 0) >= 10,
@@ -1353,7 +1354,14 @@
         mis7: (st) => (st.misDays || 0) >= 7,
         cancel500: (st) => (st.cancelTotal || 0) >= 500,
         cancel2000: (st) => (st.cancelTotal || 0) >= 2e3,
-        darkhorse: (st) => (st.darkHorse || 0) >= 1
+        darkhorse: (st) => (st.darkHorse || 0) >= 1,
+        // Ver.6.0 release adjustment: titles whose NEW acquisition is suspended (deferred) keep their legacy holders through tk.
+        dual: (st) => ((isObjLocal(st.A) ? st.A.w : 0) || 0) >= 10 && ((isObjLocal(st.B) ? st.B.w : 0) || 0) >= 10,
+        rgold: (st) => (st.maxRating || 0) >= 1580,
+        master1600: (st) => (st.maxRating || 0) >= 1600,
+        master1700: (st) => (st.maxRating || 0) >= 1700,
+        rmaster: (st) => (st.maxRating || 0) >= 1820,
+        master1900: (st) => (st.maxRating || 0) >= 1900
       });
       var KEEP_IDS = Object.freeze(Object.keys(LEGACY_TESTS));
       var DARKHORSE_ROSTER_NOTE = "reserved: teacher roster";

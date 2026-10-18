@@ -18,13 +18,12 @@ function titles(had,d){return {...had,[awardIds[d]]:true}}
 // finals = { easy, normal, hard } records of ONE day (dailyV2/finals/<day>/<division>). True only when every division's
 // final names this account AND carries that same day (a missing or different day is "unknown": never granted).
 const isDay=x=>Number.isInteger(x);
-function kingDay(day,finals,key){
- if(!isDay(day)||typeof key!=='string'||!key||!finals)return false;
+// 天下統一 is granted ONLY for days on or after the Ver.6.0 public release day (JST). The threshold is a constant of the program and the
+// day comes from the immutable finals (server-confirmed), so a device clock can neither move the threshold nor fake a day; days before
+// the release (test records made before the public start) can never grant it. There is no retroactive grant of any kind.
+const KING_FROM_DAY=Math.floor(Date.UTC(2026,9,24)/DAY);   // 2026-10-24 JST (epoch(JST midnight of that date) === this number)
+function kingDay(day,finals,key,from=KING_FROM_DAY){
+ if(!isDay(day)||day<from||typeof key!=='string'||!key||!finals)return false;
  return Object.keys(awardIds).every(d=>{const f=finals[d];return !!f&&typeof f==='object'&&f.key===key&&isDay(f.day)&&f.day===day});
 }
-// The one day stored in all three division title records ({day}), or null when any is missing, not a day, or different.
-function sameStoredDay(had){
- const days=Object.values(awardIds).map(id=>had?.[id]?.day);
- return days.every(isDay)&&days.every(x=>x===days[0])?days[0]:null;
-}
-module.exports={DAY,SHIFT,GRACE,epoch,date,sortKey,compare,best,reserve,finalizable,awardIds,titles,kingDay,sameStoredDay};
+module.exports={DAY,SHIFT,GRACE,epoch,date,sortKey,compare,best,reserve,finalizable,awardIds,titles,kingDay,KING_FROM_DAY};

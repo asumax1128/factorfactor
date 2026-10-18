@@ -80,6 +80,7 @@ jobs:
           node tests/v6-keep-failure-browser.cjs
           node tests/v6-a2-weekly-browser.cjs
           node tests/v6-c-hidden-title-browser.cjs
+          node tests/v6-plays-browser.cjs
       - name: Isolated demo SDK and authorization checks
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0

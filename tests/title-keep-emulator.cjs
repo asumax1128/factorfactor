@@ -34,7 +34,7 @@ const Keep = require('../src/title-keep-next.cjs');
     assert.ok(results.every((r) => r.committed));
     let v = (await d1.db.ref(path('ah')).get()).val();
     assert.equal(v.tk.v, 1); assert.equal(typeof v.tk.at, 'number', 'server timestamp was resolved'); assert.ok(v.tk.at > 1e12);
-    assert.deepEqual(v.tk.ids, { handi: 1, streak10: 1 });
+    assert.deepEqual(v.tk.ids, { dual: 1, handi: 1, streak10: 1 });
     assert.equal(v.tv2.v, 1); assert.equal(typeof v.tv2.since, 'number');
     assert.equal(v.tv2.base.games === 40 || v.tv2.base.games === 41, true, 'base is the legacy total of the data that was committed');
     assert.equal(v.nick, 'streak10'); assert.equal(v.vs.ax.last, 'w'); assert.equal(v.exp >= 6, true);
@@ -44,7 +44,7 @@ const Keep = require('../src/title-keep-next.cjs');
     await d2.db.ref(path('ah')).transaction(freeze((s) => { s.maxStreak = 60; }));
     v = (await d1.db.ref(path('ah')).get()).val();
     assert.equal(JSON.stringify({ tk: v.tk, tv2: v.tv2 }), frozen);
-    assert.deepEqual(Keep.keptIds(v), ['handi', 'streak10']);
+    assert.deepEqual(Keep.keptIds(v), ["dual", "handi", "streak10"]);
     assert.equal(Keep.held(v, 'streak30'), true, 'A1 keeps the legacy-live condition; tk only adds protection');
     console.log('PASS a valid tk is never rewritten, even when the counters move on');
     // 3. non-holder: empty ids are dropped by RTDB and the record still counts as frozen
@@ -60,7 +60,7 @@ const Keep = require('../src/title-keep-next.cjs');
     await d1.db.ref(path('ah') + '/tk').set({ v: 1, ids: { handi: 0 } });
     await d1.db.ref(path('ah')).transaction(freeze());
     v = (await d1.db.ref(path('ah')).get()).val();
-    assert.deepEqual(v.tk.ids, { handi: 1, streak10: 1, streak30: 1, streak50: 1 });
+    assert.deepEqual(v.tk.ids, { dual: 1, handi: 1, streak10: 1, streak30: 1, streak50: 1 });
     console.log('PASS an unusable tk is rebuilt from the legacy counters, never emptied');
     // 5. A1b freezeOnLogin against the real database
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor/accounts'), {

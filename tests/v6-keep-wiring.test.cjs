@@ -16,7 +16,7 @@ function world(initial, { withKeep = true, keep = Keep } = {}) {
     window: withKeep ? { TitleKeepNext: keep } : {},
     nickOf: null,
     titleLabelOf: (id) => Labels.resolve(id, null),
-    isReal: () => true, DBX: null, RATING_INIT: 1500, SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
+    isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
     FX: { band: (...a) => shown.push(a), confetti() {} }, fxSound() {}, setTimeout: (f) => f(),
     FB: { db: { ref: (path) => { assert.equal(path, "games/factor/accounts/aw/stats"); return { transaction: async (cb) => {
       const out = cb(db.value === null ? null : clone(db.value));
@@ -45,7 +45,7 @@ test("statsTx: an existing holder is frozen with the legacy totals as the base; 
   const w = world(clone(start));
   await w.api.statsTx(acct, (s) => { s.exp += 1; });
   const { tk, tv2, exp, ...rest } = w.db.value;
-  assert.deepEqual(tk.ids, { handi: 1, streak10: 1 });
+  assert.deepEqual(tk.ids, { dual: 1, handi: 1, streak10: 1 });
   assert.deepEqual(tv2.base, { games: 40, Aw: 20, Bw: 15 });
   assert.equal(exp, 100);
   const { exp: e0, ...rest0 } = start;

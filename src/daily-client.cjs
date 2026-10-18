@@ -2,7 +2,7 @@ const D=require('./daily-model.cjs'), Play=require('../server/daily-play.cjs'), 
 const ROOT='games/factor/dailyV2',stamp=()=>({'.sv':'timestamp'}),clean=x=>JSON.parse(JSON.stringify(x));
 const localReservations=new WeakMap();
 async function reserveSerial(db,path,operation){let queues=localReservations.get(db);if(!queues){queues=new Map();localReservations.set(db,queues);}const previous=queues.get(path)||Promise.resolve(),task=previous.catch(()=>{}).then(operation);queues.set(path,task);try{return await task}finally{if(queues.get(path)===task)queues.delete(path)}}
-function create({db,uid,account,storage=globalThis.localStorage}){
+function create({db,uid,account,storage=globalThis.localStorage,kingFromDay=D.KING_FROM_DAY}){
  const key=account?.key;if(!key)throw Error('登録アカウントでログインしてください');
  const ref=p=>db.ref(`${ROOT}/${p}`),draftKey=`fxf_daily_v2:${key}`;
  async function clock(){await ref(`clock/${uid}`).set(stamp());return(await ref(`clock/${uid}`).get()).val()}
@@ -44,10 +44,10 @@ function create({db,uid,account,storage=globalThis.localStorage}){
   const now=await clock(),days=(await ref(`playedDays/${key}`).get()).val()||{},had=(await ref(`titles/${key}`).get()).val()||{};
   const cursor=(await ref(`awardCursor/${key}`).get()).val()||0;
   const work=Object.keys(days).map(Number).filter(d=>d>cursor&&D.finalizable(d,now)).sort((a,b)=>a-b).slice(0,10);
-  // 天下統一: one JST day, all three divisions, proven by that day's immutable finals. Never from separate days, never from
-  // the three division flags alone. The value stays `true` (what the current rules and every reader expect).
+  // 天下統一: one JST day, all three divisions, proven by that day's immutable finals, and only for days on or after the Ver.6.0
+  // release day (kingFromDay). Never from separate days, never from the three division flags alone, never retroactively.
+  // The value stays `true` (what the current rules and every reader expect).
   const grantKing=async()=>{await ref(`titles/${key}/daily_king`).set(true);had.daily_king=true;};
-  const finalsOf=async day=>{const o={};for(const d of Object.keys(D.awardIds))o[d]=(await ref(`finals/${day}/${d}`).get()).val();return o;};
   for(const day of work){
    const fin={};
    for(const d of Object.keys(D.awardIds)){
@@ -56,23 +56,10 @@ function create({db,uid,account,storage=globalThis.localStorage}){
     fin[d]=final;
     if(final?.key===key&&!had[D.awardIds[d]])had[D.awardIds[d]]=await tx(ref(`titles/${key}/${D.awardIds[d]}`),old=>old||{day});
    }
-   if(!had.daily_king&&D.kingDay(day,fin,key))await grantKing();
+   if(!had.daily_king&&D.kingDay(day,fin,key,kingFromDay))await grantKing();
    await ref(`awardCursor/${key}`).set(day);
   }
   if(work.length===10)return awards();
-  // Past same-day wins (days already behind the cursor): only when the records PROVE one day. Holders of all three division
-  // titles without 天下統一 are the only ones who can qualify, so only they are looked at.
-  if(!had.daily_king&&Object.values(D.awardIds).every(id=>had[id])){
-   const stored=D.sameStoredDay(had);
-   if(stored!==null&&D.kingDay(stored,await finalsOf(stored),key))await grantKing();
-   if(!had.daily_king){
-    const scanKey=`fxf_daily_king_scan_v1:${key}`;let last=0;try{last=Number(storage?.getItem(scanKey))||0}catch(_){}
-    const past=Object.keys(days).map(Number).filter(d=>d>last&&D.finalizable(d,now)&&!work.includes(d)&&d!==stored).sort((a,b)=>a-b);
-    for(const day of past){if(D.kingDay(day,await finalsOf(day),key)){await grantKing();break;}}
-    // a day is remembered as checked only after every read of the scan succeeded (a failure retries next time)
-    if(!had.daily_king&&past.length)try{storage?.setItem(scanKey,String(past.at(-1)))}catch(_){}
-   }
-  }
   return had;
  }
  return{status,start,finish,publish,rankings,awards,clock};
