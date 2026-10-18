@@ -19,7 +19,7 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     vm.createContext(sandbox);
     vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { badgesOf, statsTx, recordMatch, misRunStep };', sandbox);
     const api = sandbox.api, path = (k) => `games/factor/accounts/${k}/stats`;
-    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' } };
+    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' }, n1: { games: 95, A: { w: 10 }, B: { w: 4 }, maxRating: 1500 } };
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor'), {
       logins: Object.fromEntries(Object.keys(accts).map((k) => [k, { [user.uid]: 'x' }])),
       accounts: Object.fromEntries(Object.entries(accts).map(([k, s]) => [k, { name: k, stats: { games: 1, ...s } }])),
@@ -74,5 +74,19 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     await api.recordMatch({ key: 'c2' }, info({ cancelFull: 1, cancelTotal: 2 }, { outcome: 'l' }));
     v = await get('c2'); assert.equal(has(v, 'cancel2000') && has(v, 'cancel500'), true); assert.equal(v.cancelTotal, 2602); assert.equal(v.nick, 'cancel2000'); assert.deepEqual(Object.keys(v.tk.ids).sort(), ['cancel2000', 'cancel500']);
     console.log('PASS A8 (real RTDB): 500 complete cancellations grant cancel500; the old amount holder keeps both titles and the equipped title');
+    // A9: Spark results through the real queue and real transactions
+    const mem2 = () => { const m = new Map(); return { getItem: (k) => m.has(k) ? m.get(k) : null, setItem: (k, x) => m.set(k, String(x)), removeItem: (k) => m.delete(k) }; };
+    const st9 = mem2(), q9 = Queue.create({ db, key: 'n1', storage: st9 });
+    q9.enqueue({ kind: 'ratings', id: 'rt-n1', e: 1590, n: 1500 });
+    for (let i = 0; i < 6; i++) q9.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: 'w', s: 's', m: 'B', re: 1600 + i });
+    await q9.flush();
+    v = await get('n1');
+    assert.equal(v.sg, 6); assert.equal(v.sw.B, 6); assert.equal(v.sx.e, 1605);
+    assert.equal(has(v, 'games100'), true, '95 room + 6 Spark games'); assert.equal(has(v, 'dual'), true, 'A 10 + B 4 room + 6 Spark B wins');
+    assert.equal(has(v, 'master1600'), true); assert.equal(has(v, 'master1700'), false);
+    const q9b = Queue.create({ db, key: 'n1', storage: st9 });
+    for (let i = 0; i < 6; i++) q9b.enqueue({ id: 's-g' + i, t: T0 + 500000 + i * 70000, o: 'w', s: 's', m: 'B' });
+    await q9b.flush(); v = await get('n1'); assert.equal(v.sg, 6); assert.equal(v.sw.B, 6);
+    console.log('PASS A9 (real RTDB): Spark games / wins by method / rating mirror land once and unlock games100, dual and the rating titles; resends add nothing');
   } finally { await env.cleanup(); await app.delete(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });

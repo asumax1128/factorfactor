@@ -3,6 +3,7 @@
 // The result is stored in localStorage first and removed only after the stats transaction committed, so a closed tab,
 // a lost connection or a refused write is retried by the next flush; the ledger ignores repeats by match id.
 const Streak = require('./streak-next.cjs');
+const Spark = require('./spark-stats-next.cjs');
 const Keep = require('./title-keep-next.cjs');
 
 function create({ db, key, storage }) {
@@ -10,7 +11,7 @@ function create({ db, key, storage }) {
   const read = () => {
     try {
       const q = JSON.parse(storage && storage.getItem(qKey) || '[]');
-      return Array.isArray(q) ? q.filter(Streak.validEntry).slice(-Streak.LEDGER_MAX) : [];
+      return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-Streak.LEDGER_MAX) : [];
     } catch (_) { return []; }
   };
   const write = (q) => {
@@ -30,7 +31,7 @@ function create({ db, key, storage }) {
             r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
               st = st || {};
               Keep.ensureKeep(st, { '.sv': 'timestamp' });
-              Streak.applyResult(st, e);
+              Spark.apply(st, e);
               return st;
             });
           } catch (_) { return { left: q.length }; }
@@ -42,9 +43,10 @@ function create({ db, key, storage }) {
     return running;
   }
   function enqueue(e) {
-    if (!Streak.validEntry(e)) return false;
+    if (!Spark.validEntry(e)) return false;
     const q = read();
-    if (!q.some((x) => x.id === e.id)) q.push(e);
+    const at = q.findIndex((x) => x.id === e.id);
+    if (at < 0) q.push(e); else if (e.kind === 'ratings') q[at] = e; // a newer rating snapshot replaces the waiting one
     write(q.slice(-Streak.LEDGER_MAX));
     return true;
   }

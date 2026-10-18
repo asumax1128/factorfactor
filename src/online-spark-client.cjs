@@ -165,6 +165,7 @@ function create({
     if (p) {
       ownProfile = p;
       ensured = true;
+      skRatings(p);
       return p;
     }
     const legacy = (await db.ref(`games/factor/accounts/${key}`).get()).val();
@@ -240,8 +241,17 @@ function create({
     const m=(await db.ref(`${ROOT}/matches/${matchId}`).get()).val();watchMatch(m);return m;
   }
   // Ver.6.0 A7: a settled Spark match (human / BOT-type, not a ghost match) also counts for the official win streak.
+  let skRatingsSent = false;
   const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
   const skFlush = () => skQueue.flush();
+  // Ver.6.0 A9: mirror the highest Spark ratings into the account stats (rating titles), once per login
+  const skRatings = (p) => {
+    try {
+      if (skRatingsSent || !p?.easy) return;
+      skRatingsSent = true;
+      if (skQueue.enqueue({ kind: "ratings", id: `rt-${key}`, e: p.easy.maxRating, n: p.normal?.maxRating })) skFlush().catch(() => {});
+    } catch (_) {}
+  };
   const skEnqueue = (e) => skQueue.enqueue(e);
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
@@ -289,7 +299,13 @@ function create({
     });
     if (fresh && !m.opponent && !String(m.id).startsWith("ghost-")) {
       const o = m.receipt.result.draw ? "d" : m.members.find((x) => x.uid === m.receipt.result.winner)?.key === key ? "w" : "l";
-      skEnqueue({ id: `s-${m.id}`, t: m.receipt.at, o, s: "s" });
+      const opp = m.members.find((x) => x.key !== key), their = opp && m.receipt.players[opp.key];
+      const g = o === "w" && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;
+      skEnqueue({
+        id: `s-${m.id}`, t: m.receipt.at, o, s: "s",
+        ...(m.mode === "A" || m.mode === "B" ? { m: m.mode } : {}), ...(g ? { g: 1 } : {}),
+        ...(ownProfile?.easy ? { re: ownProfile.easy.maxRating, rn: ownProfile.normal?.maxRating } : {}),
+      });
     }
     skFlush().catch(() => {});
   }
@@ -681,6 +697,7 @@ function create({
       s.ghostAwards ||= {};
       if (s.ghostAwards[m.id]) return s;
       s.ghostAwards[m.id] = { exp, at: m.receipt.at };
+      s.gg = (s.gg || 0) + 1; // Ver.6.0 A9: ghost matches count for the total-games titles (once per match, by the receipt above)
       s.exp = (s.exp || 0) + exp;
       s.ghostTitles = G.titles(
         m.opponent,

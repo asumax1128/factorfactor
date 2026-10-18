@@ -1462,19 +1462,19 @@
         return { n, max };
       }
       function applyResult(s, entry) {
-        if (!isObj(s) || !validEntry(entry)) return { status: "invalid" };
+        if (!isObj(s) || !validEntry(entry)) return { status: "invalid", recorded: false };
         const id = safeId(entry.id);
         let sk = s.sk;
         if (!isObj(sk) || sk.v !== 1 || !goodLedger(sk.l === void 0 ? {} : sk.l) || num(sk.n0 === void 0 ? 0 : sk.n0) === null) {
           sk = { v: 1, n: 0, best: isObj(s.sk) && num(s.sk.best) !== null && s.sk.best >= 0 ? s.sk.best : 0, n0: 0, l: {} };
         }
         const l = { ...sk.l || {} };
-        if (l[id]) return { status: "duplicate" };
+        if (l[id]) return { status: "duplicate", recorded: false };
         const list = ordered(l);
         let status = "applied";
         if (list.length >= LEDGER_MAX && entry.t < list[0].t) {
           s.sk = { ...sk, l, n: 0 };
-          return { status: "restart" };
+          return { status: "restart", recorded: false };
         }
         const e = { t: entry.t, o: entry.o, s: entry.s };
         for (const x of list) {
@@ -1494,7 +1494,7 @@
         const { n, max } = replay(n0, all);
         const newest = all.length && all[all.length - 1].id === id;
         s.sk = { v: 1, n, best: Math.max(num(sk.best) || 0, newest ? max : 0), n0, l };
-        return { status };
+        return { status, recorded: true };
       }
       var bestOf = (s) => isObj(s) && isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0;
       module.exports = { LEDGER_MAX, WINDOW_MS, safeId, validEntry, applyResult, bestOf, replay, ordered };

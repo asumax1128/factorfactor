@@ -462,3 +462,10 @@ FACTOR×FACTOR は、**因数分解（多項式を2つの因数カードの積�
 - 数え方：待機中の攻撃を古い順に打ち消し、**残りが0になった攻撃1回につき+1**（途中までで残りが着弾した攻撃は数えない。部分的に打ち消した後に残りも打ち消した場合は着弾していないので1回）。旧A/B/C系は `sendAttack` の予告配列（1件=攻撃1回）、新B2（Spark/大会）は `server/online-rated/b2.cjs` に待機中の攻撃の大きさの列 `pendQ` を追加（量の計算は不変。更新前から進行中の試合は `pending` から再構築）。仲間のカバー（C方式の `coverPend`／`covered`）は自分の相殺ではないので数えない。
 - 判定：`cancelFull>=500/2000` または `keptTitle`（有効なtk→`tk.ids`、無い・保護不可→旧`cancelTotal`条件）。
 - `tests/v6-a8-cancel.test.cjs`：`b2.cjs`／`sendAttack` が基準(949f2cc)と**計数の追加文以外同一**であることを文字列射影で検証。
+
+## 第9工程A9（その他の戦績・レート称号）— 実装メモ
+- **実装した（既得を失わない＝旧条件の上位集合で追加のみ）**
+  - `games100 / games300`：通算戦数＝部屋戦の`games`（旧記録を含む＝切替時点の旧gamesが基準）＋Spark人間/BOT型対戦`sg`＋ゴースト戦`gg`。Sparkは台帳に今回記録された試合だけを1回数える（`src/spark-stats-next.cjs`、再送・複数端末の重複は台帳が弾く）。ゴースト戦は既存の受領記録 `ghostAwards[試合ID]` を最初に作るときだけ+1。
+  - `dual`：A方式・B方式それぞれ10勝。`A.w`/`B.w`（部屋戦）＋Sparkの方式別勝利`sw.A`/`sw.B`（C方式・ゴーストは数えない）。
+  - レート称号（`rgold master1600 master1700 rmaster master1900`）：旧総合 `maxRating` と Spark イージー最高（`stats.sx.e`、Sparkプロフィールのミラー・上げるだけ）の大きい方。
+- **記録して未実装（仕様確定待ち／判断が必要）**：Sparkノーマルのスケールを含めるか（レート称号は現状イージーのみ）／`first lose50 rival20 wide10 wide30 perfect* daily7 daily30` のSpark対戦分と日付基準（端末日→JST）／`bounty*` のゴースト賞金／`revenge`（「直前の試合」の解釈）／`wanted`（`maxStreak>=7`＝懸賞金式と連動、連勝仕様と切り離す設計が要）／`ojama*`（単位の文言）／A方式のA/B別Sparkではない試合。

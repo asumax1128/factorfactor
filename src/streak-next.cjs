@@ -36,9 +36,10 @@ function replay(n0, list) {
   return { n, max };
 }
 
-// Apply one result to a stats object (mutates and returns { status }). status: 'applied' | 'duplicate' | 'restart' | 'invalid'
+// Apply one result to a stats object (mutates and returns { status, recorded }). status: 'applied' | 'duplicate' | 'restart' | 'invalid'.
+// recorded = the match entered the ledger now (false for a duplicate, an invalid entry and a result too old to place).
 function applyResult(s, entry) {
-  if (!isObj(s) || !validEntry(entry)) return { status: 'invalid' };
+  if (!isObj(s) || !validEntry(entry)) return { status: 'invalid', recorded: false };
   const id = safeId(entry.id);
   let sk = s.sk;
   if (!isObj(sk) || sk.v !== 1 || !goodLedger(sk.l === undefined ? {} : sk.l) || num(sk.n0 === undefined ? 0 : sk.n0) === null) {
@@ -46,13 +47,13 @@ function applyResult(s, entry) {
     sk = { v: 1, n: 0, best: isObj(s.sk) && num(s.sk.best) !== null && s.sk.best >= 0 ? s.sk.best : 0, n0: 0, l: {} };
   }
   const l = { ...(sk.l || {}) };
-  if (l[id]) return { status: 'duplicate' };
+  if (l[id]) return { status: 'duplicate', recorded: false };
   const list = ordered(l);
   let status = 'applied';
   if (list.length >= LEDGER_MAX && entry.t < list[0].t) {
     // cannot be placed: restart the run, the result itself is not recorded
     s.sk = { ...sk, l, n: 0 };
-    return { status: 'restart' };
+    return { status: 'restart', recorded: false };
   }
   const e = { t: entry.t, o: entry.o, s: entry.s };
   for (const x of list) {
@@ -70,7 +71,7 @@ function applyResult(s, entry) {
   // never raises `best` by itself (a still-missing loss in between could make the replayed run look longer than it was).
   const newest = all.length && all[all.length - 1].id === id;
   s.sk = { v: 1, n, best: Math.max(num(sk.best) || 0, newest ? max : 0), n0, l };
-  return { status };
+  return { status, recorded: true };
 }
 
 const bestOf = (s) => (isObj(s) && isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0);
