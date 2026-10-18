@@ -1355,6 +1355,7 @@
         darkhorse: (st) => (st.darkHorse || 0) >= 1
       });
       var KEEP_IDS = Object.freeze(Object.keys(LEGACY_TESTS));
+      var DARKHORSE_ROSTER_NOTE = "reserved: teacher roster";
       var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
       var count = (x) => typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : 0;
       var isHeld = (v) => v === 1 || v === true;
@@ -1434,7 +1435,7 @@
           clearTimeout(timer);
         }
       }
-      module.exports = { LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep, freezeOnLogin, codeOf };
+      module.exports = { DARKHORSE_ROSTER_NOTE, LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep, freezeOnLogin, codeOf };
     }
   });
 

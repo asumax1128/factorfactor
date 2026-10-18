@@ -10,7 +10,7 @@ const scope = { window: {} };
 vm.createContext(scope);
 vm.runInContext(badgesSrc + "\nthis.B = BADGES.map(b => ({ id: b.id, src: String(b.test), test: b.test }));", scope);
 const live = new Map(scope.B.map((b) => [b.id, b]));
-const CHANGED = ["handi", "mis7"]; // live conditions switched to the official ones on purpose (steps A4+); the frozen copies stay the 5.25 ones
+const CHANGED = ["handi", "mis7", "darkhorse"]; // live conditions switched to the official ones on purpose (steps A4+); the frozen copies stay the 5.25 ones
 const norm = (f) => String(f).replace(/\s+/g, "").replace(/^\(st\)=>/, "st=>");
 
 test("the 8 frozen legacy conditions are exactly the current BADGES conditions", () => {

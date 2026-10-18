@@ -182,9 +182,12 @@ const withoutFrame = (s) => {
   // `add.handiSelf = 1` (the player had it). Only that single statement is normalised away on both sides; its new
   // behaviour is audited by tests/v6-a4-handi.test.cjs.
   const isHandiStmt = x => x.type === 'IfStatement' && !x.alternate && x.consequent?.type === 'ExpressionStatement' && x.consequent.expression?.type === 'AssignmentExpression' && x.consequent.expression.left?.object?.name === 'add' && ['handiWins', 'handiSelf'].includes(x.consequent.expression.left?.property?.name);
+  // Ver.6.0 A6 (owner-approved): the single `if (state.final && win && ...) { ... add.darkHorse = 1 }` statement is removed from the
+  // result screen (no new darkhorse awards). Only that statement is normalised away; tests/v6-a6-darkhorse.test.cjs audits it.
+  const isDarkStmt = x => x.type === 'IfStatement' && JSON.stringify(x.test).includes('"final"') && JSON.stringify(x.consequent).includes('"darkHorse"');
   const stripHandi = node => {
     if (!node || typeof node !== 'object') return;
-    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x));
+    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x));
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripHandi); else stripHandi(v); }
   };
   stripHandi(n);

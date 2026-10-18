@@ -878,8 +878,8 @@ window.AchievementAudit = [
     "id": "darkhorse",
     "name": "ダークホース",
     "category": "対戦",
-    "description": "出場者の中でレートがいちばん低いのに大会で優勝（記録ありの人が4人以上）",
-    "condition": "st => (st.darkHorse || 0) >= 1",
+    "description": "大会開始時にクラス内レーティング11位以下で優勝",
+    "condition": "st => keptTitle(st, 'darkhorse', s => (s.darkHorse || 0) >= 1)",
     "numbers": ">= 1",
     "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
@@ -890,7 +890,7 @@ window.AchievementAudit = [
     "judge": "index.html:7641",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10192; index.html:8024; index.html:7641",
+    "writers": "index.html:8024; index.html:7641",
     "relation": "単条件"
   },
   {

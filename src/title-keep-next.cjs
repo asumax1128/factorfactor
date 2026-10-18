@@ -25,6 +25,12 @@ const LEGACY_TESTS = Object.freeze({
 });
 const KEEP_IDS = Object.freeze(Object.keys(LEGACY_TESTS));
 
+// Ver.6.0 A6: darkhorse is no longer granted ("class rating rank 11 or lower when the tournament starts, then win").
+// A tournament's own entrants are not the whole class, so the rank cannot be proven today. Holders keep the title through tk.
+// Future (not implemented): a teacher-designated class roster supplies the roster rating order; the award then goes through
+// a new, separately named counter. No code path writes such a counter yet.
+const DARKHORSE_ROSTER_NOTE = 'reserved: teacher roster';
+
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const count = (x) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? x : 0);
 const isHeld = (v) => v === 1 || v === true;
@@ -114,4 +120,4 @@ async function freezeOnLogin({ db, key, stamp, timeoutMs = 15000 }) {
   } catch (e) { return { status: 'failed', code: codeOf(e) }; } finally { clearTimeout(timer); }
 }
 
-module.exports = { LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep, freezeOnLogin, codeOf };
+module.exports = { DARKHORSE_ROSTER_NOTE, LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep, freezeOnLogin, codeOf };

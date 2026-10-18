@@ -396,7 +396,7 @@ let BADGES = [
   { id: 'wide30', g: 'wide', r: 3, icon: '🎪', label: '人気者', desc: '30人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 30 },
   { id: 'tour10', g: 'tour', r: 5, icon: '🏛️', label: '殿堂入り', desc: 'クラス大会で5回優勝', test: st => (st.tourWins || 0) >= 5 },
   { id: 'miracle', g: 'clutch', r: 5, icon: '😇', label: '奇跡の生還', desc: 'Bで体力1%以下になってから勝つ', test: st => (st.miracleWins || 0) >= 1 },
-  { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '🐴', label: 'ダークホース', desc: '出場者の中でレートがいちばん低いのに大会で優勝（記録ありの人が4人以上）', test: st => (st.darkHorse || 0) >= 1 },
+  { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '🐴', label: 'ダークホース', desc: '大会開始時にクラス内レーティング11位以下で優勝', test: st => keptTitle(st, 'darkhorse', s => (s.darkHorse || 0) >= 1) },
   { id: 'daily7', g: 'daily', r: 2, icon: '📅', label: '皆勤賞', desc: '7日続けて対戦する', test: st => (st.maxDayStreak || 0) >= 7 },
   { id: 'daily30', g: 'daily', r: 4, icon: '🗓️', label: '継続は力なり', desc: '30日続けて対戦する', test: st => (st.maxDayStreak || 0) >= 30 },
   { id: 'sp3', g: 'sp3', r: 3, icon: '💥', label: '必殺技三連発', desc: '1試合で必殺技を3回使う', test: st => (st.maxSpMatch || 0) >= 3 },
