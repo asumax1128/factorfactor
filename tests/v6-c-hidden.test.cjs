@@ -37,3 +37,11 @@ test("protected five-star titles count: a held streak50 / handi through tk is a 
   for (const id of ["streak30", "streak50", "handi"]) assert(held.includes(id), id);
   assert.equal(Compat.read({ legacyEarned: held }).fiveStarCount, 3);
 });
+test("five-star count with suspended titles: held rmaster / master1900 / darkhorse count; new ones from old counters do not", () => {
+  const { world, ids } = require("./a-batch-harness.cjs"), w = world(null);
+  const held = ids(w.api, { maxRating: 1950, darkHorse: 1, tk: { v: 1, at: 1, ids: { rmaster: 1, master1900: 1, darkhorse: 1 } } });
+  for (const id of ["rmaster", "master1900", "darkhorse"]) assert(held.includes(id), id);
+  assert.equal(Compat.read({ legacyEarned: held }).fiveStarCount, 3);
+  const fresh = ids(w.api, { maxRating: 1950, darkHorse: 5, A: { w: 90 }, B: { w: 90 }, tk: { v: 1, at: 1 } });
+  for (const id of ["rmaster", "master1900", "darkhorse", "dual", "dual50"]) assert(!fresh.includes(id), id + " is not newly acquired");
+});
