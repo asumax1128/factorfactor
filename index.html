@@ -5629,6 +5629,8 @@ async function statsTx(acct, fn) {
   return { out, before, after, got };
 }
 const wkOf = s => { s.wk = s.wk || {}; const W = s.wk; W.boss = W.boss || {}; W.done = W.done || {}; return W; };
+/* Ver.6.0 A2：その週の初参加を記録する（週数・連続週数・最後に出撃した週）。ダメージ0でも制限時間まで遊んで正常終了した出撃で使う（途中でやめた出撃は含めない） */
+const wkJoinWeek = (W, wk) => { W.weeks = (W.weeks || 0) + 1; W.streak = W.last === prevWeek(wk) ? (W.streak || 0) + 1 : 1; W.maxStreak = Math.max(W.maxStreak || 0, W.streak); W.last = wk; };
 const pruneDone = W => { const ks = Object.keys(W.done).sort(); while (ks.length > 8) delete W.done[ks.shift()]; };
 /* 討伐報酬・週の締め（1位ならエース）を受け取る。info は weeklyInfo、final は週が終わっているか */
 async function settleWeek(acct, info, final) {
@@ -5899,19 +5901,24 @@ function WeeklyRaidApp({ acct, onExit }) {
   useEffect(()=>{if(!dev)return;const pointer=loadLS(pointerKey,null);if(pointer){const lv=pickLevel(1,'init'),board=gm.buildProb?gm.buildProb(lv,new Set()):{level:lv,...buildBoard(lv,new Set(),6)};devInitial.current=board;dev.resume(pointer,{board}).then(restoreDev).catch(e=>setDevError('出撃の復帰に失敗しました：'+e.message));}},[dev]);
   const devAward = (s,S,run) => {
     const sd=S.d, base=10+Math.min(30,Math.floor(sd/15)), W=wkOf(s), runWeek=run.week;
-    if(sd>0&&W.last!==runWeek){W.weeks=(W.weeks||0)+1;W.streak=W.last===prevWeek(runWeek)?(W.streak||0)+1:1;W.maxStreak=Math.max(W.maxStreak||0,W.streak);W.last=runWeek;}
+    if(W.last!==runWeek){W.weeks=(W.weeks||0)+1;W.streak=W.last===prevWeek(runWeek)?(W.streak||0)+1:1;W.maxStreak=Math.max(W.maxStreak||0,W.streak);W.last=runWeek;}
     if(sd>0)W.best=Math.max(W.best||0,sd);
-    if(S.sp){W.sup=(W.sup||0)+S.sp;W.supRuns=(W.supRuns||0)+1;}
+    if(S.sp)W.sup=(W.sup||0)+S.sp;
+    if(S.sp||run.role==='sup')W.supRuns=(W.supRuns||0)+1;
     if(S.chests)W.chests=(W.chests||0)+S.chests;
     if(S.shards)W.shards=(W.shards||0)+S.shards;
     const date=new Date(run.reservation.day*86400000).toISOString().slice(0,10),first=W.day!==date;
     if(first)W.day=date;const before=s.exp||0;s.exp=before+base*(first?2:1)+(S.chestExp||0);
     return {before,after:s.exp,first};
   };
+  /* Ver.6.0 A2：出撃開始時の終了予定。終了時にこれ以上たっていれば制限時間まで遊んだ出撃、手前なら途中でやめた出撃（やめるボタン） */
+  const a2Planned = useRef(0);
+  useEffect(() => { if (scr === 'play') { if (!a2Planned.current) a2Planned.current = endAt; } else a2Planned.current = 0; }, [scr, endAt]);
   const sessionOver = scr === 'play' && Date.now() >= endAt;
   useEffect(() => {
     if (!sessionOver) return;
     const sd = sess.current.d;
+    const a2Completed = a2Planned.current > 0 && endAt >= a2Planned.current;
     if (dev) {
       if(devEnding.current)return;devEnding.current=true;
       if(devRun.current.status==='play')devCheckpoint();
@@ -5929,9 +5936,11 @@ function WeeklyRaidApp({ acct, onExit }) {
         const r = await statsTx(acct, s => {
           const W = wkOf(s);
           if (sd > 0 && W.last !== wk) { W.weeks = (W.weeks || 0) + 1; W.streak = W.last === prevWeek(wk) ? (W.streak || 0) + 1 : 1; W.maxStreak = Math.max(W.maxStreak || 0, W.streak); W.last = wk; }
+          if (!(sd > 0) && a2Completed && W.last !== wk) wkJoinWeek(W, wk);
           if (sd > 0) W.best = Math.max(W.best || 0, sd);
           const S2 = sess.current;
           if (S2.sp) { W.sup = (W.sup || 0) + S2.sp; W.supRuns = (W.supRuns || 0) + 1; }
+          if (!S2.sp && a2Completed && role === 'sup') W.supRuns = (W.supRuns || 0) + 1;
           if (S2.chests) W.chests = (W.chests || 0) + S2.chests;
           if (S2.shards) W.shards = (W.shards || 0) + S2.shards;
           const first = W.day !== today; if (first) W.day = today;
@@ -7618,7 +7627,7 @@ const BADGES = [
   { id: 'ojama500', g: 'ojama', r: 4, icon: '😈', label: 'おじゃま魔王', desc: 'おじゃまタイルを通算500枚送る', test: st => (st.ojSent || 0) >= 500 },
   { id: 'nomiss10', g: 'nomiss', r: 4, icon: '🎯', label: 'ノーミスの達人', desc: 'ノーミス完走で10回勝つ', test: st => (st.nomissWins || 0) >= 10 },
   { id: 'wide30', g: 'wide', r: 3, icon: '🎪', label: '人気者', desc: '30人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 30 },
-  { id: 'tour10', g: 'tour', r: 5, icon: '🏛️', label: '殿堂入り', desc: 'クラス大会で10回優勝', test: st => (st.tourWins || 0) >= 10 },
+  { id: 'tour10', g: 'tour', r: 5, icon: '🏛️', label: '殿堂入り', desc: 'クラス大会で5回優勝', test: st => (st.tourWins || 0) >= 5 },
   { id: 'miracle', g: 'clutch', r: 5, icon: '😇', label: '奇跡の生還', desc: 'Bで体力1%以下になってから勝つ', test: st => (st.miracleWins || 0) >= 1 },
   { id: 'darkhorse', g: 'darkhorse', r: 5, icon: '🐴', label: 'ダークホース', desc: '出場者の中でレートがいちばん低いのに大会で優勝（記録ありの人が4人以上）', test: st => (st.darkHorse || 0) >= 1 },
   { id: 'daily7', g: 'daily', r: 2, icon: '📅', label: '皆勤賞', desc: '7日続けて対戦する', test: st => (st.maxDayStreak || 0) >= 7 },

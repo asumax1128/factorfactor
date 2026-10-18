@@ -336,9 +336,10 @@ function chestRoll(real) {
 let wkOf = s => { s.wk = s.wk || {}; const W = s.wk; W.boss = W.boss || {}; W.done = W.done || {}; return W; };
 let devAward = (s,S,run) => {
     const sd=S.d, base=10+Math.min(30,Math.floor(sd/15)), W=wkOf(s), runWeek=run.week;
-    if(sd>0&&W.last!==runWeek){W.weeks=(W.weeks||0)+1;W.streak=W.last===prevWeek(runWeek)?(W.streak||0)+1:1;W.maxStreak=Math.max(W.maxStreak||0,W.streak);W.last=runWeek;}
+    if(W.last!==runWeek){W.weeks=(W.weeks||0)+1;W.streak=W.last===prevWeek(runWeek)?(W.streak||0)+1:1;W.maxStreak=Math.max(W.maxStreak||0,W.streak);W.last=runWeek;}
     if(sd>0)W.best=Math.max(W.best||0,sd);
-    if(S.sp){W.sup=(W.sup||0)+S.sp;W.supRuns=(W.supRuns||0)+1;}
+    if(S.sp)W.sup=(W.sup||0)+S.sp;
+    if(S.sp||run.role==='sup')W.supRuns=(W.supRuns||0)+1;
     if(S.chests)W.chests=(W.chests||0)+S.chests;
     if(S.shards)W.shards=(W.shards||0)+S.shards;
     const date=new Date(run.reservation.day*86400000).toISOString().slice(0,10),first=W.day!==date;

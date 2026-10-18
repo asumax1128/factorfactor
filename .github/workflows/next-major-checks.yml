@@ -1,7 +1,7 @@
 name: Next major development checks (no deployment)
 on:
   push:
-    branches: [dev/next-major-20261015, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off, claude/v6-ranking-ui, claude/v6-title-spark-only, claude/v6-result-shell-integrate, claude/v6-ghost-random-ui, claude/v6-play-frame, claude/v6-title-equip, claude/v6-a1-title-keep, claude/v6-a1b-keep-login]
+    branches: [dev/next-major-20261015, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off, claude/v6-ranking-ui, claude/v6-title-spark-only, claude/v6-result-shell-integrate, claude/v6-ghost-random-ui, claude/v6-play-frame, claude/v6-title-equip, claude/v6-a1-title-keep, claude/v6-a1b-keep-login, claude/v6-a2-title-conditions]
     paths:
       - 'src/**'
       - 'index.html'
@@ -40,7 +40,7 @@ jobs:
           python3 scripts/title-evidence-next.py --check
           git diff --exit-code -- online-spark.js online-rated-ui.js room-b2-ui.js next-home-ui.js next-results-ui.js server/online-rated/engine-source.js server/next-authority/weekly-source.js achievements-audit.js reports/
       - name: Confirmed results and protected data units
-        run: node --test tests/title-client-next.test.cjs tests/title-authority.test.cjs tests/weekly-authority.test.cjs tests/b2.test.cjs tests/b-result.test.cjs tests/weekly-next.test.cjs tests/weekly-combat.test.cjs tests/weekly-gimmick-checkpoint.test.cjs tests/weekly-rewards-next.test.cjs tests/c-contribution-next.test.cjs tests/battle-result-model.test.cjs tests/solo-result-model.test.cjs tests/tournament-b2.test.cjs tests/title-compat-next.test.cjs tests/title-awards-next.test.cjs tests/title-cutover-next.test.cjs tests/friend-raid-next.test.cjs tests/title-equip-next.test.cjs tests/title-display-next.test.cjs tests/v6-title-retire.test.cjs tests/title-keep-next.test.cjs tests/v6-keep-wiring.test.cjs tests/title-keep-login.test.cjs tests/v6-keep-diag.test.cjs
+        run: node --test tests/title-client-next.test.cjs tests/title-authority.test.cjs tests/weekly-authority.test.cjs tests/b2.test.cjs tests/b-result.test.cjs tests/weekly-next.test.cjs tests/weekly-combat.test.cjs tests/weekly-gimmick-checkpoint.test.cjs tests/weekly-rewards-next.test.cjs tests/c-contribution-next.test.cjs tests/battle-result-model.test.cjs tests/solo-result-model.test.cjs tests/tournament-b2.test.cjs tests/title-compat-next.test.cjs tests/title-awards-next.test.cjs tests/title-cutover-next.test.cjs tests/friend-raid-next.test.cjs tests/title-equip-next.test.cjs tests/title-display-next.test.cjs tests/v6-title-retire.test.cjs tests/title-keep-next.test.cjs tests/v6-keep-wiring.test.cjs tests/title-keep-login.test.cjs tests/v6-keep-diag.test.cjs tests/v6-a2-tour10.test.cjs
       - name: Install official Chromium
         run: npx playwright install --with-deps chromium
       - name: Select Chromium
@@ -78,6 +78,7 @@ jobs:
           node tests/v525-nick-compat-browser.cjs
           node tests/v6-keep-login-browser.cjs
           node tests/v6-keep-failure-browser.cjs
+          node tests/v6-a2-weekly-browser.cjs
       - name: Isolated demo SDK and authorization checks
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
