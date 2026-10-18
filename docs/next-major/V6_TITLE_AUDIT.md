@@ -64,3 +64,19 @@ online_first(5)・wins100_ab(7)・dual50(15)・giant250(23)・easy_adept(30)・e
 - **検証**：`tests/v6-title-retire.test.cjs`（index.htmlの実コードを検証）ほか。CI run 37 は全ステップ成功。**実機・本番では未検証**。
 - **残リスク**：**旧Ver.5.25クライアント経由の新規取得は止められない**（旧端末で0→1になった分は既得と区別不能。完全停止は本番ルール変更が必要＝未実施・所有者承認事項）。週間ボスauthority経路（`weekly-rewards-next.cjs`が`lastHit`を書く）はlocalhost＋demo限定で本番では動かない。
 - **§5の件数は変更なし**：通常称号の取得判定が**未実装10件**（§5）と、隠し `factor_factor` のクライアント判定**未実装**は別工程。§7の2（塔5件の扱い）・4（新設10件の優先順位）は未決定のまま。
+
+## 9. 第9工程（A4〜A9・B・C）完了時点の状態
+開発ブランチ `claude/v6-a-batch`（基準 949f2cc）。詳細な実装メモは `V6_HANDOFF.md` の各「第9工程…」節。
+| 区分 | ID | 取得条件（正式カタログ） | 状態 |
+|---|---|---|---|
+| A4 | handi | ★★★ハンデを背負って勝利 | 実装（`handiSelf`、既得は`tk`/旧`handiWins`で保護） |
+| A5 | mis7 | 7日連続でデイリーミッション全達成 | 実装（`misRun`、JST日付） |
+| A6 | darkhorse | 大会開始時クラス内11位以下で優勝 | 新規付与を停止・既得保護（名簿方式は未実装） |
+| A7 | streak10/30/50 | 10/30/50連勝 | 実装（`sk`台帳64件・時刻順・Spark/部屋戦・5秒窓で再開始） |
+| A8 | cancel500/2000 | 攻撃を累計500/2000回無効化 | 実装（`cancelFull`＝完全無効化イベント数） |
+| A9 | games100/300, dual, rgold, master1600/1700/1900, rmaster | 通算戦数・方式別勝利・レート | 実装（Sparkの証明できる結果を追加、旧条件の上位集合） |
+| A9 | first lose50 rival20 wide10/30 perfect* daily7/30 bounty* revenge wanted ojama* ほか | 範囲・日付基準・単位の確認が必要 | **未実装（論点を記録）** |
+| B | online_first wins100_ab dual50 giant250 flash3 accuracy10 wksup500 wk_runs20 lb_cards7 | 正式カタログのとおり | 実装（9件） |
+| B | tour_streak2 | クラス大会2大会連続優勝（欠場で途切れる） | **未実装**（大会の並び・参加名簿が必要） |
+| C | factor_factor | ★5の異なる15種類（自身は数えない） | 実装（`stats.ff`で保存・取り消さない） |
+共通：既得の称号・装備(`stats/nick`)・旧統計(`handiWins`/`misDays`/`maxStreak`/`darkHorse`/`cancelTotal`/`games`/`A.w`/`B.w`/`maxRating` など)は削除・変更しない。保護は `stats.tk`（A1/A1b）。本番Firebase・Security Rulesは変更していない。
