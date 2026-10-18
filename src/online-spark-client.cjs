@@ -6,6 +6,7 @@ const C = require("../server/online-rated/core.cjs"),
 const Perf = require("./online-performance.cjs");
 const BResult = require('./b-result.cjs');
 const B2Pump = require('./b2-pump.cjs');
+const StreakQueue = require("./streak-queue-next.cjs");
 const ROOT = "games/factor/onlineSparkV1";
 const copy = C.copy;
 const id = () => {
@@ -79,6 +80,7 @@ function create({
   random = Math.random,
   modernB = true,
   storage = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+  queueStorage = typeof localStorage !== "undefined" ? localStorage : null,
 }) {
   db = Perf.instrument(db);
   const key = account?.key,
@@ -157,6 +159,7 @@ function create({
   async function ensure() {
     if (!uid || !key || !/^a[a-z0-9_]+$/.test(key))
       throw Error("登録アカウントでログインしてください");
+    skFlush().catch(() => {});
     if (ensured && ownProfile) return ownProfile;
     let p = (await profileRef.get()).val();
     if (p) {
@@ -236,14 +239,21 @@ function create({
     if(matchCache?.id===matchId)return copy(matchCache);
     const m=(await db.ref(`${ROOT}/matches/${matchId}`).get()).val();watchMatch(m);return m;
   }
+  // Ver.6.0 A7: a settled Spark match (human / BOT-type, not a ghost match) also counts for the official win streak.
+  const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
+  const skFlush = () => skQueue.flush();
+  const skEnqueue = (e) => skQueue.enqueue(e);
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
     if (!m.members.some((u) => u.key === key)) throw Error("NOT_PARTICIPANT");
     const mine = m.receipt.players[key];
     if (!mine) throw Error("INVALID_RECEIPT");
+    let fresh = false;
     ownProfile = await tx(profileRef, (p) => {
+      fresh = false;
       if (!p) throw Error("PROFILE_REQUIRED");
       if (p.processed?.[m.id]) return p;
+      fresh = true;
       const r = C.ratingView(p[m.difficulty], m.receipt.at);
       if (r.rating !== mine.before)
         throw Error("記録の順序が合いません。最新の記録を確認してください");
@@ -277,6 +287,11 @@ function create({
       p.badges = C.badges(p.easy.maxRating, p.normal.maxRating, p.badges);
       return p;
     });
+    if (fresh && !m.opponent && !String(m.id).startsWith("ghost-")) {
+      const o = m.receipt.result.draw ? "d" : m.members.find((x) => x.uid === m.receipt.result.winner)?.key === key ? "w" : "l";
+      skEnqueue({ id: `s-${m.id}`, t: m.receipt.at, o, s: "s" });
+    }
+    skFlush().catch(() => {});
   }
   async function response(m = null, withLegacy = false) {
     const selfPractice = m?.opponent?.key === key;

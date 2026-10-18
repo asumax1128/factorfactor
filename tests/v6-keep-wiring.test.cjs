@@ -64,8 +64,10 @@ test("recordMatch: the freeze happens BEFORE the counters change, and the legacy
   const r = await w.api.recordMatch(acct, winInfo());
   assert.equal(w.db.value.maxStreak, 10, "the legacy counter still advances");
   assert.equal(Keep.keptIds(w.db.value).includes("streak10"), false, "frozen before this win: streak10 is not 'already held'");
-  assert.equal(w.api.badgesOf(w.db.value).some((b) => b.id === "streak10"), true, "A1 does not switch the condition: still earned the legacy way");
-  assert.equal(r.badges.some((b) => b.id === "streak10"), true, "and still revealed as before");
+  // A7 (owner-approved) switched streak10 to the official ledger: the legacy counter alone no longer grants it once tk exists
+  // (the title is earned through stats.sk; see tests/v6-a7-streak.test.cjs). Nothing the player already held is affected.
+  assert.equal(w.api.badgesOf(w.db.value).some((b) => b.id === "streak10"), false, "A7: with tk, the legacy counter alone does not grant streak10");
+  assert.equal(r.badges.some((b) => b.id === "streak10"), false, "and it is not revealed from the legacy counter");
   assert.equal(w.db.value.games, 10); assert.equal(w.db.value.tv2.base.games, 9);
 });
 test("recordMatch: an existing holder keeps the title and is not re-announced", async () => {

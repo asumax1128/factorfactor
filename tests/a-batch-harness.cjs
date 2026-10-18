@@ -5,7 +5,7 @@ const Keep = require("../src/title-keep-next.cjs"), Labels = require("../src/tit
 const html = fs.readFileSync("index.html", "utf8");
 const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); assert(i >= 0 && j > i, a); return html.slice(i, j); };
 const clone = (x) => JSON.parse(JSON.stringify(x));
-const base = cut("const BADGES = [", "function AchievementAuditPanel") + "\n" + cut("async function statsTx(acct, fn)", "const wkOf = s =>") + "\n" + cut("async function recordMatch(acct, info)", "/* ---------- 効果音");
+const base = cut("const BADGES = [", "function AchievementAuditPanel") + "\n" + cut("async function statsTx(acct, fn)", "const wkOf = s =>")  + "\n" + cut("async function recordMatch(acct, info)", "/* ---------- 効果音");
 function world(initial, { keep = Keep, extra = [], globals = {} } = {}) {
   const db = { value: initial, writes: 0 };
   const sandbox = {

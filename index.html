@@ -7602,9 +7602,9 @@ const BADGES = [
   { id: 'rival20', g: 'rival', r: 2, icon: '🤝', label: '永遠のライバル', desc: '同じ相手と20戦', test: st => Object.values(st.vs || {}).some(v => (v.w || 0) + (v.l || 0) + (v.d || 0) >= 20) },
   { id: 'wide10', g: 'wide', r: 1, icon: '🌏', label: '顔が広い', desc: '10人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 10 },
   { id: 'dual', g: 'dual', r: 2, icon: '⚖️', label: '二刀流', desc: 'A・Bそれぞれで10勝', test: st => ((st.A || {}).w || 0) >= 10 && ((st.B || {}).w || 0) >= 10 },
-  { id: 'streak10', g: 'streak', r: 2, icon: '🔥', label: '10連勝', desc: '10連勝する', test: st => (st.maxStreak || 0) >= 10 },
-  { id: 'streak30', g: 'streak', r: 4, icon: '🔥', label: '30連勝', desc: '30連勝する', test: st => (st.maxStreak || 0) >= 30 },
-  { id: 'streak50', g: 'streak', r: 5, icon: '🔥', label: '50連勝', desc: '50連勝する', test: st => (st.maxStreak || 0) >= 50 },
+  { id: 'streak10', g: 'streak', r: 2, icon: '🔥', label: '10連勝', desc: '10連勝する', test: st => ((st.sk || {}).best || 0) >= 10 || keptTitle(st, 'streak10', s => (s.maxStreak || 0) >= 10) },
+  { id: 'streak30', g: 'streak', r: 4, icon: '🔥', label: '30連勝', desc: '30連勝する', test: st => ((st.sk || {}).best || 0) >= 30 || keptTitle(st, 'streak30', s => (s.maxStreak || 0) >= 30) },
+  { id: 'streak50', g: 'streak', r: 5, icon: '🔥', label: '50連勝', desc: '50連勝する', test: st => ((st.sk || {}).best || 0) >= 50 || keptTitle(st, 'streak50', s => (s.maxStreak || 0) >= 50) },
   { id: 'perfect50', g: 'perfect', r: 1, icon: '⭐', label: 'Perfect 50回', desc: 'Perfect を通算50回', test: st => (st.perfects || 0) >= 50 },
   { id: 'perfect100', g: 'perfect', r: 2, icon: '⭐', label: 'Perfect 100回', desc: 'Perfect を通算100回', test: st => (st.perfects || 0) >= 100 },
   { id: 'perfect300', g: 'perfect', r: 3, icon: '🌟', label: 'Perfect 300回', desc: 'Perfect を通算300回', test: st => (st.perfects || 0) >= 300 },
@@ -8073,6 +8073,8 @@ async function recordMatch(acct, info) {
       Object.entries(info.min || {}).forEach(([k, v]) => { if (v != null) s[k] = s[k] == null ? v : Math.min(s[k], v); });
       Object.entries(info.or || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) | v; });
       s.last = Date.now();
+      /* Ver.6.0 A7：正式連勝（stats.sk）。試合の台帳を時刻順に並べ直して数える（重複・遅れて届いた結果・再送に強い）。旧 stats.streak / maxStreak は懸賞金・お尋ね者・プロフィール用にそのまま残す */
+      try { const K = window.StreakNext; if (K && info.sk) K.applyResult(s, info.sk); } catch (err) {}
       holdRetiredCounters(before, s);
       after = s;
       return s;
@@ -10192,7 +10194,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     // Ver.6.0 A6：ダークホースの新規付与は停止（大会の出場者だけではクラス全体の順位を保証できない）。既得は keptTitle で保護。教師指定の名簿方式は別途（src/title-keep-next.cjs の DARKHORSE_ROSTER_NOTE 参照）
     // 経験値：勝ち30・引き分け20・負け15（Perfect 1回ごとに+1、最大+10）。CPU練習は 勝ち8・それ以外5
     const exp = practice ? (win ? 8 : 5) : (win ? 30 : outcome === 'd' ? 20 : 15) + Math.min(10, perfects) + bountyGot;
-    const info = { ...(state.rules==='b2'?{id:gid}:{}),outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr, exp, bot: !!state.bot };
+    const info = { ...(state.rules==='b2'?{id:gid}:{}), ...(state.ghostKey ? {} : { sk: { id: `r-${code}-${gid}`, t: fbNow(), o: outcome, s: 'r' } }), outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr, exp, bot: !!state.bot };
     setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [], exp: null, bountyGot, bountyLost });
     if (bountyGot) setTimeout(() => { FX.band(`💰 懸賞金ゲット！ +${bountyGot} EXP`, { color: '#d4a017', sub: '連勝ストップ！', ms: 2200 }); fxSound('fever'); }, 900);
     if (win) setTimeout(() => FX.confetti(70), 300);

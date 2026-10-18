@@ -187,6 +187,8 @@ const withoutFrame = (s) => {
   const isDarkStmt = x => x.type === 'IfStatement' && JSON.stringify(x.test).includes('"final"') && JSON.stringify(x.consequent).includes('"darkHorse"');
   const stripHandi = node => {
     if (!node || typeof node !== 'object') return;
+    // Ver.6.0 A7 (owner-approved): the result info gains ONE spread `...(state.ghostKey ? {} : { sk: {...} })` (official-streak ledger entry).
+    if (node.type === 'ObjectExpression') node.properties = node.properties.filter(p => !(p.type === 'SpreadElement' && JSON.stringify(p).includes('"ghostKey"') && JSON.stringify(p).includes('"sk"')));
     if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x));
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripHandi); else stripHandi(v); }
   };
