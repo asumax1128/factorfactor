@@ -33,7 +33,7 @@
 | 1〜5 | 称号（旧statsが空のユーザー対応）・リザルト統一ほか | dev統合済み |
 | 6 | ゴースト選択／ランダム待機／投票画面のUI統一 | dev統合済み（CI確認済み） |
 | 7 | オンラインA/B2プレイ画面枠＋数式フォント統一 | dev統合済み（CI確認済み） |
-| 8 | 新プロフィールの称号装備UI | `claude/v6-title-equip`（HEAD `2ed7e58`、dev+4）。**dev未統合・CI未実行・実機未確認** |
+| 8 | 新プロフィールの称号装備UI＋廃止称号の新規取得停止＋取得演出の正式名統一 | `claude/v6-title-equip`。**CI run 37（`c4368a1`）全通過。dev統合は所有者承認済み（fast-forwardのみ）。実機未確認**（統合結果は下の「第8工程 統合記録」を参照） |
 
 ### 段階8の実装内容
 - 新プロフィールで装備／解除／切替。未取得はロック表示。保存中・成功・失敗の状態表示。取得済みの100＋隠し1＝101称号を装備可能。
@@ -50,6 +50,15 @@
 - **既得記録・装備は保持**（スナップショットは無フィルタ、装備中は表示継続、自動解除なし）。削除済み称号を勝手に消さない／別称号へ転用しない（`docs/next-update/TITLE_SPEC_REVIEW.md`）。
 - **発覚した不整合**：`nosp`と`wklast`はコード上まだ新規取得可能（active）。塔5件はhiddenで実質取得経路なし。**未修正・所有者判断待ち**。所有者の正式削除リストは文書として存在せず、会話提示のみ。
 - 取得判定の実装状況：カタログ100件のうち、旧BADGES判定流用85／クライアント判定5（easy/normal/dual系）／新設で未実装10。隠し称号の判定はEmulator専用サーバー側のみ。詳細は監査レポート§5。
+
+### 第8工程 追補（2026-10-18）：廃止称号の新規取得停止・演出の正式名統一
+- **CI**：`claude/v6-title-equip` のコミット `c4368a1`、Actions run 37（`Next major development checks (no deployment)`）が**全ステップ成功**。第8工程のユニット（`title-equip-next`・`title-display-next`・`v6-title-retire`）、ブラウザ（`v6-title-equip-browser`・`v525-nick-compat-browser`）、Emulator（`title-nick-state-emulator`）を同ワークフローに追加済み（作業ブランチ限定の登録）。
+- **廃止称号7件（`nosp` `wklast` `tw10` `tw30` `tw50` `tw70` `tw100`）の新規取得停止**：取得状態は統計カウンタそのもの（`noSpWins>=1`、`wk.lastHit>=1`。増えるだけで減らない）。`index.html` の `holdRetiredCounters` が、`statsTx` と `recordMatch` のトランザクション内で **0→1になる更新だけを取り消す**。取得演出は `announceableBadges` が廃止7件を除外。塔5件は進捗カウンタ（`tower`）を触らず、演出対象から外すだけ。
+- **保持するもの**：既得者のカウンタ（増加は継続）・取得記録（snapshot/awards）・装備（`stats/nick`）・他の統計カウンタ・戦績・称号ID。自動解除・初期化・別称号への転用はしない。`BADGES`の判定式・`achievementStatus`は不変（既得判定は従来どおり）。
+- **別の統計カウンタは新設しない**（所有者決定）。そのため未取得者の `noSpWins`／`wk.lastHit` は増えない（カウンタが称号そのものであるため）。
+- **取得演出の名称**：`statsTx` のトースト、`BadgeReveal`、`TitleReveal` はカタログの正式名で表示（アイコン・説明文`desc`は従来のまま）。`legacy-regression` は `statsTx` を承認済み変更として許可。
+- **未解決リスク（記録）**：**旧Ver.5.25クライアント経由で廃止称号が新規取得される可能性が残る**。取り消せるのはVer.6.0のコードだけで、旧端末で0→1になった分は以後、既得と区別できない。完全に止めるには本番Firebaseルールの変更が必要だが、**本番ルールは一切変更していない**（所有者承認事項。AIは適用しない）。
+- **未実装・未検証**：**通常称号の取得判定が未実装10件**（`online_first, wins100_ab, dual50, giant250, flash3, accuracy10, tour_streak2, wksup500, wk_runs20, lb_cards7`）と、**隠し称号 `factor_factor` の獲得判定（クライアント）が未実装**（別工程）。**実機検証（スマホ幅・複数端末・低速回線）は未実施**。本番Firebaseルール・データ・デプロイは未変更。週間ボスのauthority経路（`weekly-rewards-next`）はlocalhost＋demoプロジェクト限定で本番では動かないため今回は未変更。
 
 ### 未解決事項
 1. 段階8のCI登録（`claude/v6-title-equip`と新テストを開発用CIの対象に追加＝所有者承認が必要）とdev統合が未実施。
