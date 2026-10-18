@@ -377,7 +377,7 @@ let BADGES = [
   { id: 'combo20', g: 'combo', r: 3, icon: '🔥', label: 'コンボ職人', desc: '1試合で20コンボ', test: st => (st.maxCombo || 0) >= 20 },
   { id: 'nomiss', g: 'nomiss', r: 3, icon: '🎯', label: 'ノーミス完走', desc: 'Bでミス・時間切れ0のまま勝つ', test: st => (st.nomissWins || 0) >= 1 },
   { id: 'clutch', g: 'clutch', r: 3, icon: '🩸', label: 'ギリギリセーフ', desc: 'Bで体力5%以下になってから勝つ', test: st => (st.clutchWins || 0) >= 1 },
-  { id: 'cancel500', g: 'cancel', r: 3, icon: '🛡️', label: '鉄壁の守り', desc: '相殺で打ち消した量が通算500', test: st => (st.cancelTotal || 0) >= 500 },
+  { id: 'cancel500', g: 'cancel', r: 3, icon: '🛡️', label: '鉄壁の守り', desc: '攻撃を累計500回無効化', test: st => (st.cancelFull || 0) >= 500 || keptTitle(st, 'cancel500', s => (s.cancelTotal || 0) >= 500) },
   { id: 'ojama100', g: 'ojama', r: 3, icon: '💣', label: 'おじゃま職人', desc: 'おじゃまタイルを通算100枚送る', test: st => (st.ojSent || 0) >= 100 },
   { id: 'sp50', g: 'sp', r: 3, icon: '✨', label: '必殺技マスター', desc: '必殺技を通算50回使う', test: st => (st.spUsed || 0) >= 50 },
   { id: 'giant', g: 'giant', r: 4, icon: '🦸', label: 'ジャイアントキラー', desc: '自分よりレートが200以上高い相手に勝つ', test: st => (st.giantWins || 0) >= 1 },
@@ -390,7 +390,7 @@ let BADGES = [
   { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => (st.maxRating || 0) >= 1600 },
   { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => (st.maxRating || 0) >= 1900 },
   { id: 'combo30', g: 'combo', r: 4, icon: '🌋', label: 'コンボの神', desc: '1試合で30コンボ', test: st => (st.maxCombo || 0) >= 30 },
-  { id: 'cancel2000', g: 'cancel', r: 4, icon: '🏰', label: '難攻不落', desc: '相殺で打ち消した量が通算2000', test: st => (st.cancelTotal || 0) >= 2000 },
+  { id: 'cancel2000', g: 'cancel', r: 4, icon: '🏰', label: '難攻不落', desc: '攻撃を累計2000回無効化', test: st => (st.cancelFull || 0) >= 2000 || keptTitle(st, 'cancel2000', s => (s.cancelTotal || 0) >= 2000) },
   { id: 'ojama500', g: 'ojama', r: 4, icon: '😈', label: 'おじゃま魔王', desc: 'おじゃまタイルを通算500枚送る', test: st => (st.ojSent || 0) >= 500 },
   { id: 'nomiss10', g: 'nomiss', r: 4, icon: '🎯', label: 'ノーミスの達人', desc: 'ノーミス完走で10回勝つ', test: st => (st.nomissWins || 0) >= 10 },
   { id: 'wide30', g: 'wide', r: 3, icon: '🎪', label: '人気者', desc: '30人以上と対戦', test: st => Object.keys(st.vs || {}).length >= 30 },
@@ -545,7 +545,7 @@ function bTarget(me, ids, live, ko, tm) {
 }
 function createBEngine(o) {
   const s = { hp: 100, c: 0, served: {}, score: 0, combo: 0, best: 0, pend: [], ojNext: 0, seenEv: {}, sent: 0, resolving: false, over: false, ko: false,
-    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, ojSent: 0, spUsed: 0, minHp: 100, dmgTaken: 0 };
+    lastT: Date.now(), cur: null, qStart: 0, warned: false, sp: 0, shieldUntil: 0, perfects: 0, behind: false, hist: [], pushT: 0, nextAt: null, cancelTotal: 0, cancelFull: 0, ojSent: 0, spUsed: 0, minHp: 100, dmgTaken: 0 };
   const fx = (t, p) => { if (o.fx) o.fx(t, p); };
   const snd = (k, rate) => { if (o.sound) o.sound.play(k, rate); };
   const mul = handiDmgMul(o.hc);
@@ -668,6 +668,7 @@ function createBEngine(o) {
       let r = c;
       const d = Math.min(p.dmg, r); p.dmg -= d; r -= d;
       if (r > 0) p.oj = Math.max(0, p.oj - Math.ceil(r / OJAMA_UNIT));
+      if (c > 0 && p.dmg <= 0 && p.oj <= 0) s.cancelFull = (s.cancelFull || 0) + 1; // Ver.6.0 A8：攻撃1回を自分の相殺で完全に打ち消した
     }
     s.pend = s.pend.filter(p => p.dmg > 0 || p.oj > 0);
     // C：仲間に届いている攻撃もカバー（自分の分を相殺したあとの残りで）

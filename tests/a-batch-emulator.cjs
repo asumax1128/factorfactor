@@ -19,7 +19,7 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     vm.createContext(sandbox);
     vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { badgesOf, statsTx, recordMatch, misRunStep };', sandbox);
     const api = sandbox.api, path = (k) => `games/factor/accounts/${k}/stats`;
-    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 } };
+    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' } };
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor'), {
       logins: Object.fromEntries(Object.keys(accts).map((k) => [k, { [user.uid]: 'x' }])),
       accounts: Object.fromEntries(Object.entries(accts).map(([k, s]) => [k, { name: k, stats: { games: 1, ...s } }])),
@@ -68,5 +68,11 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     qa.enqueue({ id: 's-m2', t: T0 + 100000 + 3000, o: 'l', s: 's' }); await qa.flush();
     v = await get('s3'); assert.equal(v.sk.n, 0);
     console.log('PASS A7 (real RTDB): Spark queue flushes once across devices; a 5.25-style writer does not disturb it; unordered results restart');
+    // A8: complete-cancellation count
+    const rc = await api.recordMatch({ key: 'c1' }, info({ cancelFull: 1, cancelTotal: 3 }));
+    v = await get('c1'); assert.equal(v.cancelFull, 500); assert.equal(rc.badges.some((b) => b.id === 'cancel500'), true); assert.equal(has(v, 'cancel2000'), false);
+    await api.recordMatch({ key: 'c2' }, info({ cancelFull: 1, cancelTotal: 2 }, { outcome: 'l' }));
+    v = await get('c2'); assert.equal(has(v, 'cancel2000') && has(v, 'cancel500'), true); assert.equal(v.cancelTotal, 2602); assert.equal(v.nick, 'cancel2000'); assert.deepEqual(Object.keys(v.tk.ids).sort(), ['cancel2000', 'cancel500']);
+    console.log('PASS A8 (real RTDB): 500 complete cancellations grant cancel500; the old amount holder keeps both titles and the equipped title');
   } finally { await env.cleanup(); await app.delete(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });

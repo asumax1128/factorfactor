@@ -55,7 +55,7 @@
         m.duration = duration;
         m.endAt = m.startAt + duration * 1e3;
         m.visualEvents = [];
-        m.states = Object.fromEntries(m.ids.map((u) => [u, { hp: 100, c: 0, score: 0, combo: 0, best: 0, gauge: 0, sp: 0, freezeUntil: 0, oj: 0, queued: 0, pending: 0, counterUntil: 0, cheerPoints: 0, cheerRemoved: 0, serial: 0, served: {}, hist: [], resolving: false, nextAt: null }]));
+        m.states = Object.fromEntries(m.ids.map((u) => [u, { hp: 100, c: 0, score: 0, combo: 0, best: 0, gauge: 0, sp: 0, freezeUntil: 0, oj: 0, queued: 0, pending: 0, pendQ: [], cancelFull: 0, counterUntil: 0, cheerPoints: 0, cheerRemoved: 0, serial: 0, served: {}, hist: [], resolving: false, nextAt: null }]));
         for (const u of m.ids) board(m, m.states[u], bank, api, m.startAt);
         m.scoreTrace = { version: 1, complete: true, seq: 0, events: [{ id: 0, at: m.startAt, scores: Object.fromEntries(m.ids.map((u) => [u, 0])) }] };
         return m;
@@ -139,6 +139,7 @@
             if (!f && s.pending && s.counterUntil <= t) {
               s.queued = Math.min(cap(m.difficulty) - s.oj, s.queued + s.pending);
               s.pending = 0;
+              s.pendQ = [];
               s.counterUntil = 0;
             }
             if (s.resolving && s.nextAt <= t) board(m, s, bank, api, s.nextAt);
@@ -200,6 +201,7 @@
           if (s.pending && s.counterUntil > now) {
             const cancel = Math.min(s.pending, attack);
             s.cancelTotal = (s.cancelTotal || 0) + cancel;
+            cancelEvents(s, cancel);
             s.pending -= cancel;
             attack -= cancel;
             if (!s.pending) s.counterUntil = 0;
@@ -208,6 +210,7 @@
           if (arrived) {
             s.ojSent = (s.ojSent || 0) + arrived;
             if (!o.pending) o.counterUntil = now + 3e3;
+            queueArrival(o, arrived);
             o.pending += arrived;
             event(m, to, "incoming", { oj: arrived, until: o.counterUntil });
           }
@@ -230,6 +233,24 @@
         s.qStart = now;
         ko(m);
         return m;
+      }
+      function pendQueue(s) {
+        return Array.isArray(s.pendQ) ? s.pendQ : s.pendQ = s.pending > 0 ? [s.pending] : [];
+      }
+      function queueArrival(o, arrived) {
+        pendQueue(o).push(arrived);
+      }
+      function cancelEvents(s, c) {
+        const q = pendQueue(s);
+        while (c > 0 && q.length) {
+          const t = Math.min(c, q[0]);
+          q[0] -= t;
+          c -= t;
+          if (q[0] <= 0) {
+            q.shift();
+            s.cancelFull = (s.cancelFull || 0) + 1;
+          }
+        }
       }
       function view(m, uid) {
         var _a;

@@ -189,7 +189,10 @@ const withoutFrame = (s) => {
     if (!node || typeof node !== 'object') return;
     // Ver.6.0 A7 (owner-approved): the result info gains ONE spread `...(state.ghostKey ? {} : { sk: {...} })` (official-streak ledger entry).
     if (node.type === 'ObjectExpression') node.properties = node.properties.filter(p => !(p.type === 'SpreadElement' && JSON.stringify(p).includes('"ghostKey"') && JSON.stringify(p).includes('"sk"')));
-    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x));
+    // Ver.6.0 A8 (owner-approved): the result screen records `add.cancelFull` and the b2Final default state gains `cancelFull: 0`.
+    if (node.type === 'ObjectExpression') node.properties = node.properties.filter(p => !(p.type === 'ObjectProperty' && p.key?.name === 'cancelFull'));
+    const isCancelFullStmt = x => x.type === 'ExpressionStatement' && x.expression?.type === 'AssignmentExpression' && x.expression.left?.object?.name === 'add' && x.expression.left?.property?.name === 'cancelFull';
+    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x) && !isCancelFullStmt(x));
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripHandi); else stripHandi(v); }
   };
   stripHandi(n);
@@ -223,6 +226,7 @@ for (const [name, value] of Object.entries(before)) {
       "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
       "statsTx", // Ver.6.0 (owner-approved): retired titles (nosp, wklast, tower) are no longer newly awarded or revealed; held counters/equipment untouched (tests/v6-title-retire.test.cjs).
       "claimMission", // Ver.6.0 A5 (owner-approved): the all-clear stats write goes through statsTx (ensureKeep first) and records the consecutive run (tests/v6-a5-mis7.test.cjs).
+      "createBEngine", // Ver.6.0 A8 (owner-approved): one counting statement in sendAttack (+ cancelFull in the initial state); every amount and every other rule is unchanged, audited by tests/v6-a8-cancel.test.cjs (text projection against the A3 baseline).
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.
       "LearnApp", // Displays fastest per level; responsive browser tested.

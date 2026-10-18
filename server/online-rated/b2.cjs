@@ -24,7 +24,7 @@ function board(m,s,bank,api,at){
 function begin(base,duration,bank,api){
   if(![60,90,120,180].includes(duration))throw Error('INVALID_DURATION');
   const m=copy(base);m.rules='b2';m.duration=duration;m.endAt=m.startAt+duration*1000;m.visualEvents=[];
-  m.states=Object.fromEntries(m.ids.map(u=>[u,{hp:100,c:0,score:0,combo:0,best:0,gauge:0,sp:0,freezeUntil:0,oj:0,queued:0,pending:0,counterUntil:0,cheerPoints:0,cheerRemoved:0,serial:0,served:{},hist:[],resolving:false,nextAt:null}]));
+  m.states=Object.fromEntries(m.ids.map(u=>[u,{hp:100,c:0,score:0,combo:0,best:0,gauge:0,sp:0,freezeUntil:0,oj:0,queued:0,pending:0,pendQ:[],cancelFull:0,counterUntil:0,cheerPoints:0,cheerRemoved:0,serial:0,served:{},hist:[],resolving:false,nextAt:null}]));
   for(const u of m.ids)board(m,m.states[u],bank,api,m.startAt);
   m.scoreTrace={version:1,complete:true,seq:0,events:[{id:0,at:m.startAt,scores:Object.fromEntries(m.ids.map(u=>[u,0]))}]};
   return m;
@@ -63,7 +63,7 @@ function advance(m,to,bank,api){
     if(t>=m.endAt){finish(m,'time');break}
     for(const u of m.ids){const s=m.states[u],f=s.freezeUntil>t;if(s.hp<=0)continue;
       if(!f&&!s.resolving&&s.combo>0&&s.comboDue<t)s.combo=0;
-      if(!f&&s.pending&&s.counterUntil<=t){s.queued=Math.min(cap(m.difficulty)-s.oj,s.queued+s.pending);s.pending=0;s.counterUntil=0}
+      if(!f&&s.pending&&s.counterUntil<=t){s.queued=Math.min(cap(m.difficulty)-s.oj,s.queued+s.pending);s.pending=0;s.pendQ=[];s.counterUntil=0}
       if(s.resolving&&s.nextAt<=t)board(m,s,bank,api,s.nextAt);
       if(!s.resolving&&s.qStart+20000<=t){s.combo=0;s.hp=Math.max(0,s.hp-(m.difficulty==='normal'?5:0));s.hist.push({lv:s.cur.level,k:s.cur.k,ok:false,timeout:true,ms:20000});s.resolving=true;s.nextAt=t+420;s.qStart=t;}
     }
@@ -94,9 +94,9 @@ function step(raw,uid,cmd,now,bank,api){
     s.combo++;s.best=Math.max(s.best,s.combo);const recovery=heal(ms),P=Math.round(POINTS[s.cur.level]*(1+.1*(s.combo-1)))+Math.max(0,Math.round(s.hp+recovery-100));
     const bonus=Math.round(P*.1*s.cur.oj);s.score+=P+bonus;s.hp=Math.min(100,s.hp+recovery);s.c++;s.oj=Math.max(0,s.oj-1);
     let attack=s.combo===1?0:s.combo===2?1:s.combo===3?2:3;
-    if(s.pending&&s.counterUntil>now){const cancel=Math.min(s.pending,attack);s.cancelTotal=(s.cancelTotal||0)+cancel;s.pending-=cancel;attack-=cancel;if(!s.pending)s.counterUntil=0;}
+    if(s.pending&&s.counterUntil>now){const cancel=Math.min(s.pending,attack);s.cancelTotal=(s.cancelTotal||0)+cancel;cancelEvents(s,cancel);s.pending-=cancel;attack-=cancel;if(!s.pending)s.counterUntil=0;}
     const room=Math.max(0,cap(m.difficulty)-o.oj-o.queued-o.pending),arrived=Math.min(attack,room);
-    if(arrived){s.ojSent=(s.ojSent||0)+arrived;if(!o.pending)o.counterUntil=now+3000;o.pending+=arrived;event(m,to,'incoming',{oj:arrived,until:o.counterUntil})}
+    if(arrived){s.ojSent=(s.ojSent||0)+arrived;if(!o.pending)o.counterUntil=now+3000;queueArrival(o,arrived);o.pending+=arrived;event(m,to,'incoming',{oj:arrived,until:o.counterUntil})}
     if(s.combo>=2&&s.gauge<100)s.gauge=Math.min(100,s.gauge+s.cur.level*3);s.sp=s.gauge;
     s.hist.push({lv:s.cur.level,k:s.cur.k,ok:true,ms,j:api.getJudgment(ms).label,gain:P+bonus,base:P,bonus,oj:s.cur.oj});
     scoreEvent(m,uid,P+bonus);
@@ -106,5 +106,11 @@ function step(raw,uid,cmd,now,bank,api){
   s.resolving=true;s.nextAt=now+420;s.qStart=now;
   ko(m);return m;
 }
+// Ver.6.0 A8: bookkeeping of attack EVENTS waiting in `pending` (the amount logic above is unchanged). pendQ holds the size of
+// each arrived attack still waiting, oldest first. A cancel consumes the oldest first; an event whose remainder reaches 0 was
+// cancelled completely and is counted once in cancelFull. A partly cancelled event that later lands is never counted.
+function pendQueue(s){return Array.isArray(s.pendQ)?s.pendQ:(s.pendQ=s.pending>0?[s.pending]:[])}
+function queueArrival(o,arrived){pendQueue(o).push(arrived)}
+function cancelEvents(s,c){const q=pendQueue(s);while(c>0&&q.length){const t=Math.min(c,q[0]);q[0]-=t;c-=t;if(q[0]<=0){q.shift();s.cancelFull=(s.cancelFull||0)+1}}}
 function view(m,uid){const s=m.states[uid];return {id:m.id,mode:'B',difficulty:m.difficulty,rules:'b2',result:m.result||null,question:`${s.cur.level}:${s.cur.k}`,poly:s.cur.poly,tiles:s.cur.tiles,level:s.cur.level,startAt:s.qStart,timeoutMs:20000,acceptedSeq:m.seq?.[uid]||0,visualEvents:m.visualEvents||[],resolving:s.resolving,combo:s.combo,readyAt:s.nextAt||s.qStart,endAt:m.endAt,freezeUntil:s.freezeUntil,live:copy(m.states)};}
 module.exports={begin,step,view,advance,heal,cap,POINTS};
