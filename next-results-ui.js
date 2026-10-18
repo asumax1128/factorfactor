@@ -1074,7 +1074,7 @@
             number: 82,
             legacyNumber: 73,
             name: "\u30E2\u30F3\u30B9\u30BF\u30FC\u30DE\u30B9\u30BF\u30FC",
-            condition: "\u51686\u7A2E\u985E\u306E\u30DC\u30B9\u8A0E\u4F10\u306B\u53C2\u52A0",
+            condition: "\u7570\u306A\u308B6\u7A2E\u985E\u306E\u30DC\u30B9\u8A0E\u4F10\u306B\u53C2\u52A0",
             stars: 4,
             id: "wkdex6",
             legacyId: "wkdex6",

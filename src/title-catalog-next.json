@@ -829,7 +829,7 @@
       "number": 82,
       "legacyNumber": 73,
       "name": "モンスターマスター",
-      "condition": "全6種類のボス討伐に参加",
+      "condition": "異なる6種類のボス討伐に参加",
       "stars": 4,
       "id": "wkdex6",
       "legacyId": "wkdex6",
