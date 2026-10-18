@@ -4,9 +4,9 @@ import csv,io,json,pathlib,sys
 root=pathlib.Path(__file__).resolve().parents[1]
 c=json.loads((root/'src/title-catalog-next.json').read_text())
 with (root/'reports/titles_inventory.csv').open(encoding='utf-8-sig',newline='') as f: legacy=list(csv.DictReader(f))
-assert len(legacy)==97
+assert len(legacy)==106  # 97 legacy titles + 9 catalog titles added to BADGES in Ver.6.0 step 9 B
 old={r['内部ID']:r for r in legacy}
-assert len(old)==97 and len(c['titles'])==100 and len({t['id'] for t in c['titles']})==100
+assert len(old)==106 and len(c['titles'])==100 and len({t['id'] for t in c['titles']})==100
 assert sum(t['stars']==5 for t in c['titles'])==26
 online=set('dual dual50 shutout online_first first wins100_ab games100 games300 lose50 rival20 wide10 wide30 perfect50 perfect100 perfect300 perfect500 perfect1000 flash flash3 combo20 combo30 nomiss nomiss10 accuracy10 lv9 alllv sp3 sp50 ojama100 ojama500'.split())
 rating=set('rgold master1600 master1700 rmaster master1900 easy_adept easy_master normal_adept normal_master dual_master'.split())
@@ -31,4 +31,4 @@ path=root/'docs/next-major/TITLE_EVIDENCE_100.csv';data=b'\xef\xbb\xbf'+out.getv
 if '--check' in sys.argv:
  assert path.read_bytes()==data,'TITLE_EVIDENCE_100.csv must be regenerated'
 else:path.write_bytes(data)
-print(json.dumps({'normal':100,'fiveStars':26,'legacy':97,'states':counts},ensure_ascii=False))
+print(json.dumps({'normal':100,'fiveStars':26,'legacy':106,'states':counts},ensure_ascii=False))

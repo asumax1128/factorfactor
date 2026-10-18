@@ -7,7 +7,7 @@ const html=fs.readFileSync('index.html','utf8');const js=html.slice(html.indexOf
 const scope={window:{AchievementAudit:entries}};vm.createContext(scope);
 vm.runInContext(js+'\nthis.api={BADGES,badgesOf,activeAchievements,achievementStatus};',scope);const {api}=scope;
 const st={tower:{best:100,endN:3},w:2,maxRating:1900,skin:{tile:'towert'},nick:'tw100'},copy=JSON.stringify(st);
-assert.equal(api.BADGES.length,92);assert.equal(api.activeAchievements().length,87);assert.equal(api.badgesOf(st).filter(x=>x.g==='tower').length,5);assert(api.activeAchievements().every(x=>x.g!=='tower'));assert.equal(JSON.stringify(st),copy);
+assert.equal(api.BADGES.length,92+9);assert.equal(api.activeAchievements().length,87+9);/* Ver.6.0 step 9 B adds 9 catalog titles to BADGES (92 -> 101) */assert.equal(api.badgesOf(st).filter(x=>x.g==='tower').length,5);assert(api.activeAchievements().every(x=>x.g!=='tower'));assert.equal(JSON.stringify(st),copy);
 scope.window.AchievementAudit=entries.map(x=>x.id==='first'?{...x,status:'retired'}:x);assert(!api.activeAchievements().some(x=>x.id==='first'));
 assert.equal(cosmetics.filter(x=>!x.need).length,3);assert.equal(cosmetics.filter(x=>x.tower).length,2);
 console.log('PASS inventories BOM/counts/IDs/source references; active/hidden/retired filters; unchanged predicates/history/equipment');

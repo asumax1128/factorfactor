@@ -5914,6 +5914,7 @@ function WeeklyRaidApp({ acct, onExit }) {
     if(sd>0)W.best=Math.max(W.best||0,sd);
     if(S.sp)W.sup=(W.sup||0)+S.sp;
     if(S.sp||run.role==='sup')W.supRuns=(W.supRuns||0)+1;
+    W.runs=(W.runs||0)+1;
     if(S.chests)W.chests=(W.chests||0)+S.chests;
     if(S.shards)W.shards=(W.shards||0)+S.shards;
     const date=new Date(run.reservation.day*86400000).toISOString().slice(0,10),first=W.day!==date;
@@ -5950,6 +5951,7 @@ function WeeklyRaidApp({ acct, onExit }) {
           const S2 = sess.current;
           if (S2.sp) { W.sup = (W.sup || 0) + S2.sp; W.supRuns = (W.supRuns || 0) + 1; }
           if (!S2.sp && a2Completed && role === 'sup') W.supRuns = (W.supRuns || 0) + 1;
+          if (a2Completed) W.runs = (W.runs || 0) + 1; // Ver.6.0 B：出撃を最後まで完了した回数（戦友の絆）
           if (S2.chests) W.chests = (W.chests || 0) + S2.chests;
           if (S2.shards) W.shards = (W.shards || 0) + S2.shards;
           const first = W.day !== today; if (first) W.day = today;
@@ -7685,6 +7687,16 @@ const BADGES = [
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
+  /* Ver.6.0 第9工程B：正式カタログの新称号（ID・名称・条件は src/title-catalog-next.json が唯一の基準） */
+  { id: 'online_first', g: 'online', r: 1, icon: '📯', label: '開戦の狼煙', desc: 'オンライン対戦を初めて1試合完了', test: st => (st.og || 0) >= 1 || Object.keys(st.vs || {}).length >= 1 },
+  { id: 'wins100_ab', g: 'wins100', r: 3, icon: '🗡️', label: '百人斬り', desc: 'A・B方式のオンライン対戦合算で通算100勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) + ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 100 },
+  { id: 'dual50', g: 'dual', r: 4, icon: '☯️', label: '二刀皆伝', desc: 'A・B方式でそれぞれ通算50勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) >= 50 && ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 50 },
+  { id: 'giant250', g: 'giant', r: 5, icon: '🐲', label: '王者喰らい', desc: '対戦開始時にレーティング250以上高い相手に勝利', test: st => (st.giant250Wins || 0) >= 1 },
+  { id: 'flash3', g: 'flash', r: 5, icon: '⚡', label: '神速の領域', desc: '1試合中に1秒以内の正解を3回', test: st => (st.flash3 || 0) >= 1 },
+  { id: 'accuracy10', g: 'accuracy', r: 4, icon: '🎯', label: '百発百中', desc: '1試合10問以上正解、誤答0・時間切れ0（勝敗不問）', test: st => (st.accuracy10 || 0) >= 1 },
+  { id: 'wksup500', g: 'wksup', r: 5, icon: '🛡️', label: '影の守護神', desc: '応援ポイント通算500獲得', test: st => ((st.wk || {}).sup || 0) >= 500 },
+  { id: 'wk_runs20', g: 'wkruns', r: 3, icon: '🤝', label: '戦友の絆', desc: '今週のボスへの出撃を通算20回完了', test: st => ((st.wk || {}).runs || 0) >= 20 },
+  { id: 'lb_cards7', g: 'lb', r: 5, icon: '🔖', label: '七つの宝印', desc: 'ログインボーナスカードを通算7枚完成', test: st => ((st.login || {}).cards || 0) >= 7 },
 ];
 /* Ver.6.0：条件を正式条件に切り替えた称号の「既得」判定。有効な stats.tk があれば固定された既得(tk.ids)だけ、無い・保護モジュールが使えないときは旧条件(legacy)で判定する（既得を失わない・表示を壊さない） */
 const keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes(id); } catch (e) {} return legacy(st); };
@@ -10155,8 +10167,11 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     const win = outcome === 'w', eng = mine.current.eng, es = eng ? eng.s : null;
     const add = {}, mx = {}, mn = {}, orr = {};
     let lvMask = 0;
+    const humanOnly = !state.bot && !Object.values(state.cpu || {}).some(Boolean); // Ver.6.0 B：CPUが加わった部屋は新称号の対象外（正式カタログ excludedAwardModes）
     if (isBm(mode) && es) {
       const oks = es.hist.filter(h => h.ok);
+      if (humanOnly && oks.filter(h => h.ms <= 1000).length >= 3) add.flash3 = 1;
+      if (humanOnly && oks.length >= 10 && es.hist.every(h => h.ok)) add.accuracy10 = 1;
       if (oks.length) mn.bestMs = Math.round(Math.min(...oks.map(h => h.ms)));
       mx.maxCombo = es.best;
       add.cancelTotal = es.cancelTotal; add.cancelFull = es.cancelFull || 0; add.ojSent = es.ojSent; add.spUsed = es.spUsed;
@@ -10181,9 +10196,11 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       if (win && others.every(u => !(scA.sc[u] || 0))) add.shutouts = 1;
       const myCl = claimsRef.current.map((c, q) => ({ c, q })).filter(x => x.c && x.c.uid === me);
       if (win && add.otetsuki === 0 && myCl.length >= 6) add.calmWins = 1;
+      if (humanOnly && add.otetsuki === 0 && myCl.length >= 10) add.accuracy10 = 1;
       myCl.forEach(x => { if (x.c.j === 'Perfect') lvMask |= 1 << bank.level(x.q + 1); });
     }
     if (others.some(u => rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 200)) add.giantWins = 1;
+    if (foesR.some(u => accts[u] && rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 250)) add.giant250Wins = 1; // Ver.6.0 B：対戦開始時に250以上高い登録プレイヤーに勝利
     // Ver.6.0 A4：逆境無双＝自分が★★★ハンデを背負って勝つ。旧カウンタ handiWins（相手側のハンデ）は既得保護のため残し、ここからは増やさない
     if (win && (hc[me] || 0) >= 3) add.handiSelf = 1;
     // 懸賞金：懸賞金がかかった相手に勝ったら、その分の経験値ボーナス

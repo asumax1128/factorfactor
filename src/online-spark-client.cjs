@@ -297,13 +297,15 @@ function create({
       p.badges = C.badges(p.easy.maxRating, p.normal.maxRating, p.badges);
       return p;
     });
-    if (fresh && !m.opponent && !String(m.id).startsWith("ghost-")) {
+    // human matches and BOT-type matches count; learned-ghost / hyper matches and self practice do not
+    const countsForStreak = !m.opponent || (m.opponent.type === "bot" && m.opponent.key !== key);
+    if (fresh && countsForStreak) {
       const o = m.receipt.result.draw ? "d" : m.members.find((x) => x.uid === m.receipt.result.winner)?.key === key ? "w" : "l";
       const opp = m.members.find((x) => x.key !== key), their = opp && m.receipt.players[opp.key];
-      const g = o === "w" && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;
+      const g = o === "w" && !m.opponent && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;
       skEnqueue({
         id: `s-${m.id}`, t: m.receipt.at, o, s: "s",
-        ...(m.mode === "A" || m.mode === "B" ? { m: m.mode } : {}), ...(g ? { g: 1 } : {}),
+        ...(m.mode === "A" || m.mode === "B" ? { m: m.mode } : {}), ...(g ? { g: 1 } : {}), ...(!m.opponent ? { h: 1 } : {}),
         ...(ownProfile?.easy ? { re: ownProfile.easy.maxRating, rn: ownProfile.normal?.maxRating } : {}),
       });
     }
@@ -697,7 +699,7 @@ function create({
       s.ghostAwards ||= {};
       if (s.ghostAwards[m.id]) return s;
       s.ghostAwards[m.id] = { exp, at: m.receipt.at };
-      s.gg = (s.gg || 0) + 1; // Ver.6.0 A9: ghost matches count for the total-games titles (once per match, by the receipt above)
+      if (m.opponent.type !== "bot") s.gg = (s.gg || 0) + 1; // Ver.6.0 A9: learned-ghost / hyper matches count for the total-games titles once per match (receipt above); BOT-type matches are counted by the streak hand-over instead
       s.exp = (s.exp || 0) + exp;
       s.ghostTitles = G.titles(
         m.opponent,

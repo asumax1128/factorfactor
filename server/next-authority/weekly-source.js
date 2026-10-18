@@ -340,6 +340,7 @@ let devAward = (s,S,run) => {
     if(sd>0)W.best=Math.max(W.best||0,sd);
     if(S.sp)W.sup=(W.sup||0)+S.sp;
     if(S.sp||run.role==='sup')W.supRuns=(W.supRuns||0)+1;
+    W.runs=(W.runs||0)+1;
     if(S.chests)W.chests=(W.chests||0)+S.chests;
     if(S.shards)W.shards=(W.shards||0)+S.shards;
     const date=new Date(run.reservation.day*86400000).toISOString().slice(0,10),first=W.day!==date;

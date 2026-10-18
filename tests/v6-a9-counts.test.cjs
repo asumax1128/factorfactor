@@ -63,7 +63,7 @@ test("wiring: the Spark client queues mode / gap / ratings, mirrors ratings once
   const src = fs.readFileSync("src/online-spark-client.cjs", "utf8");
   assert.match(src, /their\.before - mine\.before >= 250/);
   assert.match(src, /skQueue\.enqueue\(\{ kind: "ratings", id: `rt-\$\{key\}`/);
-  assert.match(src, /s\.ghostAwards\[m\.id\] = \{ exp, at: m\.receipt\.at \};\n      s\.gg = \(s\.gg \|\| 0\) \+ 1;/);
+  assert.match(src, /s\.ghostAwards\[m\.id\] = \{ exp, at: m\.receipt\.at \};\n      if \(m\.opponent\.type !== "bot"\) s\.gg = \(s\.gg \|\| 0\) \+ 1;/);
   assert.match(src, /if \(s\.ghostAwards\[m\.id\]\) return s;\n      s\.ghostAwards\[m\.id\]/);
 });
 test("old holders: with tk nothing is removed because every new condition is a superset of the old one", () => {

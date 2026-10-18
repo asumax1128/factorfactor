@@ -191,8 +191,12 @@ const withoutFrame = (s) => {
     if (node.type === 'ObjectExpression') node.properties = node.properties.filter(p => !(p.type === 'SpreadElement' && JSON.stringify(p).includes('"ghostKey"') && JSON.stringify(p).includes('"sk"')));
     // Ver.6.0 A8 (owner-approved): the result screen records `add.cancelFull` and the b2Final default state gains `cancelFull: 0`.
     if (node.type === 'ObjectExpression') node.properties = node.properties.filter(p => !(p.type === 'ObjectProperty' && p.key?.name === 'cancelFull'));
+    // Ver.6.0 B (owner-approved): new title records added to the result screen: `if (...) add.flash3|accuracy10|giant250Wins = 1;` and the
+    // `humanOnly` flag they use. Nothing else in the result screen is touched; tests/v6-b-titles.test.cjs audits them.
+    const isNewTitleStmt = x => (x.type === 'IfStatement' && !x.alternate && x.consequent?.type === 'ExpressionStatement' && x.consequent.expression?.type === 'AssignmentExpression' && x.consequent.expression.left?.object?.name === 'add' && ['flash3', 'accuracy10', 'giant250Wins'].includes(x.consequent.expression.left?.property?.name))
+      || (x.type === 'VariableDeclaration' && x.declarations.length === 1 && x.declarations[0].id?.name === 'humanOnly');
     const isCancelFullStmt = x => x.type === 'ExpressionStatement' && x.expression?.type === 'AssignmentExpression' && x.expression.left?.object?.name === 'add' && x.expression.left?.property?.name === 'cancelFull';
-    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x) && !isCancelFullStmt(x));
+    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x) && !isDarkStmt(x) && !isCancelFullStmt(x) && !isNewTitleStmt(x));
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripHandi); else stripHandi(v); }
   };
   stripHandi(n);

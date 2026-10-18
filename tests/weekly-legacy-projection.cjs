@@ -2,7 +2,7 @@
 // This projection removes only explicitly named development wiring; no math or
 // legacy write handler is replaced with baseline text.
 // Ver.6.0 A2 (owner-approved) ADDED four statements (never edited a legacy one): the planned-end ref + its effect, the
-// `a2Completed` flag and two `if (... a2Completed ...)` counters. They are removed here and counted, so the projection fails
+// `a2Completed` flag and two `if (... a2Completed ...)` counters; Ver.6.0 B adds a third `if (a2Completed) W.runs++` (戦友の絆). They are removed here and counted, so the projection fails
 // if more or fewer than exactly those statements exist; everything else is still compared with the baseline.
 module.exports=function project(n){
  if(!n.body.body.some(s=>(s.declarations||[]).some(d=>d.id?.name==='dev')))return n;
@@ -44,5 +44,5 @@ const a2={ref:0,effect:0,decl:0,ifs:0};
   if(x.type==='ObjectProperty'&&x.key?.name==='stunUntil'&&x.value?.name==='stunUntil')x.shorthand=true;
   if(x.type==='IfStatement'&&x.consequent?.type==='BlockStatement'&&x.consequent.body.length===1&&x.consequent.body[0].type==='ReturnStatement')x.consequent=x.consequent.body[0];
   return x;
- };const out=walk(n);if(a2.ref!==1||a2.effect!==1||a2.decl!==1||a2.ifs!==2)throw Error('weekly A2 additions changed: '+JSON.stringify(a2));return out;
+ };const out=walk(n);if(a2.ref!==1||a2.effect!==1||a2.decl!==1||a2.ifs!==3)throw Error('weekly A2 additions changed: '+JSON.stringify(a2));return out;
 };

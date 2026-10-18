@@ -4,6 +4,7 @@
 //   stats.sg        Spark human / BOT-type matches counted (ghost matches are counted in stats.gg by the Spark client)
 //   stats.sw        { A, B } Spark wins by method
 //   stats.giant250Wins  wins against an opponent whose rating at the start was 250 or more above the player's
+//   stats.og        online matches against a human (Spark human matches; room matches against registered players are in stats.vs)
 //   stats.sx        { e, n } highest Spark rating reached on the easy / normal scale (a mirror of the Spark profile, only ever raised)
 //
 // A match is counted ONCE: only when the streak ledger recorded it now (a repeat of the same id is a duplicate and adds nothing).
@@ -35,6 +36,7 @@ function apply(s, e) {
   if (!r.recorded) return r;
   s.sg = (num(s.sg) || 0) + 1;
   if (e.o === 'w' && (e.m === 'A' || e.m === 'B')) { const w = isObj(s.sw) ? { ...s.sw } : {}; w[e.m] = (num(w[e.m]) || 0) + 1; s.sw = w; }
+  if (e.h === 1) s.og = (num(s.og) || 0) + 1;
   if (e.o === 'w' && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
   raiseSx(s, e.re, e.rn);
   return r;

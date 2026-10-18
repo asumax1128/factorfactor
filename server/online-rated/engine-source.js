@@ -443,6 +443,16 @@ let BADGES = [
   { id: 'wkrage', g: 'wkrage', r: 4, icon: '😤', label: '怒りを鎮めし者', desc: '怒って居座ったボスの討伐に参加', test: st => ((st.wk || {}).rageKills || 0) >= 1 },
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
+  /* Ver.6.0 第9工程B：正式カタログの新称号（ID・名称・条件は src/title-catalog-next.json が唯一の基準） */
+  { id: 'online_first', g: 'online', r: 1, icon: '📯', label: '開戦の狼煙', desc: 'オンライン対戦を初めて1試合完了', test: st => (st.og || 0) >= 1 || Object.keys(st.vs || {}).length >= 1 },
+  { id: 'wins100_ab', g: 'wins100', r: 3, icon: '🗡️', label: '百人斬り', desc: 'A・B方式のオンライン対戦合算で通算100勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) + ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 100 },
+  { id: 'dual50', g: 'dual', r: 4, icon: '☯️', label: '二刀皆伝', desc: 'A・B方式でそれぞれ通算50勝', test: st => ((st.A || {}).w || 0) + ((st.sw || {}).A || 0) >= 50 && ((st.B || {}).w || 0) + ((st.sw || {}).B || 0) >= 50 },
+  { id: 'giant250', g: 'giant', r: 5, icon: '🐲', label: '王者喰らい', desc: '対戦開始時にレーティング250以上高い相手に勝利', test: st => (st.giant250Wins || 0) >= 1 },
+  { id: 'flash3', g: 'flash', r: 5, icon: '⚡', label: '神速の領域', desc: '1試合中に1秒以内の正解を3回', test: st => (st.flash3 || 0) >= 1 },
+  { id: 'accuracy10', g: 'accuracy', r: 4, icon: '🎯', label: '百発百中', desc: '1試合10問以上正解、誤答0・時間切れ0（勝敗不問）', test: st => (st.accuracy10 || 0) >= 1 },
+  { id: 'wksup500', g: 'wksup', r: 5, icon: '🛡️', label: '影の守護神', desc: '応援ポイント通算500獲得', test: st => ((st.wk || {}).sup || 0) >= 500 },
+  { id: 'wk_runs20', g: 'wkruns', r: 3, icon: '🤝', label: '戦友の絆', desc: '今週のボスへの出撃を通算20回完了', test: st => ((st.wk || {}).runs || 0) >= 20 },
+  { id: 'lb_cards7', g: 'lb', r: 5, icon: '🔖', label: '七つの宝印', desc: 'ログインボーナスカードを通算7枚完成', test: st => ((st.login || {}).cards || 0) >= 7 },
 ];
 let keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes(id); } catch (e) {} return legacy(st); };
 function hashSeed(s) {
