@@ -178,6 +178,16 @@ const withoutFrame = (s) => {
     for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripReport); else stripReport(v); }
   };
   stripReport(n);
+  // Ver.6.0 A4 (owner-approved): the title counter statement `add.handiWins = 1` (opponent had the handicap) became
+  // `add.handiSelf = 1` (the player had it). Only that single statement is normalised away on both sides; its new
+  // behaviour is audited by tests/v6-a4-handi.test.cjs.
+  const isHandiStmt = x => x.type === 'IfStatement' && !x.alternate && x.consequent?.type === 'ExpressionStatement' && x.consequent.expression?.type === 'AssignmentExpression' && x.consequent.expression.left?.object?.name === 'add' && ['handiWins', 'handiSelf'].includes(x.consequent.expression.left?.property?.name);
+  const stripHandi = node => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node.body)) node.body = node.body.filter(x => !isHandiStmt(x));
+    for (const v of Object.values(node)) if (v && typeof v === 'object') { if (Array.isArray(v)) v.forEach(stripHandi); else stripHandi(v); }
+  };
+  stripHandi(n);
   // The result frame may be widened (presentation only). Exactly ONE additive shape is allowed:
   //   wrap(<BattleResult .../>, false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final))))
   // Any other extra argument, a different flag expression or a different second argument is NOT normalised and fails the audit.

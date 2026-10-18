@@ -7618,7 +7618,7 @@ const BADGES = [
   { id: 'shutout', g: 'shutout', r: 4, icon: '🥷', label: '完封', desc: 'Aで相手を0点にして勝つ', test: st => (st.shutouts || 0) >= 1 },
   { id: 'lv9', g: 'lv9', r: 4, icon: '🧠', label: 'Lv.9の壁', desc: 'Lv.9の問題を Perfect で正解', test: st => (st.lv9p || 0) >= 1 },
   { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '🐸', label: 'お手つき大王', desc: 'Aでお手つき通算100回', test: st => (st.otetsuki || 0) >= 100 },
-  { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★の相手に勝つ', test: st => (st.handiWins || 0) >= 1 },
+  { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★を背負って勝つ', test: st => (st.handiSelf || 0) >= 1 || (() => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes('handi'); } catch (e) {} return (st.handiWins || 0) >= 1; })() },
   { id: 'games300', g: 'games', r: 4, icon: '🏯', label: '修行の道', desc: '300戦する', test: st => (st.games || 0) >= 300 },
   { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => (st.maxRating || 0) >= 1600 },
   { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => (st.maxRating || 0) >= 1900 },
@@ -10170,7 +10170,8 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
       myCl.forEach(x => { if (x.c.j === 'Perfect') lvMask |= 1 << bank.level(x.q + 1); });
     }
     if (others.some(u => rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 200)) add.giantWins = 1;
-    if (others.some(u => rel(u) === 'w' && (hc[u] || 0) >= 3)) add.handiWins = 1;
+    // Ver.6.0 A4：逆境無双＝自分が★★★ハンデを背負って勝つ。旧カウンタ handiWins（相手側のハンデ）は既得保護のため残し、ここからは増やさない
+    if (win && (hc[me] || 0) >= 3) add.handiSelf = 1;
     // 懸賞金：懸賞金がかかった相手に勝ったら、その分の経験値ボーナス
     const bty = state.bty || {};
     const bountyGot = practice ? 0 : others.filter(u => rel(u) === 'w' && bty[u]).reduce((a, u) => a + bty[u], 0);

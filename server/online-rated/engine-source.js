@@ -385,7 +385,7 @@ let BADGES = [
   { id: 'shutout', g: 'shutout', r: 4, icon: '🥷', label: '完封', desc: 'Aで相手を0点にして勝つ', test: st => (st.shutouts || 0) >= 1 },
   { id: 'lv9', g: 'lv9', r: 4, icon: '🧠', label: 'Lv.9の壁', desc: 'Lv.9の問題を Perfect で正解', test: st => (st.lv9p || 0) >= 1 },
   { id: 'otetsuki100', g: 'otetsuki', r: 2, icon: '🐸', label: 'お手つき大王', desc: 'Aでお手つき通算100回', test: st => (st.otetsuki || 0) >= 100 },
-  { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★の相手に勝つ', test: st => (st.handiWins || 0) >= 1 },
+  { id: 'handi', g: 'handi', r: 3, icon: '🎁', label: 'ハンデなんて関係ない', desc: 'ハンデ★★★を背負って勝つ', test: st => (st.handiSelf || 0) >= 1 || (() => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes('handi'); } catch (e) {} return (st.handiWins || 0) >= 1; })() },
   { id: 'games300', g: 'games', r: 4, icon: '🏯', label: '修行の道', desc: '300戦する', test: st => (st.games || 0) >= 300 },
   { id: 'master1600', g: 'master', r: 2, icon: '🌠', label: '期待の新星', desc: 'レート1600に到達', test: st => (st.maxRating || 0) >= 1600 },
   { id: 'master1900', g: 'master', r: 5, icon: '🐉', label: '伝説の因数分解師', desc: 'レート1900に到達', test: st => (st.maxRating || 0) >= 1900 },

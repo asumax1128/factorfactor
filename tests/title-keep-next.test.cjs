@@ -14,7 +14,10 @@ const norm = (f) => String(f).replace(/\s+/g, "").replace(/^\(st\)=>/, "st=>");
 
 test("the 8 frozen legacy conditions are exactly the current BADGES conditions", () => {
   assert.deepEqual([...Keep.KEEP_IDS].sort(), ["cancel2000", "cancel500", "darkhorse", "handi", "mis7", "streak10", "streak30", "streak50"]);
-  for (const id of Keep.KEEP_IDS) assert.equal(norm(Keep.LEGACY_TESTS[id]), norm(live.get(id).src), id + " source");
+  // A4 (owner-approved): the LIVE handi condition changed on purpose (self ★★★ win); the frozen copy stays the 5.25 one.
+  // Without a keep module and without tk the live handi falls back to the legacy counter, so the value checks below still hold.
+  for (const id of Keep.KEEP_IDS.filter((x) => x !== "handi")) assert.equal(norm(Keep.LEGACY_TESTS[id]), norm(live.get(id).src), id + " source");
+  assert.equal(norm(Keep.LEGACY_TESTS.handi), "st=>(st.handiWins||0)>=1");
   const values = [undefined, null, 0, 1, 2, 6, 7, 9, 10, 11, 29, 30, 31, 49, 50, 51, 499, 500, 501, 1999, 2000, 2001, -1, "7", NaN];
   const fields = ["handiWins", "maxStreak", "misDays", "cancelTotal", "darkHorse"];
   for (const f of fields) for (const v of values) {

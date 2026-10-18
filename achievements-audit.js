@@ -92,7 +92,7 @@ window.AchievementAudit = [
     "judge": "index.html:7590",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10557; index.html:10558; index.html:8013; index.html:7590",
+    "writers": "index.html:10558; index.html:10559; index.html:8013; index.html:7590",
     "relation": "単条件"
   },
   {
@@ -669,9 +669,9 @@ window.AchievementAudit = [
     "id": "handi",
     "name": "ハンデなんて関係ない",
     "category": "対戦",
-    "description": "ハンデ★★★の相手に勝つ",
-    "condition": "st => (st.handiWins || 0) >= 1",
-    "numbers": ">= 1",
+    "description": "ハンデ★★★を背負って勝つ",
+    "condition": "st => (st.handiSelf || 0) >= 1 || (() => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes('handi'); } catch (e) {} return (st.handiWins || 0) >= 1; })()",
+    "numbers": ">= 1／>= 1",
     "mode": "従来ルーム・大会（recordMatch）。新レート戦は別保存",
     "status": "active",
     "reason": "",
@@ -681,8 +681,8 @@ window.AchievementAudit = [
     "judge": "index.html:7621",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10173; index.html:8013; index.html:7621",
-    "relation": "単条件"
+    "writers": "index.html:10174; index.html:8013; index.html:7621",
+    "relation": "OR"
   },
   {
     "id": "games300",
@@ -890,7 +890,7 @@ window.AchievementAudit = [
     "judge": "index.html:7632",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10180; index.html:8013; index.html:7632",
+    "writers": "index.html:10181; index.html:8013; index.html:7632",
     "relation": "単条件"
   },
   {
@@ -1080,7 +1080,7 @@ window.AchievementAudit = [
     "judge": "index.html:7642",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10177; index.html:8013; index.html:7642",
+    "writers": "index.html:10178; index.html:8013; index.html:7642",
     "relation": "単条件"
   },
   {
@@ -1099,7 +1099,7 @@ window.AchievementAudit = [
     "judge": "index.html:7643",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10177; index.html:8013; index.html:7643",
+    "writers": "index.html:10178; index.html:8013; index.html:7643",
     "relation": "単条件"
   },
   {
@@ -1745,7 +1745,7 @@ window.AchievementAudit = [
     "judge": "index.html:7678",
     "availability": "取得可能",
     "consistency": "定義のtestをそのまま掲載。書込経路のモード差は報告書参照。",
-    "writers": "index.html:10179; index.html:8013; index.html:7678",
+    "writers": "index.html:10180; index.html:8013; index.html:7678",
     "relation": "単条件"
   }
 ];
