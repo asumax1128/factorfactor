@@ -21,7 +21,7 @@ async function context(
     firebaseSource = null,
     emulatorNetwork = false,
     siteRoot = root,
-    keepLogin = false,
+    keepLogin = "observe",
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -32,7 +32,24 @@ async function context(
     errors = [],
     requests = [];
   await ctx.exposeBinding("__fbGet", () => tree);
+  // Ver.6.0 A1b: the login-time freeze adds tk/tv2 to stats. Older tests assert that nothing ELSE in stats changes and count
+  // stats writes, so in the default "observe" mode the page still runs the freeze, but the protection record is kept out of
+  // the tree and the write log the legacy assertions look at (it is collected in `keepRecords`). Any other change the freeze
+  // made would still be visible. "real" mode (tests/v6-keep-login-browser.cjs) stores and logs everything.
+  const keepRecords = [],
+    STATS_RE = /^games\/factor\/accounts\/[^/]+\/stats$/;
+  const getAt = (path) => path.split("/").reduce((n, k) => (n == null ? n : n[k]), tree);
+  const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   await ctx.exposeBinding("__fbOp", async (_, op) => {
+    if (keepLogin === "observe") {
+      if (op.kind === "set" && /\/stats\/(tk|tv2)$/.test(op.path)) { keepRecords.push({ path: op.path, v: op.v }); return; }
+      if (op.kind === "set" && STATS_RE.test(op.path) && op.v && typeof op.v === "object" && ("tk" in op.v || "tv2" in op.v)) {
+        const { tk, tv2, ...rest } = op.v;
+        keepRecords.push({ path: op.path, tk, tv2 });
+        if (sameJson(rest, getAt(op.path))) return; // only the protection record was added
+        op = { ...op, v: rest };
+      }
+    }
     if (onOperation) await onOperation(op, tree);
     writes.push(op);
     const put = (path, value) => {
@@ -50,16 +67,13 @@ async function context(
         .catch(() => {});
   });
   await ctx.addInitScript(
-    ({ account, uid, keepLogin }) => {
+    ({ account, uid }) => {
       sessionStorage.setItem("mockuid", uid);
-      // Ver.6.0 A1b: the login-time freeze is an extra stats write; the older tests assert exact stats/write sets, so it is
-      // off by default and tests/v6-keep-login-browser.cjs turns it on. (The freeze inside stats transactions stays on.)
-      if (!keepLogin) localStorage.setItem("fxf_no_keep_login", "1");
       if (account)
         localStorage.setItem("fxf_battle_account_v1", JSON.stringify(account));
       localStorage.setItem("fxf_no_lb", "1");
     },
-    { account, uid, keepLogin },
+    { account, uid },
   );
   await ctx.route("**/*", async (route) => {
     const u = new URL(route.request().url());
@@ -136,7 +150,7 @@ async function context(
   peers.push(page);
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url);
-  return { ctx, page, writes, errors, tree, requests };
+  return { ctx, page, writes, errors, tree, requests, keepRecords };
 }
 async function story(page, confirm = true) {
   for (let n = 0; n < 300; n++) {

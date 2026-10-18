@@ -77,6 +77,7 @@ jobs:
           node tests/v6-title-equip-browser.cjs
           node tests/v525-nick-compat-browser.cjs
           node tests/v6-keep-login-browser.cjs
+          node tests/v6-keep-failure-browser.cjs
       - name: Isolated demo SDK and authorization checks
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0

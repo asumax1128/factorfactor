@@ -7706,7 +7706,6 @@ const keepCheck = st => { try { if (st && !(st.tk && st.tk.v === 1)) KEEP_DIAG.n
 const keepFreezeSeen = new Set();
 async function keepFreezeOnLogin(acct) {
   if (!isReal(acct) || !FB.db || keepFreezeSeen.has(acct.key)) return null;
-  try { if (localStorage.getItem('fxf_no_keep_login') === '1') return null; } catch (e) {}   // 自動テスト用：ログイン時の固定だけを止める（統計トランザクション内の固定は止めない）
   keepFreezeSeen.add(acct.key);
   try {
     const K = window.TitleKeepNext;
