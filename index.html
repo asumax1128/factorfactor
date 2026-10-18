@@ -4176,6 +4176,15 @@ function useMissions(acct, prof) {
   const rows = defs.map(d => { const cur = Math.min(d.n, d.cur(m.p || {})); return { ...d, cur, done: cur >= d.n, got: !!(m.c || {})[d.key] }; });
   return { date, m, rows };
 }
+/* Ver.6.0 A5：ミッション皆勤の連続日数。ミッションの日付(JST)ごとに1回だけ数え、前日なら+1、途切れたら1から。保存済みの最後の日より前の日付(端末時計の巻き戻り)は数えない */
+const prevDate = d => new Date(Date.parse(d + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+function misRunStep(s, date) {
+  const R = s.misRun && typeof s.misRun === 'object' ? s.misRun : (s.misRun = {});
+  if (typeof R.last === 'string' && R.last >= date) return false;
+  R.n = R.last === prevDate(date) ? (R.n || 0) + 1 : 1;
+  R.last = date; R.best = Math.max(R.best || 0, R.n);
+  return true;
+}
 async function claimMission(acct, row, rows) {
   const date = jstDate();
   let ok = false, all = false;
@@ -4193,7 +4202,7 @@ async function claimMission(acct, row, rows) {
   else { const x = fn(loadLS(MIS_LS, null)); if (x) saveLS(MIS_LS, x); }
   MISBUS.forEach(f => f());
   if (!ok) return null;
-  if (all && isReal(acct) && FB.db) FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(st => { st = st || {}; st.misDays = (st.misDays || 0) + 1; return st; }).catch(() => {});
+  if (all && isReal(acct) && FB.db) statsTx(acct, st => { st.misDays = (st.misDays || 0) + 1; misRunStep(st, date); });
   const e = await addExp(acct, MIS_EXP + (all ? MIS_ALL_EXP : 0));
   return { exp: e, all };
 }
@@ -7642,7 +7651,7 @@ const BADGES = [
   { id: 'bounty1', g: 'bounty', r: 2, icon: '💰', label: '賞金稼ぎ', desc: '懸賞金がかかった相手に勝つ', test: st => (st.bountyWins || 0) >= 1 },
   { id: 'bounty10', g: 'bounty', r: 4, icon: '🤠', label: '伝説のハンター', desc: '懸賞金がかかった相手に通算10回勝つ', test: st => (st.bountyWins || 0) >= 10 },
   { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
-  { id: 'mis7', g: 'mis', r: 3, icon: '📆', label: 'ミッション皆勤', desc: 'デイリーミッションを7日コンプリートする', test: st => (st.misDays || 0) >= 7 },
+  { id: 'mis7', g: 'mis', r: 3, icon: '📆', label: 'ミッション皆勤', desc: 'デイリーミッションを7日連続ですべて達成', test: st => ((st.misRun || {}).best || 0) >= 7 || keptTitle(st, 'mis7', s => (s.misDays || 0) >= 7) },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   // 今週のボス
   { id: 'wk1', g: 'wk', r: 1, icon: '🗓️', label: '初陣', desc: '今週のボスに初めて出撃する', test: st => ((st.wk || {}).weeks || 0) >= 1 },
@@ -7677,6 +7686,8 @@ const BADGES = [
   { id: 'wklast', g: 'wklast', r: 4, icon: '🗡️', label: '討伐の一撃', desc: '今週のボスにとどめを刺す', test: st => ((st.wk || {}).lastHit || 0) >= 1 },
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
+/* Ver.6.0：条件を正式条件に切り替えた称号の「既得」判定。有効な stats.tk があれば固定された既得(tk.ids)だけ、無い・保護モジュールが使えないときは旧条件(legacy)で判定する（既得を失わない・表示を壊さない） */
+const keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes(id); } catch (e) {} return legacy(st); };
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
 /* Ver.6.0 廃止称号（所有者承認）：新規取得だけを止める。取得状態は統計カウンタそのもの（1以上で取得・減らない）なので、
    既得（カウンタ1以上）・装備(stats/nick)・過去の戦績は一切変えず、0→1になる更新だけを取り消す。 */

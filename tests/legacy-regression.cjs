@@ -217,6 +217,7 @@ for (const [name, value] of Object.entries(before)) {
       "BattleResult", // Timed B labels; existing A detailed result retained.
       "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
       "statsTx", // Ver.6.0 (owner-approved): retired titles (nosp, wklast, tower) are no longer newly awarded or revealed; held counters/equipment untouched (tests/v6-title-retire.test.cjs).
+      "claimMission", // Ver.6.0 A5 (owner-approved): the all-clear stats write goes through statsTx (ensureKeep first) and records the consecutive run (tests/v6-a5-mis7.test.cjs).
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.
       "LearnApp", // Displays fastest per level; responsive browser tested.
