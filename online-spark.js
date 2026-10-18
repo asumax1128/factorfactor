@@ -2472,11 +2472,24 @@
       var finalizable = (d, now) => now >= (d + 1) * DAY - SHIFT + GRACE;
       var awardIds = { easy: "daily_easy_king", normal: "daily_normal_king", hard: "daily_hard_king" };
       function titles(had, d) {
-        const next = { ...had, [awardIds[d]]: true };
-        if (Object.values(awardIds).every((id) => next[id])) next.daily_king = true;
-        return next;
+        return { ...had, [awardIds[d]]: true };
       }
-      module.exports = { DAY, SHIFT, GRACE, epoch, date, sortKey, compare, best, reserve, finalizable, awardIds, titles };
+      var isDay = (x) => Number.isInteger(x);
+      function kingDay(day, finals, key) {
+        if (!isDay(day) || typeof key !== "string" || !key || !finals) return false;
+        return Object.keys(awardIds).every((d) => {
+          const f = finals[d];
+          return !!f && typeof f === "object" && f.key === key && isDay(f.day) && f.day === day;
+        });
+      }
+      function sameStoredDay(had) {
+        const days = Object.values(awardIds).map((id) => {
+          var _a;
+          return (_a = had == null ? void 0 : had[id]) == null ? void 0 : _a.day;
+        });
+        return days.every(isDay) && days.every((x) => x === days[0]) ? days[0] : null;
+      }
+      module.exports = { DAY, SHIFT, GRACE, epoch, date, sortKey, compare, best, reserve, finalizable, awardIds, titles, kingDay, sameStoredDay };
     }
   });
 
@@ -2696,7 +2709,17 @@
           const now = await clock(), days = (await ref(`playedDays/${key}`).get()).val() || {}, had = (await ref(`titles/${key}`).get()).val() || {};
           const cursor = (await ref(`awardCursor/${key}`).get()).val() || 0;
           const work = Object.keys(days).map(Number).filter((d) => d > cursor && D.finalizable(d, now)).sort((a, b) => a - b).slice(0, 10);
+          const grantKing = async () => {
+            await ref(`titles/${key}/daily_king`).set(true);
+            had.daily_king = true;
+          };
+          const finalsOf = async (day) => {
+            const o = {};
+            for (const d of Object.keys(D.awardIds)) o[d] = (await ref(`finals/${day}/${d}`).get()).val();
+            return o;
+          };
           for (const day of work) {
+            const fin = {};
             for (const d of Object.keys(D.awardIds)) {
               const finalRef = ref(`finals/${day}/${d}`);
               let final = (await finalRef.get()).val();
@@ -2712,15 +2735,36 @@
                   }
                 }
               }
+              fin[d] = final;
               if ((final == null ? void 0 : final.key) === key && !had[D.awardIds[d]]) had[D.awardIds[d]] = await tx(ref(`titles/${key}/${D.awardIds[d]}`), (old) => old || { day });
             }
+            if (!had.daily_king && D.kingDay(day, fin, key)) await grantKing();
             await ref(`awardCursor/${key}`).set(day);
           }
-          if (Object.values(D.awardIds).every((id) => had[id]) && !had.daily_king) {
-            await ref(`titles/${key}/daily_king`).set(true);
-            had.daily_king = true;
-          }
           if (work.length === 10) return awards();
+          if (!had.daily_king && Object.values(D.awardIds).every((id) => had[id])) {
+            const stored = D.sameStoredDay(had);
+            if (stored !== null && D.kingDay(stored, await finalsOf(stored), key)) await grantKing();
+            if (!had.daily_king) {
+              const scanKey = `fxf_daily_king_scan_v1:${key}`;
+              let last = 0;
+              try {
+                last = Number(storage == null ? void 0 : storage.getItem(scanKey)) || 0;
+              } catch (_) {
+              }
+              const past = Object.keys(days).map(Number).filter((d) => d > last && D.finalizable(d, now) && !work.includes(d) && d !== stored).sort((a, b) => a - b);
+              for (const day of past) {
+                if (D.kingDay(day, await finalsOf(day), key)) {
+                  await grantKing();
+                  break;
+                }
+              }
+              if (!had.daily_king && past.length) try {
+                storage == null ? void 0 : storage.setItem(scanKey, String(past.at(-1)));
+              } catch (_) {
+              }
+            }
+          }
           return had;
         }
         return { status, start, finish, publish, rankings, awards, clock };

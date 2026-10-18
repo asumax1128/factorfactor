@@ -12,5 +12,19 @@ function reserve(ledger,attempt){
 }
 const finalizable=(d,now)=>now>=(d+1)*DAY-SHIFT+GRACE;
 const awardIds={easy:'daily_easy_king',normal:'daily_normal_king',hard:'daily_hard_king'};
-function titles(had,d){const next={...had,[awardIds[d]]:true};if(Object.values(awardIds).every(id=>next[id]))next.daily_king=true;return next}
-module.exports={DAY,SHIFT,GRACE,epoch,date,sortKey,compare,best,reserve,finalizable,awardIds,titles};
+// Each division title is permanent and independent. The composite (天下統一, daily_king) is NOT derived from them: it needs
+// the three division wins on ONE JST day, which only the immutable finals of that day can prove (see kingDay).
+function titles(had,d){return {...had,[awardIds[d]]:true}}
+// finals = { easy, normal, hard } records of ONE day (dailyV2/finals/<day>/<division>). True only when every division's
+// final names this account AND carries that same day (a missing or different day is "unknown": never granted).
+const isDay=x=>Number.isInteger(x);
+function kingDay(day,finals,key){
+ if(!isDay(day)||typeof key!=='string'||!key||!finals)return false;
+ return Object.keys(awardIds).every(d=>{const f=finals[d];return !!f&&typeof f==='object'&&f.key===key&&isDay(f.day)&&f.day===day});
+}
+// The one day stored in all three division title records ({day}), or null when any is missing, not a day, or different.
+function sameStoredDay(had){
+ const days=Object.values(awardIds).map(id=>had?.[id]?.day);
+ return days.every(isDay)&&days.every(x=>x===days[0])?days[0]:null;
+}
+module.exports={DAY,SHIFT,GRACE,epoch,date,sortKey,compare,best,reserve,finalizable,awardIds,titles,kingDay,sameStoredDay};

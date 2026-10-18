@@ -44,16 +44,35 @@ function create({db,uid,account,storage=globalThis.localStorage}){
   const now=await clock(),days=(await ref(`playedDays/${key}`).get()).val()||{},had=(await ref(`titles/${key}`).get()).val()||{};
   const cursor=(await ref(`awardCursor/${key}`).get()).val()||0;
   const work=Object.keys(days).map(Number).filter(d=>d>cursor&&D.finalizable(d,now)).sort((a,b)=>a-b).slice(0,10);
+  // 天下統一: one JST day, all three divisions, proven by that day's immutable finals. Never from separate days, never from
+  // the three division flags alone. The value stays `true` (what the current rules and every reader expect).
+  const grantKing=async()=>{await ref(`titles/${key}/daily_king`).set(true);had.daily_king=true;};
+  const finalsOf=async day=>{const o={};for(const d of Object.keys(D.awardIds))o[d]=(await ref(`finals/${day}/${d}`).get()).val();return o;};
   for(const day of work){
+   const fin={};
    for(const d of Object.keys(D.awardIds)){
     const finalRef=ref(`finals/${day}/${d}`);let final=(await finalRef.get()).val();
     if(!final){const leader=(await ref(`boards/${day}/${d}/leader`).get()).val();if(leader){try{await finalRef.set(leader);final=leader}catch(e){final=(await finalRef.get()).val();if(!final)throw e;}}}
+    fin[d]=final;
     if(final?.key===key&&!had[D.awardIds[d]])had[D.awardIds[d]]=await tx(ref(`titles/${key}/${D.awardIds[d]}`),old=>old||{day});
    }
+   if(!had.daily_king&&D.kingDay(day,fin,key))await grantKing();
    await ref(`awardCursor/${key}`).set(day);
   }
-  if(Object.values(D.awardIds).every(id=>had[id])&&!had.daily_king){await ref(`titles/${key}/daily_king`).set(true);had.daily_king=true;}
   if(work.length===10)return awards();
+  // Past same-day wins (days already behind the cursor): only when the records PROVE one day. Holders of all three division
+  // titles without 天下統一 are the only ones who can qualify, so only they are looked at.
+  if(!had.daily_king&&Object.values(D.awardIds).every(id=>had[id])){
+   const stored=D.sameStoredDay(had);
+   if(stored!==null&&D.kingDay(stored,await finalsOf(stored),key))await grantKing();
+   if(!had.daily_king){
+    const scanKey=`fxf_daily_king_scan_v1:${key}`;let last=0;try{last=Number(storage?.getItem(scanKey))||0}catch(_){}
+    const past=Object.keys(days).map(Number).filter(d=>d>last&&D.finalizable(d,now)&&!work.includes(d)&&d!==stored).sort((a,b)=>a-b);
+    for(const day of past){if(D.kingDay(day,await finalsOf(day),key)){await grantKing();break;}}
+    // a day is remembered as checked only after every read of the scan succeeded (a failure retries next time)
+    if(!had.daily_king&&past.length)try{storage?.setItem(scanKey,String(past.at(-1)))}catch(_){}
+   }
+  }
   return had;
  }
  return{status,start,finish,publish,rankings,awards,clock};
