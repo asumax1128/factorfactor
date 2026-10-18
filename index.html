@@ -5622,6 +5622,7 @@ async function statsTx(acct, fn) {
   try {
     const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); keepStats(s); out = fn(s); holdRetiredCounters(before, s); after = s; return s; });
     if (!r || !r.committed) return null;
+    keepCheck(after);
   } catch (e) { return null; }
   const got = announceableBadges(before, after);
   got.forEach((b, i) => setTimeout(() => { FX.band(`${b.icon} 称号ゲット！「${b.label}」`, { color: '#d4a017', sub: b.desc, ms: 2000 }); fxSound('badge'); }, 600 + i * 2200));
@@ -7685,7 +7686,35 @@ const announceableBadges = (before, after) => {
 };
 /* Ver.6.0 A1：既得称号の保護記録(stats.tk / stats.tv2)を、統計トランザクションの先頭(カウンタ更新の前)で1回だけ作る。
    記録が無い・壊れているときだけ作成し、有効な記録は変更しない。読み込めない／失敗しても何もしない(称号は旧条件のまま維持)。 */
-const keepStats = s => { try { if (window.TitleKeepNext) window.TitleKeepNext.ensureKeep(s, { '.sv': 'timestamp' }); } catch (e) {} };
+/* Ver.6.0 A1b：保護記録の診断。種類ごとの回数と最後の原因コードだけを保持する（個人情報・認証情報・パスは記録しない）。
+   console.warn は同じ種類につき初回のみ。診断が何をしてもゲーム動作は止めない。window.FXF_KEEP_DIAG で確認できる。 */
+const KEEP_DIAG = (window.FXF_KEEP_DIAG = window.FXF_KEEP_DIAG || {
+  counts: {}, last: null,
+  note(kind, code) {
+    try {
+      const n = this.counts[kind] = (this.counts[kind] || 0) + 1;
+      this.last = { kind, code: typeof code === 'string' && /^[A-Za-z0-9_.:-]{1,40}$/.test(code) ? code : 'unknown', n };
+      if (n === 1) console.warn('[title-keep] ' + kind + ': protection record was not created (titles are unaffected)');
+    } catch (e) {}
+  },
+});
+const keepStats = s => { try { const K = window.TitleKeepNext; if (!K) { KEEP_DIAG.note('missing-module'); return; } K.ensureKeep(s, { '.sv': 'timestamp' }); } catch (e) { KEEP_DIAG.note('exception', e && e.name); } };
+/* 統計トランザクションの確定後：更新した統計に tk が無ければ検出する（保護記録が作られなかった） */
+const keepCheck = st => { try { if (st && !(st.tk && st.tk.v === 1)) KEEP_DIAG.note('not-created'); } catch (e) {} };
+/* Ver.6.0 A1b：ログイン直後の既得称号固定。ログイン中の通常アカウントにつき1回だけ試す（失敗は診断に記録し、次のログインで再試行）。
+   統計の読み込みに成功し、空でなく、tk が無い・不正なときだけ書く（読み込み失敗・未読込・null・空は何も書かない）。 */
+const keepFreezeSeen = new Set();
+async function keepFreezeOnLogin(acct) {
+  if (!isReal(acct) || !FB.db || keepFreezeSeen.has(acct.key)) return null;
+  keepFreezeSeen.add(acct.key);
+  try {
+    const K = window.TitleKeepNext;
+    if (!K || !K.freezeOnLogin) { KEEP_DIAG.note('missing-module'); return null; }
+    const r = await K.freezeOnLogin({ db: FB.db, key: acct.key, stamp: { '.sv': 'timestamp' } });
+    if (r.status === 'read-failed' || r.status === 'failed') KEEP_DIAG.note(r.status === 'read-failed' ? 'read-failed' : 'freeze-failed', r.code);
+    return r.status;
+  } catch (e) { KEEP_DIAG.note('exception', e && e.name); return null; }
+}
 // Presentation metadata never participates in award, equipment or Firebase writes.
 const achievementStatus = id => (window.AchievementAudit || []).find(x => x.id === id)?.status || (BADGES.find(x=>x.id===id)?.g==='tower'?'hidden':'active');
 const activeAchievements = () => BADGES.filter(b => achievementStatus(b.id) === 'active');
@@ -8029,6 +8058,7 @@ async function recordMatch(acct, info) {
       return s;
     });
     if (!res || !res.committed) return { badges: [] };
+    keepCheck(after);
   } catch (e) { return { badges: [] }; }
   return { badges: announceableBadges(before, after), dr: applied, exp: { before: expB, after: expA } };
 }
@@ -11308,6 +11338,7 @@ function AppRoot() {
   };
   const toSolo = () => go('home');
   usePresenceRoot(acct, mode);
+  useEffect(() => { if (!isReal(acct)) { keepFreezeSeen.clear(); return; } let stop = false, t; const run = () => { if (stop) return; if (!FB.db || !FB.uid) { t = setTimeout(run, 500); return; } keepFreezeOnLogin(acct); }; run(); return () => { stop = true; clearTimeout(t); }; }, [acct && acct.key]);
   useEffect(()=>{if(!isReal(acct))return;let stop=false,t;const claim=()=>{if(stop)return;if(!FB.db||!FB.uid){t=setTimeout(claim,500);return;}window.DailyV2?.create({db:FB.db,uid:FB.uid,account:acct}).awards().catch(()=>{});};claim();return()=>{stop=true;clearTimeout(t)}},[acct?.key]);
   // ver.7：どの画面でも .v7-cur の部品に指をのせると ▶ と「ピッ」
   const gcur = useMenuCursor();

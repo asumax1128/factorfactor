@@ -27,6 +27,7 @@ async function codeAudit() {
     announceableBadges: () => [],
     holdRetiredCounters: (_before, s) => s,
     keepStats: () => {},
+    keepCheck: () => {},
     FB: {
       db: {
         ref: (path) => ({

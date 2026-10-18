@@ -1397,7 +1397,44 @@
         }
         return out;
       }
-      module.exports = { LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep };
+      var SAFE_CODE = /^[A-Za-z0-9_.:-]{1,40}$/;
+      var codeOf = (e) => {
+        const c = e && (e.code || e.name);
+        return typeof c === "string" && SAFE_CODE.test(c) ? c : "unknown";
+      };
+      async function freezeOnLogin({ db, key, stamp, timeoutMs = 15e3 }) {
+        if (!db || typeof key !== "string" || !key) return { status: "failed", code: "bad-args" };
+        const ref = db.ref(`games/factor/accounts/${key}/stats`);
+        let value;
+        try {
+          value = (await ref.get()).val();
+        } catch (e) {
+          return { status: "read-failed", code: codeOf(e) };
+        }
+        if (!isObj(value) || !Object.keys(value).length) return { status: "empty" };
+        if (validKeep(value.tk) && validTv2(value.tv2)) return { status: "present" };
+        let timer;
+        try {
+          const run = ref.transaction((s) => {
+            if (!isObj(s) || !Object.keys(s).length) return s;
+            ensureKeep(s, stamp);
+            return s;
+          });
+          const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(Object.assign(new Error("timeout"), { code: "timeout" })), timeoutMs);
+          });
+          const r = await Promise.race([run, timeout]);
+          const after = r && r.committed && r.snapshot && typeof r.snapshot.val === "function" ? r.snapshot.val() : null;
+          if (!isObj(after)) return { status: "failed", code: "not-committed" };
+          if (!(validKeep(after.tk) && validTv2(after.tv2))) return { status: "failed", code: "not-created" };
+          return { status: "frozen" };
+        } catch (e) {
+          return { status: "failed", code: codeOf(e) };
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      module.exports = { LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep, freezeOnLogin, codeOf };
     }
   });
 
