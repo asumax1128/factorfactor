@@ -5620,7 +5620,7 @@ async function statsTx(acct, fn) {
   if (!isReal(acct) || !FB.db) return null;
   let before = null, after = null, out = null;
   try {
-    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); out = fn(s); holdRetiredCounters(before, s); after = s; return s; });
+    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); keepStats(s); out = fn(s); holdRetiredCounters(before, s); after = s; return s; });
     if (!r || !r.committed) return null;
   } catch (e) { return null; }
   const got = announceableBadges(before, after);
@@ -7683,6 +7683,9 @@ const announceableBadges = (before, after) => {
   const had = new Set(badgesOf(before || {}).map(b => b.id));
   return badgesOf(after || {}).filter(b => !had.has(b.id) && !isRetiredTitle(b.id)).map(b => { const c = titleLabelOf(b.id); return c ? { ...b, label: c.label } : b; });
 };
+/* Ver.6.0 A1：既得称号の保護記録(stats.tk / stats.tv2)を、統計トランザクションの先頭(カウンタ更新の前)で1回だけ作る。
+   記録が無い・壊れているときだけ作成し、有効な記録は変更しない。読み込めない／失敗しても何もしない(称号は旧条件のまま維持)。 */
+const keepStats = s => { try { if (window.TitleKeepNext) window.TitleKeepNext.ensureKeep(s, { '.sv': 'timestamp' }); } catch (e) {} };
 // Presentation metadata never participates in award, equipment or Firebase writes.
 const achievementStatus = id => (window.AchievementAudit || []).find(x => x.id === id)?.status || (BADGES.find(x=>x.id===id)?.g==='tower'?'hidden':'active');
 const activeAchievements = () => BADGES.filter(b => achievementStatus(b.id) === 'active');
@@ -7976,6 +7979,7 @@ async function recordMatch(acct, info) {
     const res = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => {
       before = s ? JSON.parse(JSON.stringify(s)) : {};
       s = s || {};
+      keepStats(s);
       if(info.id){s.roomSeen ||= {};if(s.roomSeen[info.id]){after=s;return s;}s.roomSeen[info.id]=true;}
       const o = info.outcome;
       s.games = (s.games || 0) + 1;

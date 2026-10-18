@@ -5,6 +5,7 @@ const navigation=require('./next-navigation.cjs');
 window.NextNavigation=navigation;
 window.TitleLabelsNext=require('./title-labels-next.cjs');
 window.TitleDisplayNext=require('./title-display-next.cjs');
+window.TitleKeepNext=require('./title-keep-next.cjs');
 import * as RankingKit from './ranking-kit.jsx';
 import {SoloRanking} from './solo-ranking-ui.jsx';
 window.NextRanking={...RankingKit,SoloRanking};

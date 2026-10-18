@@ -1340,6 +1340,67 @@
     }
   });
 
+  // src/title-keep-next.cjs
+  var require_title_keep_next = __commonJS({
+    "src/title-keep-next.cjs"(exports, module) {
+      "use strict";
+      var LEGACY_TESTS = Object.freeze({
+        handi: (st) => (st.handiWins || 0) >= 1,
+        streak10: (st) => (st.maxStreak || 0) >= 10,
+        streak30: (st) => (st.maxStreak || 0) >= 30,
+        streak50: (st) => (st.maxStreak || 0) >= 50,
+        mis7: (st) => (st.misDays || 0) >= 7,
+        cancel500: (st) => (st.cancelTotal || 0) >= 500,
+        cancel2000: (st) => (st.cancelTotal || 0) >= 2e3,
+        darkhorse: (st) => (st.darkHorse || 0) >= 1
+      });
+      var KEEP_IDS = Object.freeze(Object.keys(LEGACY_TESTS));
+      var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
+      var count = (x) => typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : 0;
+      var isHeld = (v) => v === 1 || v === true;
+      function validKeep(tk) {
+        if (!isObj(tk) || tk.v !== 1) return false;
+        if (tk.ids === void 0) return true;
+        return isObj(tk.ids) && Object.keys(tk.ids).every((id) => KEEP_IDS.includes(id) && isHeld(tk.ids[id]));
+      }
+      var validBase = (b) => isObj(b) && ["games", "Aw", "Bw"].every((k) => typeof b[k] === "number" && Number.isFinite(b[k]) && b[k] >= 0);
+      var validTv2 = (t) => isObj(t) && t.v === 1 && t.since !== void 0 && validBase(t.base);
+      function legacyIds(stats) {
+        const st = isObj(stats) ? stats : {};
+        return KEEP_IDS.filter((id) => LEGACY_TESTS[id](st));
+      }
+      var keptIds = (stats) => isObj(stats) && validKeep(stats.tk) ? Object.keys(stats.tk.ids || {}).filter((id) => isHeld(stats.tk.ids[id])) : [];
+      var isFrozen = (stats) => isObj(stats) && validKeep(stats.tk);
+      function held(stats, id) {
+        if (!KEEP_IDS.includes(id)) return false;
+        const st = isObj(stats) ? stats : {};
+        return LEGACY_TESTS[id](st) || keptIds(st).includes(id);
+      }
+      function ensureKeep(s, stamp) {
+        const out = { tk: false, tv2: false };
+        if (!isObj(s)) return out;
+        if (!validKeep(s.tk)) {
+          const ids = {};
+          for (const id of legacyIds(s)) ids[id] = 1;
+          s.tk = Object.keys(ids).length ? { v: 1, at: stamp, ids } : { v: 1, at: stamp };
+          out.tk = true;
+        }
+        const base = { games: count(s.games), Aw: count(isObj(s.A) ? s.A.w : 0), Bw: count(isObj(s.B) ? s.B.w : 0) };
+        if (!validTv2(s.tv2)) {
+          if (isObj(s.tv2) && s.tv2.v === 1) {
+            if (s.tv2.since === void 0) s.tv2.since = stamp;
+            if (!validBase(s.tv2.base)) s.tv2.base = base;
+          } else {
+            s.tv2 = { v: 1, since: stamp, base };
+          }
+          out.tv2 = true;
+        }
+        return out;
+      }
+      module.exports = { LEGACY_TESTS, KEEP_IDS, validKeep, validTv2, legacyIds, keptIds, isFrozen, held, ensureKeep };
+    }
+  });
+
   // src/next-ui.jsx
   function Frame({ sidebar, mobileHeader, title, actions, children, bottomNav }) {
     const heading = React.useRef(null);
@@ -1695,6 +1756,7 @@
   window.NextNavigation = navigation;
   window.TitleLabelsNext = require_title_labels_next();
   window.TitleDisplayNext = require_title_display_next();
+  window.TitleKeepNext = require_title_keep_next();
   window.NextRanking = { ...ranking_kit_exports, SoloRanking };
   var icons2 = require_next_home_icons();
   window.NextHomeFactory = (H) => {
