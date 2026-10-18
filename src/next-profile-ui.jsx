@@ -70,7 +70,7 @@ export function createProfile(H){
     setEqStatus({id,state:'failed',message:e&&e.notEarned?'取得状況を確認できなかったため装備しませんでした（装備は変更されていません）':'保存できませんでした。通信状態をご確認のうえ、もう一度お試しください（装備は変更されていません）'});
    }finally{eqBusy.current=false;clearTimeout(eqSlow.current);setEqBusyTick(x=>x+1)}
   };
-  const labelOf=id=>titles.titles.find(t=>t.id===id)?.name||(window.TitleLabelsNext?.of(id)?.label)||nickOf(id)?.label||id;
+  const labelOf=id=>(window.TitleLabelsNext?window.TitleLabelsNext.resolve(id,nickOf(id)):nickOf(id))?.label||id;
   const equipUi=H.equipNick?{routeOf,isEquipped:id=>shown===id,status:eqStatus,busy:eqBusy.current,real,compatId:disp.state==='compat'?disp.id:null,
    current:shown?{id:shown,label:labelOf(shown),inCatalog:!!window.TitleLabelsNext?.of(shown)}:disp.state==='unresolved'?{id:eqNick,label:'表示できない称号',inCatalog:false}:null,
    reasonOf:(id,isEarned)=>TitleEquip.reason(id,{real,earned:isEarned,routeOf:routeOf(id,isEarned)}),

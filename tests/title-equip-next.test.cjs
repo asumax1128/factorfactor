@@ -29,3 +29,13 @@ test("save-time confirmation", () => {
   assert.equal(ok("easy_adept", { fresh: null, complete: false, memory: new Set() }), false, "no proof anywhere");
   assert.equal(ok("tw10", { fresh: new Set(["tw10"]), complete: true }), false, "ids outside the 101 are refused");
 });
+test("official names: the catalog name wins, legacy icon is kept, titles outside the catalog keep their legacy label", () => {
+  assert.deepEqual(Labels.resolve("first", { icon: "🌱", label: "はじめの一歩" }), { id: "first", icon: "🌱", label: "始まりの剣", source: "catalog" });
+  assert.equal(Labels.resolve("easy_adept", null).label, "初級の覇者");
+  assert.equal(Labels.resolve("easy_adept", null).icon, Labels.COMMON_ICON);
+  assert.deepEqual(Labels.resolve("tw10", { icon: "🗼", label: "塔の挑戦者" }), { id: "tw10", icon: "🗼", label: "塔の挑戦者", source: "legacy" });
+  assert.equal(Labels.resolve("factor_factor", null).label, "FACTOR×FACTOR");
+  assert.equal(Labels.resolve("nope", null), null);
+  // every catalog id resolves to its catalog name whatever the legacy label was
+  for (const t of catalog.titles) assert.equal(Labels.resolve(t.id, { icon: "x", label: "旧名" }).label, t.name);
+});

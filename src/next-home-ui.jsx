@@ -48,7 +48,7 @@ window.NextHomeFactory = H => {
   const boss=useBoss(page==='home'),fb=useFbReady(),st=useFbValue(fb.ready&&isReal(acct)?`accounts/${acct.key}/stats`:null);
   const profile=useRatingHistoryProfile(isReal(acct)?acct.key:null),L=levelOf((isReal(acct)?st:loadGuest())?.exp||0);
   // Same display rule as the profile / ranking: stats.nick > "" (cleared) > legacy profile.title only when nick is absent.
-  const titleValid=id=>!!(nickOf(id)||window.TitleLabelsNext?.of(id)),D=window.TitleDisplayNext,shownTitle=D?D.shownId(D.resolve({nick:st?.nick,title:profile?.title},{valid:titleValid})):(st?.nick||null),homeTitle=shownTitle?(nickOf(shownTitle)||window.TitleLabelsNext?.of(shownTitle))?.label:null;
+  const titleValid=id=>!!(nickOf(id)||window.TitleLabelsNext?.of(id)),D=window.TitleDisplayNext,shownTitle=D?D.shownId(D.resolve({nick:st?.nick,title:profile?.title},{valid:titleValid})):(st?.nick||null),homeTitle=shownTitle?(window.TitleLabelsNext?window.TitleLabelsNext.resolve(shownTitle,nickOf(shownTitle)):nickOf(shownTitle))?.label:null;
   const [panel,setPanel]=useState(null),dialog=useRef(null),[muted,setMuted]=useGameMute(),skinAccount=useRef(null);
   useEffect(()=>{if(st?.skin&&isReal(acct)&&skinAccount.current!==acct.key){skinAccount.current=acct.key;syncSkin(st.skin)}},[st,acct.key]);
   useEffect(()=>{if(panel==='menu'||panel==='settings')dialog.current?.showModal();else dialog.current?.close();},[panel]);

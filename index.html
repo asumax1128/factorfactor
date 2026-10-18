@@ -3390,7 +3390,7 @@ async function migrateGuest(acct) {
 }
 const nickOf = id => BADGES.find(b => b.id === id) || null;
 // 装備中の称号の表示名：旧実績(BADGES)を優先し、無い称号(通常15件・隠し1件)は称号カタログから引く。
-const titleLabelOf = id => nickOf(id) || (window.TitleLabelsNext && window.TitleLabelsNext.of(id)) || null;
+const titleLabelOf = id => (window.TitleLabelsNext ? window.TitleLabelsNext.resolve(id, nickOf(id)) : nickOf(id));
 function Nick({ id, size = 10, block }) {
   const b = titleLabelOf(id);
   if (!b) return null;
@@ -9754,7 +9754,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
     const v = nick === id ? '' : id;
     setNick(v);
     if (FB.db) equipNick(acctKey, v).catch(() => {}); // v === '' は明示的な装備解除（新プロフィールと同じ）
-    if (v) { const b = nickOf(v); FX.text(window.innerWidth / 2, window.innerHeight / 2, `〈${b.icon}${b.label}〉`, '#ffd54a', 26); fxSound('badge'); }
+    if (v) { const b = titleLabelOf(v) || nickOf(v); FX.text(window.innerWidth / 2, window.innerHeight / 2, `〈${b.icon}${b.label}〉`, '#ffd54a', 26); fxSound('badge'); }
   };
   const box = (label, v, color, sub) => (
     <div className="flex-1 rounded-xl px-2 py-2 text-center" style={{ background: COLORS.paperDark }}>
@@ -9820,7 +9820,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
               style={{ background: got.has(b.id) ? `${COLORS.amber}33` : COLORS.paperDark, opacity: got.has(b.id) ? 1 : 0.45, outline: nick === b.id ? '3px solid #e8a33d' : 'none' }}>
               {nick === b.id && <div className="text-[8px] font-black" style={{ color: '#b7791f' }}>二つ名</div>}
               <div className="text-lg leading-none">{got.has(b.id) ? b.icon : '🔒'}</div>
-              <div className="text-[10px] font-black mt-0.5" style={{ color: COLORS.ink }}>{b.label}</div>
+              <div className="text-[10px] font-black mt-0.5" style={{ color: COLORS.ink }}>{(titleLabelOf(b.id) || b).label}</div>
               <div className="text-[8.5px] font-bold leading-tight mt-0.5" style={{ color: COLORS.inkSoft }}>{got.has(b.id) ? b.desc : '？？？'}</div>
             </div>
           ))}

@@ -189,13 +189,13 @@ const untouched = (tree, t0) => {
       const mod = p.locator("[data-achievement]").first();
       await mod.waitFor();
       assert(await p.locator("[data-achievement]").count() > 10, "old modal lists the legacy achievements without crashing");
-      await p.locator("[data-achievement]", { hasText: "はじめの一歩" }).first().click();
+      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
       await sleep(400);
-      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "first", "the old modal still writes the same slot");
-      await p.locator("[data-achievement]", { hasText: "はじめの一歩" }).first().click();
+      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "first", "the old modal still writes the same slot (and shows the official name)");
+      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
       await sleep(400);
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "the old modal's unequip is the same explicit marker as the new profile");
-      await p.locator("[data-achievement]", { hasText: "はじめの一歩" }).first().click();
+      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
       await sleep(400);
       assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "first");
       await t.ctx.close();
@@ -242,14 +242,14 @@ const untouched = (tree, t0) => {
       const view = p.locator('[data-ranking="rating"]');
       await view.locator(".rk-row").first().waitFor();
       const rows = Object.fromEntries(await view.locator(".rk-row").evaluateAll((es) => es.map((e) => [e.querySelector(".rk-name").textContent, e.innerText])));
-      assert.match(rows.AAA, /はじめの一歩/); assert.doesNotMatch(rows.AAA, /イージーの達人/, "nick wins over the ranking title");
+      assert.match(rows.AAA, /始まりの剣/, "the catalog name is used for the legacy id 'first'"); assert.doesNotMatch(rows.AAA, /はじめの一歩|初級の覇者/, "nick wins over the ranking title");
       assert.doesNotMatch(rows.BBB, /イージーの達人|初級の覇者/, "an explicit unequip hides the old ranking title");
-      assert.match(rows.CCC, /イージーの達人/, "absent nick: the legacy ranking title is shown (unchanged look)");
-      assert.match(rows.DDD, /初級の覇王/, "a catalog-only title is shown by name"); assert.doesNotMatch(rows.DDD, /イージーの達人/);
+      assert.match(rows.CCC, /初級の覇者/, "absent nick: the legacy ranking title is shown by its official catalog name"); assert.doesNotMatch(rows.CCC, /イージーの達人/);
+      assert.match(rows.DDD, /初級の覇王/, "a catalog-only title is shown by name"); assert.doesNotMatch(rows.DDD, /イージーマスター|イージーの達人/);
       await t.ctx.close();
     }
     // HOME follows the same rule for the three states
-    for (const [nick, want] of [["first", /はじめの一歩/], ["", /装備中の称号なし/], [null, /初級の覇者/]]) {
+    for (const [nick, want] of [["first", /始まりの剣/], ["", /装備中の称号なし/], [null, /初級の覇者/]]) {
       const tree = mkTree({ nick });
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width: 390, height: 844 });
@@ -257,27 +257,68 @@ const untouched = (tree, t0) => {
       assert.match(await p.locator(".account-main").innerText(), want, `HOME for nick=${JSON.stringify(nick)}`);
       await t.ctx.close();
     }
-    // the ranking screen's own equip button keeps both stores agreeing (existing equipTitle + the unified slot)
-    for (const failNick of [false, true]) {
+    // ranking-screen equip = two existing saves (1: stats/nick, 2: equipTitle -> profile.title). Every partial outcome is honest and recoverable.
+    {
       const season = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 7);
-      const tree = mkTree();
-      const prof = tree.games.factor.onlineSparkV1.profiles.ateacher;
-      Object.assign(prof, { badges: { easy_adept: true, easy_master: true }, title: "easy_master" });
-      prof.easy.rating = 1700; prof.easy.season = season; prof.easy.seasonMax = 1700; prof.normal.season = season; prof.normal.seasonMax = 1600;
-      const t = await context(b, { tree, onOperation: async (op) => { if (failNick && /stats\/nick/.test(op.path)) throw new Error("mock failure"); } }), p = t.page;
-      await p.setViewportSize({ width: 390, height: 844 });
-      await p.locator(".support-link").filter({ hasText: "ランキング" }).click();
-      await p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
-      await p.getByRole("button", { name: "イージーの達人を装備", exact: true }).click();
-      if (!failNick) {
-        await sleep(1500);
-        assert.equal(tree.games.factor.onlineSparkV1.profiles.ateacher.title, "easy_adept", "existing equipTitle ran (profile.title kept for old clients)");
-        assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "easy_adept", "and the unified slot agrees");
-      } else {
-        await p.getByRole("alert").getByText(/統一の装備枠へ保存できませんでした/).waitFor({ timeout: 10000 });
-        assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "tour1", "the unified slot was not changed");
-      }
-      await t.ctx.close();
+      const setup = async (onOperation) => {
+        const tree = mkTree();
+        const prof = tree.games.factor.onlineSparkV1.profiles.ateacher;
+        Object.assign(prof, { badges: { easy_adept: true, easy_master: true }, title: "easy_master" });
+        prof.easy.rating = 1700; prof.easy.season = season; prof.easy.seasonMax = 1700; prof.normal.season = season; prof.normal.seasonMax = 1600;
+        const t = await context(b, { tree, onOperation }), p = t.page;
+        await p.setViewportSize({ width: 390, height: 844 });
+        await p.locator(".support-link").filter({ hasText: "ランキング" }).click();
+        await p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
+        await p.getByRole("button", { name: "初級の覇者を装備", exact: true }).waitFor();
+        return { tree, t, p, state: () => ({ nick: tree.games.factor.accounts.ateacher.stats.nick, title: tree.games.factor.onlineSparkV1.profiles.ateacher.title }), status: () => p.locator("[data-rank-equip]") };
+      };
+      const BTN = (p) => p.getByRole("button", { name: "初級の覇者を装備", exact: true });
+      // 0. success: both stores agree, official name on the button
+      { const c = await setup(); await BTN(c.p).click(); await c.status().and(c.p.locator('[data-rank-equip="saved"]')).waitFor({ timeout: 15000 }); assert.deepEqual(c.state(), { nick: "easy_adept", title: "easy_adept" }); await c.t.ctx.close(); }
+      // 1. the unified slot fails (profile.title would have succeeded): nothing is changed, step 2 is not even attempted, nothing says success
+      { let fail = true; const c = await setup(async (op) => { if (fail && /stats\/nick/.test(op.path)) throw new Error("mock nick failure"); });
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="failed"]').waitFor({ timeout: 10000 });
+        assert.deepEqual(c.state(), { nick: "tour1", title: "easy_master" }, "no store changed");
+        assert.equal(c.t.writes.filter((x) => /onlineSparkV1/.test(x.path)).length, 0, "step 2 (profile.title) was never attempted after step 1 failed");
+        assert.equal(await c.p.locator('[data-rank-equip="saved"]').count(), 0);
+        fail = false; await BTN(c.p).click(); await c.p.locator('[data-rank-equip="saved"]').waitFor({ timeout: 15000 });
+        assert.deepEqual(c.state(), { nick: "easy_adept", title: "easy_adept" }, "retry after recovery completes both");
+        await c.t.ctx.close(); }
+      // 2. the unified slot saved, profile.title failed: never reported as success, one retry button, safe to repeat
+      { let fail = true; const c = await setup(async (op) => { if (fail && /onlineSparkV1\/profiles\/ateacher/.test(op.path)) throw new Error("mock title failure"); });
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="partial"]').waitFor({ timeout: 25000 });
+        assert.deepEqual(c.state(), { nick: "easy_adept", title: "easy_master" }, "step 1 persisted, step 2 did not");
+        assert.match(await c.p.locator('[data-rank-equip="partial"]').innerText(), /装備枠には保存しましたが.*失敗しました/);
+        assert.equal(await c.p.locator('[data-rank-equip="saved"]').count(), 0, "no success message while step 2 is missing");
+        assert.equal(await c.p.getByRole("alert").count(), 1, "one clear message (no second generic banner with a half-retry)");
+        fail = false; await c.p.getByRole("button", { name: "再試行", exact: true }).click(); await c.p.locator('[data-rank-equip="saved"]').waitFor({ timeout: 15000 });
+        assert.deepEqual(c.state(), { nick: "easy_adept", title: "easy_adept" }, "the retry converges (both writes are idempotent)");
+        await c.t.ctx.close(); }
+      // 3. both fail: nothing changes, nothing succeeds
+      { const c = await setup(async (op) => { if (/stats\/nick|onlineSparkV1\/profiles\/ateacher/.test(op.path)) throw new Error("mock total failure"); });
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="failed"]').waitFor({ timeout: 10000 });
+        assert.deepEqual(c.state(), { nick: "tour1", title: "easy_master" }); await c.t.ctx.close(); }
+      // 4. slow network while another device changes the equipped title: the screen stays honest and the last write wins coherently
+      { const c = await setup(async (op) => { if (/stats\/nick/.test(op.path)) await sleep(3000); });
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="saving"]').waitFor();
+        assert(await BTN(c.p).isDisabled(), "buttons are locked while saving");
+        await c.p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "daily_king" }));
+        await c.p.locator('[data-rank-equip="saved"]').waitFor({ timeout: 20000 });
+        const st = c.state(); assert.equal(st.title, "easy_adept"); assert.equal(st.nick, "easy_adept", "this device's save was the last write to the unified slot");
+        await c.t.ctx.close(); }
+      // 5. the screen is closed mid-save: no success is ever shown afterwards, the stores stay readable and a repeat fixes any half state
+      { const c = await setup(async (op) => { if (/stats\/nick/.test(op.path)) await sleep(2500); });
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="saving"]').waitFor(); await c.p.reload();
+        await sleep(3500);
+        const st = c.state();
+        assert(["tour1", "easy_adept"].includes(st.nick) && st.title === "easy_master", "step 2 never ran because the page was gone: " + JSON.stringify(st));
+        await c.p.locator(".support-link").filter({ hasText: "ランキング" }).click();
+        await c.p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
+        await BTN(c.p).waitFor();
+        assert.equal(await c.p.locator("[data-rank-equip]").count(), 0, "a fresh screen shows no stale success");
+        await BTN(c.p).click(); await c.p.locator('[data-rank-equip="saved"]').waitFor({ timeout: 15000 });
+        assert.deepEqual(c.state(), { nick: "easy_adept", title: "easy_adept" }, "repeating the action repairs the half state");
+        await c.t.ctx.close(); }
     }
     // guest: nothing equippable
     {

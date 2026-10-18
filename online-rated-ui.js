@@ -28,7 +28,7 @@
         if (d.state === "compat") return titles2[d.id] ? /* @__PURE__ */ React.createElement("small", null, titles2[d.id]) : H.Nick && /* @__PURE__ */ React.createElement(H.Nick, { id: d.id, block: true });
         return null;
       };
-      const titles = {
+      const legacyTitles = {
         easy_adept: "\u30A4\u30FC\u30B8\u30FC\u306E\u9054\u4EBA",
         easy_master: "\u30A4\u30FC\u30B8\u30FC\u30DE\u30B9\u30BF\u30FC",
         normal_adept: "\u30CE\u30FC\u30DE\u30EB\u306E\u9054\u4EBA",
@@ -38,6 +38,12 @@
         ghost_up1: "\u683C\u4E0A\u306E\u5F71\u3092\u7834\u308B\u8005",
         ghost_up2: "\u4E8C\u968E\u7D1A\u306E\u5F71\u3092\u8D85\u3048\u308B\u8005"
       };
+      const titles = Object.fromEntries(
+        Object.entries(legacyTitles).map(([k, v]) => {
+          var _a, _b;
+          return [k, ((_b = (_a = root.TitleLabelsNext) == null ? void 0 : _a.of(k)) == null ? void 0 : _b.label) || v];
+        })
+      );
       class PlayBoundary extends React.Component {
         constructor() {
           super(...arguments);
@@ -313,7 +319,7 @@
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
         const [state, setState] = useState(null), [error, setError] = useState(""), [feedback, setFeedback] = useState(null), [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select"
-        ), [tab, setTab] = useState("easy"), [hyperChoice, setHyperChoice] = useState(false), [busy, setBusy] = useState(false), [selectedPlayer, setSelectedPlayer] = useState(null), [muted, setMuted] = H.useGameMute();
+        ), [tab, setTab] = useState("easy"), [hyperChoice, setHyperChoice] = useState(false), [busy, setBusy] = useState(false), [selectedPlayer, setSelectedPlayer] = useState(null), [rankEquip, setRankEquip] = useState(null), [muted, setMuted] = H.useGameMute();
         const current = useRef(null), inFlight = useRef(false), seq = useRef(0), life = useRef(true), retry = useRef(null), requestRef = useRef(null), requests = useRef(Promise.resolve()), actionPending = useRef(false), pollingPaused = useRef(false), feedbackTimer = useRef(null), searchDiffRef = useRef(null), badgesBefore = useRef(null), initializing = useRef(true);
         const sound = H.useBattleSound(muted);
         const [spark] = useState(
@@ -424,6 +430,40 @@
           }
         }
         requestRef.current = send;
+        const equipFromRanking = async (k) => {
+          if ((rankEquip == null ? void 0 : rankEquip.state) === "saving") return;
+          const unified = !!(H.equipNick && (acct == null ? void 0 : acct.key) && titleValid(k));
+          setRankEquip({ id: k, state: "saving", message: "\u4FDD\u5B58\u4E2D\u2026" });
+          const slow = setTimeout(
+            () => setRankEquip((s) => s && s.id === k && s.state === "saving" ? { ...s, message: "\u4FDD\u5B58\u4E2D\u2026\uFF08\u901A\u4FE1\u304C\u9045\u308C\u3066\u3044\u307E\u3059\u3002\u305D\u306E\u307E\u307E\u304A\u5F85\u3061\u304F\u3060\u3055\u3044\uFF09" } : s),
+            6e3
+          );
+          try {
+            if (unified) {
+              try {
+                await H.equipNick(acct.key, k);
+              } catch (e) {
+                setRankEquip({ id: k, state: "failed", message: "\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\uFF08\u88C5\u5099\u306F\u5909\u66F4\u3055\u308C\u3066\u3044\u307E\u305B\u3093\uFF09" });
+                return;
+              }
+            }
+            const v = await send({ type: "equipTitle", title: k });
+            if (!life.current) return;
+            if (!v) {
+              retry.current = null;
+              setError("");
+              setRankEquip({
+                id: k,
+                state: "partial",
+                message: unified ? "\u88C5\u5099\u67A0\u306B\u306F\u4FDD\u5B58\u3057\u307E\u3057\u305F\u304C\u3001\u5F93\u6765\u306E\u30E9\u30F3\u30AD\u30F3\u30B0\u79F0\u53F7\uFF08\u65E7\u30D0\u30FC\u30B8\u30E7\u30F3\u5411\u3051\uFF09\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002" : "\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002"
+              });
+              return;
+            }
+            setRankEquip({ id: k, state: "saved", message: "\u79F0\u53F7\u3092\u88C5\u5099\u3057\u307E\u3057\u305F" });
+          } finally {
+            clearTimeout(slow);
+          }
+        };
         useEffect(() => {
           if (!(acct == null ? void 0 : acct.key)) {
             setError("\u767B\u9332\u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304B\u3089\u691C\u7D22\u3057\u3066\u304F\u3060\u3055\u3044");
@@ -769,20 +809,21 @@
             "button",
             {
               key: k,
-              disabled: busy,
-              onClick: () => (
-                // existing equipTitle (profile.title, kept for old clients) + the unified equip slot (stats/nick), so every screen agrees
-                send({ type: "equipTitle", title: k }).then((v) => {
-                  if (v && H.equipNick && (acct == null ? void 0 : acct.key) && titleValid(k))
-                    return H.equipNick(acct.key, k).catch(
-                      () => setError("\u7D71\u4E00\u306E\u88C5\u5099\u67A0\u3078\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u614B\u3092\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044")
-                    );
-                })
-              )
+              disabled: busy || (rankEquip == null ? void 0 : rankEquip.state) === "saving",
+              onClick: () => equipFromRanking(k)
             },
             titles[k],
             "\u3092\u88C5\u5099"
-          ))))),
+          ))), rankEquip && /* @__PURE__ */ React.createElement(
+            "p",
+            {
+              className: "or-equip-status " + rankEquip.state,
+              role: rankEquip.state === "saved" || rankEquip.state === "saving" ? "status" : "alert",
+              "data-rank-equip": rankEquip.state
+            },
+            rankEquip.message,
+            rankEquip.state === "partial" && /* @__PURE__ */ React.createElement("button", { disabled: busy, onClick: () => equipFromRanking(rankEquip.id) }, "\u518D\u8A66\u884C")
+          ))),
           selectedPlayer && H.PlayerProfile && /* @__PURE__ */ React.createElement(
             H.PlayerProfile,
             {

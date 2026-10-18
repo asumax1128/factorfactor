@@ -248,3 +248,7 @@
 .or-freeze{position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;background:repeating-linear-gradient(35deg,#d9f5ff 0 45px,#a9def3 46px 50px,#d9f5ff 51px 90px);color:#16496b;opacity:1;pointer-events:auto;font-family:var(--v7-f-fx);font-weight:900}.or-freeze strong{font-size:clamp(38px,12vw,80px)}.or-freeze b{font-size:100px}.or-b2-status{font-size:12px;font-weight:900;color:#e6ecff;padding:6px}
 
 .or-ice-break{position:absolute;inset:0;pointer-events:none;z-index:80}.or-ice-break i{position:absolute;width:22%;height:35%;background:#bceafa;clip-path:polygon(10% 0,100% 30%,70% 100%,0 60%);animation:orIceBreak 450ms ease-out forwards}@keyframes orIceBreak{from{opacity:.8;transform:translate(0,0)}to{opacity:0;transform:translate(var(--ice-x),120px) rotate(45deg)}}@media(prefers-reduced-motion:reduce){.or-ice-break{display:none}}
+/* ranking-screen equip status (saving / saved / failed / partly saved) */
+.or-equip-status{margin:10px 0 0;padding:8px 12px;border:1px solid currentColor;border-radius:8px;font-size:13px;line-height:1.7}
+.or-equip-status.saved{color:#2f9d86}.or-equip-status.saving{color:#c58a1a}.or-equip-status.failed,.or-equip-status.partial{color:#d9534f}
+.or-equip-status button{margin-left:10px;min-height:44px}

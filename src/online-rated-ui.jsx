@@ -17,7 +17,8 @@
       if (d.state === "compat") return titles[d.id] ? <small>{titles[d.id]}</small> : H.Nick && <H.Nick id={d.id} block />;
       return null;
     };
-    const titles = {
+    // Official names come from the title catalog; the legacy strings below are only a fallback.
+    const legacyTitles = {
       easy_adept: "イージーの達人",
       easy_master: "イージーマスター",
       normal_adept: "ノーマルの達人",
@@ -27,6 +28,9 @@
       ghost_up1: "格上の影を破る者",
       ghost_up2: "二階級の影を超える者",
     };
+    const titles = Object.fromEntries(
+      Object.entries(legacyTitles).map(([k, v]) => [k, root.TitleLabelsNext?.of(k)?.label || v]),
+    );
     class PlayBoundary extends React.Component {
       state = { failed: false };
       static getDerivedStateFromError() {
@@ -448,6 +452,7 @@
         [hyperChoice,setHyperChoice] = useState(false),
         [busy, setBusy] = useState(false),
         [selectedPlayer, setSelectedPlayer] = useState(null),
+        [rankEquip, setRankEquip] = useState(null),
         [muted, setMuted] = H.useGameMute();
       const current = useRef(null),
         inFlight = useRef(false),
@@ -577,6 +582,46 @@
         }
       }
       requestRef.current = send;
+      // Ranking-screen equip = two existing saves. Order matters for recovery:
+      //  1) stats/nick (the unified slot, what every Ver.6.0 screen reads)  2) equipTitle -> profile.title (kept for old clients).
+      // Both are idempotent, so a retry of the whole action is always safe; a failed step 1 changes nothing and skips step 2.
+      const equipFromRanking = async (k) => {
+        if (rankEquip?.state === "saving") return;
+        const unified = !!(H.equipNick && acct?.key && titleValid(k));
+        setRankEquip({ id: k, state: "saving", message: "保存中…" });
+        const slow = setTimeout(
+          () => setRankEquip((s) => (s && s.id === k && s.state === "saving" ? { ...s, message: "保存中…（通信が遅れています。そのままお待ちください）" } : s)),
+          6000,
+        );
+        try {
+          if (unified) {
+            try {
+              await H.equipNick(acct.key, k);
+            } catch (e) {
+              setRankEquip({ id: k, state: "failed", message: "保存できませんでした。通信状態をご確認のうえ、もう一度お試しください（装備は変更されていません）" });
+              return;
+            }
+          }
+          const v = await send({ type: "equipTitle", title: k });
+          if (!life.current) return;
+          if (!v) {
+            // step 2 failed: never report success. The generic banner/retry would only repeat step 2, so hand control to this screen's retry.
+            retry.current = null;
+            setError("");
+            setRankEquip({
+              id: k,
+              state: "partial",
+              message: unified
+                ? "装備枠には保存しましたが、従来のランキング称号（旧バージョン向け）の保存に失敗しました。もう一度お試しください。"
+                : "保存できませんでした。通信状態をご確認のうえ、もう一度お試しください。",
+            });
+            return;
+          }
+          setRankEquip({ id: k, state: "saved", message: "称号を装備しました" });
+        } finally {
+          clearTimeout(slow);
+        }
+      };
       useEffect(() => {
         if (!acct?.key) {
           setError("登録アカウントでログインしてから検索してください");
@@ -1135,21 +1180,27 @@
                       .map((k) => (
                         <button
                           key={k}
-                          disabled={busy}
-                          onClick={() =>
-                            // existing equipTitle (profile.title, kept for old clients) + the unified equip slot (stats/nick), so every screen agrees
-                            send({ type: "equipTitle", title: k }).then((v) => {
-                              if (v && H.equipNick && acct?.key && titleValid(k))
-                                return H.equipNick(acct.key, k).catch(() =>
-                                  setError("統一の装備枠へ保存できませんでした。通信状態をご確認のうえ、もう一度お試しください"),
-                                );
-                            })
-                          }
+                          disabled={busy || rankEquip?.state === "saving"}
+                          onClick={() => equipFromRanking(k)}
                         >
                           {titles[k]}を装備
                         </button>
                       ))}
                   </div>
+                  {rankEquip && (
+                    <p
+                      className={"or-equip-status " + rankEquip.state}
+                      role={rankEquip.state === "saved" || rankEquip.state === "saving" ? "status" : "alert"}
+                      data-rank-equip={rankEquip.state}
+                    >
+                      {rankEquip.message}
+                      {rankEquip.state === "partial" && (
+                        <button disabled={busy} onClick={() => equipFromRanking(rankEquip.id)}>
+                          再試行
+                        </button>
+                      )}
+                    </p>
+                  )}
                 </section>
               )}
             </>
