@@ -97,6 +97,16 @@ test("login freeze failures are recorded (safe code only), never thrown, and nev
   assert.equal(await old.api.keepFreezeOnLogin(acct), null);
   assert.equal(old.api.KEEP_DIAG.counts["missing-module"], 1);
 });
+test("the test-only switch stops the login freeze alone (nothing is called, nothing is recorded)", async () => {
+  const f = fakeKeep([{ status: "frozen" }]);
+  const w = world({ keep: f.mod });
+  w.sandbox.localStorage = { getItem: (k) => (k === "fxf_no_keep_login" ? "1" : null) };
+  assert.equal(await w.api.keepFreezeOnLogin(acct), null);
+  assert.equal(f.calls.length, 0);
+  assert.equal(w.api.keepFreezeSeen.size, 0);
+  w.sandbox.localStorage = { getItem: () => { throw new Error("storage blocked"); } };
+  assert.equal(await w.api.keepFreezeOnLogin(acct), "frozen", "a blocked storage never disables the protection");
+});
 test("the freeze is wired: AppRoot runs it once its account is real and the database is ready; logout clears the guard", () => {
   const root = cut("function AppRoot()", "const rootEl = document.getElementById('root')");
   assert.match(root, /isReal\(acct\)\) \{ keepFreezeSeen\.clear\(\); return; \}/);

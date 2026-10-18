@@ -21,6 +21,7 @@ async function context(
     firebaseSource = null,
     emulatorNetwork = false,
     siteRoot = root,
+    keepLogin = false,
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -49,13 +50,16 @@ async function context(
         .catch(() => {});
   });
   await ctx.addInitScript(
-    ({ account, uid }) => {
+    ({ account, uid, keepLogin }) => {
       sessionStorage.setItem("mockuid", uid);
+      // Ver.6.0 A1b: the login-time freeze is an extra stats write; the older tests assert exact stats/write sets, so it is
+      // off by default and tests/v6-keep-login-browser.cjs turns it on. (The freeze inside stats transactions stays on.)
+      if (!keepLogin) localStorage.setItem("fxf_no_keep_login", "1");
       if (account)
         localStorage.setItem("fxf_battle_account_v1", JSON.stringify(account));
       localStorage.setItem("fxf_no_lb", "1");
     },
-    { account, uid },
+    { account, uid, keepLogin },
   );
   await ctx.route("**/*", async (route) => {
     const u = new URL(route.request().url());

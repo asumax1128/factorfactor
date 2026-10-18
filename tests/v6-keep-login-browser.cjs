@@ -6,7 +6,7 @@ const isStatsWrite = (op) => op.path === STATS || op.path.startsWith(STATS + "/"
 const holder = () => ({ rating: 1600, exp: 900, games: 40, w: 25, l: 12, d: 3, A: { w: 12, l: 4, d: 1 }, B: { w: 13, l: 8, d: 2 }, maxStreak: 31, handiWins: 1, nick: "streak10", vs: { ax: { w: 3, l: 1 } } });
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium" });
-  const open = async (opts) => { const t = await context(b, opts); await t.page.setViewportSize({ width: 390, height: 844 }); await sleep(2500); return t; };
+  const open = async (opts) => { const t = await context(b, { keepLogin: true, ...opts }); await t.page.setViewportSize({ width: 390, height: 844 }); await sleep(2500); return t; };
   try {
     // 1. existing player, no protection record yet: frozen once, nothing else changes
     {
