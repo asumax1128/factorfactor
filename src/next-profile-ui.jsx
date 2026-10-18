@@ -36,7 +36,15 @@ export function createProfile(H){
   for(const [id]of earned){const t=titles.titles.find(t=>t.id===id);if(t)earned.set(id,t.name)}
   // Single equip slot (stats/nick). The inventory receives exactly these inputs, so "earned" here = what the list shows as 取得済み.
   const invIds=authority?[]:[...earned.keys()],invFlags=authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])];
-  const memEarned=new Set(Object.keys(TitleCompat.read({legacyEarned:invIds,flags:invFlags}).earned));
+  // Ver.6.0 C: the hidden title FACTOR×FACTOR (15 distinct five-star titles). Owned once earned and never revoked: the first time it is
+  // reached it is saved as stats.ff (own record, add-only); the saved record is read back as a normal stored flag.
+  const ffFlag=stats?.ff&&stats.ff.v===1?{factor_factor:{earned:true,at:Number.isFinite(stats.ff.at)&&stats.ff.at>0?stats.ff.at:undefined}}:{};
+  const invFlagsFF=[...invFlags,ffFlag];
+  const hiddenNow=TitleCompat.read({legacyEarned:invIds,flags:invFlagsFF,deriveHidden:true}).hiddenOwned;
+  React.useEffect(()=>{if(!hiddenNow||authority||!real||!fb.ready||!H.FB.db||!stats||!Object.keys(stats).length||stats.ff)return;
+   H.FB.db.ref(`games/factor/accounts/${acct.key}/stats/ff`).transaction(old=>old||{v:1,at:{'.sv':'timestamp'}}).catch(()=>{});
+  },[hiddenNow,real,fb.ready,acct.key,!!stats?.ff,!!(stats&&Object.keys(stats).length)]);
+  const memEarned=new Set(Object.keys(TitleCompat.read({legacyEarned:invIds,flags:invFlagsFF,deriveHidden:true}).earned));
   // Equip state: shown only after the existing save succeeds (never optimistic); re-synced from the live record.
   const [eqNick,setEqNick]=React.useState(stats?.nick),[eqStatus,setEqStatus]=React.useState(null),eqBusy=React.useRef(false),eqSlow=React.useRef(0),memRef=React.useRef(memEarned),[,setEqBusyTick]=React.useState(0);
   memRef.current=memEarned;
@@ -92,7 +100,7 @@ export function createProfile(H){
     <Panel title="週間ボスの参加・貢献"><MetricGrid>{[['weeks','参加週数'],['kills','討伐貢献'],['best','過去最高ダメージ'],['maxStreak','最高連続参加週']].map(([key,label])=><Stat key={key} label={label} value={integer(data.weekly[key])}/>)}<Stat label="今週のダメージ" value={integer(model.number(mine?.d))}/><Stat label="今週の出撃記録" value={integer(model.number(mine?.s))} note="完走回数とは別の記録です"/></MetricGrid></Panel>
    </>}
    {tab==='records'&&<><p className="next-note">レーティング戦と従来の記録は、同じ試合を含む可能性があるため別々に表示します。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・レーティング対戦'} value={data.rated[d]}/>)}</div><Record label="従来の対戦記録（保存済み通算）" value={data.legacy}/><div className="next-profile-columns">{['A','B','C'].map(m=><Record key={m} label={m+'方式（従来の保存記録）'} value={data.modes[m]}/>)}</div><p className="next-note">B方式は共有するstats.Bを一度だけ表示しています。欠損した勝敗は0と仮定しません。</p><div className="next-profile-columns">{['easy','normal'].map(d=><Record key={d} label={(d==='easy'?'イージー':'ノーマル')+'・ゴースト／BOT記録'} value={data.ghosts[d]}/>)}</div></>}
-   {tab==='rewards'&&<><Panel title="取得称号">{titleSaveFailed&&<p role="status" className="next-note" data-title-save-failed>新称号の保存を確認できませんでした。通信状態をご確認ください。</p>}<TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={invIds} flags={invFlags} equipped={shown} equip={equipUi}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
+   {tab==='rewards'&&<><Panel title="取得称号">{titleSaveFailed&&<p role="status" className="next-note" data-title-save-failed>新称号の保存を確認できませんでした。通信状態をご確認ください。</p>}<TitleInventory presentationStore={presentationStore} accountKey={acct.key} muted={muted} earnedIds={invIds} flags={invFlagsFF} equipped={shown} equip={equipUi}/></Panel><Panel title="きせかえ装備"><MetricGrid>{[['tile','タイル'],['bg','背景'],['fx','エフェクト']].map(([key,label])=>{const id=skin?.[key],item=skinCatalog[key].find(x=>x.id===id);return <Stat key={key} label={label} value={id?(item?.name||id):'未記録'}/>})}</MetricGrid></Panel></>}
    </div>
   </main>;
  }

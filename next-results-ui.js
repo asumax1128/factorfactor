@@ -1300,7 +1300,7 @@
       "use strict";
       var catalog2 = require_title_catalog_next();
       var ids = new Set(catalog2.titles.map((t) => t.id));
-      function read({ legacyEarned = [], flags = [], equipped = null } = {}) {
+      function read({ legacyEarned = [], flags = [], equipped = null, deriveHidden = false } = {}) {
         var _a;
         const earned = /* @__PURE__ */ new Map();
         for (const id of legacyEarned) if (typeof id === "string") earned.set(id, { id, at: null, source: "legacy-evidence" });
@@ -1311,6 +1311,7 @@
           earned.set(id, { id, at: (_a = previous == null ? void 0 : previous.at) != null ? _a : at, source: "stored-flag", ...v && typeof v === "object" && v.dateWasUnknown === true ? { dateWasUnknown: true, dateOrigin: v.dateOrigin } : (previous == null ? void 0 : previous.dateWasUnknown) ? { dateWasUnknown: true, dateOrigin: previous.dateOrigin } : {} });
         }
         const normal = catalog2.titles.filter((t) => earned.has(t.id)), rare = normal.filter((t) => t.stars === 5).length;
+        if (deriveHidden && rare >= 15 && !earned.has(catalog2.hidden.id)) earned.set(catalog2.hidden.id, { id: catalog2.hidden.id, at: null, source: "derived-five-star" });
         return { earned: Object.fromEntries(earned), normal, fiveStarCount: rare, hiddenEligible: rare >= 15, hiddenOwned: earned.has(catalog2.hidden.id), archived: [...earned.keys()].filter((id) => !ids.has(id) && id !== catalog2.hidden.id), equipped };
       }
       module.exports = { read };

@@ -33,7 +33,7 @@ export function TitleEquipCurrent({equip}){
  </div>
 }
 export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=true,presentationStore=null,equip=null}){
- const state=compat.read({legacyEarned:earnedIds,flags,equipped}),[filter,setFilter]=React.useState('all'),[scene,setScene]=React.useState(false);
+ const state=compat.read({legacyEarned:earnedIds,flags,equipped,deriveHidden:true}),[filter,setFilter]=React.useState('all'),[scene,setScene]=React.useState(false);
  const [presentationError,setPresentationError]=React.useState('');
  const presentationKey=accountKey?'fxf_title_presentation_v1:'+accountKey:null;
  React.useEffect(()=>{if(!state.hiddenOwned||!presentationKey)return;let active=true;

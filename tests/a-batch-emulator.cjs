@@ -19,7 +19,7 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     vm.createContext(sandbox);
     vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { badgesOf, statsTx, recordMatch, misRunStep };', sandbox);
     const api = sandbox.api, path = (k) => `games/factor/accounts/${k}/stats`;
-    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' }, n1: { games: 95, A: { w: 10 }, B: { w: 4 }, maxRating: 1500 }, b1: { games: 4, wk: { runs: 19, sup: 480 }, login: { cards: 6 } } };
+    const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' }, n1: { games: 95, A: { w: 10 }, B: { w: 4 }, maxRating: 1500 }, b1: { games: 4, wk: { runs: 19, sup: 480 }, login: { cards: 6 } }, f1: { games: 4, nick: 'tour1' } };
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor'), {
       logins: Object.fromEntries(Object.keys(accts).map((k) => [k, { [user.uid]: 'x' }])),
       accounts: Object.fromEntries(Object.entries(accts).map(([k, s]) => [k, { name: k, stats: { games: 1, ...s } }])),
@@ -96,5 +96,12 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     await api.statsTx({ key: 'b1' }, (s) => { s.wk = s.wk || {}; s.wk.runs = (s.wk.runs || 0) + 1; s.wk.sup = (s.wk.sup || 0) + 20; s.login = s.login || {}; s.login.cards = (s.login.cards || 0) + 1; });
     v = await get('b1'); assert.equal(has(v, 'wk_runs20') && has(v, 'wksup500') && has(v, 'lb_cards7'), true);
     console.log('PASS B (real RTDB): flash3 / accuracy10 / giant250 and the weekly / login titles are granted and revealed once');
+    // C: the hidden-title record stats.ff is created once under the current rules and never rewritten
+    const mk = () => db.ref(path('f1') + '/ff').transaction((old) => old || { v: 1, at: { '.sv': 'timestamp' } });
+    const [ra, rb2] = await Promise.all([mk(), mk()]);
+    assert.ok(ra.committed && rb2.committed);
+    v = await get('f1'); assert.equal(v.ff.v, 1); assert.equal(typeof v.ff.at, 'number'); const at0 = v.ff.at;
+    await mk(); v = await get('f1'); assert.equal(v.ff.at, at0); assert.equal(v.nick, 'tour1'); assert.equal(v.games, 4);
+    console.log('PASS C (real RTDB): stats.ff is created once (two devices at once), keeps its first time, other stats and the equipped title untouched');
   } finally { await env.cleanup(); await app.delete(); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
