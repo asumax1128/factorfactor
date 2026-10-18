@@ -40,7 +40,7 @@ export function createProfile(H){
   // reached it is saved as stats.ff (own record, add-only); the saved record is read back as a normal stored flag.
   const ffFlag=stats?.ff&&stats.ff.v===1?{factor_factor:{earned:true,at:Number.isFinite(stats.ff.at)&&stats.ff.at>0?stats.ff.at:undefined}}:{};
   const invFlagsFF=[...invFlags,ffFlag];
-  const hiddenNow=TitleCompat.read({legacyEarned:invIds,flags:invFlagsFF,deriveHidden:true}).hiddenOwned;
+  const hiddenNow=TitleCompat.read({legacyEarned:invIds,flags:invFlagsFF,deriveHidden:true}).hiddenOwned&&!TitleCompat.read({legacyEarned:invIds,flags:invFlagsFF}).hiddenOwned;   // reached by counting only: a title already stored elsewhere (Spark badge, awards) needs no stats.ff
   React.useEffect(()=>{if(!hiddenNow||authority||!real||!fb.ready||!H.FB.db||!stats||!Object.keys(stats).length||stats.ff)return;
    H.FB.db.ref(`games/factor/accounts/${acct.key}/stats/ff`).transaction(old=>old||{v:1,at:{'.sv':'timestamp'}}).catch(()=>{});
   },[hiddenNow,real,fb.ready,acct.key,!!stats?.ff,!!(stats&&Object.keys(stats).length)]);

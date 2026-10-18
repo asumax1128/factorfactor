@@ -1,7 +1,7 @@
 // Ver.6.0 step 9 C: FACTOR×FACTOR is owned at 15 DISTINCT earned five-star titles, hidden before, one reveal, never revoked.
 const assert = require('node:assert/strict'), { chromium, context } = require('./browser-harness.cjs');
 // 17 five-star titles earned from stats alone: streak30 streak50 handi master1900 rmaster giant250 flash3 perfect1000 combo30 miracle alllv tour1 tour3 tour10 darkhorse wkace5 wkone2
-const full = () => ({ exp: 100, games: 10, sk: { v: 1, n: 0, best: 50, n0: 0, l: {} }, handiSelf: 1, maxRating: 1900, giant250Wins: 1, flash3: 1, perfects: 1000, maxCombo: 30, miracleWins: 1, lvP: 1022, tourWins: 10, darkHorse: 1, wk: { ace: 5, best: 1200 }, nick: 'tour1' });
+const full = () => ({ exp: 100, games: 10, sk: { v: 1, n: 0, best: 50, n0: 0 }, handiSelf: 1, maxRating: 1900, giant250Wins: 1, flash3: 1, perfects: 1000, maxCombo: 30, miracleWins: 1, lvP: 1022, tourWins: 10, darkHorse: 1, wk: { ace: 5, best: 1200 }, nick: 'tour1' });
 const without = (...keys) => { const s = full(); for (const k of keys) delete s[k]; return s; };
 const open = async (b, stats) => {
   const tree = { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: structuredClone(stats) } } } } };

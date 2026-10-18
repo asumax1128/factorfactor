@@ -1718,7 +1718,7 @@
       const invIds = authority ? [] : [...earned.keys()], invFlags = authority ? [Object.fromEntries(Object.entries((authoritySnapshot == null ? void 0 : authoritySnapshot.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), authorityAwards] : [profile == null ? void 0 : profile.badges, ...clientTitles ? [Object.fromEntries(Object.entries(((_f = clientTitles.snapshot) == null ? void 0 : _f.earned) || {}).map(([id, r]) => [id, { earned: true, at: r.at }])), clientTitles.awards] : []];
       const ffFlag = (stats == null ? void 0 : stats.ff) && stats.ff.v === 1 ? { factor_factor: { earned: true, at: Number.isFinite(stats.ff.at) && stats.ff.at > 0 ? stats.ff.at : void 0 } } : {};
       const invFlagsFF = [...invFlags, ffFlag];
-      const hiddenNow = TitleCompat.read({ legacyEarned: invIds, flags: invFlagsFF, deriveHidden: true }).hiddenOwned;
+      const hiddenNow = TitleCompat.read({ legacyEarned: invIds, flags: invFlagsFF, deriveHidden: true }).hiddenOwned && !TitleCompat.read({ legacyEarned: invIds, flags: invFlagsFF }).hiddenOwned;
       React.useEffect(() => {
         if (!hiddenNow || authority || !real || !fb.ready || !H.FB.db || !stats || !Object.keys(stats).length || stats.ff) return;
         H.FB.db.ref(`games/factor/accounts/${acct.key}/stats/ff`).transaction((old) => old || { v: 1, at: { ".sv": "timestamp" } }).catch(() => {
