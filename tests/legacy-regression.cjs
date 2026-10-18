@@ -206,6 +206,7 @@ for (const [name, value] of Object.entries(before)) {
       "BattleLobby", // Online B duration selector; A/C controls unchanged.
       "BattleResult", // Timed B labels; existing A detailed result retained.
       "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
+      "statsTx", // Ver.6.0 (owner-approved): retired titles (nosp, wklast, tower) are no longer newly awarded or revealed; held counters/equipment untouched (tests/v6-title-retire.test.cjs).
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.
       "LearnApp", // Displays fastest per level; responsive browser tested.

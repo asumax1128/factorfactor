@@ -5620,11 +5620,10 @@ async function statsTx(acct, fn) {
   if (!isReal(acct) || !FB.db) return null;
   let before = null, after = null, out = null;
   try {
-    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); out = fn(s); after = s; return s; });
+    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; before = JSON.parse(JSON.stringify(s)); out = fn(s); holdRetiredCounters(before, s); after = s; return s; });
     if (!r || !r.committed) return null;
   } catch (e) { return null; }
-  const had = new Set(badgesOf(before).map(b => b.id));
-  const got = badgesOf(after).filter(b => !had.has(b.id));
+  const got = announceableBadges(before, after);
   got.forEach((b, i) => setTimeout(() => { FX.band(`${b.icon} 称号ゲット！「${b.label}」`, { color: '#d4a017', sub: b.desc, ms: 2000 }); fxSound('badge'); }, 600 + i * 2200));
   return { out, before, after, got };
 }
@@ -7669,6 +7668,21 @@ const BADGES = [
   { id: 'alllv', g: 'alllv', r: 5, icon: '🌈', label: 'オールレベル制覇', desc: 'Lv.1〜Lv.9 すべてで Perfect を取る', test: st => ((st.lvP || 0) & 1022) === 1022 },
 ];
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
+/* Ver.6.0 廃止称号（所有者承認）：新規取得だけを止める。取得状態は統計カウンタそのもの（1以上で取得・減らない）なので、
+   既得（カウンタ1以上）・装備(stats/nick)・過去の戦績は一切変えず、0→1になる更新だけを取り消す。 */
+const RETIRED_TITLES = ['nosp', 'wklast', 'tw10', 'tw30', 'tw50', 'tw70', 'tw100'];
+const isRetiredTitle = id => RETIRED_TITLES.includes(id);
+function holdRetiredCounters(before, s) {
+  const b = before || {}, bw = b.wk || {};
+  if (!((b.noSpWins || 0) >= 1)) { if (b.noSpWins === undefined) delete s.noSpWins; else s.noSpWins = b.noSpWins; }
+  if (s.wk && !((bw.lastHit || 0) >= 1)) { if (bw.lastHit === undefined) delete s.wk.lastHit; else s.wk.lastHit = bw.lastHit; }
+  return s;
+}
+/* 取得演出の対象：新しく取れた称号のうち廃止称号を除き、カタログにある称号は正式名で表示する（アイコン・説明文は従来のまま） */
+const announceableBadges = (before, after) => {
+  const had = new Set(badgesOf(before || {}).map(b => b.id));
+  return badgesOf(after || {}).filter(b => !had.has(b.id) && !isRetiredTitle(b.id)).map(b => { const c = titleLabelOf(b.id); return c ? { ...b, label: c.label } : b; });
+};
 // Presentation metadata never participates in award, equipment or Firebase writes.
 const achievementStatus = id => (window.AchievementAudit || []).find(x => x.id === id)?.status || (BADGES.find(x=>x.id===id)?.g==='tower'?'hidden':'active');
 const activeAchievements = () => BADGES.filter(b => achievementStatus(b.id) === 'active');
@@ -8006,13 +8020,13 @@ async function recordMatch(acct, info) {
       Object.entries(info.min || {}).forEach(([k, v]) => { if (v != null) s[k] = s[k] == null ? v : Math.min(s[k], v); });
       Object.entries(info.or || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) | v; });
       s.last = Date.now();
+      holdRetiredCounters(before, s);
       after = s;
       return s;
     });
     if (!res || !res.committed) return { badges: [] };
   } catch (e) { return { badges: [] }; }
-  const had = new Set(badgesOf(before || {}).map(b => b.id));
-  return { badges: badgesOf(after || {}).filter(b => !had.has(b.id)), dr: applied, exp: { before: expB, after: expA } };
+  return { badges: announceableBadges(before, after), dr: applied, exp: { before: expB, after: expA } };
 }
 
 /* ---------- 効果音（ソロと同じ音源を使う） ---------- */

@@ -24,6 +24,8 @@ async function codeAudit() {
     SEASON0: "2026-10",
     seasonReset: (r) => r,
     badgesOf: () => [],
+    announceableBadges: () => [],
+    holdRetiredCounters: (_before, s) => s,
     FB: {
       db: {
         ref: (path) => ({
