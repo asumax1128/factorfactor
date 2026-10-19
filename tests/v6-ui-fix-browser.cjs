@@ -56,5 +56,41 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log('PASS lobby: 新B方式 shows 時間制 / 得点と妨害 on two lines; CPU practice says A方式 and has no explanation line');
     }
+    { // stage 4: 4-digit room waiting screen on the dark theme (host / participant), permissions and settings unchanged
+      const rt = { games: { factor: { accounts: { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: { name: 'Guest', stats: { exp: 100, rating: 1500 } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } };
+      for (const width of [320, 375, 390]) {
+        const peers = [], h = await context(b, { tree: rt, peers, uid: 'host', account: { key: 'ah', name: 'Host' } }), g = await context(b, { tree: rt, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' } });
+        for (const t of [h, g]) { await t.page.setViewportSize({ width, height: 844 }); await t.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); }
+        await h.page.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
+        await h.page.waitForFunction(() => /^[0-9]{4}$/.test(document.querySelector('.tracking-widest')?.textContent.trim() || ''));
+        const code = (await h.page.locator('.tracking-widest').innerText()).trim();
+        await g.page.getByPlaceholder('部屋コード4桁').fill(code); await g.page.getByRole('button', { name: '参加', exact: true }).click();
+        await g.page.getByText('部屋コード', { exact: true }).waitFor(); await h.page.getByText('2/4').waitFor();
+        const probe = (p) => p.evaluate(() => {
+          const lum = (c) => { const m = c.match(/[\d.]+/g).map(Number); return (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255; };
+          const menu = document.querySelector('.v7-menu'), light = [...menu.querySelectorAll('*')].filter((e) => e.offsetParent && e.getAttribute('aria-pressed') !== 'true' && e.getBoundingClientRect().width > 20 && (() => { const c = getComputedStyle(e).backgroundColor; const m = c.match(/[\d.]+/g).map(Number); return (m.length < 4 || m[3] > 0.4) && lum(c) > 0.6; })()).map((e) => e.className || e.tagName);
+          const sel = [...menu.querySelectorAll('button[aria-pressed="true"]')].map((e) => ({ ring: getComputedStyle(e).boxShadow !== 'none', t: e.textContent }));
+          const wide = [...menu.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length;
+          return { bg: lum(getComputedStyle(menu).backgroundColor), light, sel, wide, doc: document.documentElement.scrollWidth, vw: innerWidth };
+        });
+        for (const [who, t] of [['host', h], ['guest', g]]) {
+          const r = await probe(t.page);
+          assert(r.bg < 0.2, `dark page ${who} ${width}`); assert.deepEqual(r.light, [], `no light card or button ${who} ${width}`);
+          assert(r.sel.length >= 3 && r.sel.every((x) => x.ring), `selected choices are ringed ${who} ${width}`);
+          assert(r.doc <= r.vw + 1 && r.wide === 0, `no horizontal overflow ${who} ${width}`);
+        }
+        // permissions: only the host can change the rules or start; both see code, list and the leave button
+        const hostSeg = h.page.getByRole('button', { name: /^A：/ }), guestSeg = g.page.getByRole('button', { name: /^A：/ });
+        assert(await guestSeg.isDisabled() && !(await hostSeg.isDisabled()));
+        assert.equal(await g.page.getByRole('button', { name: /対戦スタート/ }).count(), 0); assert.equal(await h.page.getByRole('button', { name: /対戦スタート/ }).count(), 1);
+        await hostSeg.click(); await h.page.getByRole('button', { name: /^A：/ }).and(h.page.locator('[aria-pressed="true"]')).waitFor();
+        await g.page.getByRole('button', { name: /^A：/ }).and(g.page.locator('[aria-pressed="true"]')).waitFor();
+        assert.match(await g.page.locator('.v7-panel').nth(2).innerText(), /早い者勝ち|同じ問題/);
+        await h.page.getByRole('button', { name: '★', exact: true }).first().click(); await h.page.locator('button.rl-on', { hasText: '★' }).first().waitFor();
+        await g.page.getByRole('button', { name: '部屋を出る', exact: true }).click(); await g.page.locator('.tracking-widest').waitFor({ state: 'detached' });
+        assert.deepEqual(h.errors, []); assert.deepEqual(g.errors, []); await h.ctx.close(); await g.ctx.close();
+      }
+      console.log('PASS room waiting screen: dark theme for host and participant (A and B), selected choices ringed, permissions kept, no overflow at 320/375/390, leave works');
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

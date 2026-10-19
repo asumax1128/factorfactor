@@ -1,0 +1,25 @@
+/* Ver.6.0 post-release UI fix: 4-digit room waiting screen (A / new B) on the dark theme. Display only: classes and colours, no behaviour. */
+.v7-menu.rl-dark{background:#101720;background-image:radial-gradient(ellipse at 95% 0,#244b5538,transparent 55%);color:#e8f0f5}
+.rl-dark .v7-panel{background:#192b38!important;border:1px solid #324354;border-radius:12px;box-shadow:none;color:#e8f0f5}
+.rl-dark .v7-cur::before{border-left-color:#72dfce}
+.rl-dark .tracking-widest{color:#72dfce!important;text-shadow:none}
+.rl-dark [style*="rgb(111, 119, 133)"]{color:#b8c6d2!important}
+.rl-dark [style*="rgb(45, 106, 79)"]{color:#72dfce!important}
+.rl-dark [style*="rgb(29, 38, 51)"]{color:#e8f0f5!important}
+.rl-dark [style*="rgb(14, 134, 198)"]{color:#8fd3f4!important}
+.rl-dark [style*="border-bottom: 1px solid rgb(239, 234, 224)"]{border-bottom-color:#324354!important}
+.rl-dark button[style*="background: rgb(255, 255, 255)"]{background:#101720!important;color:#e8f0f5!important;border-color:#4a6073!important}
+.rl-dark .x-nick,.rl-dark .v7-panel .font-bold{color:inherit}
+/* selected choice (method / time / difficulty / handicap): filled colour + bright ring so it reads at a glance */
+.rl-dark button[aria-pressed="true"]{box-shadow:0 0 0 2px #101720,0 0 0 4px #72dfce;color:#fff!important;position:relative;z-index:1}
+.rl-dark button[aria-pressed="true"]::after{content:"✓";margin-left:.3em;font-weight:900}
+.rl-dark button[aria-pressed="false"]{color:#cfdbe4!important}
+.rl-dark button:disabled[aria-pressed="false"]{opacity:.45!important}
+.rl-dark .rl-handi button{min-width:40px;min-height:32px}
+.rl-dark .rl-handi button.rl-on{background:#E9A82A!important;color:#1D2633!important;border-color:#E9A82A!important;box-shadow:0 0 0 2px #101720,0 0 0 4px #72dfce}
+.rl-dark .rl-handi button.rl-on::after{content:"✓";margin-left:.2em}
+.rl-dark .v7-panel>ul li{color:#b8c6d2}
+.rl-dark .rl-leave-wrap button{background:transparent!important;border:1.5px solid #4a6073!important;color:#e8f0f5!important;box-shadow:none!important}
+.rl-dark .v7-panel,.rl-dark .v7-panel *{overflow-wrap:anywhere}
+.rl-dark .v7-panel{min-width:0}
+.rl-dark button[aria-pressed="true"][style*="background: rgb(29, 38, 51)"]{background:#2f7f8a!important;border-color:#72dfce!important}

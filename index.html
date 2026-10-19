@@ -34,6 +34,7 @@
 <script src="next-results-ui.js"></script>
 <link rel="stylesheet" href="ui-next/results.css" />
 <link rel="stylesheet" href="ui-next/result-shell.css" />
+<link rel="stylesheet" href="ui-next/room-lobby.css" />
 <script src="online-rated-ui.js"></script>
 <script src="daily-ui.js"></script>
 <script src="room-b2-ui.js"></script>
@@ -9202,8 +9203,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
 
   // ver.7：対戦のメニュー・ロビーは明るいノート＋FF風カーソル（中の Card・BigBtn・Seg も新しい見た目）
   const shellCur = useMenuCursor();
-  const shell = (children, wide) => (
-    <div className="v7-menu" ref={shellCur} style={{ alignItems: 'flex-start' }}>
+  const shell = (children, wide, dark) => (
+    <div className={dark ? 'v7-menu rl-dark' : 'v7-menu'} ref={shellCur} style={{ alignItems: 'flex-start' }}>
       <FontImport />
       <V7Theme.Provider value={true}>
         <div className={`w-full v7-open${scr === 'home' ? ' v7-bhome-wrap' : ''}`} style={{ maxWidth: wide ? '1100px' : '30rem', padding: '14px 16px 16px 26px' }}>{children}</div>
@@ -9231,7 +9232,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     if (isTour) return shell(<TourLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}} me={FB.uid}
       onRule={setRule} onStart={tourStart} onLeave={() => leave()} />, isHost);
     return shell(<BattleLobby code={code} isHost={isHost} spectator={spectator} players={players} state={state || {}}
-      onRule={setRule} onStart={startMatch} onLeave={() => leave()} />);
+      onRule={setRule} onStart={startMatch} onLeave={() => leave()} />, false, true);
   }
 
   // クラス協力レイド
@@ -9977,10 +9978,10 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
               {e && isHost && e[1].cpu && <button onClick={() => delCpu(e[0])} className="v7-cur rounded-full px-2 py-0.5 text-[11px] font-black" style={{ background: '#fff', border: '1.5px solid var(--v7-line)', color: COLORS.ink }}>✕</button>}
             </div>
             {e && isHost && (
-              <div className="flex items-center gap-1 mt-1 pl-8">
+              <div className="flex items-center gap-1 mt-1 pl-8 rl-handi">
                 <span className="text-[10px] font-bold mr-1" style={{ color: COLORS.inkSoft }}>ハンデ</span>
                 {[0, 1, 2, 3].map(v => (
-                  <button key={v} onClick={() => onRule({ [`handi/${e[0]}`]: v })} className="v7-cur rounded-lg px-2 py-0.5 text-[11px] font-black"
+                  <button key={v} onClick={() => onRule({ [`handi/${e[0]}`]: v })} aria-pressed={h === v} className={`v7-cur rounded-lg px-2 py-0.5 text-[11px] font-black${h === v ? ' rl-on' : ''}`}
                     style={{ background: h === v ? '#E9A82A' : '#fff', border: `1.5px solid ${h === v ? '#E9A82A' : 'var(--v7-line)'}`, color: h === v ? '#fff' : COLORS.ink }}>{HANDI_LABEL[v]}</button>
                 ))}
               </div>
@@ -10006,7 +10007,7 @@ function BattleLobby({ code, isHost, spectator, players, state, onRule, onStart,
       <Seg disabled={!isHost} items={BATTLE_DIFFS.map(d => [d, `${DIFFICULTY_CONFIG[d].label}${mode==='B'?'':`（${DIFFICULTY_CONFIG[d].clearCount}問）`}`, DIFFICULTY_CONFIG[d].color])} cur={diff} onPick={v => onRule({ diff: v })} />
     </Card>
     {isHost && <div className="mb-3"><BigBtn color={COLORS.coral} disabled={TCm ? !cOk : list.length < 2} onClick={onStart}>{TCm ? (cOk ? '2対2 スタート！' : 'チームがそろうのを待っています…') : list.length < 2 ? '相手を待っています…' : `対戦スタート！（${list.length}人）`}</BigBtn></div>}
-    <BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn>
+    <div className="rl-leave-wrap"><BigBtn small color={COLORS.inkSoft} onClick={onLeave}>部屋を出る</BigBtn></div>
   </>);
 }
 
