@@ -70,6 +70,12 @@ for(const[tag,outcome]of [['win','w'],['lose','l'],['draw','d']])for(const n of 
   for(const width of WIDTHS){await p.setViewportSize({width,height:1100});await p.waitForTimeout(250);
    const r=await p.evaluate(()=>({kind:document.querySelector('.nbr').dataset.kind,ov:document.documentElement.scrollWidth>innerWidth,box:document.querySelector('.nbr').getBoundingClientRect().width,old:!!document.querySelector('.v7-open'),analysis:!!document.querySelector('[data-a-result],[data-b-result]'),review:!!document.querySelector('[data-review-card]'),btn:[...document.querySelectorAll('button')].map(x=>x.textContent).join('|')}));
    assert.equal(r.kind,mode,mode+width);assert(!r.ov,'overflow '+mode+width);assert(!r.old,'old hero is not rendered beside the new one');assert(r.analysis,'existing analysis is kept');assert(r.review);assert.match(r.btn,/もう一戦/);assert.match(r.btn,/設定にもどる|ロビー|部屋を出る/);
+   { // Ver.6.0 UI fix: nothing in the result is a light card, and the injected registered-player rating card (legacy inline colours) stays readable
+     const bad=await p.evaluate(()=>{const root=document.querySelector('[data-result-scroll]'),lum=c=>{const m=c.match(/[\d.]+/g).map(Number);return m.length<4||m[3]>.4?(.2126*m[0]+.7152*m[1]+.0722*m[2])/255:-1};
+      const probe=document.createElement('div');probe.className='v7-panel mb-3';for(const[tg,c]of[['div','#6F7785'],['span','#2D6A4F'],['b','#0E86C6']]){const n=document.createElement(tg);n.style.color=c;n.textContent='x';probe.appendChild(n)}root.appendChild(probe);
+      const light=[...root.querySelectorAll('*')].filter(e=>e.offsetParent&&!e.closest('.nbr-split')&&e.getBoundingClientRect().width>20&&lum(getComputedStyle(e).backgroundColor)>.6).map(e=>(e.parentElement.className||e.parentElement.tagName)+'>'+(e.className||e.tagName)+':'+getComputedStyle(e).backgroundColor);
+      const dim=[...probe.querySelectorAll('*')].filter(e=>lum('rgba('+getComputedStyle(e).color.match(/\d+/g).slice(0,3).join(',')+',1)')<.45).length;probe.remove();return{light,dim}});
+     assert.deepEqual(bad.light,[],'no light background in the result '+mode+width);assert.equal(bad.dim,0,'legacy dark inline colours are lifted '+mode+width)}
    if(width===1440)assert(r.box>900,'wide layout reached on desktop: '+r.box)}
   // Ver.6.0 ResultShell: dark details, one scroll container, review toggle, reachable action row (phone / short Chromebook)
   for(const [w,h] of [[390,844],[683,325]]){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(250);
