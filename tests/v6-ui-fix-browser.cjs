@@ -1,4 +1,4 @@
-// Ver.6.0 post-release UI fixes (stage 1): home version label + sound toggle, battle card without caption/timer, lobby wording.
+// Ver.6.0 post-release UI fixes: home version label + sound toggle, battle card without caption/timer, lobby wording (stage 1) and the dark room waiting screen (stage 4).
 const assert = require('node:assert/strict'), { chromium, context } = require('./browser-harness.cjs');
 const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: { exp: 900, rating: 1650 } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } });
 (async () => {
