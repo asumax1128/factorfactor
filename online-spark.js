@@ -3071,12 +3071,27 @@
       var E = require_engine();
       var { pump } = require_b2_pump();
       var { tx } = require_online_spark_client();
-      var config = { warnMs: 1e4, leaveMs: 2e4, readMs: 6e3 };
-      function health({ online = true, serverAge = null, localAge = 0 }, cfg = config) {
+      var config = { warnMs: 1e4, leaveMs: 2e4, readMs: 4e3 };
+      function health({ online = true, serverAge = null, localAge = 0, lagMs = 0 }, cfg = config) {
         if (online === false) return "offline";
         const age = serverAge == null ? localAge : Math.min(serverAge, localAge);
-        return age >= cfg.leaveMs ? "stopped" : age >= cfg.warnMs ? "warn" : "ok";
+        const worst = Math.max(age, lagMs);
+        return worst >= cfg.leaveMs ? "stopped" : worst >= cfg.warnMs ? "warn" : "ok";
       }
+      function processing(raw, uid) {
+        var _a, _b, _c, _d;
+        const g = raw == null ? void 0 : raw.game, clock = raw == null ? void 0 : raw.clock;
+        if (!g || typeof clock !== "number" || g.result) return 0;
+        let lag = 0;
+        if (clock >= g.startAt + 2e3 && typeof g.time === "number") lag = Math.max(lag, clock - g.time);
+        for (const [id, c] of Object.entries(((_a = raw.inputs) == null ? void 0 : _a[uid]) || {})) {
+          if (!c || typeof c.at !== "number" || c.at > clock || ((_c = (_b = raw.handled) == null ? void 0 : _b[uid]) == null ? void 0 : _c[id])) continue;
+          if (c.type === "answer" && c.seq !== (((_d = g.seq) == null ? void 0 : _d[uid]) || 0) + 1) continue;
+          lag = Math.max(lag, clock - c.at);
+        }
+        return lag;
+      }
+      var newer = (prev, next) => !(prev == null ? void 0 : prev.game) ? true : !(next == null ? void 0 : next.game) ? !prev.game.result : !(prev.game.result && !next.game.result) && (next.revision || 0) >= (prev.revision || 0);
       var decide = (read) => !read || !read.ok ? "unreadable" : read.result ? "result" : "unconfirmed";
       var stamp = () => ({ ".sv": "timestamp" });
       var clean = (x) => JSON.parse(JSON.stringify(x));
@@ -3092,7 +3107,9 @@
         const path = `games/factor/rooms/${code}/b2/${state.gid}`, ref = db.ref(path), sub = (p) => db.ref(path + "/" + p);
         let current = null, busy = false, closed = false;
         const listener = (s) => {
-          current = s.val();
+          const v = s.val();
+          if (!newer(current, v)) return;
+          current = v;
           if (current == null ? void 0 : current.game) {
             onView(current);
             if (isHost && Object.entries(current.inputs || {}).some(([u, entries]) => Object.keys(entries).some((id) => {
@@ -3124,7 +3141,9 @@
         }
         const timer = isHost ? setInterval(process, localBots ? 100 : 500) : null;
         async function refresh() {
+          var _a;
           let timer2;
+          if ((_a = current == null ? void 0 : current.game) == null ? void 0 : _a.result) return { ok: true, result: current.game.result, source: "received" };
           try {
             const snap = await Promise.race([ref.get(), new Promise((_, rej) => {
               timer2 = setTimeout(() => rej(Error("READ_TIMEOUT")), config.readMs);
@@ -3132,9 +3151,11 @@
             if (closed) return { ok: false, error: "CLOSED" };
             const v = snap.val();
             if (!(v == null ? void 0 : v.game)) return { ok: false, error: "EMPTY" };
-            current = v;
-            onView(v);
-            return { ok: true, result: v.game.result || null, clock: v.clock, revision: v.revision };
+            if (newer(current, v)) {
+              current = v;
+              onView(v);
+            }
+            return { ok: true, result: current.game.result || null, clock: current.clock, revision: current.revision };
           } catch (e) {
             return { ok: false, error: e.message };
           } finally {
@@ -3154,7 +3175,7 @@
           ref.off("value", listener);
         } };
       }
-      module.exports = { prepare, create, health, decide, config };
+      module.exports = { prepare, create, health, decide, processing, newer, config };
     }
   });
 

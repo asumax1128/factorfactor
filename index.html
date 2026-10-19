@@ -8036,6 +8036,14 @@ function ratingDelta(myR, opps) {
   return d;
 }
 /* 試合の結果を自分の成績に足す。新しく取った称号を返す */
+/* B2の同期停止から安全離脱した試合の「未受領リスト」（この端末だけ・登録アカウントだけ）。結果が確定したら、通常と同じ結果画面(BattleGame)に
+   つなぎ、戦績・EXP・称号は既存の冪等な記録(recordMatch の roomSeen[gid]、学習記録の room:gid)だけで1回だけ反映する */
+const B2_PEND_KEY = 'fxf_b2_pending_v1', B2_PEND_TTL = 24 * 3600000;
+const b2List = x => Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : [];
+function b2PendLoad() { try { const a = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return Array.isArray(a) ? a.filter(e => e && e.code && e.gid && e.uid && e.acct && e.state && Date.now() - e.at < B2_PEND_TTL) : []; } catch (e) { return []; } }
+function b2PendSave(list) { try { localStorage.setItem(B2_PEND_KEY, JSON.stringify(list.slice(-5))); } catch (e) {} }
+function b2PendAdd(e) { b2PendSave([...b2PendLoad().filter(x => x.gid !== e.gid), e]); }
+function b2PendDrop(gid) { b2PendSave(b2PendLoad().filter(x => x.gid !== gid)); }
 async function recordMatch(acct, info) {
   if (!acct || !acct.key || (DBX && !info.bot) || !FB.db) return { badges: [] };
   let before = null, after = null, applied = 0, expB = 0, expA = 0;
@@ -8771,6 +8779,30 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const [myNick, setMyNick] = useState('');
   const [muted, setMuted] = useGameMute();
   const [seenGid, setSeenGid] = useState({});       // 大会：結果を見終わった試合
+  const [recover, setRecover] = useState(null);      // 安全離脱した試合の確定結果（未受領）
+  useEffect(() => {
+    if (scr !== 'home' || code || !acct || !FB.db || !FB.uid) return;
+    let dead = false, busy = false;
+    const check = async () => {
+      if (busy || dead) return; busy = true;
+      try {
+        for (const e of b2PendLoad()) {
+          if (e.uid !== FB.uid || e.acct !== acct.key) continue;   // 自分の端末・自分のアカウントの分だけ
+          let v;
+          try { v = (await Promise.race([FB.db.ref(`games/factor/rooms/${e.code}/b2/${e.gid}`).get(), new Promise((_, r) => setTimeout(() => r(Error('timeout')), 6000))])).val(); } catch (x) { continue; }   // 読めなかった：残して次回
+          if (dead) return;
+          if (v === null) { b2PendDrop(e.gid); continue; }          // 部屋ごと消えた：受け取れない
+          const g = v && v.game;
+          if (!g || !g.result) continue;                              // まだ確定していない：残す
+          const gi = b2List(g.ids), ep = b2List(e.state.players), same = g.id === e.gid && gi.includes(FB.uid) && gi.length === ep.length && gi.every(u => ep.includes(u));
+          if (!same) { b2PendDrop(e.gid); continue; }                 // 別の試合・他人の試合は受け取らない
+          setRecover({ e, game: g }); return;
+        }
+      } finally { busy = false; }
+    };
+    check(); const t = setInterval(check, 10000);
+    return () => { dead = true; clearInterval(t); };
+  }, [scr, code, acct && acct.key, fb.ready]);
   const sound = useBattleSound(muted);
   const myName = (who && who.name) || 'ゲスト';
   const practice = code === 'local';
@@ -9082,11 +9114,18 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   }
   // B2の同期停止からの安全離脱：共有試合・結果には何も書かず、ホストでも部屋を閉じない。本人のpresence削除だけを行う
   function safeLeave(info) {
+    const reason = (info && info.reason) || 'unconfirmed';
+    let kept = false;
+    // 結果の受領待ち：登録アカウントの正規の4桁ルームだけ。確定したら次にオンライン対戦を開いたときに通常の結果画面から1回だけ反映する
+    if (acct && code && !localRoom && FB.uid && !isHost && !spectator && state && state.gid && !state.bot && !state.qm && b2List(state.players).includes(FB.uid)) {
+      b2PendAdd({ code, gid: state.gid, uid: FB.uid, acct: acct.key, at: Date.now(), state: JSON.parse(JSON.stringify(state)) }); kept = true;
+    }
     if (qmRef.current) cancelQm();
-    if (code && !localRoom && FB.uid && !isHost && !spectator) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
+    // 通信できないときは何も書かない（保留書込みが復帰後に走らないように）。接続が切れた時点でサーバー側のonDisconnectが参加者情報を消す
+    if (code && !localRoom && FB.uid && !isHost && !spectator && FB.conn !== false) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
     DBX = null; sound.bgm(false);
     setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
-    setErr(info && info.reason === 'unreadable' ? '試合結果を読み取れませんでした。結果は確定していません。' : '試合の結果は確定していません。');
+    setErr((reason === 'offline' ? '通信できないため、試合結果を確認できませんでした。' : reason === 'unreadable' ? '試合結果を確認できませんでした。' : '最後に確認した時点では、試合結果は未確定です。') + (kept ? '結果が確定したら、次にオンライン対戦を開いたときに受け取ります。' : ''));
   }
   async function startMatch(cArg, opt) {
     opt = opt || {};
@@ -9226,6 +9265,9 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
   if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} rankingMode={initialScreen==='ratings'} acct={acct} onExit={initialScreen==='ratings'?onExit:() => setScr('home')} /> : shell(<Card><p>{ratedMessage || '新しい対戦制度は準備中です。'}</p><button onClick={initialScreen==='ratings'?onExit:() => setScr('home')}>戻る</button></Card>);
+  if (recover && scr === 'home' && !code) { const done = () => { b2PendDrop(recover.e.gid); setRecover(null); };
+    return <BattleGame key={'rcv-' + recover.e.gid} code={recover.e.code} state={{ ...recover.e.state, phase: 'play', b2Final: recover.game }} players={{}} isHost={false} acct={acct} who={who} practice={false}
+      sound={sound} muted={muted} setMuted={setMuted} onLeave={done} onRematch={done} onLobby={done} onBack={done} />; }
   if (scr === 'home') return (renderMenu||shell)(
     <BattleHome nextUI={!!renderMenu} onNavigate={onNavigate} onProfile={onProfile} fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; if (!ratedEnabled) { setErr('レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。'); return; } setScr('rated'); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);
