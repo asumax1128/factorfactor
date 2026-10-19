@@ -7,9 +7,16 @@
         const { code, state, players, isHost, acct, spectator, onLeave, muted, setMuted } = props, uid = props.practice ? "me" : H.FB.uid;
         const [raw, setRaw] = useState(null), [time, setTime] = useState(H.now()), [err, setErr] = useState(""), [feedback, setFeedback] = useState(null), [pending, setPending] = useState(false), [target, setTarget] = useState(state.players.find((u) => u !== uid));
         const transport = useRef(null), sequence = useRef(0), pendingSeq = useRef(0), answerLock = useRef(false), feedbackTimer = useRef(null);
+        const progress = useRef({ clock: null, rev: null, at: Date.now() }), wasOnline = useRef(true), busyRef = useRef(false), leftRef = useRef(false), [busy, setBusy] = useState(false), [stallMsg, setStallMsg] = useState("");
         useEffect(() => {
           const c = root.RoomB2.create({ db: props.practice ? H.dbOf() : H.FB.db, code, state, uid, isHost, ...props.practice ? { localBots: root.LocalB2Bots.create({ think: H.cpuThink, miss: H.cpuMiss, levels: H.CPU_LEVELS }) } : {}, onView: (r) => {
             var _a2;
+            const p = progress.current;
+            if (r.clock !== p.clock || r.revision !== p.rev) {
+              p.clock = r.clock;
+              p.rev = r.revision;
+              p.at = Date.now();
+            }
             setRaw(r);
             sequence.current = ((_a2 = r.game.seq) == null ? void 0 : _a2[uid]) || 0;
             if (sequence.current >= pendingSeq.current) {
@@ -24,8 +31,20 @@
           };
         }, [state.gid, isHost]);
         useEffect(() => {
-          const t = setInterval(() => setTime(H.now()), 40);
-          return () => clearInterval(t);
+          const t = setInterval(() => {
+            setTime(H.now());
+            const on = H.FB.conn !== false;
+            if (on && !wasOnline.current) progress.current.at = Date.now();
+            wasOnline.current = on;
+          }, 40);
+          const vis = () => {
+            if (document.visibilityState === "visible") progress.current.at = Date.now();
+          };
+          document.addEventListener("visibilitychange", vis);
+          return () => {
+            clearInterval(t);
+            document.removeEventListener("visibilitychange", vis);
+          };
         }, []);
         if (!(raw == null ? void 0 : raw.game)) return /* @__PURE__ */ React.createElement("main", { className: "or-app" }, /* @__PURE__ */ React.createElement("p", null, "\u5BFE\u6226\u3092\u540C\u671F\u3057\u3066\u3044\u307E\u3059\u2026"), /* @__PURE__ */ React.createElement("button", { onClick: onLeave }, "\u623B\u308B"), err && /* @__PURE__ */ React.createElement("p", { role: "alert" }, err));
         const g = raw.game;
@@ -38,9 +57,35 @@
         if (g.result && state.tournamentVersion === 2) return /* @__PURE__ */ React.createElement(H.TournamentFinal, { ...props, game: g });
         if (g.result) return /* @__PURE__ */ React.createElement(H.Final, { ...props, state: { ...state, b2Final: g } });
         const view = transport.current.view(raw);
+        const guarded = !isHost && !props.practice && typeof props.onSafeLeave === "function", st = guarded ? root.RoomB2.health({ online: H.FB.conn !== false, serverAge: typeof raw.clock === "number" ? time - raw.clock : null, localAge: Date.now() - progress.current.at }) : "ok", stopped = st === "stopped";
+        const recheck = async () => {
+          if (busyRef.current || leftRef.current) return;
+          busyRef.current = true;
+          setBusy(true);
+          setStallMsg("");
+          const r = await transport.current.refresh();
+          busyRef.current = false;
+          setBusy(false);
+          const d = root.RoomB2.decide(r);
+          if (d === "result") return;
+          setStallMsg(d === "unreadable" ? "\u72B6\u614B\u3092\u8AAD\u307F\u53D6\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u3092\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002" : "\u307E\u3060\u540C\u671F\u304C\u623B\u3063\u3066\u3044\u307E\u305B\u3093\uFF08\u7D50\u679C\u306F\u78BA\u5B9A\u3057\u3066\u3044\u307E\u305B\u3093\uFF09\u3002");
+        };
+        const safeLeave = async () => {
+          if (busyRef.current || leftRef.current) return;
+          busyRef.current = true;
+          setBusy(true);
+          const d = root.RoomB2.decide(await transport.current.refresh());
+          if (d === "result") {
+            busyRef.current = false;
+            setBusy(false);
+            return;
+          }
+          leftRef.current = true;
+          props.onSafeLeave({ reason: d });
+        };
         const answer = (id1, id2) => {
           const ids = Array.isArray(id1) ? id1 : [id1, id2];
-          if (answerLock.current || time < g.startAt || time < view.freezeUntil || view.resolving || g.states[uid].hp <= 0) return;
+          if (answerLock.current || stopped || leftRef.current || time < g.startAt || time < view.freezeUntil || view.resolving || g.states[uid].hp <= 0) return;
           answerLock.current = true;
           setPending(true);
           const a = view.tiles.find((t) => t.id === ids[0]), b = view.tiles.find((t) => t.id === ids[1]), ok = H.polyEqual(H.multiply(a.factor, b.factor), view.poly), judge = H.timingVisual(ok ? H.getJudgment(time - view.startAt) : { label: "Bad", color: "#FF5C5C" });
@@ -56,10 +101,10 @@
             setPending(false);
           });
         };
-        return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(H.BattleView, { H, m: { id: state.gid, selfUid: uid, mode: "B", difficulty: state.diff, gameStartAt: g.startAt, members: g.ids.map((u) => ({ uid: u, name: state.names[u] })) }, g: view, time, muted, setMuted, disabled: pending || g.states[uid].hp <= 0, feedback, extraControls: g.ids.length > 2 && /* @__PURE__ */ React.createElement("div", { className: "or-room-targets pf-targets", role: "group", "aria-label": "\u653B\u6483\u306E\u6A19\u7684" }, g.ids.filter((u) => u !== uid).map((u) => /* @__PURE__ */ React.createElement("button", { key: u, className: "pf-target", disabled: g.states[u].hp <= 0, onClick: () => setTarget(u), "aria-pressed": target === u }, /* @__PURE__ */ React.createElement("i", { className: "pf-target-mark", "aria-hidden": "true" }, "\u{1F3AF}"), state.names[u], "\uFF1A", g.states[u].score, "\u70B9"))), onMatch: answer, onSpecial: () => {
+        return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(H.BattleView, { H, m: { id: state.gid, selfUid: uid, mode: "B", difficulty: state.diff, gameStartAt: g.startAt, members: g.ids.map((u) => ({ uid: u, name: state.names[u] })) }, g: view, time, muted, setMuted, disabled: pending || stopped || g.states[uid].hp <= 0, feedback, extraControls: g.ids.length > 2 && /* @__PURE__ */ React.createElement("div", { className: "or-room-targets pf-targets", role: "group", "aria-label": "\u653B\u6483\u306E\u6A19\u7684" }, g.ids.filter((u) => u !== uid).map((u) => /* @__PURE__ */ React.createElement("button", { key: u, className: "pf-target", disabled: g.states[u].hp <= 0, onClick: () => setTarget(u), "aria-pressed": target === u }, /* @__PURE__ */ React.createElement("i", { className: "pf-target-mark", "aria-hidden": "true" }, "\u{1F3AF}"), state.names[u], "\uFF1A", g.states[u].score, "\u70B9"))), onMatch: answer, onSpecial: () => {
         }, onLeave: () => {
           if (time < g.startAt || confirm("\u5BFE\u6226\u958B\u59CB\u5F8C\u306E\u9000\u51FA\u306F\u6557\u5317\u6271\u3044\u3067\u3059\u3002\u9000\u51FA\u3057\u307E\u3059\u304B\uFF1F")) transport.current.request({ type: "leave" }).then(onLeave).catch((e) => setErr(e.message));
-        } }), err && /* @__PURE__ */ React.createElement("div", { className: "or-room-error", role: "alert" }, err));
+        } }), err && /* @__PURE__ */ React.createElement("div", { className: "or-room-error", role: "alert" }, err), guarded && st !== "ok" && /* @__PURE__ */ React.createElement("section", { className: "or-room-stall", role: stopped ? "alertdialog" : "status", "aria-live": "polite", "data-b2-stall": st }, /* @__PURE__ */ React.createElement("p", { className: "or-room-stall-title" }, st === "offline" ? "\u901A\u4FE1\u3092\u78BA\u8A8D\u4E2D\u2026" : st === "warn" ? "\u8A66\u5408\u306E\u540C\u671F\u304C\u9045\u308C\u3066\u3044\u307E\u3059\u2026" : "\u8A66\u5408\u306E\u540C\u671F\u304C\u505C\u6B62\u3057\u3066\u3044\u307E\u3059"), stopped && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "or-room-stall-sub" }, "\u7D50\u679C\u306F\u78BA\u5B9A\u3057\u3066\u3044\u307E\u305B\u3093\u3002\u901A\u4FE1\u304B\u3001\u76F8\u624B\u5074\u306E\u51E6\u7406\u304C\u6B62\u307E\u3063\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002"), stallMsg && /* @__PURE__ */ React.createElement("p", { className: "or-room-stall-sub", role: "status" }, stallMsg), /* @__PURE__ */ React.createElement("div", { className: "or-room-stall-actions" }, /* @__PURE__ */ React.createElement("button", { type: "button", disabled: busy, onClick: recheck }, "\u518D\u63A5\u7D9A\u3092\u78BA\u8A8D"), /* @__PURE__ */ React.createElement("button", { type: "button", disabled: busy, onClick: safeLeave }, "\u7D50\u679C\u672A\u78BA\u5B9A\u306E\u307E\u307E\u30DB\u30FC\u30E0\u3078\u623B\u308B")))));
       }
       return { App };
     };

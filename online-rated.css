@@ -254,3 +254,12 @@
 .or-equip-status button{margin-left:10px;min-height:44px}
 /* Ver.6.0 UI fix: the question card has no caption line any more; the expression sits in the middle of the card */
 .or-playing .v7-target{display:flex;flex-direction:column;justify-content:center}
+/* Ver.6.2 hotfix: room B2 sync-stall notice (participants only) */
+.or-room-stall{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:60;max-width:30rem;margin:0 auto;padding:12px 14px;border:1px solid #f6bd62;border-radius:12px;background:#192b38;color:#e8f0f5;box-shadow:0 8px 28px #0008;font-weight:700;overflow-wrap:anywhere}
+.or-room-stall p{margin:0 0 6px}
+.or-room-stall-title{font-size:15px;color:#f6bd62}
+.or-room-stall-sub{font-size:12px;color:#b8c6d2;font-weight:500}
+.or-room-stall-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.or-room-stall-actions button{flex:1 1 9rem;min-height:48px;padding:8px 10px;border:1.5px solid #4a6073;border-radius:10px;background:#101720;color:#e8f0f5;font:inherit;font-size:13px;cursor:pointer}
+.or-room-stall-actions button:last-child{border-color:#f6bd62}
+.or-room-stall-actions button:disabled{opacity:.5}

@@ -3071,6 +3071,13 @@
       var E = require_engine();
       var { pump } = require_b2_pump();
       var { tx } = require_online_spark_client();
+      var config = { warnMs: 1e4, leaveMs: 2e4, readMs: 6e3 };
+      function health({ online = true, serverAge = null, localAge = 0 }, cfg = config) {
+        if (online === false) return "offline";
+        const age = serverAge == null ? localAge : Math.min(serverAge, localAge);
+        return age >= cfg.leaveMs ? "stopped" : age >= cfg.warnMs ? "warn" : "ok";
+      }
+      var decide = (read) => !read || !read.ok ? "unreadable" : read.result ? "result" : "unconfirmed";
       var stamp = () => ({ ".sv": "timestamp" });
       var clean = (x) => JSON.parse(JSON.stringify(x));
       async function prepare({ db, code, state }) {
@@ -3116,19 +3123,38 @@
           }
         }
         const timer = isHost ? setInterval(process, localBots ? 100 : 500) : null;
+        async function refresh() {
+          let timer2;
+          try {
+            const snap = await Promise.race([ref.get(), new Promise((_, rej) => {
+              timer2 = setTimeout(() => rej(Error("READ_TIMEOUT")), config.readMs);
+            })]);
+            if (closed) return { ok: false, error: "CLOSED" };
+            const v = snap.val();
+            if (!(v == null ? void 0 : v.game)) return { ok: false, error: "EMPTY" };
+            current = v;
+            onView(v);
+            return { ok: true, result: v.game.result || null, clock: v.clock, revision: v.revision };
+          } catch (e) {
+            return { ok: false, error: e.message };
+          } finally {
+            clearTimeout(timer2);
+          }
+        }
         async function request(command) {
+          if (closed) return current;
           const input = command.type === "cheer" ? `c${command.seq}` : command.type === "answer" ? `a${command.seq}` : "leave";
           await tx(sub(`inputs/${uid}/${input}`), (old) => old || clean({ ...command, at: stamp() }));
           await process();
           return current;
         }
-        return { request, process, view: (raw) => E.view(raw.game, uid), close() {
+        return { request, process, refresh, view: (raw) => E.view(raw.game, uid), close() {
           closed = true;
           clearInterval(timer);
           ref.off("value", listener);
         } };
       }
-      module.exports = { prepare, create };
+      module.exports = { prepare, create, health, decide, config };
     }
   });
 

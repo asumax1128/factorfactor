@@ -9080,6 +9080,14 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
     if (!silent) setErr('');
   }
+  // B2の同期停止からの安全離脱：共有試合・結果には何も書かず、ホストでも部屋を閉じない。本人のpresence削除だけを行う
+  function safeLeave(info) {
+    if (qmRef.current) cancelQm();
+    if (code && !localRoom && FB.uid && !isHost && !spectator) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
+    DBX = null; sound.bgm(false);
+    setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
+    setErr(info && info.reason === 'unreadable' ? '試合結果を読み取れませんでした。結果は確定していません。' : '試合の結果は確定していません。');
+  }
   async function startMatch(cArg, opt) {
     opt = opt || {};
     const c = (typeof cArg === 'string' && cArg) || code || 'local';
@@ -9264,7 +9272,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   // 対戦中
   if (!state || state.phase !== 'play') return shell(<Card><p className="text-center font-bold" style={{ color: COLORS.inkSoft }}>受信しています…</p></Card>);
   const amPlayer = !spectator && (state.players || []).includes(myUid());
-  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice?null:acct} who={who} spectator={!amPlayer} practice={practice} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onRematch={startMatch} onLobby={practice?()=>leave():backToLobby}/>;
+  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice?null:acct} who={who} spectator={!amPlayer} practice={practice} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onSafeLeave={!practice&&amPlayer&&!isHost?safeLeave:undefined} onRematch={startMatch} onLobby={practice?()=>leave():backToLobby}/>;
   if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
   return <>{qmChip}<BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
     sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={state.qm ? () => startQmVote(code) : startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;

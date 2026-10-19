@@ -1,7 +1,7 @@
 name: Next major development checks (no deployment)
 on:
   push:
-    branches: [dev/next-major-20261015, claude/v6-ui-fixes, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off, claude/v6-ranking-ui, claude/v6-title-spark-only, claude/v6-result-shell-integrate, claude/v6-ghost-random-ui, claude/v6-play-frame, claude/v6-title-equip, claude/v6-a1-title-keep, claude/v6-a1b-keep-login, claude/v6-a2-title-conditions, claude/v6-a3-daily-king, claude/v6-a4-handi, claude/v6-a-batch]
+    branches: [dev/next-major-20261015, claude/v62-b2-host-disconnect, claude/v6-ui-fixes, claude/solo-result-ui, claude/publish-tests-newui, claude/v6-c-hide-random-off, claude/v6-ranking-ui, claude/v6-title-spark-only, claude/v6-result-shell-integrate, claude/v6-ghost-random-ui, claude/v6-play-frame, claude/v6-title-equip, claude/v6-a1-title-keep, claude/v6-a1b-keep-login, claude/v6-a2-title-conditions, claude/v6-a3-daily-king, claude/v6-a4-handi, claude/v6-a-batch]
     paths:
       - 'src/**'
       - 'index.html'
@@ -75,6 +75,7 @@ jobs:
           node tests/v6-vote-state-browser.cjs
           node tests/v6-play-frame-browser.cjs
           node tests/v6-ui-fix-browser.cjs
+          node tests/room-b2-stall-browser.cjs
           node tests/v6-title-equip-browser.cjs
           node tests/v525-nick-compat-browser.cjs
           node tests/v6-keep-login-browser.cjs
