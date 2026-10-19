@@ -1,6 +1,6 @@
 # 称号・実績・きせかえ実装監査
 
-対象: Ver.6.1（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
+対象: Ver.6.2（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
 
 ## システムの区別
 
