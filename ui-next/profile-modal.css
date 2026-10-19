@@ -1,0 +1,18 @@
+/* Ver.6.0 post-release UI fix: the detailed-record window (PlayerProfile) follows the dark theme. Appearance only; every button and data block stays. */
+.pp-dark{background:rgba(5,9,14,.72)!important}
+.pp-dark>div{background:#192b38!important;border:1px solid #324354!important;color:#e8f0f5;box-shadow:0 16px 40px rgba(0,0,0,.5)!important}
+.pp-dark [style*="rgb(111, 119, 133)"]{color:#b8c6d2!important}
+.pp-dark [style*="rgb(29, 38, 51)"]{color:#e8f0f5!important}
+.pp-dark [style*="rgb(45, 106, 79)"]{color:#72dfce!important}
+.pp-dark [style*="rgb(14, 134, 198)"]{color:#8fd3f4!important}
+.pp-dark [style*="rgb(231, 111, 81)"]{color:#ffb59c!important}
+.pp-dark [style*="rgb(183, 121, 31)"]{color:#f6bd62!important}
+.pp-dark [style*="rgb(154, 106, 18)"]{color:#f6bd62!important}
+.pp-dark [style*="rgb(91, 63, 214)"]{color:#c4b5ff!important}
+.pp-dark [style*="background: rgb(239, 234, 224)"]{background:#101720!important}
+.pp-dark [style*="background-color: rgb(239, 234, 224)"]{background:#101720!important}
+.pp-dark [style*="background: rgb(255, 255, 255)"]{background:#192b38!important}
+.pp-dark [style*="border-bottom: 1px solid rgb(239, 234, 224)"],.pp-dark [style*="solid rgb(239, 234, 224)"]{border-color:#324354!important}
+.pp-dark .v7-pill{background:#101720;color:#e8f0f5;border:1.5px solid #4a6073}
+.pp-dark button:disabled{opacity:1!important;background:#243542!important;color:#9daebd!important;border:1px solid #3b5364!important;box-shadow:none!important}
+.pp-dark>div{overflow-wrap:anywhere}

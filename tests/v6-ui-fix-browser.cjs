@@ -92,5 +92,26 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
       }
       console.log('PASS room waiting screen: dark theme for host and participant (A and B), selected choices ringed, permissions kept, no overflow at 320/375/390, leave works');
     }
+    { // fix 7 (option c): the 「称号の装備・詳細記録」 button stays; its window is dark and keeps every entry (ghost battle, rating history, seasons, achievements)
+      const season = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 7), stats = { rating: 1650, maxRating: 1800, games: 20, w: 12, l: 6, d: 2, exp: 900, nick: 'tour1', maxStreak: 4, skin: { tile: 'wood' } };
+      const pt = { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats } }, onlineSparkV1: { profiles: { ateacher: { name: 'Teacher', easy: { rating: 1665, maxRating: 1810, season, games: 20, w: 12, l: 6, d: 2 } } } } } } };
+      for (const width of [320, 390, 1440]) {
+        const t = await context(b, { tree: pt }), p = t.page; await p.setViewportSize({ width, height: width > 900 ? 1000 : 844 });
+        await p.locator('.account-main').click(); await p.locator('[data-next-profile]').waitFor();
+        await p.getByRole('button', { name: '称号の装備・詳細記録', exact: true }).click();
+        const win = p.locator('.pp-dark > div'); await win.waitFor();
+        const r = await p.evaluate(() => {
+          const root = document.querySelector('.pp-dark'), w = root.firstElementChild, lum = (c) => { const m = c.match(/[\d.]+/g).map(Number); return (m.length < 4 || m[3] > 0.4) ? (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 : -1; };
+          const light = [...w.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().width > 20 && lum(getComputedStyle(e).backgroundColor) > 0.6 && !/linear-gradient/.test(getComputedStyle(e).backgroundImage)).map((e) => e.textContent.trim().slice(0, 20) + '|' + getComputedStyle(e).backgroundColor);
+          return { win: lum(getComputedStyle(w).backgroundColor), light, text: w.innerText, doc: document.documentElement.scrollWidth, vw: innerWidth, wide: w.scrollWidth > w.clientWidth + 1 };
+        });
+        assert(r.win < 0.25, `dark window ${width}`); assert.deepEqual(r.light.filter((x) => !/^(〈|🏆)/.test(x)), [], `no light panel ${width}`);
+        assert(r.doc <= r.vw + 1 && !r.wide, `no horizontal overflow ${width}`);
+        for (const need of ['オンライン対戦の成績', 'イージーで自分のゴースト対戦', 'ノーマルで自分のゴースト対戦', 'ゴースト対戦履歴', '自分の挑戦', '自分の分身', '最高レート', '相手ごとの成績']) assert(r.text.includes(need), `kept: ${need} ${width}`);
+        await p.getByRole('button', { name: 'とじる', exact: true }).click(); await win.waitFor({ state: 'detached' });
+        assert.deepEqual(t.errors, []); await t.ctx.close();
+      }
+      console.log('PASS profile detail window: button kept, dark theme, ghost battle / ghost history / rating / season entries kept, no overflow at 320/390/1440');
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });
