@@ -200,6 +200,7 @@
               qLabel: `\u554F${m.mode === "A" ? Number(g.question) + 1 : ((self == null ? void 0 : self.c) || 0) + 1}${g.rules === "b2" ? "" : "/" + N}`,
               gaugeKey: g.question + ":" + g.startAt,
               gaugeMs: Math.max(1, g.timeoutMs - (time - g.startAt)),
+              noCaption: true,
               v7: true
             }
           )), /* @__PURE__ */ React.createElement(

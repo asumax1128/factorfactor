@@ -10306,13 +10306,13 @@ function JudgePop({ judge, at }) {
     </div>
   );
 }
-function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt, v7 }) {
+function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt, v7, noCaption }) {
   if (v7) return (
     <div data-poly={JSON.stringify(poly)} data-fxtarget="1" className="v7-target" style={spurt ? { background: '#FFF4E0', borderColor: '#FF8A3D' } : null}>
       <div className="absolute top-0 left-0 w-full" style={{ height: '5px', background: 'rgba(0,0,0,0.12)' }}>
         <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
       </div>
-      {note && <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: spurt ? '#C2410C' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{note}</div>}
+      {!noCaption && <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: spurt ? '#C2410C' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{note || 'この式を因数分解しよう'} ・ <span style={{ color: LEVEL_INFO[level].color, fontWeight: 900 }}>Lv.{level} {LEVEL_INFO[level].name}</span></div>}
       <div className="font-black v7-poly" style={{ color: '#1D2633', ...bFont }}><MathText text={formatPoly(poly)} /></div>
       <div className="absolute bottom-1.5 right-3 text-[11px] font-bold" style={{ color: '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{qLabel}</div>
       {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: '#2D6A4F', fontFamily: 'var(--v7-f-fx)' }}>+{gain}</div>}
@@ -10323,7 +10323,7 @@ function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt,
       <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)' }}>
         <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
       </div>
-      {note && <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: spurt ? COLORS.coral : COLORS.inkSoft }}>{note}</div>}
+      {!noCaption && <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: spurt ? COLORS.coral : COLORS.inkSoft }}>{note || 'この式を因数分解しよう'} ・ Lv.{level} {LEVEL_INFO[level].name}</div>}
       <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(1.3rem, 5vh, 2.8rem)', ...bFont }}><MathText text={formatPoly(poly)} /></div>
       <div className="absolute bottom-1.5 right-3 text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{qLabel}</div>
       {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{gain}</div>}
@@ -10486,7 +10486,7 @@ function GameB({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
           <TimingJudgment judge={judge} at="ph" />
-          {cur && !s.resolving && !s.over && <TargetCard v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
+          {cur && !s.resolving && !s.over && <TargetCard noCaption v7 poly={cur.poly} level={cur.level} qLabel={TC ? `チーム ${teamC}/${N * 2}` : `問${Math.min(N, s.c + 1)}/${N}`} gaugeKey={s.qStart} gaugeMs={QUESTION_TIMEOUT_MS} gain={gain} note={cur.oj ? `おじゃまタイル${cur.oj}枚入り` : null} />}
         </div>
         {cur && !s.resolving && !s.over && <BattleBoard v7 tiles={cur.tiles} onMatch={onMatch} disabled={s.resolving || s.over} dim={s.ko} flash={flash} />}
         <p className="v7-hint" style={{ flexShrink: 0 }}>{TC ? '仲間の予告も正解でカバー・2人で3コンボ以上を同時に→合体攻撃' : <>コンボで攻撃・Perfectでおじゃま{others.length > 1 ? '・攻撃は🎯（1位）へ' : ''}・ゲージ満タンで必殺技</>}</p>
@@ -10613,7 +10613,7 @@ function GameA({ code, state, me, ids, others, names, nicks, diff, N, bank, live
       <div className="v7-main">
         <div className="relative" style={{ flexShrink: 0 }}>
           <TimingJudgment judge={judge} at="ph" />
-          {prob && !waiting && !ended && <TargetCard v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
+          {prob && !waiting && !ended && <TargetCard noCaption v7 poly={prob.poly} level={prob.level} qLabel={`問${q + 1}/${N}`} gaugeKey={`${q}_${waiting}`} gaugeMs={waiting ? 1 : Math.max(1, QUESTION_TIMEOUT_MS - (now - qStart))} spurt={spurt} note={spurt ? '🔥 得点2倍' : null} />}
         </div>
         {prob && !waiting && !ended && <BattleBoard v7 tiles={prob.tiles} onMatch={onMatch} disabled={busy || waiting || locked} dim={waiting || locked} flash={flash} />}
         <p className="v7-hint" style={{ flexShrink: 0 }}>先に正解した人だけ得点 ・ まちがえると{lockMs / 1000}秒お手つき ・ 最後の{A_LASTSPURT}問は2倍</p>

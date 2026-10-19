@@ -254,6 +254,7 @@
                   qLabel={`問${m.mode === "A" ? Number(g.question) + 1 : (self?.c || 0) + 1}${g.rules === "b2" ? "" : "/"+N}`}
                   gaugeKey={g.question + ":" + g.startAt}
                   gaugeMs={Math.max(1, g.timeoutMs - (time - g.startAt))}
+                  noCaption
                   v7
                 />
               </div>
