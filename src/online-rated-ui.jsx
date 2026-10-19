@@ -158,22 +158,6 @@
                   {m.mode === "A" ? "早い者勝ち" : "レース＋攻撃"} ・{" "}
                   {label(m.difficulty)}
                 </span>
-                <p className="or-connection pf-timer" role="status">
-                  <span className="pf-phase">
-                    {counting
-                      ? "まもなく開始"
-                      : ready
-                        ? "次の問題を準備中"
-                        : "対戦中"}
-                  </span>{" "}
-                  ・ 残り{" "}
-                  <span className="pf-time">
-                    {Math.max(0, ((g.rules === "b2" ? g.endAt-time : g.timeoutMs - (time - g.startAt))) / 1000).toFixed(
-                      1,
-                    )}
-                  </span>
-                  秒
-                </p>
               </div>
               <div className="pf-versus">
                 <div className="pf-self">

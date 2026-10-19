@@ -230,6 +230,7 @@ for (const [name, value] of Object.entries(before)) {
       "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
       "statsTx", // Ver.6.0 (owner-approved): retired titles (nosp, wklast, tower) are no longer newly awarded or revealed; held counters/equipment untouched (tests/v6-title-retire.test.cjs).
       "claimMission", // Ver.6.0 A5 (owner-approved): the all-clear stats write goes through statsTx (ensureKeep first) and records the consecutive run (tests/v6-a5-mis7.test.cjs).
+      "TargetCard", // Ver.6.0 post-release UI fix (owner request): the question card no longer shows the "この式を因数分解しよう・Lv.N" caption line (a custom note, e.g. the last-spurt notice, is still shown). Presentation only; tests/v6-play-frame-browser.cjs checks it.
       "createBEngine", // Ver.6.0 A8 (owner-approved): one counting statement in sendAttack (+ cancelFull in the initial state); every amount and every other rule is unchanged, audited by tests/v6-a8-cancel.test.cjs (text projection against the A3 baseline).
       "applyLearn", // Adds validated correct-answer minima; totals regression tested.
       "migrateGuestExtra", // Min-merges guest level bests without changing totals.

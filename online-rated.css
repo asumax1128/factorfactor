@@ -252,3 +252,5 @@
 .or-equip-status{margin:10px 0 0;padding:8px 12px;border:1px solid currentColor;border-radius:8px;font-size:13px;line-height:1.7}
 .or-equip-status.saved{color:#2f9d86}.or-equip-status.saving{color:#c58a1a}.or-equip-status.failed,.or-equip-status.partial{color:#d9534f}
 .or-equip-status button{margin-left:10px;min-height:44px}
+/* Ver.6.0 UI fix: the question card has no caption line any more; the expression sits in the middle of the card */
+.or-playing .v7-target{display:flex;flex-direction:column;justify-content:center}

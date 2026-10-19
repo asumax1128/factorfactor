@@ -10310,7 +10310,7 @@ function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt,
       <div className="absolute top-0 left-0 w-full" style={{ height: '5px', background: 'rgba(0,0,0,0.12)' }}>
         <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
       </div>
-      <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: spurt ? '#C2410C' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{note || 'この式を因数分解しよう'} ・ <span style={{ color: LEVEL_INFO[level].color, fontWeight: 900 }}>Lv.{level} {LEVEL_INFO[level].name}</span></div>
+      {note && <div className="text-[11px] font-bold mb-1 tracking-wide" style={{ color: spurt ? '#C2410C' : '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{note}</div>}
       <div className="font-black v7-poly" style={{ color: '#1D2633', ...bFont }}><MathText text={formatPoly(poly)} /></div>
       <div className="absolute bottom-1.5 right-3 text-[11px] font-bold" style={{ color: '#6F7785', fontFamily: 'var(--v7-f-ui)' }}>{qLabel}</div>
       {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: '#2D6A4F', fontFamily: 'var(--v7-f-fx)' }}>+{gain}</div>}
@@ -10321,7 +10321,7 @@ function TargetCard({ poly, level, qLabel, gaugeKey, gaugeMs, gain, note, spurt,
       <div className="absolute top-0 left-0 w-full" style={{ height: '4px', background: 'rgba(0,0,0,0.12)' }}>
         <div key={gaugeKey} className="h-full" style={{ width: '100%', background: '#FFD54A', animation: `fxfJudgeGauge ${gaugeMs}ms linear forwards` }} />
       </div>
-      <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: spurt ? COLORS.coral : COLORS.inkSoft }}>{note || 'この式を因数分解しよう'} ・ Lv.{level} {LEVEL_INFO[level].name}</div>
+      {note && <div className="text-[10px] font-bold mb-1 tracking-wide" style={{ color: spurt ? COLORS.coral : COLORS.inkSoft }}>{note}</div>}
       <div className="font-black" style={{ color: COLORS.ink, fontSize: 'clamp(1.3rem, 5vh, 2.8rem)', ...bFont }}><MathText text={formatPoly(poly)} /></div>
       <div className="absolute bottom-1.5 right-3 text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{qLabel}</div>
       {gain != null && <div className="absolute top-2 right-3 text-sm font-black animate-pulse" style={{ color: COLORS.leafDeep }}>+{gain}</div>}
@@ -11356,7 +11356,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');

@@ -105,7 +105,7 @@ async function layout(p, name, w, h, o) {
       opp: opp && { ...rect(opp), fs: parseFloat(getComputedStyle(opp).fontSize), text: opp.textContent },
       time: time && { ...rect(time), fs: parseFloat(getComputedStyle(time).fontSize), text: time.textContent, vis: getComputedStyle(time).visibility },
       selfName: selfName && { text: selfName.textContent, ell: getComputedStyle(selfName).textOverflow },
-      targetBg: poly && getComputedStyle(poly).backgroundColor, tileBg: tile && getComputedStyle(tile).backgroundColor,
+      targetText: poly && poly.textContent, targetBg: poly && getComputedStyle(poly).backgroundColor, tileBg: tile && getComputedStyle(tile).backgroundColor,
       fitTile: Math.max(0, ...fit), fitPoly: polyEl && polyBox ? polyEl.getBoundingClientRect().width / polyBox.clientWidth : 0, fonts,
       mainFam: polyEl && getComputedStyle(polyEl).fontFamily, varFam: vx && getComputedStyle(vx).fontFamily, varStyle: vx && getComputedStyle(vx).fontStyle, supSize: sup && getComputedStyle(sup).fontSize, polySize: polyEl && getComputedStyle(polyEl).fontSize,
       katexFont: katex && getComputedStyle(katex).fontFamily, tileFont: tileIn && getComputedStyle(tileIn).fontFamily, polyFont: getComputedStyle(document.querySelector(".v7-poly")).fontFamily,
@@ -129,10 +129,12 @@ async function layout(p, name, w, h, o) {
     assert(info.opp.w >= 40 && info.opp.h <= info.opp.fs * 2.2, `${name}: opponent name is not folded vertically (${info.opp.w}x${info.opp.h}) at ${w}x${h}`);
   }
   if (o.timer) {
-    assert(info.time && info.time.vis === "visible" && /^\d+\.\d$/.test(info.time.text), `${name}: timer shows seconds (${info.time && info.time.text})`);
-    assert(info.time.fs >= 20 && info.time.x >= 0 && info.time.r <= w + 1 && info.time.y >= 0, `${name}: timer is big and on screen at ${w}x${h}`);
+    // Ver.6.0 UI fix (owner request): the on-screen "対戦中・残り◯秒" readout is removed; the internal time limit is unchanged
+    assert(!info.time, `${name}: the remaining-time readout is no longer displayed`);
+    assert(info.targetBg, `${name}: the expression card is still shown`);
     assert(info.selfName && info.selfName.text.length > 0 && info.selfName.ell === "ellipsis", `${name}: my name is shown, truncated with ellipsis`);
   }
+  assert(!/この式を因数分解しよう|Lv\.\d/.test(info.targetText || ""), `${name}: the question card has no caption line (${info.targetText})`);
   assert.equal(info.targetBg, "rgb(255, 253, 247)", `${name}: question card keeps the light background`);
   assert(/KaTeX_Main/.test(info.katexFont || "") && /KaTeX_Main/.test(info.tileFont || ""), `${name}: formula font unchanged (KaTeX)`);
   assert.equal(info.polyFont, '"Zen Maru Gothic", sans-serif', `${name}: question container font unchanged`);
@@ -227,7 +229,7 @@ async function dragSurvives(p, name, b2) {
         const m = await p.evaluate(() => {
           const tiles = [...document.querySelectorAll("[data-btile]")].map((t) => { const f = t.querySelector(".fxm"); return f ? f.getBoundingClientRect().width / t.clientWidth : 0; });
           const f = document.querySelector(".v7-poly .fxm"), box = document.querySelector(".v7-poly");
-          return { tile: Math.max(...tiles), poly: f.getBoundingClientRect().width / box.clientWidth, lv: (document.querySelector(".v7-target").textContent.match(/Lv\.(\d)/) || [])[1] };
+          return { tile: Math.max(...tiles), poly: f.getBoundingClientRect().width / box.clientWidth, lv: document.querySelector("[data-poly]").getAttribute("data-poly") };
         });
         seen.add(m.lv); worstTile = Math.max(worstTile, m.tile); worstPoly = Math.max(worstPoly, m.poly);
         assert(m.tile <= 0.95 && m.poly <= 0.97, `formula overflow at ${w}x${h}: ${JSON.stringify(m)}`);
@@ -238,7 +240,8 @@ async function dragSurvives(p, name, b2) {
         await sleep(700);
         await p.waitForFunction(() => document.querySelector("[data-online-ready]")?.dataset.onlineReady === "true", null, { timeout: 15000 }).catch(() => {});
       }
-      assert(seen.size >= 5, `the sweep covered several levels: ${[...seen]}`);
+      // Ver.6.0 UI fix: the card has no "Lv.N" caption any more, so the sweep is counted by distinct generated questions
+      assert(seen.size >= 5, `the sweep covered several different questions: ${[...seen]}`);
       await t.ctx.close();
     }
     // drag survival, once per mode on the phone size (the board is the same node tree on every size)

@@ -370,3 +370,8 @@
 .next-wardrobe button[data-skin-item][aria-disabled=true]{opacity:1!important;background:#132330!important}
 .next-wardrobe button[data-skin-item][aria-disabled=true]>div:first-child{opacity:.6}
 .next-wardrobe button[data-skin-item][aria-disabled=true]>div:nth-child(2){color:#c0cdd7!important}
+/* Ver.6.0 UI fix: version label next to the logo (read from game-version.js) */
+.next-home .brand-ver{font-weight:900;font-size:11px;line-height:1;letter-spacing:.04em;color:#a9bfd0;white-space:nowrap}
+.next-home .mobile-brand{flex-direction:row;align-items:flex-end;gap:6px}
+.next-home .mobile-brand .brand-ver{padding-bottom:3px}
+.next-home .brand-slot .brand-ver{margin-left:2px;margin-top:-4px}
