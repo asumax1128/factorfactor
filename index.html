@@ -8097,11 +8097,19 @@ async function recordMatch(acct, info) {
       s[info.mode] = s[info.mode] || {};
       s[info.mode][o] = (s[info.mode][o] || 0) + 1;
       s.vs = s.vs || {};
+      // 受領順に依存しない記録（旧連勝・リベンジ）用：この試合の台帳エントリ（ID・時刻）。時刻は公式連勝台帳と同じ（遅れた受領は実際の試合時刻）
+      const ordMod = window.StatsOrderNext, mt = info.sk ? info.sk.t : (late ? rcpt.at[info.id] : fbNow()), mid = info.sk ? info.sk.id : (info.id ? 'b-' + info.id : 'u-' + mt + '-' + (s.games || 0));
       (info.vs || []).forEach(v => {
         if (!v.key) return;
         const r = s.vs[v.key] = s.vs[v.key] || {};
-        if (v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 前回負けた相手に勝った
-        r[v.o] = (r[v.o] || 0) + 1; r.last = v.o;
+        if (ordMod) {
+          // 相手別の時刻順台帳 vl で「負け→勝ち」の隣接を数える（受領順に依存しない・既得は減らさない）。時刻不明の受領は判定せず勝敗数だけ
+          if (timeKnown) ordMod.revenge(s, v.key, { id: mid, t: mt, o: v.o }, { last: before.last }, !r.last && !(r.w || r.l || r.d));
+          r[v.o] = (r[v.o] || 0) + 1;
+        } else {
+          if (v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 前回負けた相手に勝った
+          r[v.o] = (r[v.o] || 0) + 1; r.last = v.o;
+        }
       });
       // 何日続けて対戦しているか（Ver.6.0：日本時間JSTで数える。旧版の「2026-10-5」形式の記録も同じ日として扱う）
       const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
@@ -8110,7 +8118,11 @@ async function recordMatch(acct, info) {
       if (!timeKnown || (lastDay > today && info.at != null)) { /* 時刻不明、または古い試合の遅れた受領：日別連続は変更しない */ }
       else if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
-      if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
+      // 旧連勝(stats.streak/maxStreak：賞金首・懸賞金・お尋ね者・プロフィール)：勝ち+1・負け0・引き分け据え置き。受領順に依存しないよう、試合の台帳 stats.sl を時刻順に再生して求める
+      // （順序どおりなら従来の逐次計算と完全に一致。公式連勝 stats.sk とは引き分けの扱いが異なる）。時刻不明の受領では動かさない
+      if (ordMod) {
+        if (timeKnown) ordMod.legacyStreak(s, { id: mid, t: mt, o }, { last: before.last });
+      } else if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
       else if (o === 'l') s.streak = 0;
       s.perfects = (s.perfects || 0) + (info.perfects || 0);
       if (o === 'w' && info.comeback) s.comebacks = (s.comebacks || 0) + 1;

@@ -1510,6 +1510,94 @@
     }
   });
 
+  // src/stats-order-next.cjs
+  var require_stats_order_next = __commonJS({
+    "src/stats-order-next.cjs"(exports, module) {
+      "use strict";
+      var LEGACY_MAX = 32;
+      var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
+      var num = (x) => typeof x === "number" && Number.isFinite(x) ? x : null;
+      var step = (n, o) => o === "w" ? n + 1 : o === "l" ? 0 : n;
+      var ordered = (l) => Object.keys(l).map((id) => ({ id, ...l[id] })).sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      var goodLedger = (sl) => isObj(sl) && sl.v === 1 && num(sl.n0) !== null && num(sl.bt) !== null && isObj(sl.l) && Object.values(sl.l).every((x) => isObj(x) && num(x.t) !== null && ["w", "l", "d"].includes(x.o));
+      function legacyStreak(s, entry, ctx = {}) {
+        if (!isObj(s) || !entry || !entry.id || num(entry.t) === null || !["w", "l", "d"].includes(entry.o)) return { status: "invalid" };
+        let sl = s.sl;
+        if (!goodLedger(sl)) {
+          const last = num(ctx.last) || 0;
+          sl = { v: 1, n0: Math.max(0, num(s.streak) || 0), bt: last > 0 ? Math.max(0, last - 6e4) : 0, l: {} };
+        }
+        const l = { ...sl.l };
+        if (l[entry.id]) {
+          s.sl = { ...sl, l };
+          return { status: "duplicate" };
+        }
+        let n0 = sl.n0, bt = sl.bt, status = "applied", newest = false;
+        if (entry.t < bt) {
+          if (entry.o === "l") n0 = 0;
+          status = entry.o === "l" ? "unplaced-loss" : "unplaced-win";
+        } else {
+          const list = ordered(l), last = list[list.length - 1];
+          newest = !last || entry.t > last.t || entry.t === last.t && entry.id > last.id;
+          l[entry.id] = { t: entry.t, o: entry.o };
+          let all = ordered(l);
+          while (all.length > LEGACY_MAX) {
+            const old = all.shift();
+            n0 = step(n0, old.o);
+            bt = Math.max(bt, old.t + 1);
+            delete l[old.id];
+          }
+        }
+        let n = n0;
+        for (const e of ordered(l)) n = step(n, e.o);
+        s.sl = { v: 1, n0, bt, l };
+        s.streak = n;
+        if (newest) s.maxStreak = Math.max(num(s.maxStreak) || 0, n);
+        return { status };
+      }
+      var REVENGE_MAX = 6;
+      var trans = (a, b) => a === "l" && b === "w" ? 1 : 0;
+      var before = (x, y) => x.t < y.t || x.t === y.t && x.id < y.id;
+      function revenge(s, key, entry, ctx = {}, fresh = false) {
+        if (!isObj(s) || !key || !entry || !entry.id || num(entry.t) === null || !["w", "l", "d"].includes(entry.o)) return { status: "invalid" };
+        s.vs = isObj(s.vs) ? s.vs : {};
+        const r = isObj(s.vs[key]) ? s.vs[key] : s.vs[key] = {};
+        let vl = r.vl;
+        if (!(isObj(vl) && num(vl.bt) !== null && isObj(vl.l) && Object.values(vl.l).every((x) => isObj(x) && num(x.t) !== null && ["w", "l", "d"].includes(x.o)))) {
+          const last = num(ctx.last) || 0;
+          vl = { ...["w", "l", "d"].includes(r.last) ? { b: r.last } : {}, bt: fresh || !r.last ? 0 : last > 0 ? Math.max(0, last - 6e4) : 0, l: {} };
+        }
+        const l = { ...vl.l };
+        if (l[entry.id]) {
+          r.vl = { ...vl, l };
+          return { status: "duplicate" };
+        }
+        if (entry.t < vl.bt) {
+          r.vl = { ...vl, l };
+          return { status: "unplaced" };
+        }
+        const m = { id: entry.id, t: entry.t, o: entry.o }, list = ordered(l);
+        const X = [...list].reverse().find((e) => before(e, m)), Y = list.find((e) => before(m, e));
+        const xo = X ? X.o : vl.b, yo = Y ? Y.o : void 0;
+        const delta = trans(xo, m.o) + trans(m.o, yo) - trans(xo, yo);
+        if (delta > 0) s.revenges = (num(s.revenges) || 0) + delta;
+        l[m.id] = { t: m.t, o: m.o };
+        let b = vl.b, bt = vl.bt, all = ordered(l);
+        while (all.length > REVENGE_MAX) {
+          const old = all.shift();
+          b = old.o;
+          bt = Math.max(bt, old.t + 1);
+          delete l[old.id];
+        }
+        r.vl = { ...b ? { b } : {}, bt, l };
+        const newest = all[all.length - 1];
+        if (newest) r.last = newest.o;
+        return { status: "applied", delta };
+      }
+      module.exports = { LEGACY_MAX, REVENGE_MAX, legacyStreak, revenge, ordered, step };
+    }
+  });
+
   // src/next-ui.jsx
   function Frame({ sidebar, mobileHeader, title, actions, children, bottomNav }) {
     const heading = React.useRef(null);
@@ -1875,6 +1963,7 @@
   window.TitleDisplayNext = require_title_display_next();
   window.TitleKeepNext = require_title_keep_next();
   window.StreakNext = require_streak_next();
+  window.StatsOrderNext = require_stats_order_next();
   window.NextRanking = { ...ranking_kit_exports, SoloRanking };
   var icons2 = require_next_home_icons();
   window.NextHomeFactory = (H) => {

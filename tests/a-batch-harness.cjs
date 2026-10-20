@@ -8,8 +8,9 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const base = cut("const BADGES = [", "function AchievementAuditPanel") + "\n" + cut("async function statsTx(acct, fn)", "const wkOf = s =>")  + "\n" + cut("async function recordMatch(acct, info)", "/* ---------- 効果音");
 function world(initial, { keep = Keep, extra = [], globals = {} } = {}) {
   const db = { value: initial, writes: 0 };
+  // WITH_ORDER=1 runs the production path (order-independent records, src/stats-order-next.cjs); without it the previous inline rules run
   const sandbox = {
-    window: keep ? { TitleKeepNext: keep } : {}, titleLabelOf: (id) => Labels.resolve(id, null),
+    window: { ...(keep ? { TitleKeepNext: keep } : {}), ...(process.env.WITH_ORDER ? { StatsOrderNext: require("../src/stats-order-next.cjs") } : {}) }, titleLabelOf: (id) => Labels.resolve(id, null),
     isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: "2026-10", seasonKey: () => "2026-10", seasonReset: (r) => r,
     FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} }, prevWeek: () => "", ...globals,
     FB: { db: { ref: () => ({ transaction: async (cb) => {
