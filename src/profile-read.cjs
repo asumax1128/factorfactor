@@ -15,7 +15,7 @@ function read(stats,profile){
  return {exp:number(st.exp),legacy:record(st),modes:Object.fromEntries(['A','B','C'].map(m=>[m,record(st[m])])),
   rated:Object.fromEntries(['easy','normal'].map(d=>[d,record(profile?.[d])])),
   ghosts:Object.fromEntries(['easy','normal'].map(d=>[d,record(profile?.[d]?.ghost)])),
-  metrics:Object.fromEntries(['maxStreak','perfects','comebacks','tourWins','bestMs','maxCombo'].map(k=>[k,number(st[k])])),
+  metrics:(m=>{if(m.maxStreak!==null||number(st.streak)!==null)m.maxStreak=Math.max(m.maxStreak||0,number(st.streak)||0);return m})(Object.fromEntries(['maxStreak','perfects','comebacks','tourWins','bestMs','maxCombo'].map(k=>[k,number(st[k])]))),   // Ver.6.3: the profile shows the best of what is certified and the current run (titles read stats.maxStreak, not this)
   weekly:Object.fromEntries(['weeks','kills','best','maxStreak'].map(k=>[k,number(wk[k])]))};
 }
 module.exports={number,record,read};

@@ -8075,6 +8075,15 @@ async function b2Confirm(acct, gid, matchDay) {
   if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }
   return { ok: true };
 }
+/* Ver.6.3：試合の開始を「試合ログ(stats.ml)」へ open として保存する。サーバーが確定した順番がこの試合の位置になり、結果は後から同じ位置へ入る（src/match-log-next.cjs）。
+   トランザクションはサーバー確認で解決する（オフラインでは解決しない）ので、true が返った＝サーバーに保存された。試合ログが無い環境では門番を立てない（true） */
+async function openMatch(acct, spec) {
+  if (!acct || !acct.key || !FB.db || !window.MatchLogNext) return true;
+  try {
+    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; keepStats(s); window.MatchLogNext.open(s, { ...spec, now: fbNow() }); return s; });
+    return !!(r && r.committed);
+  } catch (e) { return false; }
+}
 async function recordMatch(acct, info) {
   const rcpt = typeof B2_RCPT !== 'undefined' ? B2_RCPT : null;   // （単体試験の抜き出しでは未定義）
   if (info && info.id && rcpt && rcpt.at[info.id] != null) { info = { ...info, at: rcpt.at[info.id] }; if (info.sk) info.sk = { ...info.sk, t: info.at }; }   // 遅れて受領：連勝台帳と日別記録は実際の試合時刻で扱う
@@ -8092,25 +8101,23 @@ async function recordMatch(acct, info) {
       keepStats(s);
       if(info.id){s.roomSeen ||= {};if(s.roomSeen[info.id]){after=s;return s;}s.roomSeen[info.id]=true;}
       const o = info.outcome;
+      // Ver.6.3：順序に依存する記録（旧連勝・正式連勝の最高・リベンジ）は試合ログ stats.ml が持つ。カウンタを動かす前に、別のクライアント(旧版)が書いた形跡があれば隙間(gap)として記録する
+      const ML = window.MatchLogNext, best0 = s.sk && typeof s.sk.best === 'number' ? s.sk.best : 0;
+      if (ML) ML.begin(s);
       s.games = (s.games || 0) + 1;
       s[o] = (s[o] || 0) + 1;
       s[info.mode] = s[info.mode] || {};
       s[info.mode][o] = (s[info.mode][o] || 0) + 1;
       s.vs = s.vs || {};
-      // 受領順に依存しない記録（旧連勝・リベンジ）用：この試合の台帳エントリ（ID・時刻）。時刻は公式連勝台帳と同じ（遅れた受領は実際の試合時刻）
-      const ordMod = window.StatsOrderNext, mt = info.sk ? info.sk.t : (late ? rcpt.at[info.id] : fbNow()), mid = info.sk ? info.sk.id : (info.id ? 'b-' + info.id : 'u-' + mt + '-' + (s.games || 0));
+      // 相手別の勝敗数。リベンジの回数は試合ログ(stats.ml)が「負け→勝ちが隣り合うと証明できた組」だけ数える（後着の引き分け・未受領の試合で過大にならない）
+      const mid = info.sk ? info.sk.id : (info.id ? 'b-' + info.id : 'g-' + fbNow() + '-' + (s.games || 0));
       (info.vs || []).forEach(v => {
         if (!v.key) return;
         const r = s.vs[v.key] = s.vs[v.key] || {};
-        if (ordMod) {
-          // 相手別の時刻順台帳 vl で「負け→勝ち」の隣接を数える（受領順に依存しない・既得は減らさない）。時刻不明の受領は判定せず勝敗数だけ
-          if (timeKnown) ordMod.revenge(s, v.key, { id: mid, t: mt, o: v.o }, { last: before.last }, !r.last && !(r.w || r.l || r.d));
-          r[v.o] = (r[v.o] || 0) + 1;
-        } else {
-          if (v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 前回負けた相手に勝った
-          r[v.o] = (r[v.o] || 0) + 1; r.last = v.o;
-        }
+        if (!ML && v.o === 'w' && r.last === 'l') s.revenges = (s.revenges || 0) + 1; // 試合ログが無い環境（旧動作）：前回負けた相手に勝った
+        r[v.o] = (r[v.o] || 0) + 1; if (!late) r.last = v.o;
       });
+      if (ML) ML.settle(s, { id: mid, kind: info.sk ? 'r' : 'g', outcome: o, opponents: info.vs || [], late });
       // 何日続けて対戦しているか（Ver.6.0：日本時間JSTで数える。旧版の「2026-10-5」形式の記録も同じ日として扱う）
       const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
       // info.at = 実際の試合時刻（遅れて受領した結果だけが持つ）。それより新しい日の記録があれば、連続日数は動かさない（古い日付へ巻き戻さない）
@@ -8124,12 +8131,8 @@ async function recordMatch(acct, info) {
       else if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
       }
-      // 旧連勝(stats.streak/maxStreak：賞金首・懸賞金・お尋ね者・プロフィール)：勝ち+1・負け0・引き分け据え置き。受領順に依存しないよう、試合の台帳 stats.sl を時刻順に再生して求める
-      // （順序どおりなら従来の逐次計算と完全に一致。公式連勝 stats.sk とは引き分けの扱いが異なる）。時刻不明の受領では動かさない
-      if (ordMod) {
-        if (timeKnown) ordMod.legacyStreak(s, { id: mid, t: mt, o }, { last: before.last });
-      } else if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
-      else if (o === 'l') s.streak = 0;
+      // 旧連勝(stats.streak：賞金首・懸賞金・お尋ね者・プロフィール)は試合ログから導く進捗、maxStreak は証明できた連続だけが上げる（ML.finish）。試合ログが無い環境は従来どおり
+      if (!ML) { if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); } else if (o === 'l') s.streak = 0; }
       s.perfects = (s.perfects || 0) + (info.perfects || 0);
       if (o === 'w' && info.comeback) s.comebacks = (s.comebacks || 0) + 1;
       // 負けの痛みをやわらげる：はじめの10戦はレートの下がり方が半分
@@ -8158,6 +8161,7 @@ async function recordMatch(acct, info) {
       if (!late) s.last = Date.now(); else if (timeKnown) s.last = Math.max(s.last || 0, rcpt.at[info.id]);   // 遅れた受領は「最後の試合時刻」を受領時刻に進めない
       /* Ver.6.0 A7：正式連勝（stats.sk）。試合の台帳を時刻順に並べ直して数える（重複・遅れて届いた結果・再送に強い）。旧 stats.streak / maxStreak は懸賞金・お尋ね者・プロフィール用にそのまま残す */
       try { const K = window.StreakNext; if (K && info.sk && timeKnown) K.applyResult(s, info.sk); } catch (err) {}
+      if (ML) ML.finish(s, { best0 });   // 進捗(streak)を書き、最高連勝・正式連勝の最高・リベンジ回数を「証明できた分だけ」引き上げる（既存の値は下げない）
       holdRetiredCounters(before, s);
       after = s;
       return s;
@@ -8914,6 +8918,26 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const isTour = !!(state && state.tour);
   const isRaid = !!(state && state.raid);
   const isFriend = !!(state && state.friend);   // フレンドレイド（ホストもいっしょに戦う）
+  // Ver.6.3：試合が始まったら、結果より先に「開始」を試合ログへ保存する（サーバー確認つき）。連勝・リベンジの順序は、この確認の順で決まる。
+  // 新しいB2の部屋は、保存が確認できるまで最初の回答を止める（recordReady）。旧方式の部屋は止めない（確認が試合の開始前に済めば証拠になり、遅れれば未証明として扱う）
+  const [recordReady, setRecordReady] = useState(true), [recordSlow, setRecordSlow] = useState(false);
+  useEffect(() => {
+    setRecordReady(true); setRecordSlow(false);
+    if (!acct || !isReal(acct) || practice || spectator || !FB.db || !FB.uid || !stateLive || stateLive.phase !== 'play' || !stateLive.gid || stateLive.ghostKey) return;
+    const st = stateLive, ids = b2List(st.players), me = myUid(), accts = st.accts || {};   // myUid()：すぐ遊ぶ(端末内の部屋)では 'me'
+    if (!ids.includes(me) || (st.cpu || {})[me]) return;
+    const gate = st.rules === 'b2', spec = { id: `r-${code}-${st.gid}`, kind: 'r', opponents: ids.filter(u => u !== me && accts[u]).map(u => accts[u]), startAt: st.startAt };
+    let dead = false, timer = null; const t0 = Date.now();
+    if (gate) setRecordReady(false);
+    const attempt = () => openMatch(acct, spec).then(ok => {
+      if (dead) return;
+      if (ok) { setRecordReady(true); setRecordSlow(false); return; }
+      if (Date.now() - t0 > 8000) setRecordSlow(true);
+      timer = setTimeout(attempt, 1500);
+    });
+    attempt();
+    return () => { dead = true; clearTimeout(timer); };
+  }, [stateLive && stateLive.gid, stateLive && stateLive.phase, acct && acct.key, spectator]);
   useEffect(()=>{if(!isHost||!window.TournamentB2?.active(state)||!code)return;const c=window.TournamentB2.coordinate({db:FB.db,code,state,uid:FB.uid,onError:e=>setErr('大会B2の同期に失敗しました：'+e.message)});c.ready.catch(e=>setErr(e.message));return()=>c.close();},[code,isHost,state?.tournamentId,state?.round,state?.champion]);
 
   // 先生用ダッシュボードに「いま何をしているか」を知らせる
@@ -9411,7 +9435,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   // 対戦中
   if (!state || state.phase !== 'play') return shell(<Card><p className="text-center font-bold" style={{ color: COLORS.inkSoft }}>受信しています…</p></Card>);
   const amPlayer = !spectator && (state.players || []).includes(myUid());
-  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice?null:acct} who={who} spectator={!amPlayer} practice={practice} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onSafeLeave={!practice&&amPlayer&&!isHost?safeLeave:undefined} onRematch={startMatch} onLobby={practice?()=>leave():backToLobby}/>;
+  if(state.rules==='b2'&&RoomB2App)return <RoomB2App key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice?null:acct} who={who} spectator={!amPlayer} practice={practice} sound={sound} muted={muted} setMuted={setMuted} onLeave={()=>leave()} onSafeLeave={!practice&&amPlayer&&!isHost?safeLeave:undefined} recordReady={recordReady || !state || !stateLive || stateLive.gid !== state.gid} recordSlow={recordSlow} onRematch={startMatch} onLobby={practice?()=>leave():backToLobby}/>;
   if (!amPlayer) return shell(<SpectatorView code={code} state={state} players={players} onLeave={() => leave()} />, true);
   return <>{qmChip}<BattleGame key={state.gid} code={code} state={state} players={players} isHost={isHost} acct={practice ? null : acct} who={who} practice={practice}
     sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onRematch={state.qm ? () => startQmVote(code) : startMatch} onLobby={practice ? () => leave() : backToLobby} /></>;
@@ -10028,7 +10052,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
             {!hideLegacyRating && box(<>従来レート <RankPill r={ratingOf(st)} size={9} /></>, ratingOf(st), COLORS.sky)}{box('勝率', `${Math.round(winRate(st) * 100)}%`, COLORS.leafDeep)}{box('対戦', `${g}戦`)}
           </div>
           <div className="flex gap-2 mb-3">
-            {box('成績', recordText(st))}{box('最高連勝', st.maxStreak || 0)}
+            {box('成績', recordText(st))}{box('最高連勝', Math.max(st.maxStreak || 0, st.streak || 0))}
           </div>
           <div className="flex gap-2 mb-3">
             {box('Perfect', `${st.perfects || 0}回`, '#c99a00')}{box('逆転勝ち', `${st.comebacks || 0}回`)}{box('大会優勝', `${st.tourWins || 0}回`, COLORS.coral)}

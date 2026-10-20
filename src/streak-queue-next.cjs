@@ -6,6 +6,7 @@ const Streak = require('./streak-next.cjs');
 const Spark = require('./spark-stats-next.cjs');
 const Keep = require('./title-keep-next.cjs');
 
+const LATE_MS = 120000;   // a Spark result applied this long after the match, with no open entry, is placed nowhere (src/match-log-next.cjs)
 function create({ db, key, storage }) {
   const qKey = `fxf_sk_queue_v1:${key}`;
   const read = () => {
@@ -31,7 +32,7 @@ function create({ db, key, storage }) {
             r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
               st = st || {};
               Keep.ensureKeep(st, { '.sv': 'timestamp' });
-              Spark.apply(st, e);
+              Spark.apply(st, e, { late: Date.now() - e.t > LATE_MS });
               return st;
             });
           } catch (_) { return { left: q.length }; }

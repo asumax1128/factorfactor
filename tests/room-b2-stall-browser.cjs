@@ -62,13 +62,13 @@ const accounts = { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: 
   }
   console.log('PASS real transport: stale get() never overwrites a newer/confirmed state; received result needs no read; failures are unreadable');
 })().then(main).catch((e) => { console.error(e); process.exitCode = 1; });
-async function setup(b, { width = 390, height = 844, duration, stats } = {}) {
+async function setup(b, { width = 390, height = 844, duration, stats, holdStats, legacyMode } = {}) {
   const tree = { games: { factor: { accounts: Object.assign(structuredClone(accounts), stats ? { ag: { name: 'Guest', stats } } : {}), onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } }, peers = [];
   // the host stops processing: its writes hang (a backgrounded/suspended phone); `clockOnly` keeps clock/revision moving but freezes the game
-  const gate = { frozen: false, waiters: [], clockOnly: false, game: null }, ggate = { frozen: false, waiters: [], fail: null };
+  const gate = { frozen: false, waiters: [], clockOnly: false, game: null }, ggate = { frozen: false, waiters: [], fail: null, stats: !!holdStats, sw: [] };
   const hold = (gt) => async () => { if (gt.frozen) await new Promise((r) => gt.waiters.push(r)); };
   const h = await context(b, { tree, peers, uid: 'host', account: { key: 'ah', name: 'Host' }, onOperation: async (op) => { if (gate.clockOnly && op.v && op.v.game && /\/b2\/[^/]+$/.test(op.path)) op.v = { ...op.v, game: gate.game }; await hold(gate)(); } });
-  const g = await context(b, { tree, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' }, onOperation: async (op) => { if (ggate.fail && ggate.fail.test(op.path)) throw new Error('NETWORK'); await hold(ggate)(); } });
+  const g = await context(b, { tree, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' }, onOperation: async (op) => { if (ggate.fail && ggate.fail.test(op.path)) throw new Error('NETWORK'); if (ggate.stats && /accounts\/ag\/stats/.test(op.path)) await new Promise((r) => ggate.sw.push(r)); await hold(ggate)(); } });
   for (const t of [h, g]) { await t.page.setViewportSize({ width, height }); await t.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); }
   await g.page.evaluate(() => { const c = RoomB2.create; RoomB2.create = (o) => { const t = c({ ...o, onView: (r) => { window.__raw = r; o.onView(r); } }); window.__b2 = t; window.__onView = o.onView; return t; }; RoomB2.config.warnMs = 1500; RoomB2.config.leaveMs = 3000; });
   await h.page.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
@@ -77,8 +77,9 @@ async function setup(b, { width = 390, height = 844, duration, stats } = {}) {
   await g.page.getByPlaceholder('部屋コード4桁').fill(code); await g.page.getByRole('button', { name: '参加', exact: true }).click();
   await g.page.getByText('部屋コード', { exact: true }).waitFor();
   if (duration) await h.page.getByRole('button', { name: `${duration}秒`, exact: true }).click();
+  if (legacyMode) await h.page.getByRole('button', { name: new RegExp('^' + legacyMode + '：') }).click();
   await h.page.getByRole('button', { name: /対戦スタート/ }).click();
-  for (const t of [h, g]) await t.page.locator('[data-btile]').first().waitFor({ timeout: 15000 });
+  if (!legacyMode) for (const t of [h, g]) await t.page.locator('[data-btile]').first().waitFor({ timeout: 15000 });
   const freeze = async () => { gate.frozen = true; }, resume = async () => { gate.frozen = false; gate.waiters.splice(0).forEach((r) => r()); };
   const b2 = () => Object.values(tree.games.factor.rooms[code].b2)[0], close = async () => { await h.ctx.close(); await g.ctx.close(); };
   return { h, g, tree, code, gate, ggate, freeze, resume, b2, close };
@@ -266,6 +267,31 @@ async function main() {
       assert.equal(st.sk.n, K.replay(0, K.ordered(st.sk.l)).n, 'the run equals a replay in match-time order'); assert.equal(st.sk.best, 1, 'a late arrival never raises the best by itself');
       assert.equal(st.lastDay, tomorrow, 'the day record is not rewound'); assert.equal(st.dayStreak, 5, 'the consecutive-day count is not changed by an older match');
       await s.close(); console.log('PASS late receipt: real match time in the ledger, ordered replay, day/streak records not rewound');
+    }
+    if (!ONLY || ONLY === 'S10') { // S10 (Ver.6.3): the match start is saved in the match log (server-confirmed) before the first answer; until then no answer is sent
+      const s = await setup(b, { holdStats: true });
+      await s.g.page.locator('[data-b2-record]').waitFor({ timeout: 8000 }); assert.match(await s.g.page.locator('[data-b2-record]').innerText(), /記録を準備/);
+      await drag(s.g.page).catch(() => {}); await sleep(1500);
+      assert.equal(inputsOf(s, 'guest').filter((k) => /^a\d+$/.test(k)).length, 0, 'no answer is sent while the start is not confirmed');
+      assert(!(statsOf(s).ml), 'nothing is saved yet');
+      s.ggate.stats = false; s.ggate.sw.splice(0).forEach((r) => r());
+      await s.g.page.locator('[data-b2-record]').waitFor({ state: 'detached', timeout: 8000 });
+      const ml = () => statsOf(s).ml; for (let i = 0; i < 20 && !ml(); i++) await sleep(300);
+      assert(ml() && Object.keys(ml().e).length === 1 && /^1\|ro\|/.test(Object.values(ml().e)[0]), 'the open entry was saved: ' + JSON.stringify(ml()));
+      const answers = () => inputsOf(s, 'guest').filter((k) => /^a\d+$/.test(k));
+      for (let i = 0; i < 5 && !answers().length; i++) { await sleep(900); await drag(s.g.page).catch(() => {}); await sleep(900); }
+      assert(answers().length >= 1, 'answers work once the start is confirmed'); assert.deepEqual(s.g.errors, []); await s.close();
+      console.log('PASS match log: no first answer until the start is confirmed by the server; the open entry is saved once');
+    }
+    if (!ONLY || ONLY === 'S11') { // S11 (Ver.6.3): an old-style room (method A) also saves its start; nothing blocks the answers there
+      const s = await setup(b, { legacyMode: 'A' });
+      const mls = () => ['ah', 'ag'].map((k) => s.tree.games.factor.accounts[k]?.stats?.ml);
+      for (let i = 0; i < 40 && !mls().every(Boolean); i++) await sleep(250);
+      const gid = s.tree.games.factor.rooms[s.code].state.gid;
+      for (const ml of mls()) { assert(ml, 'both players saved the start'); const e = ml.e[`r-${s.code}-${gid}`]; assert(e && /^[0-9a-z]+\|ro\|/.test(e), 'proven open (no flag) for the old-style room: ' + JSON.stringify(ml)); }
+      assert.equal(await s.g.page.locator('[data-b2-record]').count(), 0, 'no answer gate in an old-style room');
+      assert.deepEqual(s.g.errors, []); await s.close();
+      console.log('PASS old-style room: the start is saved (proven) for both players, answers are never blocked');
     }
     if (!ONLY || ONLY === 'S9') { // S9: the match node says another account played this seat -> nothing is recorded
       const s = await setup(b), { gid, settle } = await stopLeave(s); const w = s.g.writes.length, snap = JSON.stringify(s.tree.games.factor.accounts);

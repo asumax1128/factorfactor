@@ -268,3 +268,6 @@
 .or-recover-note[data-b2-recover="failed"]{border-color:#f6bd62}
 .or-recover-note[data-b2-recover="saved"]{border-color:#72dfce}
 .or-recover-note button{margin-left:8px;min-height:36px;padding:4px 12px;border:1.5px solid #f6bd62;border-radius:8px;background:#101720;color:#e8f0f5;font:inherit}
+
+/* Ver.6.3: the match start is being saved in the match log (no first answer until it is) */
+.or-record-note{margin:0 auto 6px;max-width:640px;padding:6px 12px;border-radius:10px;background:rgba(255,200,60,.16);color:inherit;font-size:13px;font-weight:700;text-align:center}

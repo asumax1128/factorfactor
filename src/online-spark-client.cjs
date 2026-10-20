@@ -7,6 +7,8 @@ const Perf = require("./online-performance.cjs");
 const BResult = require('./b-result.cjs');
 const B2Pump = require('./b2-pump.cjs');
 const StreakQueue = require("./streak-queue-next.cjs");
+const MatchLog = require("./match-log-next.cjs");
+const Keep = require("./title-keep-next.cjs");
 const ROOT = "games/factor/onlineSparkV1";
 const copy = C.copy;
 const id = () => {
@@ -242,6 +244,28 @@ function create({
   // Ver.6.0 A7: a settled Spark match (human / BOT-type, not a ghost match) also counts for the official win streak.
   const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
   const skFlush = () => skQueue.flush();
+  // Ver.6.3: the START of a counted match (human or BOT-type; not ghost / hyper / self practice) is saved in the match log (stats.ml) and confirmed by the
+  // server before the first answer. The result later fills the same entry, so a late or queued result cannot land inside an already proven run.
+  const startsCount = (m) => !!m && m.opponent?.key !== key && (!m.opponent || m.opponent.type === "bot");
+  const opened = new Map();
+  function ensureOpen(m) {
+    const mid = `s-${m.id}`;
+    if (opened.has(mid)) return opened.get(mid);
+    const p = (async () => {
+      try {
+        const r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
+          st = st || {};
+          Keep.ensureKeep(st, { ".sv": "timestamp" });
+          MatchLog.open(st, { id: mid, kind: "s", startAt: m.game?.startAt, now: now() });
+          return st;
+        });
+        return !!(r && r.committed);
+      } catch (_) { return false; }
+    })().then((ok) => { if (!ok) opened.delete(mid); return ok; });
+    opened.set(mid, p);
+    return p;
+  }
+  const openGate = (m) => Promise.race([ensureOpen(m), new Promise((res) => setTimeout(() => res(false), 5000))]);
   const skEnqueue = (e) => skQueue.enqueue(e);
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
@@ -302,6 +326,7 @@ function create({
   }
   async function response(m = null, withLegacy = false) {
     const selfPractice = m?.opponent?.key === key;
+    if (m && m.phase === "play" && startsCount(m)) ensureOpen(m).catch(() => {});
     if (m && !selfPractice && (!m.opponent || m.origin === "quick")) await apply(m);
     if (m?.opponent && m.phase === "settled") await saveGhostResult(m);
     if (m?.phase === "settled" && !selfPractice) {
@@ -1045,6 +1070,8 @@ function create({
     }
     let m = command.matchId ? await getMatch(command.matchId) : await find();
     if (!m) m = await intrusion();
+    if (m && command.type === "answer" && m.phase === "play" && startsCount(m) && !(await openGate(m)))
+      throw Error("試合の記録を準備しています。少し待ってからもう一度お試しください");
     if (m?.opponent) return ghostRequest(m, command);
     if (!m) {
       if (ticket && difficulty)

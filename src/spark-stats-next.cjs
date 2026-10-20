@@ -23,13 +23,19 @@ const prevDay = (d) => new Date(Date.parse(d + 'T00:00:00Z') - 86400000).toISOSt
 // Consecutive play days: one shared implementation with recordMatch (src/stats-order-next.cjs). A day is counted once; a day older than the stored last
 // day (late arrival, clock) is placed in the play-day history (it can fill a missed day) and never lowers or rewinds lastDay / maxDayStreak.
 const Order = require('./stats-order-next.cjs');
+const Log = require('./match-log-next.cjs');
 function dayStep(s, day) { return Order.dayStep(s, day); }
 
 // Apply a queued entry to a stats object. Returns { status, recorded }.
-function apply(s, e) {
-  if (!isObj(s)) return { status: 'invalid', recorded: false };
+// ctx.late = the result reached the account long after the match (a queued result): with no open entry it is then placed nowhere.
+function apply(s, e, ctx = {}) {
+  if (!isObj(s) || !validEntry(e)) return { status: 'invalid', recorded: false };
+  // Ver.6.3: the order-dependent records are the match log's (src/match-log-next.cjs). `best` is raised only by a proven run, never by the ledger itself.
+  const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0;
+  Log.begin(s);
   const r = Streak.applyResult(s, e);
-  if (!r.recorded) return r;
+  if (!r.recorded) { Log.finish(s, { best0 }); return r; }
+  Log.settle(s, { id: e.id, kind: 's', outcome: e.o, late: !!ctx.late });
   s.sg = (num(s.sg) || 0) + 1;
   if (e.o === 'w') s.sWins = (num(s.sWins) || 0) + 1;
   if (e.o === 'l') s.sLoss = (num(s.sLoss) || 0) + 1;
@@ -37,6 +43,7 @@ function apply(s, e) {
   if (e.h === 1) s.og = (num(s.og) || 0) + 1;
   if (e.o === 'w' && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
   dayStep(s, jstDay(e.t));
+  Log.finish(s, { best0 });
   return r;
 }
 

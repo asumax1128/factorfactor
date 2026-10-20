@@ -6,7 +6,7 @@ window.NextNavigation=navigation;
 window.TitleLabelsNext=require('./title-labels-next.cjs');
 window.TitleDisplayNext=require('./title-display-next.cjs');
 window.TitleKeepNext=require('./title-keep-next.cjs');
-window.StreakNext=require('./streak-next.cjs');window.StatsOrderNext=require('./stats-order-next.cjs');
+window.StreakNext=require('./streak-next.cjs');window.StatsOrderNext=require('./stats-order-next.cjs');window.MatchLogNext=require('./match-log-next.cjs');
 import * as RankingKit from './ranking-kit.jsx';
 import {SoloRanking} from './solo-ranking-ui.jsx';
 window.NextRanking={...RankingKit,SoloRanking};

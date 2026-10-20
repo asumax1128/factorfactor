@@ -3,7 +3,7 @@ const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:a
 require('firebase/compat/auth'); require('firebase/compat/database');
 const { initializeTestEnvironment } = require('@firebase/rules-unit-testing'), { set, ref } = require('firebase/database');
 const Streak = require('../src/streak-next.cjs'), Keep = require('../src/title-keep-next.cjs'), Labels = require('../src/title-labels-next.cjs');
-let Order = null; try { Order = require('../src/stats-order-next.cjs'); } catch (e) {}
+let Order = null, MatchLog = null; try { Order = require('../src/stats-order-next.cjs'); MatchLog = require('../src/match-log-next.cjs'); } catch (e) {}
 const html = fs.readFileSync('index.html', 'utf8');
 const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); assert(i >= 0 && j > i, a); return html.slice(i, j); };
 const fn = (head) => { const i = html.indexOf(head); assert(i >= 0, head); const j = html.indexOf('\n}\n', i); return html.slice(i, j + 3); };
@@ -20,16 +20,16 @@ async function start(accountKeys, seed) {
   }));
   const bind = (db, { wrap, order = true, now = () => Date.now(), globals = {} } = {}) => {
     const d = wrap ? { ref: (p) => wrap(p, db.ref(p)) } : db;
-    const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak, ...(order && Order ? { StatsOrderNext: Order } : {}) }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500,
+    const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak, ...(order && Order ? { StatsOrderNext: Order, MatchLogNext: MatchLog } : {}) }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500,
       jstDate: (t = now()) => jst(t), fbNow: () => now(), SEASON0: '2026-10', seasonKey: (t = now()) => jst(t).slice(0, 7), seasonReset: (r) => (r <= 1500 ? 1500 : Math.round((1500 + (r - 1500) * 0.5) * 10) / 10),
       FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f, ms) => (ms ? setTimeout(f, ms) : f()), console: { warn() {} }, prevWeek: () => '',
       B2_RCPT: { at: {}, failed: {}, note: {} }, MISBUS: new Set(), MIS_LS: 'mis', loadLS: () => null, saveLS() {}, missionsFor: () => [], FB: { db: d }, ...globals };
     vm.createContext(sandbox);
-    vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + fn('async function b2Confirm') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\n' + fn('function applyLearn') + '\n' + fn('function applyMis') + '\nconst misRef = acct => FB.db.ref(`games/factor/accounts/${acct.key}/mis`);\n' + fn('async function missionEvent') + '\n' + fn('async function flushOnlineLearn') + '\nthis.api = { recordMatch, flushOnlineLearn, b2Confirm, missionEvent, badgesOf };', sandbox);
+    vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + fn('async function b2Confirm') + '\n' + fn('async function openMatch') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\n' + fn('function applyLearn') + '\n' + fn('function applyMis') + '\nconst misRef = acct => FB.db.ref(`games/factor/accounts/${acct.key}/mis`);\n' + fn('async function missionEvent') + '\n' + fn('async function flushOnlineLearn') + '\nthis.api = { recordMatch, flushOnlineLearn, b2Confirm, missionEvent, badgesOf, openMatch };', sandbox);
     return sandbox;
   };
   const read = async (key, p) => (await owner.db.ref(`games/factor/accounts/${key}/${p}`).get()).val();
   return { env, open, owner, bind, read, close: async () => { await env.cleanup(); for (const a of apps) await a.app.delete().catch(() => {}); } };
 }
 const info = (gid, o = 'w', t = Date.now(), extra = {}) => ({ id: gid, outcome: o, mode: 'B', dr: 5, exp: 30, perfects: 0, vs: [], add: {}, max: {}, min: {}, or: {}, sk: { id: 'r-C-' + gid, t, o, s: 'r' }, ...extra });
-module.exports = { start, info, sleep, DAY, jst, assert, Streak, Order };
+module.exports = { start, info, sleep, DAY, jst, assert, Streak, Order, MatchLog };

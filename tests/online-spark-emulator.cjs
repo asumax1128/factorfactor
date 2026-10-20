@@ -9,6 +9,7 @@ const {
 } = require("@firebase/rules-unit-testing");
 const { set, ref, get } = require("firebase/database");
 const Spark = require("../src/online-spark-client.cjs");
+const memStore = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
 const original = JSON.parse(
   fs.readFileSync(process.env.RTDB_RULES_BASELINE_FILE, "utf8"),
 );
@@ -70,6 +71,7 @@ assert.deepEqual(restored, original);
         db: u.db,
         uid: u.uid,
         account: { key: u.key, name: accounts[u.key].name },
+        queueStorage: (u.store = memStore()),   // Ver.6.3: the official-streak hand-over is durable only with a storage; the browser has localStorage
       });
     const [a, b, c, d] = users;
     for (const u of users) {
@@ -191,6 +193,14 @@ assert.deepEqual(restored, original);
       question: view.question,
       tiles,
     };
+    {   // Ver.6.3: while the start cannot be saved in the match log (server not confirming), no answer is sent for a counted match
+      const blocked = { ref: (p) => (/accounts\/aa\/stats$/.test(p) ? { transaction: () => Promise.reject(new Error("offline")) } : a.db.ref(p)) };
+      const cb = Spark.create({ db: blocked, uid: a.uid, account: { key: a.key, name: "A" }, queueStorage: memStore() });
+      await assert.rejects(() => cb.request({ ...answer, seq: 7 }), /試合の記録を準備しています/);
+      const g0 = (await a.db.ref(`games/factor/onlineSparkV1/matches/${ma.id}/game`).get()).val();
+      assert.equal(g0.states[a.uid].c, 0, "the blocked client sent nothing");
+      cb.close();
+    }
     await a.client.request(answer);
     await a.client.request(answer);
     const after = (
@@ -232,12 +242,20 @@ assert.deepEqual(restored, original);
       db: a.db,
       uid: a.uid,
       account: { key: a.key, name: "A" },
+      queueStorage: a.store,
     });
     const resumed = await a.client.request({ type: "status" });
     assert.equal(resumed.match.id, ma.id);
     assert.equal(resumed.ratings.easy.games, 1);
     await a.client.request({ type: "ackReceipt", matchId: ma.id });
     assert.equal((await a.client.request({ type: "status" })).match, null);
+    {   // Ver.6.3: the START of the counted match was saved in the match log (server-confirmed, before the first answer) and the result filled the same entry
+      const ML = require("../src/match-log-next.cjs"), id = ML.safeId("s-" + ma.id);
+      let st;
+      for (let i = 0; i < 24; i++) { st = (await a.db.ref("games/factor/accounts/aa/stats").get()).val(); if (st?.ml?.e?.[id] && !/^[^|]*\|so/.test(st.ml.e[id])) break; await new Promise((r) => setTimeout(r, 250)); }
+      assert(st?.ml?.e?.[id] && /^[0-9a-z]+\|s[wld][uL]?\|/.test(st.ml.e[id]), "the Spark start is an open entry that its result filled (proven when the start was saved before the countdown ended): " + JSON.stringify({ ml: st?.ml, sk: st?.sk, sg: st?.sg }));
+      assert.equal(Object.keys(st.ml.e).filter((k) => k === id).length, 1);
+    }
     const again = await a.client.request({
       type: "enqueue",
       difficulty: "normal",
