@@ -4143,22 +4143,37 @@ function applyMis(m, ev, date) {
 }
 const misRef = acct => FB.db.ref(`games/factor/accounts/${acct.key}/mis`);
 /* 遊んだ記録をミッションに足す。新しく達成したお題があれば知らせる */
-async function missionEvent(acct, ev) {
+async function missionEvent(acct, ev, matchId, matchDay) {
   if (!acct) return;
   const date = jstDate();
-  let before = null, after = null;
+  // 試合ID付き（B2のオンライン対戦）：進捗と冪等印 mis.s[試合ID] を同じトランザクションで確定する。ミッションは「その日の記録」なので、
+  // 試合日が今日でない受領・時刻不明の受領は今日のミッションに加算しない（'skipped'。受領の確認では対象外＝完了扱い）
+  if (matchId && matchDay && matchDay !== date) return 'skipped';
+  let before = null, after = null, seen = false;
   if (isReal(acct)) {
-    if (!FB.db) return;
-    try { await misRef(acct).transaction(m => { before = m && m.d === date ? JSON.parse(JSON.stringify(m)) : { p: {} }; after = applyMis(m, ev, date); return after; }); } catch (e) { return; }
+    if (!FB.db) return false;
+    try {
+      const res = await misRef(acct).transaction(m => {
+        seen = false; before = null; after = null;
+        if (matchId && m && m.d === date && m.s && m.s[matchId]) { seen = true; return m; }
+        before = m && m.d === date ? JSON.parse(JSON.stringify(m)) : { p: {} };
+        after = applyMis(m, ev, date);
+        if (matchId) { after.s = after.s || {}; after.s[matchId] = 1; }
+        return after;
+      });
+      if (!res || !res.committed) return false;
+    } catch (e) { return false; }
   } else {
     const m = loadLS(MIS_LS, null); before = m && m.d === date ? JSON.parse(JSON.stringify(m)) : { p: {} };
     after = applyMis(m, ev, date); saveLS(MIS_LS, after);
   }
+  if (seen) return true;
   MISBUS.forEach(f => f());
-  if (!after) return;
+  if (!after) return true;
   const defs = missionsFor(date, acct, after.w);
   const newly = defs.filter(d => d.cur(before.p || {}) < d.n && d.cur(after.p || {}) >= d.n && !(after.c || {})[d.key]);
   newly.forEach((d, i) => setTimeout(() => { FX.band('✅ ミッション達成！', { color: '#2a9d8f', sub: d.text + '（デイリーミッションで受け取ろう）', ms: 2000 }); fxSound('badge'); }, 600 + i * 2200));
+  return true;
 }
 /* 今日のミッションの記録（苦手枠が決まっていなければ決める） */
 function useMissions(acct, prof) {
@@ -8048,6 +8063,18 @@ function b2PendLoad() { return b2PendRaw().filter(e => Date.now() - e.at < B2_PE
 function b2PendWrite(list) { try { const keep = list.slice(-B2_PEND_MAX); localStorage.setItem(B2_PEND_KEY, JSON.stringify(keep)); const back = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return { ok: Array.isArray(back) && back.length === keep.length, dropped: list.length - keep.length }; } catch (e) { return { ok: false, dropped: 0 }; } }
 function b2PendAdd(e) { return b2PendWrite([...b2PendLoad().filter(x => x.gid !== e.gid), e]); }
 function b2PendDrop(gid) { b2PendWrite(b2PendLoad().filter(x => x.gid !== gid)); }
+/* 受領の完了確認：値を変えずに返すトランザクション（サーバー確定まで解決しない）の確定スナップショットだけを根拠にする。
+   ローカルの get()・メモリ上の記録は証拠にしない（SDKは未確定の書込みをローカルで見せるため）。中止型(undefined)は確定を待たないので使わない */
+async function b2Confirm(acct, gid, matchDay) {
+  const base = `games/factor/accounts/${acct.key}`;
+  const ck = async p => { const r = await FB.db.ref(`${base}/${p}`).transaction(v => v === undefined ? null : v); return r && r.committed ? r.snapshot.val() : undefined; };
+  const st = await ck('stats');
+  if (!st || !st.roomSeen || !st.roomSeen[gid]) return { ok: false, why: 'stats' };
+  const pr = await ck('prof');
+  if (!pr || !pr.onlineLearnSeen || !pr.onlineLearnSeen['room:' + gid]) return { ok: false, why: 'prof' };
+  if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }
+  return { ok: true };
+}
 async function recordMatch(acct, info) {
   const rcpt = typeof B2_RCPT !== 'undefined' ? B2_RCPT : null;   // （単体試験の抜き出しでは未定義）
   if (info && info.id && rcpt && rcpt.at[info.id] != null) { info = { ...info, at: rcpt.at[info.id] }; if (info.sk) info.sk = { ...info.sk, t: info.at }; }   // 遅れて受領：連勝台帳と日別記録は実際の試合時刻で扱う
@@ -8821,16 +8848,17 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     check(); const t = setInterval(check, 10000);
     return () => { dead = true; clearInterval(t); };
   }, [scr, code, acct && acct.key, fb.ready, !!recover]);
-  // 保存の確認：戦績(stats.roomSeen[試合ID])と学習記録(prof.onlineLearnSeen[room:試合ID])が、サーバーに実際に載ったことを読み戻して確かめる（既存の冪等な印）
+  // 保存の確認：サーバー確定を待つ確認トランザクション(b2Confirm)の確定スナップショットだけで判定する。確認できるまで未受領は消さない
   useEffect(() => {
     if (!recover || !acct || !FB.db) return;
-    const gid = recover.e.gid, t0 = Date.now(); let dead = false, timer = null;
-    const seen = async () => { try { const [a, b] = await Promise.all([FB.db.ref(`games/factor/accounts/${acct.key}/stats/roomSeen/${gid}`).get(), FB.db.ref(`games/factor/accounts/${acct.key}/prof/onlineLearnSeen/room:${gid}`).get()]); return !!a.val() && !!b.val(); } catch (e) { return false; } };
+    const gid = recover.e.gid, t0 = Date.now(), day = recover.at != null ? jstDate(recover.at) : null; let dead = false, timer = null;
     const tick = async () => {
       if (dead) return;
-      if (await seen()) { if (!dead) { b2PendDrop(gid); setRecStatus('saved'); } return; }
+      let r = { ok: false };
+      try { r = await Promise.race([b2Confirm(acct, gid, day), new Promise(res => setTimeout(() => res({ ok: false, why: 'timeout' }), Math.max(500, 15000 - (Date.now() - t0))))]); } catch (e) {}
       if (dead) return;
-      if (B2_RCPT.failed[gid] || Date.now() - t0 > 15000) { setRecStatus('failed'); return; }
+      if (r.ok) { b2PendDrop(gid); setRecStatus('saved'); return; }
+      if (B2_RCPT.failed[gid] || Date.now() - t0 >= 15000) { setRecStatus('failed'); return; }
       timer = setTimeout(tick, 1000);
     };
     timer = setTimeout(tick, 800);
@@ -11427,7 +11455,10 @@ async function flushOnlineLearn(acct,matchId,rows,extra) {
   let fresh=false;
   const result=await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.onlineLearnSeen ||= {};fresh=!p.onlineLearnSeen[matchId];if(!fresh)return p;applyLearn(p,rows);p.onlineLearnSeen[matchId]=true;return p;});
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
-  if(fresh&&extra){const ev={ok:0,pf:0,pt:{},lv:{},...extra};rows.forEach(r=>{if(!r.ok)return;ev.ok++;if(r.j==='Perfect')ev.pf++;if(r.pid)ev.pt[r.pid]=(ev.pt[r.pid]||0)+1;if(r.lv)ev.lv['L'+r.lv]=(ev.lv['L'+r.lv]||0)+1;});await missionEvent(acct,ev);}
+  // ミッションは学習記録の印とは独立に、毎回その試合IDの印(mis.s)で冪等に実行する（印だけ残って更新が失われる状態を作らない）
+  if(extra){const ev={ok:0,pf:0,pt:{},lv:{},...extra};rows.forEach(r=>{if(!r.ok)return;ev.ok++;if(r.j==='Perfect')ev.pf++;if(r.pid)ev.pt[r.pid]=(ev.pt[r.pid]||0)+1;if(r.lv)ev.lv['L'+r.lv]=(ev.lv['L'+r.lv]||0)+1;});
+    const rc=typeof B2_RCPT!=='undefined'?B2_RCPT:null,gid=String(matchId).startsWith('room:')?String(matchId).slice(5):null,late=!!(rc&&gid&&gid in rc.at);
+    await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}
 }
 /* ソロとオンライン対戦の切り替え */
 const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerProfile, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;

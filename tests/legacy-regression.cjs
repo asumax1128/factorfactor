@@ -228,6 +228,8 @@ for (const [name, value] of Object.entries(before)) {
       "BattleLobby", // Online B duration selector; A/C controls unchanged.
       "BattleResult", // Timed B labels; existing A detailed result retained.
       "recordMatch", // Optional B2 room receipt prevents duplicate rewards.
+      "flushOnlineLearn", // Ver.6.3 B2 safe-leave receipt: the mission step runs on every call (idempotent by match id) instead of only when the learning mark is new; learning totals unchanged (tests/room-b2-receipt-emulator.cjs).
+      "missionEvent", // Ver.6.3 B2 safe-leave receipt: optional match id + match day; progress and the idempotency mark mis.s[id] commit in ONE transaction; without an id the behaviour is unchanged (tests/room-b2-receipt-emulator.cjs).
       "statsTx", // Ver.6.0 (owner-approved): retired titles (nosp, wklast, tower) are no longer newly awarded or revealed; held counters/equipment untouched (tests/v6-title-retire.test.cjs).
       "claimMission", // Ver.6.0 A5 (owner-approved): the all-clear stats write goes through statsTx (ensureKeep first) and records the consecutive run (tests/v6-a5-mis7.test.cjs).
       "TargetCard", // Ver.6.0 post-release UI fix (owner request): the question card no longer shows the "この式を因数分解しよう・Lv.N" caption line (a custom note, e.g. the last-spurt notice, is still shown). Presentation only; tests/v6-play-frame-browser.cjs checks it.
