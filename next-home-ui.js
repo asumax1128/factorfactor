@@ -1594,7 +1594,63 @@
         if (newest) r.last = newest.o;
         return { status: "applied", delta };
       }
-      module.exports = { LEGACY_MAX, REVENGE_MAX, legacyStreak, revenge, ordered, step };
+      var DAY_WINDOW = 60;
+      var canon = (d) => typeof d === "string" ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, "0")}-${da.padStart(2, "0")}`) : "";
+      var DAYMS = 864e5;
+      var ms = (d) => Date.parse(d + "T00:00:00Z");
+      var fmt = (t) => new Date(t).toISOString().slice(0, 10);
+      var addDays = (d, n) => fmt(ms(d) + n * DAYMS);
+      var validDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(ms(d));
+      function runsOf(dl) {
+        const days = Object.keys(dl.d).sort(), runs = [];
+        for (const d of days) {
+          const r = runs[runs.length - 1];
+          if (r && addDays(r.end, 1) === d) {
+            r.end = d;
+            r.len++;
+          } else runs.push({ start: d, end: d, len: 1 });
+        }
+        if (runs.length && dl.pre > 0) runs[0].len += dl.pre;
+        return runs;
+      }
+      function dayStep(s, dayIn) {
+        const day = canon(dayIn);
+        if (!isObj(s) || !validDay(day)) return false;
+        let dl = s.dl;
+        if (!(isObj(dl) && isObj(dl.d) && num(dl.pre) !== null && Object.keys(dl.d).every(validDay))) {
+          const last = canon(s.lastDay), n = Math.max(0, Math.floor(num(s.dayStreak) || 0)), d2 = {};
+          if (validDay(last) && n > 0) {
+            const keep = Math.min(n, DAY_WINDOW);
+            for (let i = 0; i < keep; i++) d2[addDays(last, -i)] = 2;
+            dl = { d: d2, pre: n - keep };
+          } else dl = { d: {}, pre: 0 };
+        }
+        const d = { ...dl.d };
+        let pre = dl.pre;
+        const days = Object.keys(d).sort(), oldest = days[0], newestOld = days[days.length - 1];
+        if (d[day]) return false;
+        const newest = newestOld && newestOld > day ? newestOld : day;
+        if (day < addDays(newest, -(DAY_WINDOW - 1))) return false;
+        if (oldest && day < oldest && pre > 0) return false;
+        d[day] = 1;
+        for (let ks = Object.keys(d).sort(); ks.length && ks[0] < addDays(newest, -(DAY_WINDOW - 1)); ks = Object.keys(d).sort()) {
+          const e = ks[0];
+          delete d[e];
+          pre = ks[1] && ks[1] === addDays(e, 1) ? pre + 1 : 0;
+        }
+        const next = { d, pre }, runs = runsOf(next), lastRun = runs[runs.length - 1];
+        s.dl = next;
+        s.lastDay = lastRun.end;
+        s.dayStreak = lastRun.len;
+        s.maxDayStreak = Math.max(num(s.maxDayStreak) || 0, ...runs.map((r) => r.len));
+        return true;
+      }
+      function currentDayStreak(s, today) {
+        const last = canon(s && s.lastDay), t = canon(today);
+        if (!validDay(last) || !validDay(t)) return 0;
+        return last === t || last === addDays(t, -1) ? num(s.dayStreak) || 0 : 0;
+      }
+      module.exports = { LEGACY_MAX, REVENGE_MAX, DAY_WINDOW, legacyStreak, revenge, dayStep, currentDayStreak, canon, ordered, step };
     }
   });
 

@@ -20,15 +20,10 @@ const canon = (d) => (typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (
 const jstDay = (t) => new Date(D.epoch(t) * 86400000).toISOString().slice(0, 10);
 const prevDay = (d) => new Date(Date.parse(d + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
 
-// Consecutive play days. A day is counted once; a day older than the stored last day (late arrival, clock) never lowers or rewinds it.
-function dayStep(s, day) {
-  const last = canon(s.lastDay);
-  if (last && last >= day) return false;
-  s.dayStreak = last && last === prevDay(day) ? (num(s.dayStreak) || 0) + 1 : 1;
-  s.lastDay = day;
-  s.maxDayStreak = Math.max(num(s.maxDayStreak) || 0, s.dayStreak);
-  return true;
-}
+// Consecutive play days: one shared implementation with recordMatch (src/stats-order-next.cjs). A day is counted once; a day older than the stored last
+// day (late arrival, clock) is placed in the play-day history (it can fill a missed day) and never lowers or rewinds lastDay / maxDayStreak.
+const Order = require('./stats-order-next.cjs');
+function dayStep(s, day) { return Order.dayStep(s, day); }
 
 // Apply a queued entry to a stats object. Returns { status, recorded }.
 function apply(s, e) {

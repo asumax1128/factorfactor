@@ -8114,10 +8114,16 @@ async function recordMatch(acct, info) {
       // 何日続けて対戦しているか（Ver.6.0：日本時間JSTで数える。旧版の「2026-10-5」形式の記録も同じ日として扱う）
       const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
       // info.at = 実際の試合時刻（遅れて受領した結果だけが持つ）。それより新しい日の記録があれば、連続日数は動かさない（古い日付へ巻き戻さない）
-      const refT = info.at != null ? info.at : fbNow(), today = jstDate(refT), yest = jstDate(refT - 86400000), lastDay = canonDay(s.lastDay);
+      // 日別連続：参加日の履歴 stats.dl（直近60日）から日付順に再計算する。遅れて受領した前日の試合は連続に補完され、maxDayStreak(過去最高)は下げない。
+      // ランダム対戦(Spark)の日別更新と同じ共通関数。時刻不明の受領では動かさない
+      const refT = info.at != null ? info.at : fbNow();
+      if (window.StatsOrderNext) { if (timeKnown) window.StatsOrderNext.dayStep(s, jstDate(refT)); }
+      else {
+      const today = jstDate(refT), yest = jstDate(refT - 86400000), lastDay = canonDay(s.lastDay);
       if (!timeKnown || (lastDay > today && info.at != null)) { /* 時刻不明、または古い試合の遅れた受領：日別連続は変更しない */ }
       else if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
+      }
       // 旧連勝(stats.streak/maxStreak：賞金首・懸賞金・お尋ね者・プロフィール)：勝ち+1・負け0・引き分け据え置き。受領順に依存しないよう、試合の台帳 stats.sl を時刻順に再生して求める
       // （順序どおりなら従来の逐次計算と完全に一致。公式連勝 stats.sk とは引き分けの扱いが異なる）。時刻不明の受領では動かさない
       if (ordMod) {
