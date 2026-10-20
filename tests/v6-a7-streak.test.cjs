@@ -87,7 +87,7 @@ function fakeDb(initial, { failTimes = 0, uncommitted = 0 } = {}) {
 const sp = (id, dt, o) => ({ id: "s-" + id, t: T0 + dt * 1000, o, s: "s" });
 test("queue: a result is written, removed after the commit, and counted once", async () => {
   const store = new Store(), db = fakeDb({ games: 1 }), q = Queue.create({ db, key: "aw", storage: store });
-  assert.equal(q.enqueue(sp("m1", 0, "w")), true); assert.equal(q.pending(), 1);
+  assert.deepEqual(q.enqueue(sp("m1", 0, "w")), { ok: true, persisted: true }); assert.equal(q.pending(), 1);
   await q.flush();
   assert.equal(q.pending(), 0); assert.equal(db.st.value.sk.n, 1); assert.ok(db.st.value.tk);
   q.enqueue(sp("m1", 0, "w")); await q.flush();
@@ -106,12 +106,12 @@ test("queue: a failed or uncommitted write is kept and retried; nothing is lost 
 test("queue: survives a reload (localStorage), drops garbage, never writes when storage is unusable", async () => {
   const store = new Store(); store.setItem("fxf_sk_queue_v1:aw", "not json");
   const db = fakeDb({ games: 1 }), q = Queue.create({ db, key: "aw", storage: store });
-  assert.equal(q.pending(), 0); assert.equal(q.enqueue({ id: "x" }), false);
-  const q0 = Queue.create({ db, key: "aw", storage: null }); q0.enqueue(sp("z", 0, "w")); await q0.flush(); assert.equal(db.st.calls, 0);
+  assert.equal(q.pending(), 0); assert.equal(q.enqueue({ id: "x" }).ok, false);
+  const q0 = Queue.create({ db, key: "aw", storage: null }); assert.deepEqual(q0.enqueue(sp("z", 0, "w")), { ok: true, persisted: false }); await q0.flush(); assert.equal(db.st.calls, 1, "an unusable storage no longer loses the result: it is kept in memory and committed");
   const a = Queue.create({ db, key: "aw", storage: store }); a.enqueue(sp("p", 0, "w"));
   const b = Queue.create({ db, key: "aw", storage: store }); assert.equal(b.pending(), 1);
   await Promise.all([a.flush(), b.flush()]);
-  assert.equal(db.st.value.sk.n, 1);
+  assert.equal(db.st.value.sk.n, 2, "z (kept in memory) and p (persisted) are each counted once");
 });
 test("room + Spark within 5 s with different outcomes restarts the run (through the real recordMatch and the queue)", async () => {
   const w = mk({ games: 1 });
@@ -129,7 +129,7 @@ test("catalog names match", () => {
 });
 test("Spark client wiring: every non-ghost settled match is handed over once per session (rebuilt from the verified receipt, not only when the profile was just saved); flush on start and after apply", () => {
   const src = fs.readFileSync("src/online-spark-client.cjs", "utf8");
-  assert.match(src, /const countsForStreak = !m\.opponent \|\| \(m\.opponent\.type === "bot" && m\.opponent\.key !== key\);[\s\S]*?if \(countsForStreak && !handed\.has\(m\.id\)\)/);
+  assert.match(src, /const countsForStreak = !m\.opponent \|\| \(m\.opponent\.type === "bot" && m\.opponent\.key !== key\);[\s\S]*?if \(countsForStreak && !handed\.has\(`s-\$\{m\.id\}`\)\)/);
   assert.match(src, /skEnqueue\(\{\n\s+id: `s-\$\{m\.id\}`, t: m\.receipt\.at, o, s: "s",/);
   assert.match(src, /skFlush\(\)\.catch\(\(\) => \{\}\);\n    if \(ensured && ownProfile\)/);
   assert.match(src, /queueStorage = typeof localStorage/);

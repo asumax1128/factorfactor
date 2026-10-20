@@ -18,11 +18,27 @@ test("a Spark match is counted once: games, wins, losses, wins by method, online
 });
 test("a result too old for the streak ledger is still counted once in the totals (never counted as a streak); repeats and invalid entries change nothing", () => {
   const s = {}; for (let i = 0; i < 70; i++) SS.apply(s, sp("m" + i, 100000 + i * 60, "w", { m: "B" }));
-  const n = s.sg, w = s.sWins, best = s.sk.best; assert.equal(SS.apply(s, { id: "s-old", t: 1000, o: "w", s: "s", m: "A" }, { late: true }).recorded, false, "the ledger cannot place it");
+  const n = s.sg, w = s.sWins, best = s.sk.best; assert.equal(SS.apply(s, { id: "s-old", t: 1000, o: "w", s: "s", m: "A", f: 1 }, { late: true }).recorded, false, "the ledger cannot place it");
   assert.equal(s.sg, n + 1, "but the verified result is counted"); assert.equal(s.sWins, w + 1); assert.equal(s.sk.best, best, "and it is never a streak");
-  assert.equal(SS.apply(s, { id: "s-old", t: 1000, o: "w", s: "s", m: "A" }, { late: true }).status, "duplicate"); assert.equal(s.sg, n + 1, "a replay does not count again");
+  assert.equal(SS.apply(s, { id: "s-old", t: 1000, o: "w", s: "s", m: "A", f: 1 }, { late: true }).status, "duplicate"); assert.equal(s.sg, n + 1, "a replay does not count again");
   const t = {}; for (const bad of [null, {}, { kind: "ratings", id: "x", e: 1 }, sp("z", 1, "x")]) assert.equal(SS.apply(t, bad).status, "invalid");
   assert.deepEqual(t, {});
+});
+test("F1: the same receipt received again after 64+ other results is not counted twice (the totals do not rely on an unbounded id list)", () => {
+  const s = {}; const first = sp("m0", 100000, "w", { m: "B", f: 1 });
+  assert.equal(SS.apply(s, first).counted, true);
+  for (let i = 1; i <= 70; i++) SS.apply(s, sp("m" + i, 100000 + i * 60, "w", { m: "B", f: 1 }));
+  assert.equal(s.sg, 71); assert.equal(s.ml.e["s-m0"], undefined, "forgotten by the match log");
+  assert.equal(s.sk.l["s-m0"], undefined, "and by the streak ledger");
+  const again = SS.apply(s, { ...first, f: undefined });             // rebuilt from the receipt: the profile side was not saved just now
+  assert.deepEqual({ status: again.status, recorded: again.recorded, counted: again.counted }, { status: "unverifiable", recorded: false, counted: false });
+  assert.equal(s.sg, 71); assert.equal(s.sWins, 71);
+  const r = SS.apply(s, sp("m71", 100000 + 71 * 60, "l", { m: "B" })); assert.equal(r.counted, true, "a NEW result is still counted while the ledger can prove it is new");
+  assert.equal(SS.apply(s, sp("m71", 100000 + 71 * 60, "l", { m: "B" })).status, "duplicate");
+});
+test("return values are consistent: counted vs recorded (unplaced results are counted but not recorded)", () => {
+  const s = {}; for (let i = 0; i < 70; i++) SS.apply(s, sp("m" + i, 100000 + i * 60, "w"));
+  const r = SS.apply(s, { id: "s-old", t: 1000, o: "w", s: "s", f: 1 }); assert.deepEqual({ status: r.status, recorded: r.recorded, counted: r.counted }, { status: "unplaced", recorded: false, counted: true });
 });
 test("first win and 50 losses include the official Spark wins and losses (and still the old room records)", () => {
   assert.equal(has({}, "first"), false); assert.equal(has({ w: 1 }, "first"), true); assert.equal(has({ sWins: 1 }, "first"), true);

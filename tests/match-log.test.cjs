@@ -279,5 +279,53 @@ test('recent matches and matches too close in time are not evidence yet; far eno
   assert.equal(run(W('a', 1000), W('b', 1001), 9e9), 0, 'one second apart: the order is not provable');
   assert.equal(run(W('a', 1000), W('b', 1010), 9e9), 2);
   assert.equal(run(W('a', 1000), W('b', 1100), 1100 * 1000 + 3000), 1, 'only the older match is stable yet');
-  assert.equal(run(W('a', 1000), W('b', 1100), 1100 * 1000 + ML.STABLE_MS + 1), 2, 'stable later');
+  assert.equal(run(W('a', 1000), W('b', 1100), 1101 * 1000 + ML.STABLE_MS + 1), 2, 'stable later');
+});
+
+// ---- audit round 2 -----------------------------------------------------------------------------------------------------------------
+test('F4: start times are stored as floor seconds: a real difference of 1001 ms is never evidence, whatever the second boundary', () => {
+  const run = (a, b) => {
+    const s = fresh(); ML.begin(s);
+    for (const [id, ms] of [['a', a], ['b', b]]) { ML.open(s, { id, kind: 'r', opponents: ['x'], startAt: ms, now: ms - 5000 }); ML.prove(s, { id, now: ms - 4000 }); }
+    for (const id of ['a', 'b']) ML.settle(s, { id, kind: 'r', outcome: 'w', opponents: [{ key: 'x', o: 'w' }] });
+    ML.finish(s, { now: 9e12 }); return s.ml.ev.lg;
+  };
+  assert.equal(run(1000999, 1002000), 0, '1001 ms apart but 2 stored seconds apart: both stay out');
+  assert.equal(run(1000000, 1001001), 0);
+  assert.equal(run(1000999, 1001000), 0);
+  assert.equal(run(1000000, 1002999), 0, 'conservative: 2999 ms apart is also out (stored 2 s apart)');
+  assert.equal(run(1000999, 1003000), 2, '2001 ms apart (stored 3 s apart): provable');
+  assert.equal(run(1000000, 1003000), 2);
+  for (let i = 0; i < 400; i++) { const r = rng(i + 7), a = 1000000 + Math.floor(r() * 3000), b = a + 1 + Math.floor(r() * 4000); if (run(a, b) === 2) assert.ok(b - a > 2000, `${a} ${b}`); }
+});
+
+test('F2: unresolved opens at the limit: a B2 loss that could not be tracked still separates the run (barrier), for B2 and Spark opens mixed', () => {
+  const s = fresh(); ML.begin(s);
+  const W = (id, t, kind = 'r') => ({ id, t, k: kind, o: 'w', v: kind === 'r' ? [{ key: 'x', o: 'w' }] : [] });
+  const wins = [0, 1, 2, 3, 4, 5].map((i) => W('w' + i, 10000 + i * 100, i % 2 ? 's' : 'r'));
+  for (const m of wins) { openP(s, m); ML.settle(s, settleOf(m)); }
+  ML.finish(s, { now: 9e12 }); assert.equal(s.ml.ev.og, 6, 'six proven wins in a row (official: Spark and B2 together)');
+  // 24 unresolved opens (12 B2 + 12 Spark) elsewhere in time: the limit is reached
+  for (let i = 0; i < ML.OPEN_MAX; i++) { const kind = i % 2 ? 's' : 'r', t = 100 + i * 100; ML.open(s, { id: 'u' + i, kind, opponents: kind === 'r' ? ['x'] : [], startAt: t * 1000, now: t * 1000 - 5000 }); ML.prove(s, { id: 'u' + i, now: t * 1000 - 4000 }); }
+  assert.equal(ML.unresolved(s.ml), ML.OPEN_MAX);
+  const L = { id: 'L', t: 10600, k: 'r', o: 'l', v: [{ key: 'x', o: 'l' }] }, w7 = W('w7', 10700), w8 = W('w8', 10800, 's');
+  assert.equal(openP(s, L).status, 'full'); assert.ok(Object.values(s.ml.e).some((v) => /\|rb\|/.test(v)), 'a barrier was left');
+  assert.equal(ML.unresolved(s.ml), ML.OPEN_MAX, 'the barrier is not an unresolved open: no extra room needed');
+  for (const m of [w7, w8]) { assert.equal(openP(s, m).status, 'full'); ML.settle(s, settleOf(m)); }   // refused too (barrier); the results are appended unproven
+  ML.finish(s, { now: 9e12 });
+  assert.equal(s.ml.ev.og, 6, 'never 7: the untracked loss in the middle is not jumped'); assert.equal(s.ml.ev.lg, 3, 'legacy streak counts the 3 B2 wins only; w7 would have made 4');
+  ML.settle(s, settleOf(L)); ML.finish(s, { now: 9e12 }); assert.equal(s.ml.ev.og, 6, 'the loss recorded late changes nothing');
+  const n = Object.keys(s.ml.e).length; openP(s, L); assert.equal(Object.keys(s.ml.e).length, n, 'the same match offered again leaves one barrier');
+});
+
+test('F2: the barrier survives folding and a Spark loss at the limit also separates official runs', () => {
+  const s = fresh(); ML.begin(s);
+  for (let i = 0; i < ML.OPEN_MAX; i++) { const t = 100 + i * 100; ML.open(s, { id: 'u' + i, kind: 'r', opponents: ['x'], startAt: t * 1000, now: t * 1000 - 5000 }); ML.prove(s, { id: 'u' + i, now: t * 1000 - 4000 }); }
+  const mk = (id, t, k, o) => ({ id, t, k, o, v: k === 'r' ? [{ key: 'x', o }] : [] });
+  const seq = [mk('a', 10000, 'r', 'w'), mk('b', 10100, 's', 'w'), mk('c', 10200, 's', 'l'), mk('d', 10300, 'r', 'w'), mk('e', 10400, 'r', 'w')];
+  for (const m of seq) { openP(s, m); }
+  assert.equal(ML.unresolved(s.ml), ML.OPEN_MAX);
+  for (const m of seq) { ML.settle(s, settleOf(m)); }
+  for (let i = 0; i < 70; i++) { const m = mk('f' + i, 20000 + i * 100, 'r', 'd'); openP(s, m); ML.settle(s, settleOf(m)); }   // fold well past the barrier
+  ML.finish(s, { now: 9e12 }); assert.ok(s.ml.ev.og <= 2, 'official runs are cut by the untracked Spark loss: ' + s.ml.ev.og);
 });

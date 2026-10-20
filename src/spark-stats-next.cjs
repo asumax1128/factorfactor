@@ -26,20 +26,27 @@ const Order = require('./stats-order-next.cjs');
 const Log = require('./match-log-next.cjs');
 function dayStep(s, day) { return Order.dayStep(s, day); }
 
-// Apply a queued entry to a stats object. Returns { status, recorded }.
-// ctx.late = the result reached the account long after the match (a queued result): with no open entry it is then placed nowhere.
+// Apply a queued entry to a stats object. Returns { status, recorded, counted }:
+//   recorded = the official-streak ledger placed it     counted = it was added to the totals (sg / sWins / ...)
+// ctx.late = the result reached the account long after the match: with no open entry it is then placed nowhere.
 // ctx.now = the caller's clock (server-corrected where available): matches that began very recently are not evidence yet.
-// Counting the match in the totals is separate from the official-streak ledger: a verified result that the ledger cannot place (more than 64
-// matches late) is still counted once, and a repeat is recognised by the match log (or by the ledger when it already holds the id).
+//
+// COUNTING ONCE. The totals are counted separately from the (finite, 64-entry) streak ledger, and the only per-match memory is finite too: the ledger and the
+// match log (also 64). A result that both of them have already forgotten cannot be told from a new one, so:
+//   e.f === 1  (the profile save of THIS match just succeeded: that happens exactly once for a match across all devices) -> always counted once;
+//   otherwise (rebuilt from the receipt, or an old queue entry) -> counted only while the ledger/log can still prove it is new. A result older than a FULL
+//   ledger, with no open entry waiting for it, is "unverifiable": not counted, and it leaves the queue. (Rebuilding happens at the next start, i.e. recent.)
 function apply(s, e, ctx = {}) {
-  if (!isObj(s) || !validEntry(e)) return { status: 'invalid', recorded: false };
+  if (!isObj(s) || !validEntry(e)) return { status: 'invalid', recorded: false, counted: false };
   // Ver.6.3: the order-dependent records are the match log's (src/match-log-next.cjs). `best` is raised only by a proven run, never by the ledger itself.
   const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0, now = num(ctx.now) !== null ? ctx.now : Date.now();
   Log.begin(s);
+  const times = isObj(s.sk) && isObj(s.sk.l) ? Object.values(s.sk.l).map((x) => x && x.t).filter((t) => num(t) !== null) : [];
+  if (e.f !== 1 && times.length >= Streak.LEDGER_MAX && e.t < Math.min(...times) && !Log.has(s, e.id)) { Log.finish(s, { best0, now }); return { status: 'unverifiable', recorded: false, counted: false }; }
   const r = Streak.applyResult(s, e);
-  if (r.status === 'duplicate') { Log.finish(s, { best0, now }); return r; }
+  if (r.status === 'duplicate') { Log.finish(s, { best0, now }); return { status: 'duplicate', recorded: false, counted: false }; }
   const st = Log.settle(s, { id: e.id, kind: 's', outcome: e.o, late: !!ctx.late });
-  if (st.status === 'duplicate') { Log.finish(s, { best0, now }); return { status: 'duplicate', recorded: false }; }
+  if (st.status === 'duplicate') { Log.finish(s, { best0, now }); return { status: 'duplicate', recorded: false, counted: false }; }
   s.sg = (num(s.sg) || 0) + 1;
   if (e.o === 'w') s.sWins = (num(s.sWins) || 0) + 1;
   if (e.o === 'l') s.sLoss = (num(s.sLoss) || 0) + 1;
@@ -48,7 +55,7 @@ function apply(s, e, ctx = {}) {
   if (e.o === 'w' && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
   dayStep(s, jstDay(e.t));
   Log.finish(s, { best0, now });
-  return r;
+  return { status: r.recorded ? r.status : 'unplaced', recorded: r.recorded, counted: true };
 }
 
 module.exports = { apply, validEntry, dayStep, canon, jstDay };

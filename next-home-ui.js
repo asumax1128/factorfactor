@@ -1588,7 +1588,7 @@
       var OPEN_MAX = 24;
       var PL_MAX = 24;
       var STABLE_MS = 1e4;
-      var CONC_S = 2;
+      var CONC_S = 3;
       var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
       var num = (x) => typeof x === "number" && Number.isFinite(x) ? x : null;
       var OUT = ["w", "l", "d"];
@@ -1623,7 +1623,7 @@
         if (typeof str !== "string") return null;
         const p = str.split("|");
         if (p.length < 3) return null;
-        const n = parseInt(p[0], 36), m = /^([rgs])([owldx])([uLq]?)$/.exec(p[1]);
+        const n = parseInt(p[0], 36), m = /^([rgs])([owldxb])([uLq]?)$/.exec(p[1]);
         if (!Number.isFinite(n) || !m) return null;
         const v = p[2] ? p[2].split(",").map((t) => {
           const i = t.indexOf("=");
@@ -1640,7 +1640,7 @@
       function weakFlags(list, now) {
         const w = list.map((e) => !!e.f);
         list.forEach((e, i) => {
-          if (!w[i] && num(now) !== null && now - e.s * 1e3 < STABLE_MS) w[i] = true;
+          if (!w[i] && num(now) !== null && now - (e.s + 1) * 1e3 < STABLE_MS) w[i] = true;
         });
         let p = -1;
         list.forEach((e, i) => {
@@ -1663,6 +1663,15 @@
           st.lc = 0;
           st.oc = 0;
           st.pl.clear();
+          return;
+        }
+        if (e.r === "b") {
+          if (inLegacy(e.k)) st.lc = 0;
+          if (inOfficial(e.k)) st.oc = 0;
+          if (inRevenge(e.k)) {
+            if (e.v.length) e.v.forEach((x) => st.pl.delete(x.k));
+            else st.pl.clear();
+          }
           return;
         }
         if (e.r === "o") {
@@ -1743,6 +1752,10 @@
         ml.f = { lp: st.lp, lc: st.lc, oc: st.oc, pl: [...st.pl], rc: st.rc, hs, ...ob.length ? { ob } : {} };
       }
       var unresolved = (ml) => Object.values(ml.e).filter((x) => /^[^|]*\|[rgs]o/.test(x)).length + (Array.isArray(ml.f.ob) ? ml.f.ob.length : 0);
+      var has = (s, id) => {
+        const key = safeId(id);
+        return !!(isObj(s) && goodMl(s.ml) && key && (s.ml.e[key] || orphanIndex(s.ml, key) >= 0));
+      };
       var orphanIndex = (ml, id) => Array.isArray(ml.f.ob) ? ml.f.ob.findIndex((x) => x.split("|")[0] === id) : -1;
       function open(s, { id, kind, opponents = [], startAt, now }) {
         if (!isObj(s) || !KINDS.includes(kind)) return { status: "invalid" };
@@ -1751,8 +1764,16 @@
         begin(s);
         const ml = s.ml;
         if (ml.e[key] || orphanIndex(ml, key) >= 0) return { status: "exists" };
-        if (unresolved(ml) >= OPEN_MAX) return { status: "full" };
-        const sec = num(startAt) !== null ? Math.floor(startAt / 1e3) : 0, timely = sec > 0 && num(now) !== null && now <= startAt;
+        const sec = num(startAt) !== null ? Math.floor(startAt / 1e3) : 0;
+        if (unresolved(ml) >= OPEN_MAX) {
+          const bid = "b-" + key;
+          if (!ml.e[bid]) {
+            ml.e = { ...ml.e, [bid]: format({ n: ++ml.n, k: kind, r: "b", f: "", s: sec > 0 ? sec : headS(ml), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
+            compact(ml);
+          }
+          return { status: "full" };
+        }
+        const timely = sec > 0 && num(now) !== null && now <= startAt;
         ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: "o", f: timely ? "q" : "u", s: timely ? sec : Math.max(sec, headS(ml)), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
         compact(ml);
         return { status: timely ? "opened" : "opened-late" };
@@ -1820,7 +1841,7 @@
         ml.d = digestOf(s);
         return { status: "ok", ...d };
       }
-      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
+      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, has, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
     }
   });
 

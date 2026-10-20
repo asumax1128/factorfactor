@@ -68,7 +68,7 @@ assert.deepEqual(restored, original);
     );
     for (const u of users)
       u.client = Spark.create({
-        db: u.db,
+        db: u.key === "ad" ? (u.gate = { block: false }, { ref: (p) => (u.gate.block && /accounts\/ad\/stats$/.test(p) ? { transaction: () => Promise.reject(new Error("offline")) } : u.db.ref(p)) }) : u.db,
         uid: u.uid,
         account: { key: u.key, name: accounts[u.key].name },
         queueStorage: (u.store = memStore()),   // Ver.6.3: the official-streak hand-over is durable only with a storage; the browser has localStorage
@@ -210,9 +210,9 @@ assert.deepEqual(restored, original);
     await a.client.request({ type: "leave", matchId: ma.id });
     await c.client.request({ type: "heartbeat", matchId: ma.id });
     await b.client.request({ type: "leave", matchId: mb.id });
-    d.store.failSet = true;   // Ver.6.3: the stop between the profile save and the stats queue write (the queue entry is lost)
+    d.store.failSet = true; d.gate.block = true;   // Ver.6.3: the process dies between the profile save and the stats commit, and the storage refused the queue write
     await d.client.request({ type: "heartbeat", matchId: mb.id });
-    d.store.failSet = false;
+    d.store.failSet = false; d.gate.block = false;   // (the memory part of the dead client's queue is gone with it)
     {
       const sid = require("../src/match-log-next.cjs").safeId("s-" + mb.id);
       const before = (await d.db.ref("games/factor/accounts/ad/stats").get()).val() || {};

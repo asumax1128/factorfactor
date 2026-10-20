@@ -1543,7 +1543,7 @@
       var OPEN_MAX = 24;
       var PL_MAX = 24;
       var STABLE_MS = 1e4;
-      var CONC_S = 2;
+      var CONC_S = 3;
       var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
       var num = (x) => typeof x === "number" && Number.isFinite(x) ? x : null;
       var OUT = ["w", "l", "d"];
@@ -1578,7 +1578,7 @@
         if (typeof str !== "string") return null;
         const p = str.split("|");
         if (p.length < 3) return null;
-        const n = parseInt(p[0], 36), m = /^([rgs])([owldx])([uLq]?)$/.exec(p[1]);
+        const n = parseInt(p[0], 36), m = /^([rgs])([owldxb])([uLq]?)$/.exec(p[1]);
         if (!Number.isFinite(n) || !m) return null;
         const v = p[2] ? p[2].split(",").map((t) => {
           const i = t.indexOf("=");
@@ -1595,7 +1595,7 @@
       function weakFlags(list, now) {
         const w = list.map((e) => !!e.f);
         list.forEach((e, i) => {
-          if (!w[i] && num(now) !== null && now - e.s * 1e3 < STABLE_MS) w[i] = true;
+          if (!w[i] && num(now) !== null && now - (e.s + 1) * 1e3 < STABLE_MS) w[i] = true;
         });
         let p = -1;
         list.forEach((e, i) => {
@@ -1618,6 +1618,15 @@
           st.lc = 0;
           st.oc = 0;
           st.pl.clear();
+          return;
+        }
+        if (e.r === "b") {
+          if (inLegacy(e.k)) st.lc = 0;
+          if (inOfficial(e.k)) st.oc = 0;
+          if (inRevenge(e.k)) {
+            if (e.v.length) e.v.forEach((x) => st.pl.delete(x.k));
+            else st.pl.clear();
+          }
           return;
         }
         if (e.r === "o") {
@@ -1698,6 +1707,10 @@
         ml.f = { lp: st.lp, lc: st.lc, oc: st.oc, pl: [...st.pl], rc: st.rc, hs, ...ob.length ? { ob } : {} };
       }
       var unresolved = (ml) => Object.values(ml.e).filter((x) => /^[^|]*\|[rgs]o/.test(x)).length + (Array.isArray(ml.f.ob) ? ml.f.ob.length : 0);
+      var has = (s, id) => {
+        const key = safeId(id);
+        return !!(isObj(s) && goodMl(s.ml) && key && (s.ml.e[key] || orphanIndex(s.ml, key) >= 0));
+      };
       var orphanIndex = (ml, id) => Array.isArray(ml.f.ob) ? ml.f.ob.findIndex((x) => x.split("|")[0] === id) : -1;
       function open(s, { id, kind, opponents = [], startAt, now }) {
         if (!isObj(s) || !KINDS.includes(kind)) return { status: "invalid" };
@@ -1706,8 +1719,16 @@
         begin(s);
         const ml = s.ml;
         if (ml.e[key] || orphanIndex(ml, key) >= 0) return { status: "exists" };
-        if (unresolved(ml) >= OPEN_MAX) return { status: "full" };
-        const sec = num(startAt) !== null ? Math.floor(startAt / 1e3) : 0, timely = sec > 0 && num(now) !== null && now <= startAt;
+        const sec = num(startAt) !== null ? Math.floor(startAt / 1e3) : 0;
+        if (unresolved(ml) >= OPEN_MAX) {
+          const bid = "b-" + key;
+          if (!ml.e[bid]) {
+            ml.e = { ...ml.e, [bid]: format({ n: ++ml.n, k: kind, r: "b", f: "", s: sec > 0 ? sec : headS(ml), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
+            compact(ml);
+          }
+          return { status: "full" };
+        }
+        const timely = sec > 0 && num(now) !== null && now <= startAt;
         ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: "o", f: timely ? "q" : "u", s: timely ? sec : Math.max(sec, headS(ml)), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
         compact(ml);
         return { status: timely ? "opened" : "opened-late" };
@@ -1775,7 +1796,7 @@
         ml.d = digestOf(s);
         return { status: "ok", ...d };
       }
-      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
+      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, has, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
     }
   });
 
@@ -1796,18 +1817,23 @@
         return Order.dayStep(s, day);
       }
       function apply(s, e, ctx = {}) {
-        if (!isObj(s) || !validEntry(e)) return { status: "invalid", recorded: false };
+        if (!isObj(s) || !validEntry(e)) return { status: "invalid", recorded: false, counted: false };
         const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0, now = num(ctx.now) !== null ? ctx.now : Date.now();
         Log.begin(s);
+        const times = isObj(s.sk) && isObj(s.sk.l) ? Object.values(s.sk.l).map((x) => x && x.t).filter((t) => num(t) !== null) : [];
+        if (e.f !== 1 && times.length >= Streak.LEDGER_MAX && e.t < Math.min(...times) && !Log.has(s, e.id)) {
+          Log.finish(s, { best0, now });
+          return { status: "unverifiable", recorded: false, counted: false };
+        }
         const r = Streak.applyResult(s, e);
         if (r.status === "duplicate") {
           Log.finish(s, { best0, now });
-          return r;
+          return { status: "duplicate", recorded: false, counted: false };
         }
         const st = Log.settle(s, { id: e.id, kind: "s", outcome: e.o, late: !!ctx.late });
         if (st.status === "duplicate") {
           Log.finish(s, { best0, now });
-          return { status: "duplicate", recorded: false };
+          return { status: "duplicate", recorded: false, counted: false };
         }
         s.sg = (num(s.sg) || 0) + 1;
         if (e.o === "w") s.sWins = (num(s.sWins) || 0) + 1;
@@ -1821,7 +1847,7 @@
         if (e.o === "w" && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
         dayStep(s, jstDay(e.t));
         Log.finish(s, { best0, now });
-        return r;
+        return { status: r.recorded ? r.status : "unplaced", recorded: r.recorded, counted: true };
       }
       module.exports = { apply, validEntry, dayStep, canon, jstDay };
     }
@@ -1942,23 +1968,31 @@
       var Spark = require_spark_stats_next();
       var Keep = require_title_keep_next();
       var QUEUE_MAX = 500;
+      var MEM_MAX = 5e3;
       var LATE_MS = 12e4;
-      function create({ db, key, storage, now = Date.now }) {
-        const qKey = `fxf_sk_queue_v1:${key}`;
+      function create({ db, key, storage, now = Date.now, onDone = () => {
+      } }) {
+        const qKey = `fxf_sk_queue_v1:${key}`, mem = [];
         const read = () => {
           try {
             const q = JSON.parse(storage && storage.getItem(qKey) || "[]");
-            return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-QUEUE_MAX) : [];
+            return Array.isArray(q) ? q.filter(Spark.validEntry) : [];
           } catch (_) {
             return [];
           }
         };
         const write = (q) => {
           try {
-            if (q.length) storage && storage.setItem(qKey, JSON.stringify(q));
-            else storage && storage.removeItem(qKey);
+            if (q.length) storage.setItem(qKey, JSON.stringify(q));
+            else storage.removeItem(qKey);
+            return true;
           } catch (_) {
+            return false;
           }
+        };
+        const all = () => {
+          const q = read();
+          return q.concat(mem.filter((m) => !q.some((x) => x.id === m.id)));
         };
         let running = null;
         function flush() {
@@ -1966,7 +2000,7 @@
           running = Promise.resolve().then(async () => {
             try {
               for (; ; ) {
-                const q = read();
+                const q = all();
                 if (!q.length) return { left: 0 };
                 const e = q[0];
                 let r;
@@ -1981,7 +2015,14 @@
                   return { left: q.length };
                 }
                 if (!r || !r.committed) return { left: q.length };
-                write(read().filter((x) => x.id !== e.id));
+                const i = mem.findIndex((x) => x.id === e.id);
+                if (i >= 0) mem.splice(i, 1);
+                const p = read().filter((x) => x.id !== e.id);
+                if (p.length !== read().length) write(p);
+                try {
+                  onDone(e.id);
+                } catch (_) {
+                }
               }
             } finally {
               running = null;
@@ -1990,15 +2031,18 @@
           return running;
         }
         function enqueue(e) {
-          if (!Spark.validEntry(e)) return false;
+          if (!Spark.validEntry(e)) return { ok: false, persisted: false };
           const q = read();
-          if (!q.some((x) => x.id === e.id)) q.push(e);
-          write(q.slice(-QUEUE_MAX));
-          return true;
+          if (q.some((x) => x.id === e.id)) return { ok: true, persisted: true };
+          if (mem.some((x) => x.id === e.id)) return { ok: true, persisted: false };
+          if (q.length < QUEUE_MAX && write(q.concat([e])) && read().some((x) => x.id === e.id)) return { ok: true, persisted: true };
+          if (mem.length >= MEM_MAX) return { ok: false, persisted: false };
+          mem.push(e);
+          return { ok: true, persisted: false };
         }
-        return { enqueue, flush, pending: () => read().length };
+        return { enqueue, flush, pending: () => all().length };
       }
-      module.exports = { create };
+      module.exports = { create, QUEUE_MAX, MEM_MAX };
     }
   });
 
@@ -2259,9 +2303,8 @@
           watchMatch(m);
           return m;
         }
-        const skQueue = StreakQueue.create({ db, key, storage: queueStorage, now });
+        const handed = /* @__PURE__ */ new Set(), skQueue = StreakQueue.create({ db, key, storage: queueStorage, now, onDone: (id2) => handed.add(id2) });
         const skFlush = () => skQueue.flush();
-        const handed = /* @__PURE__ */ new Set();
         const startsCount = (m) => {
           var _a;
           return !!m && ((_a = m.opponent) == null ? void 0 : _a.key) !== key && (!m.opponent || m.opponent.type === "bot");
@@ -2273,6 +2316,7 @@
           const p = (async () => {
             try {
               let status = "failed";
+              const t0 = now(), p0 = typeof performance !== "undefined" ? performance.now() : null;
               const r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
                 var _a;
                 st = st || {};
@@ -2281,7 +2325,7 @@
                 return st;
               });
               if (!r || !r.committed) return { saved: false, status: "failed" };
-              const confirmedAt = now();
+              const confirmedAt = Math.max(now(), p0 === null ? 0 : t0 + (performance.now() - p0));
               if (status === "opened" || status === "exists")
                 await Promise.race([db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
                   if (!st) return st;
@@ -2345,8 +2389,7 @@
             return p;
           });
           const countsForStreak = !m.opponent || m.opponent.type === "bot" && m.opponent.key !== key;
-          if (countsForStreak && !handed.has(m.id)) {
-            handed.add(m.id);
+          if (countsForStreak && !handed.has(`s-${m.id}`)) {
             const o = m.receipt.result.draw ? "d" : ((_a = m.members.find((x) => x.uid === m.receipt.result.winner)) == null ? void 0 : _a.key) === key ? "w" : "l";
             const opp = m.members.find((x) => x.key !== key), their = opp && m.receipt.players[opp.key];
             const g = o === "w" && !m.opponent && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;
@@ -2357,7 +2400,9 @@
               s: "s",
               ...m.mode === "A" || m.mode === "B" ? { m: m.mode } : {},
               ...g ? { g: 1 } : {},
-              ...!m.opponent ? { h: 1 } : {}
+              ...!m.opponent ? { h: 1 } : {},
+              ...fresh ? { f: 1 } : {}
+              // f: this call saved the profile side of the match (once per match, across devices): always counted once. A rebuilt entry has no f
             });
           }
           skFlush().catch(() => {

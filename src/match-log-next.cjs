@@ -24,7 +24,7 @@ const CAP = 64;            // entries kept (older ones are folded into the base,
 const OPEN_MAX = 24;       // unresolved opens kept (entries + orphans); a new open beyond this is refused ('full'), play is not blocked
 const PL_MAX = 24;         // opponents whose last proven result is a loss (a pending revenge)
 const STABLE_MS = 10000;   // a match that began more than this long ago can no longer get an earlier proven open inserted before it
-const CONC_S = 2;          // two proven matches closer than this (seconds) have no provable start order
+const CONC_S = 3;          // start times are stored as FLOOR seconds: a difference below 3 can be a real difference below 2000 ms, so such matches have no provable order
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const num = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
 const OUT = ['w', 'l', 'd'];
@@ -32,7 +32,7 @@ const KINDS = ['r', 'g', 's'];   // r room match, g ghost room match (no officia
 
 // ---- entry <-> string -------------------------------------------------------------------------------------------------------
 // stats.ml.e[id] = "<n base36>|<kind><result><flag>|<opponent>[=<outcome>],...|<start seconds base36>"
-//   result: o open, w l d, x gap   flag: '' proven, q open saved, proof of timely confirmation pending, u unproven, L unproven and late (progress does not move)
+//   result: o open, w l d, x gap, b barrier (a match that could not be tracked: see open() 'full')   flag: '' proven, q open saved, proof of timely confirmation pending, u unproven, L unproven and late (progress does not move)
 const safeId = (id) => {
   if (typeof id !== 'string' || !id) return '';
   let s = id.replace(/[.#$\[\]\/\s]/g, '_');
@@ -50,7 +50,7 @@ function parse(id, str) {
   if (typeof str !== 'string') return null;
   const p = str.split('|');
   if (p.length < 3) return null;
-  const n = parseInt(p[0], 36), m = /^([rgs])([owldx])([uLq]?)$/.exec(p[1]);
+  const n = parseInt(p[0], 36), m = /^([rgs])([owldxb])([uLq]?)$/.exec(p[1]);
   if (!Number.isFinite(n) || !m) return null;
   const v = p[2] ? p[2].split(',').map((t) => { const i = t.indexOf('='); return i < 0 ? { k: dec(t) } : { k: dec(t.slice(0, i)), o: t.slice(i + 1) }; }) : [];
   const sec = p[3] === undefined ? NaN : parseInt(p[3], 36);   // an entry without a start time (older format) has no provable place
@@ -61,7 +61,7 @@ const headS = (ml) => Math.max(num(ml.f.hs) || 0, ...Object.keys(ml.e).map((id) 
 // Which entries cannot be evidence NOW: flagged ones, matches that began too recently, and proven matches too close in time to tell apart.
 function weakFlags(list, now) {
   const w = list.map((e) => !!e.f);
-  list.forEach((e, i) => { if (!w[i] && num(now) !== null && now - e.s * 1000 < STABLE_MS) w[i] = true; });
+  list.forEach((e, i) => { if (!w[i] && num(now) !== null && now - (e.s + 1) * 1000 < STABLE_MS) w[i] = true; });   // (s+1): the stored second is the floor of the real start
   let p = -1;
   list.forEach((e, i) => { if (e.f) return; if (p >= 0 && e.s - list[p].s < CONC_S) { w[i] = true; w[p] = true; } p = i; });
   return w;
@@ -73,6 +73,12 @@ const goodMl = (ml) => isObj(ml) && ml.v === 1 && isObj(ml.e) && num(ml.n) !== n
 const inLegacy = (k) => k === 'r' || k === 'g', inOfficial = (k) => k === 'r' || k === 's', inRevenge = (k) => k === 'r' || k === 'g';
 function consume(st, e, mx, weak) {
   if (e.r === 'x') { st.lp = Math.max(0, Math.floor(Number(e.v[0] && e.v[0].k) || 0)); st.lc = 0; st.oc = 0; st.pl.clear(); return; }   // gap: every run and pair restarts; progress takes the value the other client left
+  if (e.r === 'b') {   // a match that exists but could not be tracked: its result is unknown, nothing before and after it may be joined
+    if (inLegacy(e.k)) st.lc = 0;
+    if (inOfficial(e.k)) st.oc = 0;
+    if (inRevenge(e.k)) { if (e.v.length) e.v.forEach((x) => st.pl.delete(x.k)); else st.pl.clear(); }
+    return;
+  }
   if (e.r === 'o') {   // not decided yet: a barrier, progress does not move
     if (inLegacy(e.k)) st.lc = 0;
     if (inOfficial(e.k)) st.oc = 0;
@@ -142,6 +148,7 @@ function compact(ml) {
   ml.f = { lp: st.lp, lc: st.lc, oc: st.oc, pl: [...st.pl], rc: st.rc, hs, ...(ob.length ? { ob } : {}) };
 }
 const unresolved = (ml) => Object.values(ml.e).filter((x) => /^[^|]*\|[rgs]o/.test(x)).length + (Array.isArray(ml.f.ob) ? ml.f.ob.length : 0);
+const has = (s, id) => { const key = safeId(id); return !!(isObj(s) && goodMl(s.ml) && key && (s.ml.e[key] || orphanIndex(s.ml, key) >= 0)); };
 const orphanIndex = (ml, id) => (Array.isArray(ml.f.ob) ? ml.f.ob.findIndex((x) => x.split('|')[0] === id) : -1);
 
 // open: the match has started (call before the first answer; the caller confirms it with the server). Saved as `q` (proof pending) when it is still
@@ -154,8 +161,15 @@ function open(s, { id, kind, opponents = [], startAt, now }) {
   begin(s);
   const ml = s.ml;
   if (ml.e[key] || orphanIndex(ml, key) >= 0) return { status: 'exists' };
-  if (unresolved(ml) >= OPEN_MAX) return { status: 'full' };
-  const sec = num(startAt) !== null ? Math.floor(startAt / 1000) : 0, timely = sec > 0 && num(now) !== null && now <= startAt;
+  const sec = num(startAt) !== null ? Math.floor(startAt / 1000) : 0;
+  if (unresolved(ml) >= OPEN_MAX) {
+    // Too many unresolved opens to track this one. The match still exists: leave a BARRIER (not an open, so it folds like any entry and needs no extra room)
+    // at its start, so no run or pair is joined across it. Idempotent per match. The result, when it comes, is appended as unproven.
+    const bid = 'b-' + key;
+    if (!ml.e[bid]) { ml.e = { ...ml.e, [bid]: format({ n: ++ml.n, k: kind, r: 'b', f: '', s: sec > 0 ? sec : headS(ml), v: opponents.filter(Boolean).map((k) => ({ k })) }) }; compact(ml); }
+    return { status: 'full' };
+  }
+  const timely = sec > 0 && num(now) !== null && now <= startAt;
   ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: 'o', f: timely ? 'q' : 'u', s: timely ? sec : Math.max(sec, headS(ml)), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
   compact(ml);
   return { status: timely ? 'opened' : 'opened-late' };
@@ -219,4 +233,4 @@ function finish(s, { best0 = 0, now } = {}) {
   return { status: 'ok', ...d };
 }
 
-module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
+module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, has, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };

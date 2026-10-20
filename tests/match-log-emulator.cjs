@@ -83,23 +83,29 @@ const { start, info, sleep, assert, MatchLog: ML } = require('./room-b2-emulator
       assert.equal(Object.keys(s.ml.e).filter((k) => k === rid('c5c')).length, 1);
       console.log('PASS open proof: failure is reported, a commit after the start is saved but not evidence, a re-run keeps one open');
     }
-    {   // full: more than OPEN_MAX unresolved opens -> reported as full (nothing written), play is not blocked, the result is still counted
+    {   // full: more than OPEN_MAX unresolved opens -> reported as full, a BARRIER is left at the match start, play is not blocked, the result is still counted
+      for (const n of [100, 101, 102, 103]) { await open('c13', 'c13w' + n, n); await rec('c13', 'c13w' + n, 'w'); }
+      let s = await st('c13'); assert.equal(s.ml.ev.lg, 4); assert.equal(s.sk.best, 4);
       for (let i = 0; i < ML.OPEN_MAX; i++) await open('c13', 'c13o' + i, i + 1);
-      const r = await open('c13', 'c13z', 99); assert.equal(r.saved, true); assert.equal(r.status, 'full');
-      let s = await st('c13'); assert(!s.ml.e[rid('c13z')]); await rec('c13', 'c13z', 'w'); s = await st('c13');
-      assert.equal(s.games, 1, 'counted'); assert.equal(flagOf(s, 'c13z'), 'u'); assert.equal(s.ml.ev.lg, 0);
-      console.log('PASS open full: reported as full, the match is counted, never evidence');
+      const rL = await open('c13', 'c13L', 104); assert.equal(rL.saved, true); assert.equal(rL.status, 'full');
+      s = await st('c13'); assert(!s.ml.e[rid('c13L')], 'no open for it'); assert(Object.values(s.ml.e).some((v) => /\|rb\|/.test(v)), 'a barrier was saved instead');
+      const rW = await open('c13', 'c13w105', 105); assert.equal(rW.status, 'full');
+      await rec('c13', 'c13w105', 'w'); await rec('c13', 'c13L', 'l'); s = await st('c13');
+      assert.equal(s.games, 6, 'both results counted'); assert.equal(s.ml.ev.lg, 4, 'the win after the untracked loss does not join the earlier run'); assert.equal(s.sk.best, 4); assert.equal(s.maxStreak, 4);
+      console.log('PASS open full: a barrier is left, the match is counted, no streak is joined across the untracked loss');
     }
     // ---- 65+ late Spark result: counted in the totals, never a streak, never twice
     {
-      const apply = (c, id, t, o, ctx) => env.owner.db.ref(`games/factor/accounts/${c}/stats`).transaction((s) => { s = s || {}; Keep.ensureKeep(s, { '.sv': 'timestamp' }); SS.apply(s, { id, t, o, s: 's' }, ctx); return s; });
-      for (let i = 0; i < 70; i++) await apply('c14', 's-new' + i, T0 + 1e6 + i * 70000, 'w', { now: DONE });
+      const apply = (c, id, t, o, ctx) => env.owner.db.ref(`games/factor/accounts/${c}/stats`).transaction((s) => { s = s || {}; Keep.ensureKeep(s, { '.sv': 'timestamp' }); SS.apply(s, { id, t, o, s: 's', ...(ctx.f ? { f: 1 } : {}) }, ctx); return s; });
+      for (let i = 0; i < 70; i++) await apply('c14', 's-new' + i, T0 + 1e6 + i * 70000, 'w', { now: DONE, f: 1 });
       let s = await st('c14'); const n0 = s.sg; assert.equal(n0, 70); const best = s.sk.best;
-      await apply('c14', 's-old', T0 - 1e6, 'w', { late: true, now: DONE }); s = await st('c14');
+      await apply('c14', 's-old', T0 - 1e6, 'w', { late: true, now: DONE, f: 1 }); s = await st('c14');
       assert.equal(s.sg, n0 + 1, 'the verified result is counted although the ledger cannot place it'); assert.equal(s.sWins, 71); assert.equal(s.sk.best, best, 'never a streak');
       assert.match(s.ml.e['s-old'], /\|sw[uL]\|/, 'recorded in the match log (idempotency marker)');
       await apply('c14', 's-old', T0 - 1e6, 'w', { late: true, now: DONE }); s = await st('c14'); assert.equal(s.sg, n0 + 1, 'a replay is not counted again');
-      console.log('PASS 65+ late Spark result: counted once in the totals, never a streak, replay safe');
+      // F1: the very first result, received again (rebuilt from the receipt) after 70 others: forgotten by the ledger and the log, NOT counted twice
+      await apply('c14', 's-new0', T0 + 1e6, 'w', { now: DONE }); s = await st('c14'); assert.equal(s.sg, n0 + 1, 'a receipt received again after 64+ results is not counted again');
+      console.log('PASS 65+ late Spark result: counted once in the totals, never a streak, replay safe (also after the id is forgotten)');
     }
     // ---- a 6.2 tab wrote the counters behind the log's back
     {

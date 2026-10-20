@@ -8082,11 +8082,12 @@ async function openMatch(acct, spec) {
   const ML = window.MatchLogNext, ref = FB.db.ref(`games/factor/accounts/${acct.key}/stats`);
   try {
     let status = 'failed';
+    const t0 = fbNow(), p0 = typeof performance !== 'undefined' ? performance.now() : null;   // 単調時計(performance.now)も測る：端末の時計が途中で動いても、確認時刻を過小に見積もらない
     const r = await ref.transaction(s => { s = s || {}; keepStats(s); status = ML.open(s, { ...spec, now: fbNow() }).status; return s; });
     if (!r || !r.committed) return { saved: false, status: 'failed' };
     // 保存成功(saved)と、称号の証拠にできる open(opened のみ)は別。サーバーが確定を返した時刻(= コミットはそれより前)で「開始前に保存できた」かを証明する。
     // full(未解決が上限)・opened-late は保存はされても証拠にならない（試合は止めない）
-    const confirmedAt = fbNow();
+    const confirmedAt = Math.max(fbNow(), p0 === null ? 0 : t0 + (performance.now() - p0));
     if (status === 'opened' || status === 'exists') await Promise.race([ref.transaction(s => { if (!s) return s; ML.prove(s, { id: spec.id, now: confirmedAt }); return s; }).catch(() => {}), new Promise(res => setTimeout(res, 1500))]);   // 証明の書き込みを待つのは最大1.5秒（待てなければ未証明のまま＝証拠にならないだけ）
     return { saved: true, status };
   } catch (e) { return { saved: false, status: 'failed' }; }
