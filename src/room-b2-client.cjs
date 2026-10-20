@@ -40,15 +40,18 @@ function create({db,code,state,uid,isHost,onView,onError,localBots}){
   await tx(ref,raw=>{if(!raw?.game)return raw;const input=localBots?localBots(raw,clock,E.runtime(raw.game).api):raw;const n=pump(input,Math.max(clock,raw.game.time));n.revision=(raw.revision||0)+1;return clean(n)});
  }catch(e){if(!closed)onError?.(e)}finally{busy=false}}
  const timer=isHost?setInterval(process,localBots?100:500):null;
+ // The result already received through the live listener always wins: a failing, empty or timed-out read can never hide it.
+ const received=()=>current?.game?.result||null;
  async function refresh(){let timer;
-  if(current?.game?.result)return{ok:true,result:current.game.result,source:'received'};   // already received: no read needed, it wins
+  if(received())return{ok:true,result:received(),source:'received'};
   try{
    const snap=await Promise.race([ref.get(),new Promise((_,rej)=>{timer=setTimeout(()=>rej(Error('READ_TIMEOUT')),config.readMs)})]);
+   if(received())return{ok:true,result:received(),source:'received'};
    if(closed)return{ok:false,error:'CLOSED'};const v=snap.val();if(!v?.game)return{ok:false,error:'EMPTY'};
    if(newer(current,v)){current=v;onView(v)}
-   return{ok:true,result:current.game.result||null,clock:current.clock,revision:current.revision};   // best known state, never an older read
-  }catch(e){return{ok:false,error:e.message}}finally{clearTimeout(timer)}}
+   return{ok:true,result:received(),clock:current.clock,revision:current.revision};   // best known state, never an older read
+  }catch(e){if(received())return{ok:true,result:received(),source:'received'};return{ok:false,error:e.message}}finally{clearTimeout(timer)}}
  async function request(command){if(closed)return current;const input=command.type==='cheer'?`c${command.seq}`:command.type==='answer'?`a${command.seq}`:'leave';await tx(sub(`inputs/${uid}/${input}`),old=>old||clean({...command,at:stamp()}));await process();return current;}
- return{request,process,refresh,view:raw=>E.view(raw.game,uid),close(){closed=true;clearInterval(timer);ref.off('value',listener)}};
+ return{request,process,refresh,received,view:raw=>E.view(raw.game,uid),close(){closed=true;clearInterval(timer);ref.off('value',listener)}};
 }
 module.exports={prepare,create,health,decide,processing,newer,config};

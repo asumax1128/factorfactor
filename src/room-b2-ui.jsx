@@ -22,7 +22,7 @@
   // Leaving never waits for a Firebase write. Offline: no read at all (it could not complete) and nothing is queued by this component.
   const safeLeave=async()=>{if(busyRef.current||leftRef.current)return;busyRef.current=true;setBusy(true);
    if(H.FB.conn===false){leftRef.current=true;props.onSafeLeave({reason:'offline'});return}
-   const d=root.RoomB2.decide(await transport.current.refresh());if(d==='result'){busyRef.current=false;setBusy(false);return}
+   const d=root.RoomB2.decide(await transport.current.refresh());if(d==='result'||transport.current.received()){busyRef.current=false;setBusy(false);return}   // re-check the live state right before leaving
    leftRef.current=true;props.onSafeLeave({reason:d})};
   const answer=(id1,id2)=>{const ids=Array.isArray(id1)?id1:[id1,id2];if(answerLock.current||stopped||leftRef.current||time<g.startAt||time<view.freezeUntil||view.resolving||g.states[uid].hp<=0)return;answerLock.current=true;setPending(true);
    const a=view.tiles.find(t=>t.id===ids[0]),b=view.tiles.find(t=>t.id===ids[1]),ok=H.polyEqual(H.multiply(a.factor,b.factor),view.poly),judge=H.timingVisual(ok?H.getJudgment(time-view.startAt):{label:'Bad',color:'#FF5C5C'});

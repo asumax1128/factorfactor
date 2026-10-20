@@ -3140,14 +3140,18 @@
           }
         }
         const timer = isHost ? setInterval(process, localBots ? 100 : 500) : null;
-        async function refresh() {
+        const received = () => {
           var _a;
+          return ((_a = current == null ? void 0 : current.game) == null ? void 0 : _a.result) || null;
+        };
+        async function refresh() {
           let timer2;
-          if ((_a = current == null ? void 0 : current.game) == null ? void 0 : _a.result) return { ok: true, result: current.game.result, source: "received" };
+          if (received()) return { ok: true, result: received(), source: "received" };
           try {
             const snap = await Promise.race([ref.get(), new Promise((_, rej) => {
               timer2 = setTimeout(() => rej(Error("READ_TIMEOUT")), config.readMs);
             })]);
+            if (received()) return { ok: true, result: received(), source: "received" };
             if (closed) return { ok: false, error: "CLOSED" };
             const v = snap.val();
             if (!(v == null ? void 0 : v.game)) return { ok: false, error: "EMPTY" };
@@ -3155,8 +3159,9 @@
               current = v;
               onView(v);
             }
-            return { ok: true, result: current.game.result || null, clock: current.clock, revision: current.revision };
+            return { ok: true, result: received(), clock: current.clock, revision: current.revision };
           } catch (e) {
+            if (received()) return { ok: true, result: received(), source: "received" };
             return { ok: false, error: e.message };
           } finally {
             clearTimeout(timer2);
@@ -3169,7 +3174,7 @@
           await process();
           return current;
         }
-        return { request, process, refresh, view: (raw) => E.view(raw.game, uid), close() {
+        return { request, process, refresh, received, view: (raw) => E.view(raw.game, uid), close() {
           closed = true;
           clearInterval(timer);
           ref.off("value", listener);

@@ -82,7 +82,7 @@
             return;
           }
           const d = root.RoomB2.decide(await transport.current.refresh());
-          if (d === "result") {
+          if (d === "result" || transport.current.received()) {
             busyRef.current = false;
             setBusy(false);
             return;

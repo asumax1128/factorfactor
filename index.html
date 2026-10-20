@@ -8039,13 +8039,19 @@ function ratingDelta(myR, opps) {
 /* B2の同期停止から安全離脱した試合の「未受領リスト」（この端末だけ・登録アカウントだけ）。結果が確定したら、通常と同じ結果画面(BattleGame)に
    つなぎ、戦績・EXP・称号は既存の冪等な記録(recordMatch の roomSeen[gid]、学習記録の room:gid)だけで1回だけ反映する */
 const B2_PEND_KEY = 'fxf_b2_pending_v1', B2_PEND_TTL = 24 * 3600000;
+const B2_RCPT = { at: {}, failed: {} };   // 遅れて受領した試合だけ：試合ID→実際の試合時刻 / 保存失敗の印（recordMatch が読む・書く）
 const b2List = x => Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : [];
-function b2PendLoad() { try { const a = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return Array.isArray(a) ? a.filter(e => e && e.code && e.gid && e.uid && e.acct && e.state && Date.now() - e.at < B2_PEND_TTL) : []; } catch (e) { return []; } }
-function b2PendSave(list) { try { localStorage.setItem(B2_PEND_KEY, JSON.stringify(list.slice(-5))); } catch (e) {} }
-function b2PendAdd(e) { b2PendSave([...b2PendLoad().filter(x => x.gid !== e.gid), e]); }
-function b2PendDrop(gid) { b2PendSave(b2PendLoad().filter(x => x.gid !== gid)); }
+const B2_PEND_MAX = 5;
+function b2PendRaw() { try { const a = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return Array.isArray(a) ? a.filter(e => e && e.code && e.gid && e.uid && e.acct && e.state) : []; } catch (e) { return []; } }
+function b2PendLoad() { return b2PendRaw().filter(e => Date.now() - e.at < B2_PEND_TTL); }
+// 保存できたかを読み戻して確かめる（保存できないブラウザでは false）。上限を超えて押し出された古い試合の数も返す
+function b2PendWrite(list) { try { const keep = list.slice(-B2_PEND_MAX); localStorage.setItem(B2_PEND_KEY, JSON.stringify(keep)); const back = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return { ok: Array.isArray(back) && back.length === keep.length, dropped: list.length - keep.length }; } catch (e) { return { ok: false, dropped: 0 }; } }
+function b2PendAdd(e) { return b2PendWrite([...b2PendLoad().filter(x => x.gid !== e.gid), e]); }
+function b2PendDrop(gid) { b2PendWrite(b2PendLoad().filter(x => x.gid !== gid)); }
 async function recordMatch(acct, info) {
-  if (!acct || !acct.key || (DBX && !info.bot) || !FB.db) return { badges: [] };
+  const rcpt = typeof B2_RCPT !== 'undefined' ? B2_RCPT : null;   // （単体試験の抜き出しでは未定義）
+  if (info && info.id && rcpt && rcpt.at[info.id] != null) { info = { ...info, at: rcpt.at[info.id] }; if (info.sk) info.sk = { ...info.sk, t: info.at }; }   // 遅れて受領：連勝台帳と日別記録は実際の試合時刻で扱う
+  if (!acct || !acct.key || (DBX && !info.bot) || !FB.db) return { badges: [], ...(acct && acct.key && !FB.db ? { failed: true } : {}) };
   let before = null, after = null, applied = 0, expB = 0, expA = 0;
   try {
     const res = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => {
@@ -8067,8 +8073,10 @@ async function recordMatch(acct, info) {
       });
       // 何日続けて対戦しているか（Ver.6.0：日本時間JSTで数える。旧版の「2026-10-5」形式の記録も同じ日として扱う）
       const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
-      const today = jstDate(fbNow()), yest = jstDate(fbNow() - 86400000), lastDay = canonDay(s.lastDay);
-      if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
+      // info.at = 実際の試合時刻（遅れて受領した結果だけが持つ）。それより新しい日の記録があれば、連続日数は動かさない（古い日付へ巻き戻さない）
+      const refT = info.at != null ? info.at : fbNow(), today = jstDate(refT), yest = jstDate(refT - 86400000), lastDay = canonDay(s.lastDay);
+      if (lastDay > today && info.at != null) { /* 古い試合の遅れた受領：日別連続は変更しない */ }
+      else if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
       if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
       else if (o === 'l') s.streak = 0;
@@ -8102,9 +8110,9 @@ async function recordMatch(acct, info) {
       after = s;
       return s;
     });
-    if (!res || !res.committed) return { badges: [] };
+    if (!res || !res.committed) { if (info.id && rcpt) rcpt.failed[info.id] = true; return { badges: [], failed: true }; }
     keepCheck(after);
-  } catch (e) { return { badges: [] }; }
+  } catch (e) { if (info.id && rcpt) rcpt.failed[info.id] = true; return { badges: [], failed: true }; }
   return { badges: announceableBadges(before, after), dr: applied, exp: { before: expB, after: expA } };
 }
 
@@ -8780,29 +8788,54 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const [muted, setMuted] = useGameMute();
   const [seenGid, setSeenGid] = useState({});       // 大会：結果を見終わった試合
   const [recover, setRecover] = useState(null);      // 安全離脱した試合の確定結果（未受領）
+  const [recStatus, setRecStatus] = useState('saving'), [recTry, setRecTry] = useState(0), recDismissed = useRef({});
   useEffect(() => {
-    if (scr !== 'home' || code || !acct || !FB.db || !FB.uid) return;
+    if (scr !== 'home' || code || !acct || !FB.db || !FB.uid || recover) return;
     let dead = false, busy = false;
+    const note = (m) => setErr(x => (x ? x + ' ' : '') + m);
     const check = async () => {
-      if (busy || dead) return; busy = true;
+      if (busy || dead || FB.conn === false) return;                 // 通信できない間は照会しない（回復後の次回から再開）
+      busy = true;
       try {
+        const expired = b2PendRaw().filter(e => Date.now() - e.at >= B2_PEND_TTL && e.uid === FB.uid && e.acct === acct.key);
+        if (expired.length) { b2PendWrite(b2PendLoad()); note('24時間を過ぎた未受領の試合は、結果を受け取れなくなりました。'); }
         for (const e of b2PendLoad()) {
-          if (e.uid !== FB.uid || e.acct !== acct.key) continue;   // 自分の端末・自分のアカウントの分だけ
+          if (e.uid !== FB.uid || e.acct !== acct.key || recDismissed.current[e.gid]) continue;   // 自分の端末・自分のアカウントの分だけ
           let v;
           try { v = (await Promise.race([FB.db.ref(`games/factor/rooms/${e.code}/b2/${e.gid}`).get(), new Promise((_, r) => setTimeout(() => r(Error('timeout')), 6000))])).val(); } catch (x) { continue; }   // 読めなかった：残して次回
           if (dead) return;
-          if (v === null) { b2PendDrop(e.gid); continue; }          // 部屋ごと消えた：受け取れない
+          if (v === null) { b2PendDrop(e.gid); note('部屋が削除されたため、試合結果を受け取れませんでした。'); continue; }   // 部屋ごと消えた：受け取れない
           const g = v && v.game;
           if (!g || !g.result) continue;                              // まだ確定していない：残す
           const gi = b2List(g.ids), ep = b2List(e.state.players), same = g.id === e.gid && gi.includes(FB.uid) && gi.length === ep.length && gi.every(u => ep.includes(u));
           if (!same) { b2PendDrop(e.gid); continue; }                 // 別の試合・他人の試合は受け取らない
-          setRecover({ e, game: g }); return;
+          // 保存済みの端末情報だけを信用しない：試合ノードに残るアカウントと現在のアカウントを照合する
+          if (!v.accounts || v.accounts[FB.uid] !== acct.key) { b2PendDrop(e.gid); note('この試合は別のアカウントの記録だったため、受け取りませんでした。'); continue; }
+          // 実際の試合時刻（サーバー時刻由来の game.time）。範囲外なら使わない
+          const at = typeof g.time === 'number' && g.time >= (g.startAt || 0) && g.time <= fbNow() + 60000 ? g.time : null;
+          if (at != null) B2_RCPT.at[g.id] = at; delete B2_RCPT.failed[g.id];   // 子画面の記録処理より先に、実際の試合時刻を渡す
+          setRecStatus('saving'); setRecover({ e: { ...e, state: { ...e.state, accts: v.accounts } }, game: g, at }); return;
         }
       } finally { busy = false; }
     };
     check(); const t = setInterval(check, 10000);
     return () => { dead = true; clearInterval(t); };
-  }, [scr, code, acct && acct.key, fb.ready]);
+  }, [scr, code, acct && acct.key, fb.ready, !!recover]);
+  // 保存の確認：戦績(stats.roomSeen[試合ID])と学習記録(prof.onlineLearnSeen[room:試合ID])が、サーバーに実際に載ったことを読み戻して確かめる（既存の冪等な印）
+  useEffect(() => {
+    if (!recover || !acct || !FB.db) return;
+    const gid = recover.e.gid, t0 = Date.now(); let dead = false, timer = null;
+    const seen = async () => { try { const [a, b] = await Promise.all([FB.db.ref(`games/factor/accounts/${acct.key}/stats/roomSeen/${gid}`).get(), FB.db.ref(`games/factor/accounts/${acct.key}/prof/onlineLearnSeen/room:${gid}`).get()]); return !!a.val() && !!b.val(); } catch (e) { return false; } };
+    const tick = async () => {
+      if (dead) return;
+      if (await seen()) { if (!dead) { b2PendDrop(gid); setRecStatus('saved'); } return; }
+      if (dead) return;
+      if (B2_RCPT.failed[gid] || Date.now() - t0 > 15000) { setRecStatus('failed'); return; }
+      timer = setTimeout(tick, 1000);
+    };
+    timer = setTimeout(tick, 800);
+    return () => { dead = true; clearTimeout(timer); };
+  }, [recover && recover.e.gid, recTry]);
   const sound = useBattleSound(muted);
   const myName = (who && who.name) || 'ゲスト';
   const practice = code === 'local';
@@ -9115,17 +9148,21 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   // B2の同期停止からの安全離脱：共有試合・結果には何も書かず、ホストでも部屋を閉じない。本人のpresence削除だけを行う
   function safeLeave(info) {
     const reason = (info && info.reason) || 'unconfirmed';
-    let kept = false;
+    let kept = false, dropped = 0, tried = false;
     // 結果の受領待ち：登録アカウントの正規の4桁ルームだけ。確定したら次にオンライン対戦を開いたときに通常の結果画面から1回だけ反映する
     if (acct && code && !localRoom && FB.uid && !isHost && !spectator && state && state.gid && !state.bot && !state.qm && b2List(state.players).includes(FB.uid)) {
-      b2PendAdd({ code, gid: state.gid, uid: FB.uid, acct: acct.key, at: Date.now(), state: JSON.parse(JSON.stringify(state)) }); kept = true;
+      tried = true; const w = b2PendAdd({ code, gid: state.gid, uid: FB.uid, acct: acct.key, at: Date.now(), state: JSON.parse(JSON.stringify(state)) }); kept = w.ok; dropped = w.dropped;
     }
     if (qmRef.current) cancelQm();
     // 通信できないときは何も書かない（保留書込みが復帰後に走らないように）。接続が切れた時点でサーバー側のonDisconnectが参加者情報を消す
     if (code && !localRoom && FB.uid && !isHost && !spectator && FB.conn !== false) { const r = fref(`rooms/${code}/players/${FB.uid}`); r.onDisconnect().cancel(); r.remove().catch(() => {}); }
     DBX = null; sound.bgm(false);
     setCode(''); setIsHost(false); setSpectator(false); setScr('home'); setSeenGid({});
-    setErr((reason === 'offline' ? '通信できないため、試合結果を確認できませんでした。' : reason === 'unreadable' ? '試合結果を確認できませんでした。' : '最後に確認した時点では、試合結果は未確定です。') + (kept ? '結果が確定したら、次にオンライン対戦を開いたときに受け取ります。' : ''));
+    const head = reason === 'offline' ? '通信できないため、試合結果を確認できませんでした。' : reason === 'unreadable' ? '試合結果を確認できませんでした。' : '最後に確認した時点では、試合結果は未確定です。';
+    const tail = !tried ? (acct ? '' : 'ゲストの試合は戦績に記録されないため、結果の受け取りはありません。')
+      : kept ? '結果が確定した場合は、この端末で、同じアカウントのままオンライン対戦を開くと受け取ります（24時間以内・最大5件まで）。戦績はまだ記録されていません。' + (dropped ? '上限を超えたため、古い未受領の試合は受け取れなくなりました。' : '')
+      : 'この端末に保存できなかったため、結果が確定しても自動では受け取れません。戦績は記録されていません。';
+    setErr(head + tail);
   }
   async function startMatch(cArg, opt) {
     opt = opt || {};
@@ -9265,9 +9302,16 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const qmChip = qm && practice ? <QmChip qm={qm} onCancel={() => { cancelQm(); }} /> : null;
 
   if (scr === 'rated' || scr === 'ratings' || scr === 'ghostmenu') return ratedEnabled && OnlineRatedApp ? <OnlineRatedApp key={(acct?.key || 'guest') + scr} view={scr === 'ratings' ? 'ratings' : scr==='ghostmenu'?'ghosts':'match'} rankingMode={initialScreen==='ratings'} acct={acct} onExit={initialScreen==='ratings'?onExit:() => setScr('home')} /> : shell(<Card><p>{ratedMessage || '新しい対戦制度は準備中です。'}</p><button onClick={initialScreen==='ratings'?onExit:() => setScr('home')}>戻る</button></Card>);
-  if (recover && scr === 'home' && !code) { const done = () => { b2PendDrop(recover.e.gid); setRecover(null); };
-    return <BattleGame key={'rcv-' + recover.e.gid} code={recover.e.code} state={{ ...recover.e.state, phase: 'play', b2Final: recover.game }} players={{}} isHost={false} acct={acct} who={who} practice={false}
-      sound={sound} muted={muted} setMuted={setMuted} onLeave={done} onRematch={done} onLobby={done} onBack={done} />; }
+  if (recover && scr === 'home' && !code) {
+    // 戦績・EXP・称号カウンター・学習記録の保存が全部確認できるまで、未受領の記録は消さない（保存中に閉じても、次回もう一度受け取る。記録は試合IDで冪等）
+    const gid = recover.e.gid, done = () => { if (recStatus === 'saved') b2PendDrop(gid); else { recDismissed.current[gid] = true; setErr('戦績の保存を確認できていません。この端末でオンライン対戦を開き直すと、もう一度受け取ります。'); } setRecover(null); };
+    return <><BattleGame key={`rcv-${gid}-${recTry}`} code={recover.e.code} state={{ ...recover.e.state, phase: 'play', b2Final: recover.game }} players={{}} isHost={false} acct={acct} who={who} practice={false}
+      sound={sound} muted={muted} setMuted={setMuted} onLeave={done} onRematch={done} onLobby={done} onBack={done} />
+      <div className="or-recover-note" role="status" aria-live="polite" data-b2-recover={recStatus}>
+        {recStatus === 'saved' ? '戦績の保存を確認しました。' : recStatus === 'failed' ? '戦績を保存できませんでした。通信を確認して再試行してください（同じ試合を二重に加算することはありません）。' : '戦績を保存しています…'}
+        {recStatus === 'failed' && <button type="button" onClick={() => { delete B2_RCPT.failed[gid]; setRecStatus('saving'); setRecTry(n => n + 1); }}>再試行</button>}
+      </div></>;
+  }
   if (scr === 'home') return (renderMenu||shell)(
     <BattleHome nextUI={!!renderMenu} onNavigate={onNavigate} onProfile={onProfile} fb={fb} acct={acct} who={who} err={err} setErr={setErr} onQuick={() => { if (ratedStatus.state !== 'ready' || ratedUnavailable) return; if (!ratedEnabled) { setErr('レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。'); return; } setScr('rated'); }} quickPending={ratedStatus.state !== 'ready' || ratedUnavailable} quickMessage={ratedMessage} onConfigRetry={() => setConfigRetry(n => n + 1)} quickError={ratedStatus.state === 'error' || ratedUnavailable} ratedEnabled={ratedEnabled} onRatedStats={ratedEnabled && !ratedUnavailable ? () => setScr('ratings') : null} onGhosts={()=>setScr('ghostmenu')}
       onCreate={createRoom} onJoin={joinRoom} onPractice={pc => v7Wipe(() => startPractice(pc))} onExit={onExit} onDash={() => setScr('dash')} />);

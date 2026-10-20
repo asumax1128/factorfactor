@@ -263,3 +263,8 @@
 .or-room-stall-actions button{flex:1 1 9rem;min-height:48px;padding:8px 10px;border:1.5px solid #4a6073;border-radius:10px;background:#101720;color:#e8f0f5;font:inherit;font-size:13px;cursor:pointer}
 .or-room-stall-actions button:last-child{border-color:#f6bd62}
 .or-room-stall-actions button:disabled{opacity:.5}
+/* 遅れて受領した結果の保存状況（画面上部） */
+.or-recover-note{position:fixed;left:12px;right:12px;top:max(8px,env(safe-area-inset-top));z-index:70;max-width:30rem;margin:0 auto;padding:8px 12px;border:1px solid #4a6073;border-radius:10px;background:#192b38;color:#e8f0f5;font:700 12px/1.5 sans-serif;overflow-wrap:anywhere}
+.or-recover-note[data-b2-recover="failed"]{border-color:#f6bd62}
+.or-recover-note[data-b2-recover="saved"]{border-color:#72dfce}
+.or-recover-note button{margin-left:8px;min-height:36px;padding:4px 12px;border:1.5px solid #f6bd62;border-radius:8px;background:#101720;color:#e8f0f5;font:inherit}

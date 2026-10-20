@@ -1,5 +1,5 @@
 // Ver.6.2 hotfix: a 4-digit room B2 participant can leave safely when the shared state stops being processed.
-const assert = require('node:assert/strict'), { chromium, context, drag } = require('./browser-harness.cjs'), E = require('../server/online-rated/engine.cjs'), C = require('../src/room-b2-client.cjs');
+const assert = require('node:assert/strict'), { chromium, context, drag } = require('./browser-harness.cjs'), E = require('../server/online-rated/engine.cjs'), C = require('../src/room-b2-client.cjs'), K = require('../src/streak-next.cjs');
 const ONLY = process.env.ONLY, sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const accounts = { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: { name: 'Guest', stats: { exp: 100, rating: 1500 } } };
 // ---- pure decisions (no browser) ----
@@ -54,15 +54,21 @@ const accounts = { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: 
     const { h, db } = mk(); C.config.readMs = 80; const t = C.create({ db, code: '1111', state: { gid: 'G' }, uid: 'guest', isHost: false, onView() {}, onError() {} });
     h.on(snap(game(4))); const r = await t.refresh(); assert.equal(r.ok, false); assert.equal(C.decide(r), 'unreadable'); C.config.readMs = 4000; t.close();
   }
+  for (const mode of ['reject', 'timeout', 'empty']) { // the result arrives through the listener while the read is in flight; the read then fails / times out / is empty
+    const { h, db } = mk(), views = []; C.config.readMs = 60; const t = C.create({ db, code: '1111', state: { gid: 'G' }, uid: 'guest', isHost: false, onView: (r) => views.push(r), onError() {} });
+    h.on(snap(game(5))); const p = t.refresh(); h.on(snap(game(8, { winner: 'host' })));
+    if (mode === 'reject') h.pendingGets[0].rej(Error('network')); else if (mode === 'empty') h.pendingGets[0].res(snap(null));
+    const r = await p; assert.equal(r.ok, true, mode); assert.equal(C.decide(r), 'result', 'a received result wins over a failed/empty/timed-out read: ' + mode); assert.equal(t.received().winner, 'host'); C.config.readMs = 4000; t.close();
+  }
   console.log('PASS real transport: stale get() never overwrites a newer/confirmed state; received result needs no read; failures are unreadable');
 })().then(main).catch((e) => { console.error(e); process.exitCode = 1; });
-async function setup(b, { width = 390, height = 844, duration } = {}) {
-  const tree = { games: { factor: { accounts: structuredClone(accounts), onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } }, peers = [];
+async function setup(b, { width = 390, height = 844, duration, stats } = {}) {
+  const tree = { games: { factor: { accounts: Object.assign(structuredClone(accounts), stats ? { ag: { name: 'Guest', stats } } : {}), onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } }, peers = [];
   // the host stops processing: its writes hang (a backgrounded/suspended phone); `clockOnly` keeps clock/revision moving but freezes the game
-  const gate = { frozen: false, waiters: [], clockOnly: false, game: null }, ggate = { frozen: false, waiters: [] };
+  const gate = { frozen: false, waiters: [], clockOnly: false, game: null }, ggate = { frozen: false, waiters: [], fail: null };
   const hold = (gt) => async () => { if (gt.frozen) await new Promise((r) => gt.waiters.push(r)); };
   const h = await context(b, { tree, peers, uid: 'host', account: { key: 'ah', name: 'Host' }, onOperation: async (op) => { if (gate.clockOnly && op.v && op.v.game && /\/b2\/[^/]+$/.test(op.path)) op.v = { ...op.v, game: gate.game }; await hold(gate)(); } });
-  const g = await context(b, { tree, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' }, onOperation: hold(ggate) });
+  const g = await context(b, { tree, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' }, onOperation: async (op) => { if (ggate.fail && ggate.fail.test(op.path)) throw new Error('NETWORK'); await hold(ggate)(); } });
   for (const t of [h, g]) { await t.page.setViewportSize({ width, height }); await t.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); }
   await g.page.evaluate(() => { const c = RoomB2.create; RoomB2.create = (o) => { const t = c({ ...o, onView: (r) => { window.__raw = r; o.onView(r); } }); window.__b2 = t; window.__onView = o.onView; return t; }; RoomB2.config.warnMs = 1500; RoomB2.config.leaveMs = 3000; });
   await h.page.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
@@ -80,6 +86,18 @@ async function setup(b, { width = 390, height = 844, duration } = {}) {
 const panel = (p) => p.locator('[data-b2-stall]');
 const inputsOf = (s, u) => Object.keys(s.b2().inputs?.[u] || {});
 const homeSel = '.v7-bhome-wrap, [data-next-home]';
+const openOnline = (p) => p.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click();
+const pendLen = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('fxf_b2_pending_v1') || '[]').length);
+const banner = (p) => p.locator('[data-b2-recover]');
+const statsOf = (s) => s.tree.games.factor.accounts.ag.stats || {};
+// stalls the match, leaves safely, and returns a function that settles the match (as the returning host would) for the guest page
+async function stopLeave(s) {
+  await s.freeze(); await s.g.page.locator('[data-b2-stall="stopped"]').waitFor({ timeout: 12000 });
+  const gid = s.b2().game.id; await s.g.page.getByRole('button', { name: '結果未確認のままホームへ戻る' }).click(); await s.g.page.locator(homeSel).first().waitFor({ timeout: 8000 });
+  let fin = await s.g.page.evaluate(() => window.__raw.game); fin = E.step(fin, 'host', { type: 'heartbeat' }, fin.endAt + 1); assert(fin.result, 'finished fixture');
+  const settle = async (extra = {}) => { const node = s.b2(); node.game = fin; node.revision = (node.revision || 0) + 1; Object.assign(node, extra); await s.g.page.evaluate((o) => window.__fbApply(o), { kind: 'set', path: `games/factor/rooms/${s.code}/b2/${gid}`, v: JSON.parse(JSON.stringify(node)) }); };
+  return { gid, fin, settle };
+}
 async function main() {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
   try {
@@ -130,16 +148,21 @@ async function main() {
       await panel(s.g.page).waitFor(); assert.equal(await s.g.page.getByRole('button', { name: '結果未確認のままホームへ戻る' }).count(), 0, 'not offered for a short blip');
       await s.g.page.locator('[data-b2-stall]').getByRole('button', { name: '結果未確認のままホームへ戻る' }).waitFor({ timeout: 8000 });
       assert.equal(await s.g.page.getByRole('button', { name: '再接続を確認' }).count(), 0, 'no recheck while offline');
+      await s.g.page.evaluate(() => { window.__reads = []; const r = FB.db.ref.bind(FB.db); FB.db.ref = (p) => { const x = r(p); if (/\/b2\//.test(p)) { const g = x.get.bind(x); x.get = () => { window.__reads.push('conn=' + FB.conn + ' ' + p + ' @' + (new Error().stack.split('\n')[2] || '')); return g(); }; } return x; }; });
       const w0 = s.g.writes.length; await s.g.page.getByRole('button', { name: '結果未確認のままホームへ戻る' }).click();
       await s.g.page.locator(homeSel).first().waitFor({ timeout: 4000 });
       assert.match(await s.g.page.locator('body').innerText(), /通信できないため、試合結果を確認できませんでした/);
       assert.equal(await s.g.page.evaluate(() => !!window.__readCalled), false, 'no read is attempted while offline');
       assert.equal(s.g.writes.slice(w0).filter((o) => !/presence\//.test(o.path)).length, 0, 'nothing is written (nothing is queued for the reconnect)');
       assert.equal(await s.g.page.evaluate(() => JSON.parse(localStorage.getItem('fxf_b2_pending_v1') || '[]').length), 1, 'the unreceived match is remembered for a later receipt');
-      s.ggate.frozen = false; s.ggate.waiters.splice(0).forEach((r) => r()); await s.g.page.evaluate(() => { FB.conn = true; }); await sleep(800);
+      assert.equal(await s.g.page.evaluate(() => window.__reads.length), 0, 'no receipt query is made right after an offline leave'); await sleep(11000);
+      assert.equal(await s.g.page.evaluate(() => window.__reads.length), 0, 'and none while the connection stays down: ' + JSON.stringify(await s.g.page.evaluate(() => window.__reads)));
+      s.ggate.frozen = false; s.ggate.waiters.splice(0).forEach((r) => r()); await sleep(300);
       const a2 = JSON.parse(JSON.stringify(s.tree.games.factor.rooms[s.code])); assert(a2.players.guest, 'the room entry is untouched by the offline leave (the server-side onDisconnect cleans presence)'); assert.deepEqual(Object.keys(a2.b2[Object.keys(a2.b2)[0]].inputs?.guest || {}), inputsOf(s, 'guest'));
       assert(!inputsOf(s, 'guest').includes('leave'), 'no forfeit input was queued');
-      assert.deepEqual(s.g.errors, []); await s.close(); console.log('PASS offline leave: home reached without recovery, no read/write, no queued forfeit, receipt remembered');
+      await s.g.page.evaluate(() => { FB.conn = true; }); await sleep(11500);
+      assert((await s.g.page.evaluate(() => window.__reads.length)) >= 1, 'the query resumes after the connection is back');
+      assert.deepEqual(s.g.errors, []); await s.close(); console.log('PASS offline leave: home reached without recovery, no read/write, no queued forfeit, receipt remembered, no polling while offline, resumes after reconnect');
     }
     if (!ONLY || ONLY === 'S3') { // S3: stopped but online -> safe leave (real read says nothing is confirmed), double tap, shared state untouched, receipt remembered
       const s = await setup(b); await s.freeze(); await s.g.page.locator('[data-b2-stall="stopped"]').waitFor({ timeout: 12000 });
@@ -174,33 +197,82 @@ async function main() {
       assert.equal(s.g.writes.slice(w0).filter((o) => o.path.endsWith('/players/guest') && o.v === null).length, 0, 'presence is not removed');
       await s.close(); console.log('PASS result first: a confirmed result is handled by the normal result flow, no early leave');
     }
-    if (!ONLY || ONLY === 'S6') { // S6: after a safe leave the host comes back and the result is confirmed: received once, idempotent, never for another match/person
+    if (!ONLY || ONLY === 'S5b') { // S5b: the result arrives through the live listener while the read fails -> never leave
       const s = await setup(b); await s.freeze(); await s.g.page.locator('[data-b2-stall="stopped"]').waitFor({ timeout: 12000 });
-      const gid = s.b2().game.id; await s.g.page.getByRole('button', { name: '結果未確認のままホームへ戻る' }).click(); await s.g.page.locator(homeSel).first().waitFor({ timeout: 8000 });
+      let fin = await s.g.page.evaluate(() => window.__raw.game); fin = E.step(fin, 'host', { type: 'heartbeat' }, fin.endAt + 1); assert(fin.result);
+      const gid = s.b2().game.id, node = JSON.parse(JSON.stringify(s.b2())); node.game = fin; node.revision += 5;
+      await s.g.page.evaluate(({ code, gid, node }) => { window.__b2.refresh = async () => { await window.__fbApply({ kind: 'set', path: `games/factor/rooms/${code}/b2/${gid}`, v: node }); return { ok: false, error: 'READ_TIMEOUT' }; }; }, { code: s.code, gid, node });
+      const w0 = s.g.writes.length; await s.g.page.getByRole('button', { name: '結果未確認のままホームへ戻る' }).click(); await sleep(1500);
+      assert(!await s.g.page.locator(homeSel).count(), 'the confirmed result received during the failing read keeps the player on the result screen');
+      assert.equal(s.g.writes.slice(w0).filter((o) => o.path.endsWith('/players/guest') && o.v === null).length, 0, 'presence is not removed');
+      await s.close(); console.log('PASS race: confirmed result + failing read -> no early leave');
+    }
+    if (!ONLY || ONLY === 'S6') { // S6: after a safe leave the host comes back and the result is confirmed: received once, idempotent, never for another match/person
+      const s = await setup(b), { gid, fin, settle } = await stopLeave(s);
       const entry = await s.g.page.evaluate(() => JSON.parse(localStorage.getItem('fxf_b2_pending_v1'))[0]);
       assert.equal(entry.gid, gid); assert.equal(entry.uid, 'guest'); assert.equal(entry.acct, 'ag'); assert.equal(entry.code, s.code);
+      assert.match(await s.g.page.locator('body').innerText(), /戦績はまだ記録されていません/); assert.match(await s.g.page.locator('body').innerText(), /24時間以内・最大5件/);
       assert.equal(await s.g.page.locator('[data-battle-summary]').count(), 0, 'nothing is shown while the result is unconfirmed');
-      let fin = await s.g.page.evaluate(() => window.__raw.game); fin = E.step(fin, 'host', { type: 'heartbeat' }, fin.endAt + 1); assert(fin.result);
-      const node = s.b2(); node.game = fin; node.revision = (node.revision || 0) + 1;         // the host came back and settled the match
-      await s.g.page.evaluate((o) => window.__fbApply(o), { kind: 'set', path: `games/factor/rooms/${s.code}/b2/${gid}`, v: JSON.parse(JSON.stringify(node)) });
-      // (the host stays frozen so its late writes cannot stomp the injected settlement; the guest reads the tree directly)
-      await s.g.page.locator('[data-battle-summary]').first().waitFor({ timeout: 20000 });
-      await sleep(1500); const acct = () => s.tree.games.factor.accounts.ag.stats || {};
-      assert.equal(acct().games, 1, 'the result is recorded once'); assert(acct().roomSeen?.[gid], 'recorded under the match id');
-      const snapStats = JSON.stringify(acct());
-      await s.g.page.reload(); await s.g.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click();
-      await s.g.page.locator('[data-battle-summary]').first().waitFor({ timeout: 20000 }); await sleep(1500);
-      assert.equal(JSON.stringify(acct()), snapStats, 'receiving again (reload before leaving the result) changes nothing: no double stats/EXP/titles');
-      await s.g.page.getByRole('button', { name: /ロビー|部屋を出る|設定にもどる|戻る|もどる/ }).first().click(); await s.g.page.locator(homeSel).first().waitFor({ timeout: 8000 });
-      assert.equal(await s.g.page.evaluate(() => JSON.parse(localStorage.getItem('fxf_b2_pending_v1') || '[]').length), 0, 'the receipt is removed once the result was seen');
+      await settle(); await s.g.page.locator('[data-battle-summary]').first().waitFor({ timeout: 20000 });
+      await banner(s.g.page).and(s.g.page.locator('[data-b2-recover="saved"]')).waitFor({ timeout: 10000 });
+      assert.equal(statsOf(s).games, 1, 'the result is recorded once'); assert(statsOf(s).roomSeen?.[gid], 'recorded under the match id'); assert(s.tree.games.factor.accounts.ag.prof?.onlineLearnSeen?.['room:' + gid], 'learning record saved under the match id');
+      assert.equal(await pendLen(s.g.page), 0, 'the receipt is removed only after every save was confirmed');
+      const snapStats = JSON.stringify(statsOf(s)), snapProf = JSON.stringify(s.tree.games.factor.accounts.ag.prof);
+      await s.g.page.reload(); await openOnline(s.g.page); await sleep(2500);
+      assert.equal(await s.g.page.locator('[data-battle-summary]').count(), 0, 'a saved receipt is not shown again'); assert.equal(JSON.stringify(statsOf(s)), snapStats); assert.equal(JSON.stringify(s.tree.games.factor.accounts.ag.prof), snapProf);
       // tampered / foreign entries are never received
       for (const [label, patch] of [['another account', { acct: 'ah' }], ['another device uid', { uid: 'someone' }], ['another match (players differ)', { state: { ...entry.state, players: ['host', 'other'] } }], ['another match (unknown gid)', { gid: 'NOPE' }]]) {
         const w = s.g.writes.length; await s.g.page.evaluate((e) => localStorage.setItem('fxf_b2_pending_v1', JSON.stringify([e])), { ...entry, ...patch });
-        await s.g.page.reload(); await s.g.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); await sleep(2500);
-        assert.equal(await s.g.page.locator('[data-battle-summary]').count(), 0, 'not received: ' + label); assert.equal(JSON.stringify(acct()), snapStats, 'stats unchanged: ' + label);
+        await s.g.page.reload(); await openOnline(s.g.page); await sleep(2500);
+        assert.equal(await s.g.page.locator('[data-battle-summary]').count(), 0, 'not received: ' + label); assert.equal(JSON.stringify(statsOf(s)), snapStats, 'stats unchanged: ' + label);
         assert.equal(s.g.writes.slice(w).filter((o) => /\/stats/.test(o.path)).length, 0, 'no stats write: ' + label);
       }
-      assert.deepEqual(s.g.errors, []); await s.close(); console.log('PASS receipt: a later-confirmed result is received once via the existing idempotent record; foreign/other-match entries are ignored');
+      assert.deepEqual(s.g.errors, []); await s.close(); console.log('PASS receipt: a later-confirmed result is received once after all saves are confirmed; foreign/other-match entries are ignored');
+    }
+    if (!ONLY || ONLY === 'S7') { // S7: save failures keep the receipt; retries and partial saves never double count; closing while saving is recoverable
+      { // all saves fail, then succeed
+        const s = await setup(b), { gid, settle } = await stopLeave(s); s.ggate.fail = /accounts\/ag\/(stats|prof)/; await settle();
+        await s.g.page.locator('[data-b2-recover="failed"]').waitFor({ timeout: 40000 });
+        assert.equal(await pendLen(s.g.page), 1, 'a failed save keeps the receipt'); assert.equal(statsOf(s).games, undefined); assert.equal(statsOf(s).roomSeen, undefined);
+        await s.g.page.getByRole('button', { name: '再試行' }).click(); await s.g.page.locator('[data-b2-recover="failed"]').waitFor({ timeout: 10000 }); assert.equal(await pendLen(s.g.page), 1, 'a failed retry keeps it too');
+        s.ggate.fail = null; await s.g.page.getByRole('button', { name: '再試行' }).click(); await s.g.page.locator('[data-b2-recover="saved"]').waitFor({ timeout: 15000 });
+        assert.equal(statsOf(s).games, 1); assert(statsOf(s).roomSeen[gid]); assert.equal(await pendLen(s.g.page), 0);
+        assert.deepEqual(s.g.errors.filter((e) => !/NETWORK/.test(String(e))), []); await s.close();
+      }
+      { // partial: the stats save succeeds, the learning record fails -> receipt kept; the retry completes without double counting
+        const s = await setup(b), { gid, settle } = await stopLeave(s); s.ggate.fail = /accounts\/ag\/prof/; await settle();
+        await s.g.page.locator('[data-b2-recover="failed"]').waitFor({ timeout: 40000 });
+        assert.equal(statsOf(s).games, 1, 'the stats part was saved'); assert.equal(await pendLen(s.g.page), 1, 'but the receipt stays until every part is confirmed');
+        const exp1 = statsOf(s).exp; s.ggate.fail = null; await s.g.page.getByRole('button', { name: '再試行' }).click(); await s.g.page.locator('[data-b2-recover="saved"]').waitFor({ timeout: 15000 });
+        assert.equal(statsOf(s).games, 1, 'no double count on the retry'); assert.equal(statsOf(s).exp, exp1, 'EXP is not added twice'); assert(s.tree.games.factor.accounts.ag.prof?.onlineLearnSeen?.['room:' + gid], 'the missing part was completed');
+        assert.equal(await pendLen(s.g.page), 0); await s.close();
+      }
+      { // the page is closed while saving (writes hang) -> receipt kept; next visit completes it exactly once
+        const s = await setup(b), { gid, settle } = await stopLeave(s); s.ggate.frozen = true; await settle();
+        await s.g.page.locator('[data-b2-recover="saving"]').waitFor({ timeout: 20000 }); assert.equal(await pendLen(s.g.page), 1);
+        await s.g.page.reload(); s.ggate.frozen = false; s.ggate.waiters.splice(0).forEach((r) => r());   // the closed page's pending writes may still land: that must not double count either
+        await openOnline(s.g.page); await s.g.page.locator('[data-b2-recover="saved"]').waitFor({ timeout: 25000 });
+        assert.equal(statsOf(s).games, 1, 'exactly once after a close during saving'); assert(statsOf(s).roomSeen[gid]); assert.equal(await pendLen(s.g.page), 0); await s.close();
+      }
+      console.log('PASS save failures: receipt kept on failure/partial/close-while-saving; retries and reloads never double count');
+    }
+    if (!ONLY || ONLY === 'S8') { // S8: a late receipt keeps the real match time and never rewinds day/streak records
+      const tomorrow = new Date(Date.now() + 9 * 3600e3 + 86400e3).toISOString().slice(0, 10), later = Date.now() + 3600e3;
+      const s = await setup(b, { stats: { exp: 100, rating: 1500, lastDay: tomorrow, dayStreak: 5, maxDayStreak: 5, sk: { v: 1, n: 1, best: 1, n0: 0, l: { 'r-x-newer': { t: later, o: 'w', s: 'r' } } } } });
+      const { gid, fin, settle } = await stopLeave(s); fin.time = fin.startAt + 2000;   // the fixture settles the match in the past (as a host that came back would have, well before the receipt)
+      await settle(); await s.g.page.locator('[data-b2-recover="saved"]').waitFor({ timeout: 25000 });
+      const st = statsOf(s), mine = st.sk.l[`r-${s.code}-${gid}`];
+      assert.equal(mine.t, fin.time, 'the streak ledger uses the real match time, not the receipt time'); assert(mine.t < Date.now() - 1, 'earlier than the receipt'); assert.equal(st.sk.l['r-x-newer'].t, later, 'the newer match entry is untouched');
+      assert.equal(st.sk.n, K.replay(0, K.ordered(st.sk.l)).n, 'the run equals a replay in match-time order'); assert.equal(st.sk.best, 1, 'a late arrival never raises the best by itself');
+      assert.equal(st.lastDay, tomorrow, 'the day record is not rewound'); assert.equal(st.dayStreak, 5, 'the consecutive-day count is not changed by an older match');
+      await s.close(); console.log('PASS late receipt: real match time in the ledger, ordered replay, day/streak records not rewound');
+    }
+    if (!ONLY || ONLY === 'S9') { // S9: the match node says another account played this seat -> nothing is recorded
+      const s = await setup(b), { gid, settle } = await stopLeave(s); const w = s.g.writes.length, snap = JSON.stringify(s.tree.games.factor.accounts);
+      await settle({ accounts: { host: 'ah', guest: 'ax' } }); await sleep(12500);
+      assert.equal(await s.g.page.locator('[data-battle-summary]').count(), 0, 'not received'); assert.equal(await pendLen(s.g.page), 0, 'the mismatching entry is dropped');
+      assert.equal(JSON.stringify(s.tree.games.factor.accounts), snap); assert.equal(s.g.writes.slice(w).filter((o) => /accounts\//.test(o.path)).length, 0, 'no stats/prof write');
+      assert.match(await s.g.page.locator('body').innerText(), /別のアカウントの記録/); await s.close(); console.log('PASS account check: the match node account must equal the current account');
     }
   } finally { await b.close(); }
 }
