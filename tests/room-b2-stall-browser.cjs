@@ -62,7 +62,7 @@ const accounts = { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: 
   }
   console.log('PASS real transport: stale get() never overwrites a newer/confirmed state; received result needs no read; failures are unreadable');
 })().then(main).catch((e) => { console.error(e); process.exitCode = 1; });
-async function setup(b, { width = 390, height = 844, duration, stats, holdStats, legacyMode } = {}) {
+async function setup(b, { width = 390, height = 844, duration, stats, holdStats } = {}) {
   const tree = { games: { factor: { accounts: Object.assign(structuredClone(accounts), stats ? { ag: { name: 'Guest', stats } } : {}), onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } }, peers = [];
   // the host stops processing: its writes hang (a backgrounded/suspended phone); `clockOnly` keeps clock/revision moving but freezes the game
   const gate = { frozen: false, waiters: [], clockOnly: false, game: null }, ggate = { frozen: false, waiters: [], fail: null, stats: !!holdStats, sw: [] };
@@ -77,9 +77,8 @@ async function setup(b, { width = 390, height = 844, duration, stats, holdStats,
   await g.page.getByPlaceholder('部屋コード4桁').fill(code); await g.page.getByRole('button', { name: '参加', exact: true }).click();
   await g.page.getByText('部屋コード', { exact: true }).waitFor();
   if (duration) await h.page.getByRole('button', { name: `${duration}秒`, exact: true }).click();
-  if (legacyMode) await h.page.getByRole('button', { name: new RegExp('^' + legacyMode + '：') }).click();
   await h.page.getByRole('button', { name: /対戦スタート/ }).click();
-  if (!legacyMode) for (const t of [h, g]) await t.page.locator('[data-btile]').first().waitFor({ timeout: 15000 });
+  for (const t of [h, g]) await t.page.locator('[data-btile]').first().waitFor({ timeout: 15000 });
   const freeze = async () => { gate.frozen = true; }, resume = async () => { gate.frozen = false; gate.waiters.splice(0).forEach((r) => r()); };
   const b2 = () => Object.values(tree.games.factor.rooms[code].b2)[0], close = async () => { await h.ctx.close(); await g.ctx.close(); };
   return { h, g, tree, code, gate, ggate, freeze, resume, b2, close };
@@ -282,16 +281,6 @@ async function main() {
       for (let i = 0; i < 5 && !answers().length; i++) { await sleep(900); await drag(s.g.page).catch(() => {}); await sleep(900); }
       assert(answers().length >= 1, 'answers work once the start is confirmed'); assert.deepEqual(s.g.errors, []); await s.close();
       console.log('PASS match log: no first answer until the start is confirmed by the server; the open entry is saved once');
-    }
-    if (!ONLY || ONLY === 'S11') { // S11 (Ver.6.3): an old-style room (method A) also saves its start; nothing blocks the answers there
-      const s = await setup(b, { legacyMode: 'A' });
-      const mls = () => ['ah', 'ag'].map((k) => s.tree.games.factor.accounts[k]?.stats?.ml);
-      for (let i = 0; i < 40 && !mls().every(Boolean); i++) await sleep(250);
-      const gid = s.tree.games.factor.rooms[s.code].state.gid;
-      for (const ml of mls()) { assert(ml, 'both players saved the start'); const e = ml.e[`r-${s.code}-${gid}`]; assert(e && /^[0-9a-z]+\|ro\|/.test(e), 'proven open (no flag) for the old-style room: ' + JSON.stringify(ml)); }
-      assert.equal(await s.g.page.locator('[data-b2-record]').count(), 0, 'no answer gate in an old-style room');
-      assert.deepEqual(s.g.errors, []); await s.close();
-      console.log('PASS old-style room: the start is saved (proven) for both players, answers are never blocked');
     }
     if (!ONLY || ONLY === 'S9') { // S9: the match node says another account played this seat -> nothing is recorded
       const s = await setup(b), { gid, settle } = await stopLeave(s); const w = s.g.writes.length, snap = JSON.stringify(s.tree.games.factor.accounts);

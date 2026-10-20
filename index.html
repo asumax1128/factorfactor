@@ -8101,8 +8101,8 @@ async function recordMatch(acct, info) {
       keepStats(s);
       if(info.id){s.roomSeen ||= {};if(s.roomSeen[info.id]){after=s;return s;}s.roomSeen[info.id]=true;}
       const o = info.outcome;
-      // Ver.6.3：順序に依存する記録（旧連勝・正式連勝の最高・リベンジ）は試合ログ stats.ml が持つ。カウンタを動かす前に、別のクライアント(旧版)が書いた形跡があれば隙間(gap)として記録する
-      const ML = window.MatchLogNext, best0 = s.sk && typeof s.sk.best === 'number' ? s.sk.best : 0;
+      // Ver.6.3：B2（info.id あり）の順序に依存する記録（旧連勝・正式連勝の最高・リベンジ）は試合ログ stats.ml が持つ。旧方式ルーム・ゴースト戦は従来のまま（利用されていないため対象外）。カウンタを動かす前に、別のクライアント(旧版)が書いた形跡があれば隙間(gap)として記録する
+      const ML = info.id ? window.MatchLogNext : null, best0 = s.sk && typeof s.sk.best === 'number' ? s.sk.best : 0;
       if (ML) ML.begin(s);
       s.games = (s.games || 0) + 1;
       s[o] = (s[o] || 0) + 1;
@@ -8919,14 +8919,14 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   const isRaid = !!(state && state.raid);
   const isFriend = !!(state && state.friend);   // フレンドレイド（ホストもいっしょに戦う）
   // Ver.6.3：試合が始まったら、結果より先に「開始」を試合ログへ保存する（サーバー確認つき）。連勝・リベンジの順序は、この確認の順で決まる。
-  // 新しいB2の部屋は、保存が確認できるまで最初の回答を止める（recordReady）。旧方式の部屋は止めない（確認が試合の開始前に済めば証拠になり、遅れれば未証明として扱う）
+  // B2の部屋は、保存が確認できるまで最初の回答を止める（recordReady）。旧方式ルームには何もしない
   const [recordReady, setRecordReady] = useState(true), [recordSlow, setRecordSlow] = useState(false);
   useEffect(() => {
     setRecordReady(true); setRecordSlow(false);
     if (!acct || !isReal(acct) || practice || spectator || !FB.db || !FB.uid || !stateLive || stateLive.phase !== 'play' || !stateLive.gid || stateLive.ghostKey) return;
     const st = stateLive, ids = b2List(st.players), me = myUid(), accts = st.accts || {};   // myUid()：すぐ遊ぶ(端末内の部屋)では 'me'
-    if (!ids.includes(me) || (st.cpu || {})[me]) return;
-    const gate = st.rules === 'b2', spec = { id: `r-${code}-${st.gid}`, kind: 'r', opponents: ids.filter(u => u !== me && accts[u]).map(u => accts[u]), startAt: st.startAt };
+    if (st.rules !== 'b2' || !ids.includes(me) || (st.cpu || {})[me]) return;   // 旧方式ルームは対象外（利用されていない）
+    const gate = true, spec = { id: `r-${code}-${st.gid}`, kind: 'r', opponents: ids.filter(u => u !== me && accts[u]).map(u => accts[u]), startAt: st.startAt };
     let dead = false, timer = null; const t0 = Date.now();
     if (gate) setRecordReady(false);
     const attempt = () => openMatch(acct, spec).then(ok => {
