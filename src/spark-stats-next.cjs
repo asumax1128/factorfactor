@@ -28,14 +28,18 @@ function dayStep(s, day) { return Order.dayStep(s, day); }
 
 // Apply a queued entry to a stats object. Returns { status, recorded }.
 // ctx.late = the result reached the account long after the match (a queued result): with no open entry it is then placed nowhere.
+// ctx.now = the caller's clock (server-corrected where available): matches that began very recently are not evidence yet.
+// Counting the match in the totals is separate from the official-streak ledger: a verified result that the ledger cannot place (more than 64
+// matches late) is still counted once, and a repeat is recognised by the match log (or by the ledger when it already holds the id).
 function apply(s, e, ctx = {}) {
   if (!isObj(s) || !validEntry(e)) return { status: 'invalid', recorded: false };
   // Ver.6.3: the order-dependent records are the match log's (src/match-log-next.cjs). `best` is raised only by a proven run, never by the ledger itself.
-  const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0;
+  const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0, now = num(ctx.now) !== null ? ctx.now : Date.now();
   Log.begin(s);
   const r = Streak.applyResult(s, e);
-  if (!r.recorded) { Log.finish(s, { best0 }); return r; }
-  Log.settle(s, { id: e.id, kind: 's', outcome: e.o, late: !!ctx.late });
+  if (r.status === 'duplicate') { Log.finish(s, { best0, now }); return r; }
+  const st = Log.settle(s, { id: e.id, kind: 's', outcome: e.o, late: !!ctx.late });
+  if (st.status === 'duplicate') { Log.finish(s, { best0, now }); return { status: 'duplicate', recorded: false }; }
   s.sg = (num(s.sg) || 0) + 1;
   if (e.o === 'w') s.sWins = (num(s.sWins) || 0) + 1;
   if (e.o === 'l') s.sLoss = (num(s.sLoss) || 0) + 1;
@@ -43,7 +47,7 @@ function apply(s, e, ctx = {}) {
   if (e.h === 1) s.og = (num(s.og) || 0) + 1;
   if (e.o === 'w' && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
   dayStep(s, jstDay(e.t));
-  Log.finish(s, { best0 });
+  Log.finish(s, { best0, now });
   return r;
 }
 

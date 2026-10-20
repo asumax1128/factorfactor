@@ -276,11 +276,19 @@ async function main() {
       s.ggate.stats = false; s.ggate.sw.splice(0).forEach((r) => r());
       await s.g.page.locator('[data-b2-record]').waitFor({ state: 'detached', timeout: 8000 });
       const ml = () => statsOf(s).ml; for (let i = 0; i < 20 && !ml(); i++) await sleep(300);
-      assert(ml() && Object.keys(ml().e).length === 1 && /^1\|ro\|/.test(Object.values(ml().e)[0]), 'the open entry was saved: ' + JSON.stringify(ml()));
+      assert(ml() && Object.keys(ml().e).length === 1 && /^1\|rou\|/.test(Object.values(ml().e)[0]), 'the open entry was saved, but it was held past the match start: saved as unproven (u), never evidence: ' + JSON.stringify(ml()));
       const answers = () => inputsOf(s, 'guest').filter((k) => /^a\d+$/.test(k));
       for (let i = 0; i < 5 && !answers().length; i++) { await sleep(900); await drag(s.g.page).catch(() => {}); await sleep(900); }
       assert(answers().length >= 1, 'answers work once the start is confirmed'); assert.deepEqual(s.g.errors, []); await s.close();
       console.log('PASS match log: no first answer until the start is confirmed by the server; the open entry is saved once');
+    }
+    if (!ONLY || ONLY === 'S10b') { // S10b (Ver.6.3): a normal start is saved AND proven (confirmed before the match began) for both players
+      const s = await setup(b);
+      const mls = () => ['ah', 'ag'].map((k) => s.tree.games.factor.accounts[k]?.stats?.ml);
+      for (let i = 0; i < 60 && !mls().every((m) => m && Object.values(m.e).some((v) => /^1\|ro\|/.test(v))); i++) await sleep(250);
+      for (const ml of mls()) { assert(ml, 'both players saved the start'); assert(Object.values(ml.e).some((v) => /^1\|ro\|/.test(v)), 'saved and proven (no q, no u): ' + JSON.stringify(ml)); }
+      assert.equal(await s.g.page.locator('[data-b2-record]').count(), 0); assert.deepEqual(s.g.errors, []); await s.close();
+      console.log('PASS match log: a normal B2 start is saved and proven for both players');
     }
     if (!ONLY || ONLY === 'S9') { // S9: the match node says another account played this seat -> nothing is recorded
       const s = await setup(b), { gid, settle } = await stopLeave(s); const w = s.g.writes.length, snap = JSON.stringify(s.tree.games.factor.accounts);

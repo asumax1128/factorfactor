@@ -242,30 +242,38 @@ function create({
     const m=(await db.ref(`${ROOT}/matches/${matchId}`).get()).val();watchMatch(m);return m;
   }
   // Ver.6.0 A7: a settled Spark match (human / BOT-type, not a ghost match) also counts for the official win streak.
-  const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
+  const skQueue = StreakQueue.create({ db, key, storage: queueStorage, now });
   const skFlush = () => skQueue.flush();
   // Ver.6.3: the START of a counted match (human or BOT-type; not ghost / hyper / self practice) is saved in the match log (stats.ml) and confirmed by the
   // server before the first answer. The result later fills the same entry, so a late or queued result cannot land inside an already proven run.
+  const handed = new Set();
   const startsCount = (m) => !!m && m.opponent?.key !== key && (!m.opponent || m.opponent.type === "bot");
   const opened = new Map();
+  // Resolves { saved, status }: saved = the server confirmed the commit. Only status 'opened' can become evidence (see MatchLog.prove); 'full' = not tracked,
+  // the match is still played (the gate opens) but its result will not be evidence.
   function ensureOpen(m) {
     const mid = `s-${m.id}`;
     if (opened.has(mid)) return opened.get(mid);
     const p = (async () => {
       try {
+        let status = "failed";
         const r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
           st = st || {};
           Keep.ensureKeep(st, { ".sv": "timestamp" });
-          MatchLog.open(st, { id: mid, kind: "s", startAt: m.game?.startAt, now: now() });
+          status = MatchLog.open(st, { id: mid, kind: "s", startAt: m.game?.startAt, now: now() }).status;
           return st;
         });
-        return !!(r && r.committed);
-      } catch (_) { return false; }
-    })().then((ok) => { if (!ok) opened.delete(mid); return ok; });
+        if (!r || !r.committed) return { saved: false, status: "failed" };
+        const confirmedAt = now();   // the commit happened before this moment
+        if (status === "opened" || status === "exists")
+          await Promise.race([db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => { if (!st) return st; MatchLog.prove(st, { id: mid, now: confirmedAt }); return st; }).catch(() => {}), new Promise((res) => setTimeout(res, 1500))]);
+        return { saved: true, status };
+      } catch (_) { return { saved: false, status: "failed" }; }
+    })().then((o) => { if (!o.saved) opened.delete(mid); return o; });
     opened.set(mid, p);
     return p;
   }
-  const openGate = (m) => Promise.race([ensureOpen(m), new Promise((res) => setTimeout(() => res(false), 5000))]);
+  const openGate = (m) => Promise.race([ensureOpen(m).then((o) => o.saved), new Promise((res) => setTimeout(() => res(false), 5000))]);
   const skEnqueue = (e) => skQueue.enqueue(e);
   async function apply(m) {
     if (m.phase !== "settled" || !m.receipt) return;
@@ -313,7 +321,10 @@ function create({
     });
     // human matches and BOT-type matches count; learned-ghost / hyper matches and self practice do not
     const countsForStreak = !m.opponent || (m.opponent.type === "bot" && m.opponent.key !== key);
-    if (fresh && countsForStreak) {
+    // The stats hand-over is rebuilt from the verified receipt on every first sight in this session, NOT only when the profile was just saved: a stop between
+    // the profile save and the queue write would otherwise never reach the stats. The stats side is idempotent by match id (match log / ledger).
+    if (countsForStreak && !handed.has(m.id)) {
+      handed.add(m.id);
       const o = m.receipt.result.draw ? "d" : m.members.find((x) => x.uid === m.receipt.result.winner)?.key === key ? "w" : "l";
       const opp = m.members.find((x) => x.key !== key), their = opp && m.receipt.players[opp.key];
       const g = o === "w" && !m.opponent && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;

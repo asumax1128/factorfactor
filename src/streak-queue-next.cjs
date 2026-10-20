@@ -6,13 +6,15 @@ const Streak = require('./streak-next.cjs');
 const Spark = require('./spark-stats-next.cjs');
 const Keep = require('./title-keep-next.cjs');
 
+// The hand-over queue is NOT the streak ledger: a verified result waits here until the stats committed it, however many matches have passed (an entry is ~100 bytes).
+const QUEUE_MAX = 500;
 const LATE_MS = 120000;   // a Spark result applied this long after the match, with no open entry, is placed nowhere (src/match-log-next.cjs)
-function create({ db, key, storage }) {
+function create({ db, key, storage, now = Date.now }) {
   const qKey = `fxf_sk_queue_v1:${key}`;
   const read = () => {
     try {
       const q = JSON.parse(storage && storage.getItem(qKey) || '[]');
-      return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-Streak.LEDGER_MAX) : [];
+      return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-QUEUE_MAX) : [];
     } catch (_) { return []; }
   };
   const write = (q) => {
@@ -21,7 +23,9 @@ function create({ db, key, storage }) {
   let running = null;
   function flush() {
     if (running) return running;
-    running = (async () => {
+    // The body runs on a microtask AFTER `running` is set: an async body that finishes synchronously (an empty queue) would clear `running` first and then have it
+    // overwritten by its own promise, and every later flush of this session would return that stale promise without running.
+    running = Promise.resolve().then(async () => {
       try {
         for (;;) {
           const q = read();
@@ -32,7 +36,7 @@ function create({ db, key, storage }) {
             r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
               st = st || {};
               Keep.ensureKeep(st, { '.sv': 'timestamp' });
-              Spark.apply(st, e, { late: Date.now() - e.t > LATE_MS });
+              Spark.apply(st, e, { late: now() - e.t > LATE_MS, now: now() });
               return st;
             });
           } catch (_) { return { left: q.length }; }
@@ -40,14 +44,14 @@ function create({ db, key, storage }) {
           write(read().filter((x) => x.id !== e.id));
         }
       } finally { running = null; }
-    })();
+    });
     return running;
   }
   function enqueue(e) {
     if (!Spark.validEntry(e)) return false;
     const q = read();
     if (!q.some((x) => x.id === e.id)) q.push(e);
-    write(q.slice(-Streak.LEDGER_MAX));
+    write(q.slice(-QUEUE_MAX));
     return true;
   }
   return { enqueue, flush, pending: () => read().length };

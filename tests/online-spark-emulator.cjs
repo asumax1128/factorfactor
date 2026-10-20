@@ -9,7 +9,7 @@ const {
 } = require("@firebase/rules-unit-testing");
 const { set, ref, get } = require("firebase/database");
 const Spark = require("../src/online-spark-client.cjs");
-const memStore = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+const memStore = () => { const m = new Map(), o = { failSet: false, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { if (o.failSet) throw Error('storage'); m.set(k, String(v)); }, removeItem: (k) => m.delete(k) }; return o; };
 const original = JSON.parse(
   fs.readFileSync(process.env.RTDB_RULES_BASELINE_FILE, "utf8"),
 );
@@ -210,7 +210,25 @@ assert.deepEqual(restored, original);
     await a.client.request({ type: "leave", matchId: ma.id });
     await c.client.request({ type: "heartbeat", matchId: ma.id });
     await b.client.request({ type: "leave", matchId: mb.id });
+    d.store.failSet = true;   // Ver.6.3: the stop between the profile save and the stats queue write (the queue entry is lost)
     await d.client.request({ type: "heartbeat", matchId: mb.id });
+    d.store.failSet = false;
+    {
+      const sid = require("../src/match-log-next.cjs").safeId("s-" + mb.id);
+      const before = (await d.db.ref("games/factor/accounts/ad/stats").get()).val() || {};
+      assert(!before.sg, "the interrupted client did not reach the stats (the queue write was lost)");
+      const dp = (await d.db.ref("games/factor/onlineSparkV1/profiles/ad").get()).val();
+      assert(dp.processed[mb.id], "the profile side already saved the result (processed)");
+      d.client.close();
+      d.client = Spark.create({ db: d.db, uid: d.uid, account: { key: d.key, name: accounts[d.key].name }, queueStorage: (d.store = memStore()) });
+      await d.client.request({ type: "status" });   // sees the settled, unacknowledged match again: the stats hand-over is rebuilt from the verified receipt
+      let st;
+      for (let i = 0; i < 60; i++) { st = (await d.db.ref("games/factor/accounts/ad/stats").get()).val(); if (st?.sg === 1 && st.ml?.e?.[sid] && !/^[^|]*\|so/.test(st.ml.e[sid])) break; await new Promise((r) => setTimeout(r, 250)); }
+      assert.equal(st.sg, 1, "counted exactly once after the interruption: " + JSON.stringify({ sg: st.sg, ml: st.ml }));
+      await d.client.request({ type: "status" }); await new Promise((r) => setTimeout(r, 500));
+      assert.equal(((await d.db.ref("games/factor/accounts/ad/stats").get()).val()).sg, 1, "a repeated sight does not count again");
+      console.log("PASS Spark: a stop between the profile save and the stats queue write is rebuilt from the receipt, counted once");
+    }
     await Promise.all(
       [a, c].map((u) =>
         u.client.request({ type: "heartbeat", matchId: ma.id }),

@@ -1542,6 +1542,8 @@
       var CAP = 64;
       var OPEN_MAX = 24;
       var PL_MAX = 24;
+      var STABLE_MS = 1e4;
+      var CONC_S = 2;
       var isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
       var num = (x) => typeof x === "number" && Number.isFinite(x) ? x : null;
       var OUT = ["w", "l", "d"];
@@ -1570,26 +1572,47 @@
       };
       function format(e) {
         const v = (e.v || []).map((x) => enc(x.k) + (x.o ? "=" + x.o : "")).join(",");
-        return e.n.toString(36) + "|" + e.k + e.r + (e.f || "") + "|" + v;
+        return e.n.toString(36) + "|" + e.k + e.r + (e.f || "") + "|" + v + "|" + Math.max(0, Math.floor(e.s || 0)).toString(36);
       }
       function parse(id, str) {
         if (typeof str !== "string") return null;
         const p = str.split("|");
         if (p.length < 3) return null;
-        const n = parseInt(p[0], 36), m = /^([rgs])([owldx])([uL]?)$/.exec(p[1]);
+        const n = parseInt(p[0], 36), m = /^([rgs])([owldx])([uLq]?)$/.exec(p[1]);
         if (!Number.isFinite(n) || !m) return null;
         const v = p[2] ? p[2].split(",").map((t) => {
           const i = t.indexOf("=");
           return i < 0 ? { k: dec(t) } : { k: dec(t.slice(0, i)), o: t.slice(i + 1) };
         }) : [];
-        return { id, n, k: m[1], r: m[2], f: m[3], v };
+        const sec = p[3] === void 0 ? NaN : parseInt(p[3], 36);
+        return { id, n, k: m[1], r: m[2], f: Number.isFinite(sec) ? m[3] : m[3] || "u", v, s: Number.isFinite(sec) ? sec : 0 };
       }
-      var entries = (ml) => Object.keys(ml.e).map((id) => parse(id, ml.e[id])).filter(Boolean).sort((a, b) => a.n - b.n);
+      var entries = (ml) => Object.keys(ml.e).map((id) => parse(id, ml.e[id])).filter(Boolean).sort((a, b) => a.s - b.s || a.n - b.n);
+      var headS = (ml) => Math.max(num(ml.f.hs) || 0, ...Object.keys(ml.e).map((id) => {
+        const e = parse(id, ml.e[id]);
+        return e ? e.s : 0;
+      }));
+      function weakFlags(list, now) {
+        const w = list.map((e) => !!e.f);
+        list.forEach((e, i) => {
+          if (!w[i] && num(now) !== null && now - e.s * 1e3 < STABLE_MS) w[i] = true;
+        });
+        let p = -1;
+        list.forEach((e, i) => {
+          if (e.f) return;
+          if (p >= 0 && e.s - list[p].s < CONC_S) {
+            w[i] = true;
+            w[p] = true;
+          }
+          p = i;
+        });
+        return w;
+      }
       var goodMl = (ml) => isObj(ml) && ml.v === 1 && isObj(ml.e) && num(ml.n) !== null && isObj(ml.f) && isObj(ml.ev);
       var inLegacy = (k) => k === "r" || k === "g";
       var inOfficial = (k) => k === "r" || k === "s";
       var inRevenge = (k) => k === "r" || k === "g";
-      function consume(st, e, mx) {
+      function consume(st, e, mx, weak) {
         if (e.r === "x") {
           st.lp = Math.max(0, Math.floor(Number(e.v[0] && e.v[0].k) || 0));
           st.lc = 0;
@@ -1603,7 +1626,7 @@
           if (inRevenge(e.k)) e.v.forEach((x) => st.pl.delete(x.k));
           return;
         }
-        const proven = !e.f, late = e.f === "L";
+        const proven = !weak, late = e.f === "L";
         if (inLegacy(e.k)) {
           if (!late) st.lp = e.r === "w" ? st.lp + 1 : e.r === "l" ? 0 : st.lp;
           if (proven) {
@@ -1635,14 +1658,14 @@
         }
       }
       var foldState = (ml) => ({ lp: Math.max(0, num(ml.f.lp) || 0), lc: Math.max(0, num(ml.f.lc) || 0), oc: Math.max(0, num(ml.f.oc) || 0), pl: new Set(Array.isArray(ml.f.pl) ? ml.f.pl : []), rc: Math.max(0, num(ml.f.rc) || 0) });
-      function derive(ml) {
-        const st = foldState(ml), mx = { lg: st.lc, og: st.oc };
-        for (const e of entries(ml)) consume(st, e, mx);
+      function derive(ml, now = Infinity) {
+        const st = foldState(ml), mx = { lg: st.lc, og: st.oc }, list = entries(ml), weak = weakFlags(list, now);
+        list.forEach((e, i) => consume(st, e, mx, weak[i]));
         return { progress: { streak: st.lp }, evidence: { lg: mx.lg, og: mx.og, rv: st.rc }, pending: [...st.pl] };
       }
       var digestOf = (s) => [s.games, s.sg, s.streak, s.maxStreak, s.revenges, s.sk && s.sk.n, s.sk && s.sk.best].map((x) => num(x) === null ? 0 : x).join(",");
       function fresh(s) {
-        return { v: 1, n: 0, e: {}, f: { lp: Math.max(0, num(s.streak) || 0), lc: 0, oc: 0, pl: [], rc: 0 }, ev: { lg: 0, og: 0, rv: 0 }, d: "" };
+        return { v: 1, n: 0, e: {}, f: { lp: Math.max(0, num(s.streak) || 0), lc: 0, oc: 0, pl: [], rc: 0, hs: 0 }, ev: { lg: 0, og: 0, rv: 0 }, d: "" };
       }
       function begin(s) {
         if (!isObj(s)) return { status: "invalid" };
@@ -1653,7 +1676,7 @@
         }
         if (s.ml.d !== digestOf(s)) {
           const ml = s.ml, gid = "gap" + (ml.n + 1).toString(36);
-          ml.e = { ...ml.e, [gid]: format({ n: ++ml.n, k: "r", r: "x", f: "", v: [{ k: String(Math.max(0, num(s.streak) || 0)) }] }) };
+          ml.e = { ...ml.e, [gid]: format({ n: ++ml.n, k: "r", r: "x", f: "", s: headS(ml), v: [{ k: String(Math.max(0, num(s.streak) || 0)) }] }) };
           compact(ml);
           ml.d = digestOf(s);
           return { status: "gap" };
@@ -1663,14 +1686,16 @@
       function compact(ml) {
         const list = entries(ml);
         if (list.length <= CAP) return;
-        const st = foldState(ml), ob = Array.isArray(ml.f.ob) ? ml.f.ob.slice() : [], e2 = { ...ml.e };
-        for (const e of list.slice(0, list.length - CAP)) {
-          consume(st, e, null);
+        const st = foldState(ml), ob = Array.isArray(ml.f.ob) ? ml.f.ob.slice() : [], e2 = { ...ml.e }, weak = weakFlags(list, Infinity);
+        let hs = num(ml.f.hs) || 0;
+        for (const [i, e] of list.slice(0, list.length - CAP).entries()) {
+          consume(st, e, null, weak[i]);
+          hs = Math.max(hs, e.s);
           if (e.r === "o") ob.push(e.id + "|" + e.k + "|" + e.v.map((x) => enc(x.k)).join(","));
           delete e2[e.id];
         }
         ml.e = e2;
-        ml.f = { lp: st.lp, lc: st.lc, oc: st.oc, pl: [...st.pl], rc: st.rc, ...ob.length ? { ob } : {} };
+        ml.f = { lp: st.lp, lc: st.lc, oc: st.oc, pl: [...st.pl], rc: st.rc, hs, ...ob.length ? { ob } : {} };
       }
       var unresolved = (ml) => Object.values(ml.e).filter((x) => /^[^|]*\|[rgs]o/.test(x)).length + (Array.isArray(ml.f.ob) ? ml.f.ob.length : 0);
       var orphanIndex = (ml, id) => Array.isArray(ml.f.ob) ? ml.f.ob.findIndex((x) => x.split("|")[0] === id) : -1;
@@ -1682,10 +1707,20 @@
         const ml = s.ml;
         if (ml.e[key] || orphanIndex(ml, key) >= 0) return { status: "exists" };
         if (unresolved(ml) >= OPEN_MAX) return { status: "full" };
-        const proven = num(startAt) !== null && num(now) !== null && now <= startAt;
-        ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: "o", f: proven ? "" : "u", v: opponents.filter(Boolean).map((k) => ({ k })) }) };
+        const sec = num(startAt) !== null ? Math.floor(startAt / 1e3) : 0, timely = sec > 0 && num(now) !== null && now <= startAt;
+        ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: "o", f: timely ? "q" : "u", s: timely ? sec : Math.max(sec, headS(ml)), v: opponents.filter(Boolean).map((k) => ({ k })) }) };
         compact(ml);
-        return { status: proven ? "opened" : "opened-late" };
+        return { status: timely ? "opened" : "opened-late" };
+      }
+      function prove(s, { id, now }) {
+        const key = safeId(id);
+        if (!isObj(s) || !key || !goodMl(s.ml)) return { status: "invalid" };
+        const ml = s.ml, cur = ml.e[key] && parse(key, ml.e[key]);
+        if (!cur) return { status: "none" };
+        if (cur.f !== "q") return { status: "unchanged" };
+        const ok = num(now) !== null && now <= cur.s * 1e3 - 500;
+        ml.e = { ...ml.e, [key]: format(ok ? { ...cur, f: "" } : { ...cur, f: "u", s: Math.max(cur.s, headS(ml)) }) };
+        return { status: ok ? "proven" : "demoted" };
       }
       function settle(s, { id, kind, outcome, opponents = [], late = false }) {
         if (!isObj(s) || !KINDS.includes(kind) || !OUT.includes(outcome)) return { status: "invalid" };
@@ -1704,7 +1739,7 @@
           ml.f = { ...ml.f, ob: ml.f.ob.filter((_, i) => i !== oi) };
           if (!ml.f.ob.length) delete ml.f.ob;
         }
-        ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: outcome, f: late || oi >= 0 ? "L" : "u", v }) };
+        ml.e = { ...ml.e, [key]: format({ n: ++ml.n, k: kind, r: outcome, f: late || oi >= 0 ? "L" : "u", s: headS(ml), v }) };
         compact(ml);
         return { status: oi >= 0 ? "orphan" : "appended" };
       }
@@ -1726,9 +1761,9 @@
         }
         return { status: "none" };
       }
-      function finish(s, { best0 = 0 } = {}) {
+      function finish(s, { best0 = 0, now } = {}) {
         if (!isObj(s) || !goodMl(s.ml)) return { status: "invalid" };
-        const ml = s.ml, d = derive(ml);
+        const ml = s.ml, d = derive(ml, num(now) === null ? Infinity : now);
         s.streak = d.progress.streak;
         if (d.evidence.lg > (num(s.maxStreak) || 0)) s.maxStreak = d.evidence.lg;
         const og = Math.max(num(best0) || 0, d.evidence.og);
@@ -1740,7 +1775,7 @@
         ml.d = digestOf(s);
         return { status: "ok", ...d };
       }
-      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, settle, voidOpen, finish, compact, unresolved, goodMl };
+      module.exports = { CAP, OPEN_MAX, PL_MAX, safeId, format, parse, entries, derive, digestOf, begin, open, prove, settle, voidOpen, finish, STABLE_MS, CONC_S, headS, compact, unresolved, goodMl };
     }
   });
 
@@ -1762,14 +1797,18 @@
       }
       function apply(s, e, ctx = {}) {
         if (!isObj(s) || !validEntry(e)) return { status: "invalid", recorded: false };
-        const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0;
+        const best0 = isObj(s.sk) && num(s.sk.best) !== null ? s.sk.best : 0, now = num(ctx.now) !== null ? ctx.now : Date.now();
         Log.begin(s);
         const r = Streak.applyResult(s, e);
-        if (!r.recorded) {
-          Log.finish(s, { best0 });
+        if (r.status === "duplicate") {
+          Log.finish(s, { best0, now });
           return r;
         }
-        Log.settle(s, { id: e.id, kind: "s", outcome: e.o, late: !!ctx.late });
+        const st = Log.settle(s, { id: e.id, kind: "s", outcome: e.o, late: !!ctx.late });
+        if (st.status === "duplicate") {
+          Log.finish(s, { best0, now });
+          return { status: "duplicate", recorded: false };
+        }
         s.sg = (num(s.sg) || 0) + 1;
         if (e.o === "w") s.sWins = (num(s.sWins) || 0) + 1;
         if (e.o === "l") s.sLoss = (num(s.sLoss) || 0) + 1;
@@ -1781,7 +1820,7 @@
         if (e.h === 1) s.og = (num(s.og) || 0) + 1;
         if (e.o === "w" && e.g === 1) s.giant250Wins = (num(s.giant250Wins) || 0) + 1;
         dayStep(s, jstDay(e.t));
-        Log.finish(s, { best0 });
+        Log.finish(s, { best0, now });
         return r;
       }
       module.exports = { apply, validEntry, dayStep, canon, jstDay };
@@ -1902,13 +1941,14 @@
       var Streak = require_streak_next();
       var Spark = require_spark_stats_next();
       var Keep = require_title_keep_next();
+      var QUEUE_MAX = 500;
       var LATE_MS = 12e4;
-      function create({ db, key, storage }) {
+      function create({ db, key, storage, now = Date.now }) {
         const qKey = `fxf_sk_queue_v1:${key}`;
         const read = () => {
           try {
             const q = JSON.parse(storage && storage.getItem(qKey) || "[]");
-            return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-Streak.LEDGER_MAX) : [];
+            return Array.isArray(q) ? q.filter(Spark.validEntry).slice(-QUEUE_MAX) : [];
           } catch (_) {
             return [];
           }
@@ -1923,7 +1963,7 @@
         let running = null;
         function flush() {
           if (running) return running;
-          running = (async () => {
+          running = Promise.resolve().then(async () => {
             try {
               for (; ; ) {
                 const q = read();
@@ -1934,7 +1974,7 @@
                   r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
                     st = st || {};
                     Keep.ensureKeep(st, { ".sv": "timestamp" });
-                    Spark.apply(st, e, { late: Date.now() - e.t > LATE_MS });
+                    Spark.apply(st, e, { late: now() - e.t > LATE_MS, now: now() });
                     return st;
                   });
                 } catch (_) {
@@ -1946,14 +1986,14 @@
             } finally {
               running = null;
             }
-          })();
+          });
           return running;
         }
         function enqueue(e) {
           if (!Spark.validEntry(e)) return false;
           const q = read();
           if (!q.some((x) => x.id === e.id)) q.push(e);
-          write(q.slice(-Streak.LEDGER_MAX));
+          write(q.slice(-QUEUE_MAX));
           return true;
         }
         return { enqueue, flush, pending: () => read().length };
@@ -2219,8 +2259,9 @@
           watchMatch(m);
           return m;
         }
-        const skQueue = StreakQueue.create({ db, key, storage: queueStorage });
+        const skQueue = StreakQueue.create({ db, key, storage: queueStorage, now });
         const skFlush = () => skQueue.flush();
+        const handed = /* @__PURE__ */ new Set();
         const startsCount = (m) => {
           var _a;
           return !!m && ((_a = m.opponent) == null ? void 0 : _a.key) !== key && (!m.opponent || m.opponent.type === "bot");
@@ -2231,25 +2272,35 @@
           if (opened.has(mid)) return opened.get(mid);
           const p = (async () => {
             try {
+              let status = "failed";
               const r = await db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
                 var _a;
                 st = st || {};
                 Keep.ensureKeep(st, { ".sv": "timestamp" });
-                MatchLog.open(st, { id: mid, kind: "s", startAt: (_a = m.game) == null ? void 0 : _a.startAt, now: now() });
+                status = MatchLog.open(st, { id: mid, kind: "s", startAt: (_a = m.game) == null ? void 0 : _a.startAt, now: now() }).status;
                 return st;
               });
-              return !!(r && r.committed);
+              if (!r || !r.committed) return { saved: false, status: "failed" };
+              const confirmedAt = now();
+              if (status === "opened" || status === "exists")
+                await Promise.race([db.ref(`games/factor/accounts/${key}/stats`).transaction((st) => {
+                  if (!st) return st;
+                  MatchLog.prove(st, { id: mid, now: confirmedAt });
+                  return st;
+                }).catch(() => {
+                }), new Promise((res) => setTimeout(res, 1500))]);
+              return { saved: true, status };
             } catch (_) {
-              return false;
+              return { saved: false, status: "failed" };
             }
-          })().then((ok) => {
-            if (!ok) opened.delete(mid);
-            return ok;
+          })().then((o) => {
+            if (!o.saved) opened.delete(mid);
+            return o;
           });
           opened.set(mid, p);
           return p;
         }
-        const openGate = (m) => Promise.race([ensureOpen(m), new Promise((res) => setTimeout(() => res(false), 5e3))]);
+        const openGate = (m) => Promise.race([ensureOpen(m).then((o) => o.saved), new Promise((res) => setTimeout(() => res(false), 5e3))]);
         const skEnqueue = (e) => skQueue.enqueue(e);
         async function apply(m) {
           var _a;
@@ -2294,7 +2345,8 @@
             return p;
           });
           const countsForStreak = !m.opponent || m.opponent.type === "bot" && m.opponent.key !== key;
-          if (fresh && countsForStreak) {
+          if (countsForStreak && !handed.has(m.id)) {
+            handed.add(m.id);
             const o = m.receipt.result.draw ? "d" : ((_a = m.members.find((x) => x.uid === m.receipt.result.winner)) == null ? void 0 : _a.key) === key ? "w" : "l";
             const opp = m.members.find((x) => x.key !== key), their = opp && m.receipt.players[opp.key];
             const g = o === "w" && !m.opponent && their && typeof their.before === "number" && typeof mine.before === "number" && their.before - mine.before >= 250 ? 1 : 0;

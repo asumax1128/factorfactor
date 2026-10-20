@@ -96,7 +96,7 @@ test("a throwing keep module is swallowed and the transaction still completes", 
 });
 test("the freeze helper is wired only into the stats transactions that run before counters change (stats helper, recordMatch, and the match-log open that changes no counter)", () => {
   assert.equal((html.match(/keepStats\(s\)/g) || []).length, 3);
-  assert.match(html, /async function openMatch[\s\S]*?s = s \|\| \{\}; keepStats\(s\); window\.MatchLogNext\.open\(/);
+  assert.match(html, /async function openMatch[\s\S]*?s = s \|\| \{\}; keepStats\(s\); status = ML\.open\(/);
   assert.match(stats, /keepStats\(s\);\s*out = fn\(s\)/);
   assert.match(record, /s = s \|\| \{\};\s*keepStats\(s\);/);
 });

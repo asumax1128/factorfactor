@@ -8078,11 +8078,18 @@ async function b2Confirm(acct, gid, matchDay) {
 /* Ver.6.3：試合の開始を「試合ログ(stats.ml)」へ open として保存する。サーバーが確定した順番がこの試合の位置になり、結果は後から同じ位置へ入る（src/match-log-next.cjs）。
    トランザクションはサーバー確認で解決する（オフラインでは解決しない）ので、true が返った＝サーバーに保存された。試合ログが無い環境では門番を立てない（true） */
 async function openMatch(acct, spec) {
-  if (!acct || !acct.key || !FB.db || !window.MatchLogNext) return true;
+  if (!acct || !acct.key || !FB.db || !window.MatchLogNext) return { saved: true, status: 'none' };
+  const ML = window.MatchLogNext, ref = FB.db.ref(`games/factor/accounts/${acct.key}/stats`);
   try {
-    const r = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { s = s || {}; keepStats(s); window.MatchLogNext.open(s, { ...spec, now: fbNow() }); return s; });
-    return !!(r && r.committed);
-  } catch (e) { return false; }
+    let status = 'failed';
+    const r = await ref.transaction(s => { s = s || {}; keepStats(s); status = ML.open(s, { ...spec, now: fbNow() }).status; return s; });
+    if (!r || !r.committed) return { saved: false, status: 'failed' };
+    // 保存成功(saved)と、称号の証拠にできる open(opened のみ)は別。サーバーが確定を返した時刻(= コミットはそれより前)で「開始前に保存できた」かを証明する。
+    // full(未解決が上限)・opened-late は保存はされても証拠にならない（試合は止めない）
+    const confirmedAt = fbNow();
+    if (status === 'opened' || status === 'exists') await Promise.race([ref.transaction(s => { if (!s) return s; ML.prove(s, { id: spec.id, now: confirmedAt }); return s; }).catch(() => {}), new Promise(res => setTimeout(res, 1500))]);   // 証明の書き込みを待つのは最大1.5秒（待てなければ未証明のまま＝証拠にならないだけ）
+    return { saved: true, status };
+  } catch (e) { return { saved: false, status: 'failed' }; }
 }
 async function recordMatch(acct, info) {
   const rcpt = typeof B2_RCPT !== 'undefined' ? B2_RCPT : null;   // （単体試験の抜き出しでは未定義）
@@ -8161,7 +8168,7 @@ async function recordMatch(acct, info) {
       if (!late) s.last = Date.now(); else if (timeKnown) s.last = Math.max(s.last || 0, rcpt.at[info.id]);   // 遅れた受領は「最後の試合時刻」を受領時刻に進めない
       /* Ver.6.0 A7：正式連勝（stats.sk）。試合の台帳を時刻順に並べ直して数える（重複・遅れて届いた結果・再送に強い）。旧 stats.streak / maxStreak は懸賞金・お尋ね者・プロフィール用にそのまま残す */
       try { const K = window.StreakNext; if (K && info.sk && timeKnown) K.applyResult(s, info.sk); } catch (err) {}
-      if (ML) ML.finish(s, { best0 });   // 進捗(streak)を書き、最高連勝・正式連勝の最高・リベンジ回数を「証明できた分だけ」引き上げる（既存の値は下げない）
+      if (ML) ML.finish(s, { best0, now: fbNow() });   // 進捗(streak)を書き、最高連勝・正式連勝の最高・リベンジ回数を「証明できた分だけ」引き上げる（既存の値は下げない）
       holdRetiredCounters(before, s);
       after = s;
       return s;
@@ -8929,9 +8936,9 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     const gate = true, spec = { id: `r-${code}-${st.gid}`, kind: 'r', opponents: ids.filter(u => u !== me && accts[u]).map(u => accts[u]), startAt: st.startAt };
     let dead = false, timer = null; const t0 = Date.now();
     if (gate) setRecordReady(false);
-    const attempt = () => openMatch(acct, spec).then(ok => {
+    const attempt = () => openMatch(acct, spec).then(res => {
       if (dead) return;
-      if (ok) { setRecordReady(true); setRecordSlow(false); return; }
+      if (res.saved) { setRecordReady(true); setRecordSlow(false); return; }   // 保存できた（証拠になるかは res.status。full などでも対戦は止めない）
       if (Date.now() - t0 > 8000) setRecordSlow(true);
       timer = setTimeout(attempt, 1500);
     });

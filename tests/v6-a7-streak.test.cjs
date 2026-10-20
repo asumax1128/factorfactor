@@ -127,9 +127,9 @@ test("catalog names match", () => {
   }
   for (const id of ["streak10", "streak30", "streak50"]) assert.equal(Keep.LEGACY_TESTS[id]({ maxStreak: 99 }), true);
 });
-test("Spark client wiring: only a freshly processed, non-ghost settled match is queued; flush on start and after apply", () => {
+test("Spark client wiring: every non-ghost settled match is handed over once per session (rebuilt from the verified receipt, not only when the profile was just saved); flush on start and after apply", () => {
   const src = fs.readFileSync("src/online-spark-client.cjs", "utf8");
-  assert.match(src, /const countsForStreak = !m\.opponent \|\| \(m\.opponent\.type === "bot" && m\.opponent\.key !== key\);\n    if \(fresh && countsForStreak\)/);
+  assert.match(src, /const countsForStreak = !m\.opponent \|\| \(m\.opponent\.type === "bot" && m\.opponent\.key !== key\);[\s\S]*?if \(countsForStreak && !handed\.has\(m\.id\)\)/);
   assert.match(src, /skEnqueue\(\{\n\s+id: `s-\$\{m\.id\}`, t: m\.receipt\.at, o, s: "s",/);
   assert.match(src, /skFlush\(\)\.catch\(\(\) => \{\}\);\n    if \(ensured && ownProfile\)/);
   assert.match(src, /queueStorage = typeof localStorage/);
