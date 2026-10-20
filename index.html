@@ -8054,7 +8054,7 @@ function ratingDelta(myR, opps) {
 /* B2の同期停止から安全離脱した試合の「未受領リスト」（この端末だけ・登録アカウントだけ）。結果が確定したら、通常と同じ結果画面(BattleGame)に
    つなぎ、戦績・EXP・称号は既存の冪等な記録(recordMatch の roomSeen[gid]、学習記録の room:gid)だけで1回だけ反映する */
 const B2_PEND_KEY = 'fxf_b2_pending_v1', B2_PEND_TTL = 24 * 3600000;
-const B2_RCPT = { at: {}, failed: {} };   // 遅れて受領した試合だけ：試合ID→実際の試合時刻 / 保存失敗の印（recordMatch が読む・書く）
+const B2_RCPT = { at: {}, failed: {}, note: {} };   // 遅れて受領した試合だけ：試合ID→実際の試合時刻 / 保存失敗の印（recordMatch が読む・書く）
 const b2List = x => Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : [];
 const B2_PEND_MAX = 5;
 function b2PendRaw() { try { const a = JSON.parse(localStorage.getItem(B2_PEND_KEY) || '[]'); return Array.isArray(a) ? a.filter(e => e && e.code && e.gid && e.uid && e.acct && e.state) : []; } catch (e) { return []; } }
@@ -8079,6 +8079,11 @@ async function recordMatch(acct, info) {
   const rcpt = typeof B2_RCPT !== 'undefined' ? B2_RCPT : null;   // （単体試験の抜き出しでは未定義）
   if (info && info.id && rcpt && rcpt.at[info.id] != null) { info = { ...info, at: rcpt.at[info.id] }; if (info.sk) info.sk = { ...info.sk, t: info.at }; }   // 遅れて受領：連勝台帳と日別記録は実際の試合時刻で扱う
   if (!acct || !acct.key || (DBX && !info.bot) || !FB.db) return { badges: [], ...(acct && acct.key && !FB.db ? { failed: true } : {}) };
+  // 遅れて受領した試合（B2の安全離脱後）：試合時刻が不明なら、時刻が必要な処理（レート・シーズン・連勝台帳・日別記録）は行わず、時刻に依存しない戦績・EXP・称号カウンターだけを反映する。
+  // 試合のシーズンが今のシーズンより前なら、レート・シーズン最高・最高レート・シーズン履歴には触れない（リセット後の新しいシーズンへ加算しない）
+  const late = !!(rcpt && info.id && info.id in rcpt.at), timeKnown = !late || rcpt.at[info.id] != null;
+  const oldSeason = late && timeKnown && seasonKey(rcpt.at[info.id]) !== seasonKey(), skipRating = late && (!timeKnown || oldSeason);
+  if (late && rcpt.note) rcpt.note[info.id] = !timeKnown ? 'time' : oldSeason ? 'season' : '';
   let before = null, after = null, applied = 0, expB = 0, expA = 0;
   try {
     const res = await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => {
@@ -8102,7 +8107,7 @@ async function recordMatch(acct, info) {
       const canonDay = d => typeof d === 'string' ? d.replace(/^(\d+)-(\d+)-(\d+)$/, (m, y, mo, da) => `${y}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`) : '';
       // info.at = 実際の試合時刻（遅れて受領した結果だけが持つ）。それより新しい日の記録があれば、連続日数は動かさない（古い日付へ巻き戻さない）
       const refT = info.at != null ? info.at : fbNow(), today = jstDate(refT), yest = jstDate(refT - 86400000), lastDay = canonDay(s.lastDay);
-      if (lastDay > today && info.at != null) { /* 古い試合の遅れた受領：日別連続は変更しない */ }
+      if (!timeKnown || (lastDay > today && info.at != null)) { /* 時刻不明、または古い試合の遅れた受領：日別連続は変更しない */ }
       else if (lastDay !== today) { s.dayStreak = lastDay === yest ? (s.dayStreak || 0) + 1 : 1; s.lastDay = today; }
       s.maxDayStreak = Math.max(s.maxDayStreak || 0, s.dayStreak || 1);
       if (o === 'w') { s.streak = (s.streak || 0) + 1; s.maxStreak = Math.max(s.maxStreak || 0, s.streak); }
@@ -8110,29 +8115,31 @@ async function recordMatch(acct, info) {
       s.perfects = (s.perfects || 0) + (info.perfects || 0);
       if (o === 'w' && info.comeback) s.comebacks = (s.comebacks || 0) + 1;
       // 負けの痛みをやわらげる：はじめの10戦はレートの下がり方が半分
-      applied = info.dr || 0;
+      applied = skipRating ? 0 : (info.dr || 0);
       if (applied < 0 && ((before && before.games) || 0) < 10) applied *= 0.5;
-      // シーズンが変わっていたら、前のシーズンを記録してレートを半分もどす
-      const cur = seasonKey(), old = s.season || SEASON0;
-      if (old !== cur && s.rating != null) {
-        s.seasonHist = s.seasonHist || {};
-        s.seasonHist[old] = { max: Math.round(s.seasonMax || s.rating), last: Math.round(s.rating) };
-        s.rating = seasonReset(s.rating); s.seasonMax = s.rating;
+      if (!skipRating) {
+        // シーズンが変わっていたら、前のシーズンを記録してレートを半分もどす
+        const cur = seasonKey(), old = s.season || SEASON0;
+        if (old !== cur && s.rating != null) {
+          s.seasonHist = s.seasonHist || {};
+          s.seasonHist[old] = { max: Math.round(s.seasonMax || s.rating), last: Math.round(s.rating) };
+          s.rating = seasonReset(s.rating); s.seasonMax = s.rating;
+        }
+        s.season = cur;
+        s.rating = Math.round(((s.rating || RATING_INIT) + applied) * 10) / 10;
+        s.seasonMax = Math.max(s.seasonMax || RATING_INIT, s.rating);
       }
-      s.season = cur;
-      s.rating = Math.round(((s.rating || RATING_INIT) + applied) * 10) / 10;
-      s.seasonMax = Math.max(s.seasonMax || RATING_INIT, s.rating);
       expB = s.exp || 0; s.exp = expB + (info.exp || 0); expA = s.exp;
-      s.maxRating = Math.max(s.maxRating || RATING_INIT, s.rating);
+      if (!skipRating) s.maxRating = Math.max(s.maxRating || RATING_INIT, s.rating);
       if (info.tourWin) s.tourWins = (s.tourWins || 0) + 1;
       // 称号用の記録：add は足し算、max は最大、min は最小（いちばん速い記録など）
       Object.entries(info.add || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) + v; });
       Object.entries(info.max || {}).forEach(([k, v]) => { if (v != null) s[k] = Math.max(s[k] || 0, v); });
       Object.entries(info.min || {}).forEach(([k, v]) => { if (v != null) s[k] = s[k] == null ? v : Math.min(s[k], v); });
       Object.entries(info.or || {}).forEach(([k, v]) => { if (v) s[k] = (s[k] || 0) | v; });
-      s.last = Date.now();
+      if (!late) s.last = Date.now(); else if (timeKnown) s.last = Math.max(s.last || 0, rcpt.at[info.id]);   // 遅れた受領は「最後の試合時刻」を受領時刻に進めない
       /* Ver.6.0 A7：正式連勝（stats.sk）。試合の台帳を時刻順に並べ直して数える（重複・遅れて届いた結果・再送に強い）。旧 stats.streak / maxStreak は懸賞金・お尋ね者・プロフィール用にそのまま残す */
-      try { const K = window.StreakNext; if (K && info.sk) K.applyResult(s, info.sk); } catch (err) {}
+      try { const K = window.StreakNext; if (K && info.sk && timeKnown) K.applyResult(s, info.sk); } catch (err) {}
       holdRetiredCounters(before, s);
       after = s;
       return s;
@@ -9336,7 +9343,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     return <><BattleGame key={`rcv-${gid}-${recTry}`} code={recover.e.code} state={{ ...recover.e.state, phase: 'play', b2Final: recover.game }} players={{}} isHost={false} acct={acct} who={who} practice={false}
       sound={sound} muted={muted} setMuted={setMuted} onLeave={done} onRematch={done} onLobby={done} onBack={done} />
       <div className="or-recover-note" role="status" aria-live="polite" data-b2-recover={recStatus}>
-        {recStatus === 'saved' ? '戦績の保存を確認しました。' : recStatus === 'failed' ? '戦績を保存できませんでした。通信を確認して再試行してください（同じ試合を二重に加算することはありません）。' : '戦績を保存しています…'}
+        {recStatus === 'saved' ? '戦績の保存を確認しました。' + (B2_RCPT.note[gid] === 'season' ? '前のシーズンの試合のため、レートは変化しませんでした。' : B2_RCPT.note[gid] === 'time' ? '試合時刻を確認できないため、レート・連勝などの時刻が必要な記録は反映していません。' : '') : recStatus === 'failed' ? '戦績を保存できませんでした。通信を確認して再試行してください（同じ試合を二重に加算することはありません）。' : '戦績を保存しています…'}
         {recStatus === 'failed' && <button type="button" onClick={() => { delete B2_RCPT.failed[gid]; setRecStatus('saving'); setRecTry(n => n + 1); }}>再試行</button>}
       </div></>;
   }
