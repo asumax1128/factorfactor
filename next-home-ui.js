@@ -1090,6 +1090,7 @@
   // src/title-inventory-ui.jsx
   var title_inventory_ui_exports = {};
   __export(title_inventory_ui_exports, {
+    TITLE_PREREQ: () => TITLE_PREREQ,
     TitleCinematic: () => TitleCinematic,
     TitleEquipControl: () => TitleEquipControl,
     TitleEquipCurrent: () => TitleEquipCurrent,
@@ -1173,7 +1174,7 @@
     if (!cur) return statusEl ? /* @__PURE__ */ React.createElement("div", { className: "next-title-equip-current", "data-equip-current-result": true }, statusEl) : null;
     return /* @__PURE__ */ React.createElement("div", { className: "next-title-equip-current", "data-equip-current": cur.id }, /* @__PURE__ */ React.createElement("span", null, "\u73FE\u5728\u306E\u88C5\u5099\uFF1A\u3008", cur.label, "\u3009", !cur.inCatalog && cur.label !== "\u8868\u793A\u3067\u304D\u306A\u3044\u79F0\u53F7" && "\uFF08\u5F93\u6765\u306E\u79F0\u53F7\uFF09"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn off", disabled: equip.busy || !equip.real, onClick: () => equip.onUnequip(cur.id), "aria-label": "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u3092\u306F\u305A\u3059" }, "\u306F\u305A\u3059"), statusEl);
   }
-  function TitleDetail({ t, earned, equipped, iconOf, equip, readOnly, onClose, onScene, hidden }) {
+  function TitleDetail({ t, earnedMap = {}, earned, equipped, iconOf, equip, readOnly, onClose, onScene, hidden }) {
     const ref = React.useRef(null);
     React.useEffect(() => {
       const d = ref.current;
@@ -1186,7 +1187,7 @@
       };
     }, []);
     const isHidden = !!hidden, name = isHidden ? catalog.hidden.name : t.name, stars = isHidden ? 5 : t.stars, id = isHidden ? catalog.hidden.id : t.id;
-    const cond = isHidden ? earned ? `\u901A\u5E38\u79F0\u53F7\u306E\u3046\u3061 ${catalog.hidden.requiredDistinctFiveStar} \u7A2E\u985E\u306E\u26055\u3092\u96C6\u3081\u308B` : "" : t.stars <= 3 || earned ? t.condition : "\uFF1F\uFF1F\uFF1F";
+    const cond = isHidden ? earned ? `\u901A\u5E38\u79F0\u53F7\u306E\u3046\u3061 ${catalog.hidden.requiredDistinctFiveStar} \u7A2E\u985E\u306E\u26055\u3092\u96C6\u3081\u308B` : "" : condVisible(t, earnedMap) ? t.condition : "\uFF1F\uFF1F\uFF1F";
     return /* @__PURE__ */ React.createElement("dialog", { ref, className: "tc-sheet", "data-title-detail": id, "aria-label": name + "\u306E\u8A73\u7D30", onCancel: (e) => {
       e.preventDefault();
       onClose();
@@ -1238,17 +1239,19 @@
       const id = hidden ? catalog.hidden.id : t.id, name = hidden ? catalog.hidden.name : t.name, stars = hidden ? 5 : t.stars;
       return /* @__PURE__ */ React.createElement("li", { key: id }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "tc-card", "data-title-id": id, "data-state": earned ? "earned" : "locked", "data-rarity": stars, "data-equipped": equipped === id ? "true" : "false", "aria-label": `${name}\u3001${stars}\u3064\u661F\u3001${earned ? "\u53D6\u5F97\u6E08\u307F" : "\u672A\u53D6\u5F97"}${equipped === id ? "\u3001\u88C5\u5099\u4E2D" : ""}`, onClick: () => setOpen(hidden ? "__hidden" : id) }, equipped === id && /* @__PURE__ */ React.createElement("span", { className: "tc-ribbon", "data-equipped": true }, "\u88C5\u5099\u4E2D"), /* @__PURE__ */ React.createElement("span", { className: "tc-icon", "aria-hidden": "true" }, earned ? iconOf(id) : "\u{1F512}"), /* @__PURE__ */ React.createElement("strong", { className: "tc-name" }, name), /* @__PURE__ */ React.createElement("span", { className: "tc-stars", "aria-hidden": "true" }, "\u2605".repeat(stars))));
     };
-    return /* @__PURE__ */ React.createElement("section", { className: "next-title-inventory tc", "data-title-inventory": true }, /* @__PURE__ */ React.createElement("header", { className: "tc-head" }, /* @__PURE__ */ React.createElement("h3", null, "\u79F0\u53F7\u30FB\u5B9F\u7E3E"), /* @__PURE__ */ React.createElement("p", { className: "tc-count", "data-title-count": true }, /* @__PURE__ */ React.createElement("b", null, got), " / ", total, /* @__PURE__ */ React.createElement("span", null, "\u3000\u9054\u6210\u7387 ", pct, "%")), /* @__PURE__ */ React.createElement("div", { className: "tc-bar", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": total, "aria-valuenow": got, "aria-label": "\u79F0\u53F7\u306E\u7372\u5F97\u6570" }, /* @__PURE__ */ React.createElement("i", { style: { width: pct + "%" } }))), !readOnly && equip && /* @__PURE__ */ React.createElement(TitleEquipCurrent, { equip }), /* @__PURE__ */ React.createElement("div", { role: "group", "aria-label": "\u79F0\u53F7\u306E\u7D5E\u308A\u8FBC\u307F", className: "tc-filter" }, [["all", "\u3059\u3079\u3066"], ["earned", "\u53D6\u5F97\u6E08\u307F"], ["locked", "\u672A\u53D6\u5F97"]].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { type: "button", key: id, "aria-pressed": filter === id, onClick: () => setFilter(id) }, label))), /* @__PURE__ */ React.createElement("ol", { className: "tc-grid" }, shown.map((t) => card(t, state.earned[t.id], false)), state.hiddenOwned && filter !== "locked" && card(null, true, true)), /* @__PURE__ */ React.createElement("p", { className: "tc-note" }, "\u26054\u301C5\u306E\u672A\u53D6\u5F97\u306E\u6761\u4EF6\u306F\u300C\uFF1F\uFF1F\uFF1F\u300D\u3068\u8868\u793A\u3057\u307E\u3059\u3002"), presentationError && state.hiddenOwned && /* @__PURE__ */ React.createElement("p", { role: "alert" }, presentationError), open && (open === "__hidden" ? state.hiddenOwned : openT) && /* @__PURE__ */ React.createElement(TitleDetail, { t: openT, hidden: open === "__hidden", earned: open === "__hidden" ? state.earned[catalog.hidden.id] : state.earned[open], equipped, iconOf, equip, readOnly, onClose: () => setOpen(null), onScene: () => {
+    return /* @__PURE__ */ React.createElement("section", { className: "next-title-inventory tc", "data-title-inventory": true }, /* @__PURE__ */ React.createElement("header", { className: "tc-head" }, /* @__PURE__ */ React.createElement("h3", null, "\u79F0\u53F7\u30FB\u5B9F\u7E3E"), /* @__PURE__ */ React.createElement("p", { className: "tc-count", "data-title-count": true }, /* @__PURE__ */ React.createElement("b", null, got), " / ", total, /* @__PURE__ */ React.createElement("span", null, "\u3000\u9054\u6210\u7387 ", pct, "%")), /* @__PURE__ */ React.createElement("div", { className: "tc-bar", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": total, "aria-valuenow": got, "aria-label": "\u79F0\u53F7\u306E\u7372\u5F97\u6570" }, /* @__PURE__ */ React.createElement("i", { style: { width: pct + "%" } }))), !readOnly && equip && /* @__PURE__ */ React.createElement(TitleEquipCurrent, { equip }), /* @__PURE__ */ React.createElement("div", { role: "group", "aria-label": "\u79F0\u53F7\u306E\u7D5E\u308A\u8FBC\u307F", className: "tc-filter" }, [["all", "\u3059\u3079\u3066"], ["earned", "\u53D6\u5F97\u6E08\u307F"], ["locked", "\u672A\u53D6\u5F97"]].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { type: "button", key: id, "aria-pressed": filter === id, onClick: () => setFilter(id) }, label))), /* @__PURE__ */ React.createElement("ol", { className: "tc-grid" }, shown.map((t) => card(t, state.earned[t.id], false)), state.hiddenOwned && filter !== "locked" && card(null, true, true)), /* @__PURE__ */ React.createElement("p", { className: "tc-note" }, "\u26054\u301C5\u306E\u672A\u53D6\u5F97\u306E\u6761\u4EF6\u306F\u300C\uFF1F\uFF1F\uFF1F\u300D\u3068\u8868\u793A\u3057\u307E\u3059\u3002"), presentationError && state.hiddenOwned && /* @__PURE__ */ React.createElement("p", { role: "alert" }, presentationError), open && (open === "__hidden" ? state.hiddenOwned : openT) && /* @__PURE__ */ React.createElement(TitleDetail, { t: openT, earnedMap: state.earned, hidden: open === "__hidden", earned: open === "__hidden" ? state.earned[catalog.hidden.id] : state.earned[open], equipped, iconOf, equip, readOnly, onClose: () => setOpen(null), onScene: () => {
       setOpen(null);
       setScene(true);
     } }), scene && state.hiddenOwned && /* @__PURE__ */ React.createElement(TitleCinematic, { muted, reducedMotion: (_a = window.matchMedia) == null ? void 0 : _a.call(window, "(prefers-reduced-motion: reduce)").matches, onFinish: closeScene }));
   }
-  var catalog, compat, RARITY;
+  var catalog, compat, RARITY, TITLE_PREREQ, condVisible;
   var init_title_inventory_ui = __esm({
     "src/title-inventory-ui.jsx"() {
       catalog = require_title_catalog_next();
       compat = require_title_compat_next();
       RARITY = ["", "\u3075\u3064\u3046", "\u307E\u3042\u307E\u3042", "\u3081\u305A\u3089\u3057\u3044", "\u30EC\u30A2", "\u3068\u304F\u3079\u3064"];
+      TITLE_PREREQ = { streak30: ["streak10"], streak50: ["streak30"], giant250: ["giant"], master1700: ["master1600"], master1900: ["master1700"], easy_master: ["easy_adept"], normal_master: ["normal_adept"], dual_master: ["easy_master", "normal_master"], perfect300: ["perfect100"], perfect500: ["perfect300"], perfect1000: ["perfect500"], combo30: ["combo20"], miracle: ["clutch"], alllv: ["lv9"], tour3: ["tour1"], tour10: ["tour3"], wkace5: ["wkace"], wkone2: ["wkone"], wkst10: ["wkst5"], wkk10: ["wkk5"], wkdex6: ["wkdex3"], cancel2000: ["cancel500"], dual50: ["dual"], nomiss10: ["nomiss"], bounty10: ["bounty1"], daily30: ["daily7"], ghost_up2: ["ghost_up1"] };
+      condVisible = (t, earnedMap) => t.stars <= 3 || !!earnedMap[t.id] || (TITLE_PREREQ[t.id] || []).every((x) => !!earnedMap[x]) && !!TITLE_PREREQ[t.id];
     }
   });
 

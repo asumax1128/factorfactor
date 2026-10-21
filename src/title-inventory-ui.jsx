@@ -35,11 +35,14 @@ export function TitleEquipCurrent({equip}){
 // ---- 称号・実績：一覧（3列〜のグリッド）と詳細（スマホは下から出るシート、広い画面は中央）。通常100＋隠し1（取得後だけ分母にも加わる）-----------------------
 // 未取得は固有の絵文字を出さず 🔒。名称・★は常に見せ、条件は★1〜3と取得済みだけ（★4〜5の未取得は「？？？」）。隠し称号は取得するまで存在も見せない。
 const RARITY=['','ふつう','まあまあ','めずらしい','レア','とくべつ'];
-function TitleDetail({t,earned,equipped,iconOf,equip,readOnly,onClose,onScene,hidden}){
+// ★4・★5の条件公開：前段階（同じ指標でしきい値が上がる称号）を取得すると次の条件を公開する。ここに無い★4・★5は独立型（取得まで？？？）。
+export const TITLE_PREREQ={streak30:['streak10'],streak50:['streak30'],giant250:['giant'],master1700:['master1600'],master1900:['master1700'],easy_master:['easy_adept'],normal_master:['normal_adept'],dual_master:['easy_master','normal_master'],perfect300:['perfect100'],perfect500:['perfect300'],perfect1000:['perfect500'],combo30:['combo20'],miracle:['clutch'],alllv:['lv9'],tour3:['tour1'],tour10:['tour3'],wkace5:['wkace'],wkone2:['wkone'],wkst10:['wkst5'],wkk10:['wkk5'],wkdex6:['wkdex3'],cancel2000:['cancel500'],dual50:['dual'],nomiss10:['nomiss'],bounty10:['bounty1'],daily30:['daily7'],ghost_up2:['ghost_up1']};
+const condVisible=(t,earnedMap)=>t.stars<=3||!!earnedMap[t.id]||(TITLE_PREREQ[t.id]||[]).every(x=>!!earnedMap[x])&&!!TITLE_PREREQ[t.id];
+function TitleDetail({t,earnedMap={},earned,equipped,iconOf,equip,readOnly,onClose,onScene,hidden}){
  const ref=React.useRef(null);
  React.useEffect(()=>{const d=ref.current;if(d&&!d.open)d.showModal();return()=>{try{d&&d.open&&d.close()}catch(e){}}},[]);
  const isHidden=!!hidden,name=isHidden?catalog.hidden.name:t.name,stars=isHidden?5:t.stars,id=isHidden?catalog.hidden.id:t.id;
- const cond=isHidden?(earned?`通常称号のうち ${catalog.hidden.requiredDistinctFiveStar} 種類の★5を集める`:''):(t.stars<=3||earned?t.condition:'？？？');
+ const cond=isHidden?(earned?`通常称号のうち ${catalog.hidden.requiredDistinctFiveStar} 種類の★5を集める`:''):(condVisible(t,earnedMap)?t.condition:'？？？');
  return <dialog ref={ref} className="tc-sheet" data-title-detail={id} aria-label={name+'の詳細'} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===ref.current)onClose()}}>
   <div className="tc-sheet-body">
    <div className="tc-sheet-icon" aria-hidden="true" data-rarity={stars}>{earned?iconOf(id):'🔒'}</div>
@@ -81,7 +84,7 @@ export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=
   <ol className="tc-grid">{shown.map(t=>card(t,state.earned[t.id],false))}{state.hiddenOwned&&filter!=='locked'&&card(null,true,true)}</ol>
   <p className="tc-note">★4〜5の未取得の条件は「？？？」と表示します。</p>
   {presentationError&&state.hiddenOwned&&<p role="alert">{presentationError}</p>}
-  {open&&(open==='__hidden'?state.hiddenOwned:openT)&&<TitleDetail t={openT} hidden={open==='__hidden'} earned={open==='__hidden'?state.earned[catalog.hidden.id]:state.earned[open]} equipped={equipped} iconOf={iconOf} equip={equip} readOnly={readOnly} onClose={()=>setOpen(null)} onScene={()=>{setOpen(null);setScene(true)}}/>}
+  {open&&(open==='__hidden'?state.hiddenOwned:openT)&&<TitleDetail t={openT} earnedMap={state.earned} hidden={open==='__hidden'} earned={open==='__hidden'?state.earned[catalog.hidden.id]:state.earned[open]} equipped={equipped} iconOf={iconOf} equip={equip} readOnly={readOnly} onClose={()=>setOpen(null)} onScene={()=>{setOpen(null);setScene(true)}}/>}
   {scene&&state.hiddenOwned&&<TitleCinematic muted={muted} reducedMotion={window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} onFinish={closeScene}/>}
  </section>;
 }
