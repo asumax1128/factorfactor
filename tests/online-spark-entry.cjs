@@ -260,7 +260,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       "PASS exact Pages payload/hash URLs render EASY/NORMAL without JS errors",
     );
     const cpu = await open({ enabled: false, protocol: "spark-v1" });
-    await cpu.page.locator('button[aria-label="ホームへ"]:visible').first().click();
+    await cpu.page.locator(".mobile-brand").click(); // the harness viewport is phone-width; the sidebar copy is hidden (and briefly unstyled while the stylesheet re-attaches)
     await cpu.page.locator(".action-card.solo").click();
     await cpu.page.locator("[data-solo-mode=cpu]").click();
     await cpu.page
@@ -281,7 +281,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       .getByRole("button", { name: "CPUの設定にもどる", exact: true })
       .click();
     // CPU practice now lives under solo; the random match is reached from the online lobby
-    await cpu.page.locator('button[aria-label="ホームへ"]:visible').first().click();
+    await cpu.page.locator(".mobile-brand").click(); // the harness viewport is phone-width; the sidebar copy is hidden (and briefly unstyled while the stylesheet re-attaches)
     await cpu.page.locator(".action-card.online").click();
     await cpu.page
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
