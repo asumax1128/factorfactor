@@ -2531,8 +2531,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           <div className="v7-col">
             <button className="v7-sub-btn v7-cur" onClick={() => onBattle && onBattle()}><V7Icon name="vs" />{renderMenu ? 'オンライン対戦' : 'オンライン対戦（ロビー）'}</button>
             <div className="v7-tiles4">
-              <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />
-              <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />
+              {!renderMenu && <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />}
+              {!renderMenu && <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />}
               <MathTowerTile acct={acct} onOpen={() => onMode && onMode('tower')} />
               <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
             </div>
