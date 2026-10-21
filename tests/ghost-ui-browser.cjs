@@ -78,6 +78,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       await p.getByRole("button", { name: "成績", exact: true }).click();
       await p.getByRole("tab", { name: "対戦記録", exact: true }).click();   // Ver.6.4: the ghost history lives in the new profile's record tab
       await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
+      await p.getByText(/ハイパーゴースト/).first().waitFor(); // the history loads asynchronously
       assert.match(await p.locator("body").innerText(), /ハイパーゴースト/);
       await p.getByRole("button", { name: "自分の分身", exact: true }).click();
       await p
