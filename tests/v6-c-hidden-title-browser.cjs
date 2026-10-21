@@ -7,7 +7,7 @@ const open = async (b, stats) => {
   const tree = { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: structuredClone(stats) } } } } };
   const t = await context(b, { tree }); const p = t.page;
   await p.emulateMedia({ reducedMotion: 'reduce' });
-  await p.locator('.account-main').click(); await p.getByRole('tab', { name: '称号・装備', exact: true }).click();
+  await p.locator('.account-main').click(); await p.getByRole('tab', { name: '称号・実績', exact: true }).click();
   await p.locator('[data-title-inventory]').waitFor();
   return { t, p, tree, stats: () => tree.games.factor.accounts.ateacher.stats };
 };
@@ -21,7 +21,7 @@ const dialog = (p) => p.getByRole('dialog', { name: '称号獲得演出', exact:
       for (let i = 0; i < 40 && !s.stats().ff; i++) await s.p.waitForTimeout(50);
       assert.equal(s.stats().ff.v, 1); assert.equal(typeof s.stats().ff.at, 'number');
       const { ff, ...rest } = s.stats(); const { ...orig } = full(); assert.deepEqual(rest, orig, 'every other stat and the equipped title are untouched');
-      await s.p.reload(); await s.p.locator('.account-main').click(); await s.p.getByRole('tab', { name: '称号・装備', exact: true }).click(); await s.p.locator('[data-title-inventory]').waitFor(); await s.p.waitForTimeout(300);
+      await s.p.reload(); await s.p.locator('.account-main').click(); await s.p.getByRole('tab', { name: '称号・実績', exact: true }).click(); await s.p.locator('[data-title-inventory]').waitFor(); await s.p.waitForTimeout(300);
       assert.equal(await dialog(s.p).count(), 0, 'the reveal is shown once on this device');
       assert.deepEqual(s.t.errors, []); await s.t.ctx.close(); console.log('PASS 17 distinct five-star titles: FACTOR×FACTOR owned, one reveal, saved as stats.ff, other records untouched'); }
     // exactly 15 -> owned; 14 -> not owned, not saved, not shown

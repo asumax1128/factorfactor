@@ -9,9 +9,9 @@ async function profileShowsHeldTitle(p) {
   await p.evaluate(() => localStorage.setItem("fxf_title_presentation_v1:ateacher", "seen")).catch(() => {});
   await p.locator(".account-main").click();
   await p.locator("[data-next-profile]").waitFor();
-  await p.getByRole("tab", { name: "称号・装備" }).click();
+  await p.getByRole("tab", { name: "称号・実績" }).click();
   await p.locator("[data-title-inventory]").waitFor();
-  await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="streak10"] small')?.textContent || ""), null, { timeout: 15000 });
+  await p.waitForFunction(() => document.querySelector('[data-title-id=\"streak10\"]')?.dataset.state === 'earned', null, { timeout: 15000 });
 }
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium" });

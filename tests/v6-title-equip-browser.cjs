@@ -27,16 +27,25 @@ const mkTree = ({ nick = "tour1", hidden = true } = {}) => ({
     },
   },
 });
-const eq = (p, id) => p.locator(`[data-title-equip="${id}"]`);
+// Ver.6.4: the equip control lives in the title detail (a dialog opened from the grid card). eq() opens the right detail on first use and closes any other.
+const closeDlg = async (p) => { const d = p.locator("dialog[data-title-detail]"); if (await d.count()) { await d.getByRole("button", { name: "とじる", exact: true }).click(); await d.waitFor({ state: "detached" }); } };
+const ensure = async (p, id) => {
+  const d = p.locator(`dialog[data-title-detail="${id}"]`);
+  if (await d.count()) return;
+  await closeDlg(p);
+  const c = p.locator(`[data-title-id="${id}"]`); await c.scrollIntoViewIfNeeded(); await c.click(); await d.waitFor();
+};
+const TERMINAL = new Set(["click", "getAttribute", "innerText", "isDisabled", "waitFor", "scrollIntoViewIfNeeded", "count", "textContent"]);
+const eq = (p, id, ops = []) => new Proxy(function () {}, { get: (_, m) => (TERMINAL.has(m) ? async (...a) => { await ensure(p, id); let l = p.locator(`dialog[data-title-detail="${id}"] [data-title-equip="${id}"]`); for (const [mm, aa] of ops) l = l[mm](...aa); return l[m](...a); } : (...a) => eq(p, id, [...ops, [m, a]])) });
 const name = (id) => (catalog.titles.find((t) => t.id === id) || catalog.hidden).name;
 async function open(p, w, h) {
   if (w) await p.setViewportSize({ width: w, height: h });
   await p.evaluate(() => localStorage.setItem("fxf_title_presentation_v1:ateacher", "seen")).catch(() => {});
   await p.locator(".account-main").click();
   await p.locator("[data-next-profile]").waitFor();
-  await p.getByRole("tab", { name: "称号・装備" }).click();
+  await p.getByRole("tab", { name: "称号・実績" }).click();
   await p.locator("[data-title-inventory]").waitFor();
-  await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="easy_master"] small')?.textContent || ""));
+  await p.waitForFunction(() => document.querySelector('[data-title-id="easy_master"]')?.dataset.state === "earned");
 }
 async function equip(p, tree, id, { clear = false } = {}) {
   const btn = eq(p, id).getByRole("button", { name: clear ? /はずす/ : /装備する/ });
@@ -62,6 +71,7 @@ const untouched = (tree, t0) => {
       const t0 = { badges: structuredClone(tree.games.factor.onlineSparkV1.profiles.ateacher.badges), snapEquipped: tree.games.factor.titleNextV1.snapshots?.ateacher?.equipped };
       // current equip: legacy tour1, unequip then equip back (existing nick behaviour)
       assert.equal(await eq(p, "tour1").getAttribute("data-equip-state"), "on");
+      await closeDlg(p);
       assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈/);
       // the legacy ranking title is NOT the equip slot while nick is set
       assert.equal(await eq(p, "easy_adept").getAttribute("data-equip-state"), "off");
@@ -87,9 +97,10 @@ const untouched = (tree, t0) => {
       assert.match(await p.locator(".next-equipped").first().innerText(), /FACTOR×FACTOR/);
       // unearned titles stay locked and explain why
       for (const id of ["normal_adept", "normal_master", "dual_master"]) {
-        assert.equal(await eq(p, id).getAttribute("data-equip-state"), "disabled");
-        assert(await eq(p, id).getByRole("button", { name: /装備する/ }).isDisabled());
-        assert.match(await eq(p, id).innerText(), /未取得のため装備できません/);
+        await closeDlg(p); await p.locator(`[data-title-id="${id}"]`).scrollIntoViewIfNeeded(); await p.locator(`[data-title-id="${id}"]`).click();
+        const dlg = p.locator(`dialog[data-title-detail="${id}"]`); await dlg.waitFor();
+        assert.equal(await dlg.locator("[data-title-equip]").count(), 0, `${id}: no equip control for an unearned title`);
+        assert.match(await dlg.innerText(), /未取得のため装備できません/);
       }
       // buttons are 44px+ and fit
       const boxes = await p.locator(".next-title-equip-btn:not([disabled])").evaluateAll((es) => es.map((e) => { const r = e.getBoundingClientRect(); return { h: r.height, x: r.x, r: r.right }; }));
@@ -126,8 +137,10 @@ const untouched = (tree, t0) => {
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
       assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "tw10", "opening the profile does not touch an equipped legacy-only title");
+      await closeDlg(p);
       assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈.+〉（従来の称号）/);
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*塔の挑戦者/);
+      await closeDlg(p);
       await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
       await p.locator('.next-title-equip-current [data-equip-status="saved"]').waitFor();
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "legacy-only id cleared as an explicit unequip");
@@ -139,9 +152,10 @@ const untouched = (tree, t0) => {
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
       await p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "daily_king" }));
-      await p.waitForFunction(() => document.querySelector('[data-title-equip="daily_king"]')?.dataset.equipState === "on", null, { timeout: 8000 });
+      await p.waitForFunction(() => document.querySelector('[data-title-id="daily_king"]')?.dataset.equipped === "true", null, { timeout: 8000 });
       assert.equal(await eq(p, "tour1").getAttribute("data-equip-state"), "off");
       await p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "" }));
+      await closeDlg(p);
       await p.waitForFunction(() => document.querySelector("[data-equip-current]") === null, null, { timeout: 8000 });
       await t.ctx.close();
     }
@@ -180,24 +194,17 @@ const untouched = (tree, t0) => {
       assert.equal(await eq(p, "daily_king").getAttribute("data-equip-state"), "on");
       await t.ctx.close();
     }
-    // old modal still works against the same slot, with a catalog-only title equipped
+    // Ver.6.4: the old modal's grid and pickNick are gone. A catalog-only title equipped earlier is still resolved and can be released from the new profile.
     {
       const tree = mkTree({ nick: "easy_master" });
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
-      await p.getByRole("button", { name: /称号の装備・詳細記録/ }).click();
-      const mod = p.locator("[data-achievement]").first();
-      await mod.waitFor();
-      assert(await p.locator("[data-achievement]").count() > 10, "old modal lists the legacy achievements without crashing");
-      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
-      await sleep(400);
-      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "first", "the old modal still writes the same slot (and shows the official name)");
-      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
-      await sleep(400);
-      assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "the old modal's unequip is the same explicit marker as the new profile");
-      await p.locator("[data-achievement]", { hasText: "始まりの剣" }).first().click();
-      await sleep(400);
-      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "first");
+      await closeDlg(p);
+      assert.equal(await p.locator("[data-achievement]").count(), 0, "no old achievement grid anywhere");
+      assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈/);
+      await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
+      await sleep(1200);
+      assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "");
       await t.ctx.close();
     }
     // three states: absent -> legacy ranking title shown; "" -> cleared (the old title does not come back); id -> that title
@@ -216,6 +223,7 @@ const untouched = (tree, t0) => {
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "");
       assert.equal(tree.games.factor.onlineSparkV1.profiles.ateacher.title, "easy_adept", "profile.title is kept (never deleted or overwritten)");
       assert.match(await p.locator(".next-equipped").first().innerText(), /未設定/);
+      await closeDlg(p);
       assert.equal(await p.locator("[data-equip-current]").count(), 0, "cleared: nothing is shown as equipped");
       await p.reload();
       await p.locator(".account-main").waitFor();
@@ -326,7 +334,7 @@ const untouched = (tree, t0) => {
       await p.setViewportSize({ width: 390, height: 844 });
       await p.locator(".account-main").click();
       await p.locator("[data-next-profile]").waitFor();
-      await p.getByRole("tab", { name: "称号・装備" }).click();
+      await p.getByRole("tab", { name: "称号・実績" }).click();
       await p.locator("[data-title-inventory]").waitFor();
       assert.equal(await p.locator(".next-title-equip-btn:not([disabled])").count(), 0, "guests cannot equip");
       await t.ctx.close();

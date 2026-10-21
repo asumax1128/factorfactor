@@ -823,8 +823,8 @@
             rankEquip.message,
             rankEquip.state === "partial" && /* @__PURE__ */ React.createElement("button", { disabled: busy, onClick: () => equipFromRanking(rankEquip.id) }, "\u518D\u8A66\u884C")
           ))),
-          selectedPlayer && H.PlayerProfile && /* @__PURE__ */ React.createElement(
-            H.PlayerProfile,
+          selectedPlayer && H.PlayerView && /* @__PURE__ */ React.createElement(
+            H.PlayerView,
             {
               name: selectedPlayer.name,
               st: ((_o = selectedPlayer.cosmetics) == null ? void 0 : _o.stats) || {},

@@ -6,7 +6,7 @@ window.NextNavigation=navigation;
 window.TitleLabelsNext=require('./title-labels-next.cjs');
 window.TitleDisplayNext=require('./title-display-next.cjs');
 window.TitleKeepNext=require('./title-keep-next.cjs');
-window.StreakNext=require('./streak-next.cjs');window.StatsOrderNext=require('./stats-order-next.cjs');window.MatchLogNext=require('./match-log-next.cjs');
+window.StreakNext=require('./streak-next.cjs');window.StatsOrderNext=require('./stats-order-next.cjs');window.MatchLogNext=require('./match-log-next.cjs');window.TitleInventoryUI=require('./title-inventory-ui.jsx');
 import * as RankingKit from './ranking-kit.jsx';
 import {SoloRanking} from './solo-ranking-ui.jsx';
 window.NextRanking={...RankingKit,SoloRanking};
@@ -14,7 +14,7 @@ window.NextRanking={...RankingKit,SoloRanking};
 const icons = require('./next-home-icons.json');
 window.NextHomeFactory = H => {
  const {useState,useEffect,useRef}=React;
- const {FB,useFbReady,weekKey,now,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin}=H;
+ const {FB,useFbReady,weekKey,now,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin}=H;
  const Profile=createProfile(H);
  const Icon=({name})=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name]||icons.home}/></svg>;
  function useBoss(enabled){
@@ -70,10 +70,10 @@ window.NextHomeFactory = H => {
    <div className="boss-hp" aria-live="polite">{statusText?<p role={['error','denied'].includes(boss.status)?'alert':'status'}>{statusText}{boss.retry&&['error','denied'].includes(boss.status)&&<button onClick={boss.retry}>再試行</button>}</p>:<><div className="hp-numbers"><span>HP <b>{hp.toLocaleString('ja-JP')}</b> / {max.toLocaleString('ja-JP')}</span><strong>{boss.info.dead?'討伐済み':`${pct.toFixed(1)}%`}</strong></div><div className="hp-track" role="progressbar" aria-label="今週のボスの残りHP" aria-valuemin={0} aria-valuemax={max} aria-valuenow={hp}><i style={{width:`${pct}%`}}/></div></>}</div>
    <div className="boss-details"><h2>{boss.boss?.name||'今週のボス'}</h2><button className="small-button" aria-label="今週のボスに挑む" onClick={()=>go('boss')}>ボスに挑む <span aria-hidden="true">→</span></button></div></section></div>
    <div className="home-support"><button className="mission-strip" onClick={()=>go('daily')}><Icon name="daily"/><span><strong>デイリーミッション</strong><small>今日のミッション・デイリーチャレンジ</small></span><Icon name="chevron"/></button>{[['rank','ランキング'],['help','あそびかた']].map(([k,n])=><button className="support-link" key={k} onClick={()=>go(k)}><Icon name={k}/><strong>{n}</strong><Icon name="chevron"/></button>)}</div></main>
-</>:page==='profile'?<Profile acct={acct} stats={isReal(acct)?st:loadGuest()} profile={profile} onBack={()=>go('back')} onLegacy={()=>setPanel('profile')} onWardrobe={()=>setPanel('wardrobe')}/>:['battle','solo','daily','help'].includes(page)?<div className="next-route-content">{children}</div>:<main className="ranking-content"><button className="small-button" onClick={()=>go(page==='rankings'?'home':'rank')}>{page==='rankings'?'ホームへ戻る':'ランキング総合へ戻る'}</button>{page==='rankings'?<div className="ranking-grid">{[['solo','ソロランキング','イージー・ノーマル・ハード','solo'],['daily','デイリーランキング','今日・昨日の部門別ランキング','daily'],['rating','レーティングランキング','イージー・ノーマル','online']].map(([k,label,note,icon])=><button key={k} className="ranking-entry" onClick={()=>go('ranking-'+k)}><span className="ranking-icon"><Icon name={icon}/></span><strong>{label}</strong><small>{note}</small><Icon name="chevron"/></button>)}</div>:<section className="ranking-view" aria-label="ランキング表示">{children}</section>}</main>}
+</>:page==='profile'?<Profile acct={acct} stats={isReal(acct)?st:loadGuest()} profile={profile} onBack={()=>go('back')} onWardrobe={()=>setPanel('wardrobe')}/>:['battle','solo','daily','help'].includes(page)?<div className="next-route-content">{children}</div>:<main className="ranking-content"><button className="small-button" onClick={()=>go(page==='rankings'?'home':'rank')}>{page==='rankings'?'ホームへ戻る':'ランキング総合へ戻る'}</button>{page==='rankings'?<div className="ranking-grid">{[['solo','ソロランキング','イージー・ノーマル・ハード','solo'],['daily','デイリーランキング','今日・昨日の部門別ランキング','daily'],['rating','レーティングランキング','イージー・ノーマル','online']].map(([k,label,note,icon])=><button key={k} className="ranking-entry" onClick={()=>go('ranking-'+k)}><span className="ranking-icon"><Icon name={icon}/></span><strong>{label}</strong><small>{note}</small><Icon name="chevron"/></button>)}</div>:<section className="ranking-view" aria-label="ランキング表示">{children}</section>}</main>}
    </Frame>
    <dialog ref={dialog} className="home-menu" aria-label={panel==='settings'?'設定':'メインメニュー'} onCancel={()=>setPanel(null)}><div className="sheet-title"><h2>{panel==='settings'?'設定':'メニュー'}</h2><button onClick={()=>setPanel(null)} aria-label="閉じる">×</button></div>{panel==='settings'?<nav><button onClick={()=>setMuted(!muted)}>音声：{muted?'オフ':'オン'}</button><button onClick={()=>setPanel('wardrobe')}>きせかえ</button><button onClick={onLogout}>{isReal(acct)?'ログアウト':'登録・ログイン'}</button></nav>:<nav>{nav.map(([k,n])=>navButton(k,n))}<button className="nav-item" onClick={()=>go('learn')}>学びの部屋</button></nav>}</dialog>
-   </div>{panel==='profile'&&<PlayerProfile name={acct.name} st={st||loadGuest()||{}} nameOf={{}} me acctKey={isReal(acct)?acct.key:null} onClose={()=>setPanel(null)}/>}{panel==='wardrobe'&&<Wardrobe appearance="next" acct={acct} st={st||loadGuest()} exp={(isReal(acct)?st:loadGuest())?.exp||0} onClose={()=>setPanel(null)}/>}</>;
+   </div>{panel==='wardrobe'&&<Wardrobe appearance="next" acct={acct} st={st||loadGuest()} exp={(isReal(acct)?st:loadGuest())?.exp||0} onClose={()=>setPanel(null)}/>}</>;
  }
  Home.Lobby=createLobby(H);
  return Home;

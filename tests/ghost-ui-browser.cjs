@@ -73,10 +73,10 @@ const { chromium, context } = require("./browser-harness.cjs");
       await p.getByText("最高速 1.20秒", { exact: true }).waitFor();
       assert.equal(await p.getByText("最高速 ―", { exact: true }).count(), 8);
       await p.reload();
-      // new home: solo 成績 page -> 称号の装備・詳細記録 opens the detailed record window that holds the ghost history
+      // new home: solo 成績 page -> 対戦記録 tab holds the ghost history
       await p.locator(".action-card.solo").click();
       await p.getByRole("button", { name: "成績", exact: true }).click();
-      await p.getByRole("button", { name: /称号の装備・詳細記録/ }).click();
+      await p.getByRole("tab", { name: "対戦記録", exact: true }).click();   // Ver.6.4: the ghost history lives in the new profile's record tab
       await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
       assert.match(await p.locator("body").innerText(), /ハイパーゴースト/);
       await p.getByRole("button", { name: "自分の分身", exact: true }).click();

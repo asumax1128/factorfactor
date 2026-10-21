@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="ui-next/result-shell.css" />
 <link rel="stylesheet" href="ui-next/room-lobby.css" />
 <link rel="stylesheet" href="ui-next/profile-modal.css" />
+<link rel="stylesheet" href="ui-next/titles.css" />
 <script src="online-rated-ui.js"></script>
 <script src="daily-ui.js"></script>
 <script src="room-b2-ui.js"></script>
@@ -3743,39 +3744,6 @@ function GhostNews({ acct, st }) {
     </div>
   );
 }
-function AccountBar({ acct, onLogout }) {
-  const fb = useFbReady();
-  const st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
-  const [open, setOpen] = useState(false);
-  const [wd, setWd] = useState(false);
-  const [nameOf, setNameOf] = useState({});
-  const g = !isReal(acct) ? loadGuest() : null;
-  // 別の端末で選んだきせかえを、この端末にも反映
-  const synced = useRef('');
-  useEffect(() => { if (st && st.skin && synced.current !== acct.key) { synced.current = acct.key; SKIN = { ...st.skin }; saveLS(SKIN_LS, SKIN); SKINBUS.forEach(f => f()); } }, [st && !!st.skin]);
-  const exp = isReal(acct) ? (st && st.exp) || 0 : (g && g.exp) || 0;
-  const openProf = () => {
-    setOpen(true);
-    fref('accounts').get().then(s => { const nm = {}; Object.entries(s.val() || {}).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm); }).catch(() => {});
-  };
-  return (<>
-    <div className="rounded-2xl px-3 py-2 mb-3 shadow-lg" style={{ background: COLORS.paper }}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <div className="flex-1" style={{ minWidth: "9rem" }}>
-          {isReal(acct) && st && st.nick && <Nick id={st.nick} size={10} block />}
-          <div className="font-black truncate" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>{acct.name}{!isReal(acct) && <span className="text-[10px] ml-1 font-bold rounded-full px-2" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>ゲスト</span>} {isReal(acct) && st && st.games > 0 && <RankPill r={ratingOf(st)} size={10} />} {isReal(acct) && bountyOf(st) > 0 && <span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: '#b7791f' }}>💰{bountyOf(st)}</span>} {isReal(acct) && <BadgeIcons st={st} max={4} />}</div>
-        </div>
-        <button onClick={() => setWd(true)} className="text-[11px] font-black rounded-full px-2.5 py-1 shrink-0" style={{ background: '#ff7bd522', color: '#a0307a' }}>🎨 きせかえ</button>
-        {isReal(acct) && <button onClick={openProf} className="text-[11px] font-black rounded-full px-2.5 py-1 shrink-0" style={{ background: `${COLORS.amber}33`, color: '#9a6a12' }}>🎖 成績・二つ名</button>}
-        <button onClick={onLogout} className="text-[11px] font-bold rounded-full px-2.5 py-1 shrink-0" style={{ background: COLORS.paperDark, color: COLORS.inkSoft }}>{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>
-      </div>
-      <div className="mt-1"><ExpBar exp={exp} /></div>
-      {open && <PlayerProfile name={acct.name} st={st || {}} nameOf={nameOf} me acctKey={acct.key} onClose={() => setOpen(false)} />}
-      {wd && <Wardrobe acct={acct} st={isReal(acct) ? st : g} exp={exp} onClose={() => setWd(false)} />}
-    </div>
-    {isReal(acct) && st && <GhostNews acct={acct} st={st} />}
-  </>);
-}
 
 /* =====================================================================
    学び（v5）：型の図鑑・苦手分析・苦手ドリル・デイリーチャレンジ・ゴースト
@@ -7300,7 +7268,6 @@ function AccountPanelV7({ acct, onLogout, onProfile }) {
         <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'var(--v7-accent)', transition: 'width 600ms ease' }} /></div>
         <span>{L.cur}/{L.need}</span>
       </div>
-      {open && <PlayerProfile name={acct.name} st={st || {}} nameOf={nameOf} me acctKey={acct.key} onClose={() => setOpen(false)} />}
       {wd && <Wardrobe acct={acct} st={isReal(acct) ? st : g} exp={exp} onClose={() => setWd(false)} />}
     </div>
     {isReal(acct) && st && <GhostNews acct={acct} st={st} />}
@@ -9944,7 +9911,7 @@ function BattleHome({ nextUI=false, onNavigate, onProfile, onGhosts, fb, acct, w
       const r = (allAcc || []).find(x => x.k === openKey);
       const st = openKey === (acct && acct.key) ? (stats || (r && r.st) || {}) : r && r.st;
       if (!st) return null;
-      return <PlayerProfile key={profile.key} hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={openKey} ghostOrigin={profile.origin} onClose={() => setWin(null)} />;
+      return <PlayerView key={profile.key} hideLegacyRating name={r ? r.name : acct.name} st={st} nameOf={nameOf} me={acct && acct.key === openKey} acctKey={openKey} ghostOrigin={profile.origin} onClose={() => setWin(null)} />;
     })()}
   </>);
 }
@@ -10003,7 +9970,8 @@ function AResultDetails({ report, me, names = {} }) {
 // 二つ名(称号)の保存。旧モーダルと新プロフィールで同じ処理を使う（保存先 accounts/<key>/stats/nick・形式は従来どおり）。
 // id が文字列なら（""＝明示的な装備解除 を含め）そのまま保存、それ以外は消去。
 const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(typeof id === 'string' ? id : null);
-function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
+// 他のプレイヤー(ランキング・賞金首リストなど)の読み取り専用プロフィール。称号は新しい「称号・実績」の読み取り専用表示。自分の称号の装備・解除は新プロフィールだけで行う
+function PlayerView({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   st = st || {};
   const historicalProfile = useRatingHistoryProfile(acctKey);
   const dailyTitles=useDailyTitles(acctKey);
@@ -10013,14 +9981,6 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
   const [ghostEligible,setGhostEligible]=useState(null),[ghostFight,setGhostFight]=useState(null);
   const self=loadLS(ACCT_LS,null);
   useEffect(()=>{let active=true;setGhostEligible(null);if(acctKey && FB.db)FB.db.ref(`games/factor/accounts/${acctKey}/prof`).get().then(s=>{const p=s.val();if(active)setGhostEligible(Object.values(p?.lv||{}).reduce((n,L)=>n+(typeof L?.n==='number'&&L.n>0?L.n:0),0)>=20);}).catch(()=>{if(active)setGhostEligible(false)});return()=>{active=false};},[acctKey]);
-  const [nick, setNick] = useState(st.nick || '');
-  const canNick = !!(me && acctKey);
-  const pickNick = id => {
-    const v = nick === id ? '' : id;
-    setNick(v);
-    if (FB.db) equipNick(acctKey, v).catch(() => {}); // v === '' は明示的な装備解除（新プロフィールと同じ）
-    if (v) { const b = titleLabelOf(v) || nickOf(v); FX.text(window.innerWidth / 2, window.innerHeight / 2, `〈${b.icon}${b.label}〉`, '#ffd54a', 26); fxSound('badge'); }
-  };
   const box = (label, v, color, sub) => (
     <div className="flex-1 rounded-xl px-2 py-2 text-center" style={{ background: COLORS.paperDark }}>
       <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>{label}</div>
@@ -10035,8 +9995,10 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
       <span className="font-bold" style={{ color: COLORS.inkSoft }}>{n}戦 {recordText(s)}{n ? `（勝率${Math.round((s.w || 0) / n * 100)}%）` : ''}</span>
     </div>;
   };
-  const got = new Set(badgesOf(st).map(b => b.id));
-  const visibleAchievements=activeAchievements(), visibleEarned=visibleAchievements.filter(b=>got.has(b.id)).length;
+  const TI = window.TitleInventoryUI && window.TitleInventoryUI.TitleInventory;
+  const titleOk = id => !!(nickOf(id) || (window.TitleLabelsNext && window.TitleLabelsNext.of(id)));
+  const shownTitle = window.TitleDisplayNext ? window.TitleDisplayNext.shownId(window.TitleDisplayNext.resolve({ nick: st.nick, title: historicalProfile && historicalProfile.title }, { valid: titleOk })) : null;
+  const iconOf = id => (window.TitleLabelsNext && window.TitleLabelsNext.resolve(id, nickOf(id)) || {}).icon || '🏅';
   if(ghostFight && OnlineRatedApp) return <div className="fixed inset-0 overflow-y-auto" style={{zIndex:100,background:COLORS.paper}}><OnlineRatedApp acct={self} initialGhost={{target:acctKey,difficulty:ghostFight,origin:ghostOrigin}} onExit={()=>{setGhostFight(null);onClose();}} /></div>;
   return (
     <div onClick={onClose} className="pp-dark fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 80 }}>
@@ -10044,7 +10006,7 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
             <div className="text-[11px] font-black" style={{ color: COLORS.inkSoft }}>📊 {hideLegacyRating?'従来の対戦記録':'オンライン対戦の成績'}{me ? '（あなた）' : ''}</div>
-            {nick && <Nick id={nick} size={12} block />}
+            {shownTitle && <Nick id={shownTitle} size={12} block />}
             <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>{name}</div>
           </div>
           <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
@@ -10077,24 +10039,11 @@ function PlayerProfile({ name, st, nameOf, me, acctKey, onClose, hideLegacyRatin
             {Object.entries(st.seasonHist || {}).sort((a, b) => b[0].localeCompare(a[0])).map(([k, v]) => <span key={k} className="text-[10px] font-bold rounded-lg px-2 py-0.5" style={{ background: COLORS.paperDark, color: COLORS.ink }}>{seasonLabel(k)} 最高 <RankPill r={v.max} size={9} /> {RatingDisplay.format(v.max)}</span>)}
           </div></>}
         </>)}
-        <div className="text-xs font-black mt-3 mb-1" style={{ color: COLORS.inkSoft }} data-achievement-count>🎖 称号・実績（{visibleEarned}/{visibleAchievements.length} · {visibleAchievements.length ? Math.round(100*visibleEarned/visibleAchievements.length) : 0}%）</div>
-        {canNick && <p className="text-[10px] font-bold mb-1" style={{ color: '#9a6a12' }}>取った称号をタップすると「二つ名」として名前の上に表示されます（もう一度タップではずす）</p>}
-        <div data-achievements className="grid grid-cols-3 gap-1.5">
-          {visibleAchievements.map(b => (
-            <div key={b.id} data-achievement={b.id} onClick={() => canNick && got.has(b.id) && pickNick(b.id)} className={`rounded-xl px-1 py-1.5 text-center ${canNick && got.has(b.id) ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
-              style={{ background: got.has(b.id) ? `${COLORS.amber}33` : COLORS.paperDark, opacity: got.has(b.id) ? 1 : 0.45, outline: nick === b.id ? '3px solid #e8a33d' : 'none' }}>
-              {nick === b.id && <div className="text-[8px] font-black" style={{ color: '#b7791f' }}>二つ名</div>}
-              <div className="text-lg leading-none">{got.has(b.id) ? b.icon : '🔒'}</div>
-              <div className="text-[10px] font-black mt-0.5" style={{ color: COLORS.ink }}>{(titleLabelOf(b.id) || b).label}</div>
-              <div className="text-[8.5px] font-bold leading-tight mt-0.5" style={{ color: COLORS.inkSoft }}>{got.has(b.id) ? b.desc : '？？？'}</div>
-            </div>
-          ))}
-        </div>
+        {TI && <div className="pv-titles" data-player-titles><TI readOnly earnedIds={badgesOf(st).map(b => b.id)} flags={[historicalProfile && historicalProfile.badges, dailyTitles]} equipped={shownTitle} iconOf={iconOf} /></div>}
         {g > 0 && (<>
           <div className="text-xs font-black mt-3" style={{ color: COLORS.inkSoft }}>相手ごとの成績</div>
           {st.vs && Object.keys(st.vs).length ? <VsTable vs={st.vs} nameOf={nameOf} /> : <p className="text-xs" style={{ color: COLORS.inkSoft }}>記録のある相手がいません</p>}
         </>)}
-        {me && acctKey && <GhostHistory acct={{key:acctKey,name}} stats={st} />}
       </div>
     </div>
   );
@@ -11518,7 +11467,7 @@ async function flushOnlineLearn(acct,matchId,rows,extra) {
     await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}
 }
 /* ソロとオンライン対戦の切り替え */
-const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerProfile, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;
+const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerView, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;
 const OnlineRatedApp = OnlineComponents?.App;
 function DailyMissionsView({acct,onMode}){const prof=useProf(acct,0),mis=useMissions(acct,prof);return <section><MissionList acct={acct} rows={mis.rows} onGo={r=>onMode?.(r.go==='drilllv'||r.go==='drillpt'?'learn':r.go,r.go==='drillpt'?{drill:{lv:r.lv,pid:r.pid}}:r.go==='drilllv'?{drill:{lv:r.lv}}:null)}/></section>;}
 async function completeDailySolo(acct,attempt,game){
@@ -11540,7 +11489,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,PlayerProfile,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');

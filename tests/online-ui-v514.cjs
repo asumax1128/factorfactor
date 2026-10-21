@@ -31,12 +31,8 @@ const fs = require("fs");
       p = t.page;
     await p.locator(".action-card.solo").click();
     await p.getByRole("button", { name: "成績", exact: true }).click();
-    await p.getByRole("button", { name: /称号の装備・詳細記録/ }).click();
-    const order = await p.locator(".fixed.inset-0").innerText();
-    assert(
-      order.indexOf("ゴースト対戦履歴") > order.indexOf("称号（"),
-      "history must follow all old profile sections",
-    );
+    await p.getByRole("tab", { name: "対戦記録", exact: true }).click();
+    await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
     await p.reload();
     await p.locator(".action-card.online").click();
     await p

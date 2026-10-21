@@ -11,13 +11,13 @@ const { chromium, context } = require('./browser-harness.cjs');
     const open = async () => {
       await p.locator('.account-main').click();
       await p.locator('[data-next-profile]').waitFor();
-      await p.getByRole('tab', { name: '称号・装備' }).click();
+      await p.getByRole('tab', { name: '称号・実績' }).click();
       await p.locator('[data-title-inventory]').waitFor();
     };
-    const state = async (id) => p.locator(`[data-title-id="${id}"] small`).innerText();
+    const state = async (id) => p.locator(`[data-title-id="${id}"]`).getAttribute("aria-label");
     await open();
     // easy peak 1830 proves 初級の覇者(easy_adept) and 初級の覇王(easy_master); normal 1729.99 proves nothing (no rounding up)
-    await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="easy_master"] small')?.textContent || ''));
+    await p.waitForFunction(() => document.querySelector('[data-title-id=\"easy_master\"]')?.dataset.state === 'earned');
     assert.match(await state('easy_adept'), /取得済み/);
     assert.match(await state('normal_adept'), /未取得/, 'raw 1729.99 must not round up to 1730');
     assert.match(await state('normal_master'), /未取得/);
@@ -34,13 +34,13 @@ const { chromium, context } = require('./browser-harness.cjs');
     const before = t.writes.length;
     await p.reload();
     await open();
-    await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="easy_master"] small')?.textContent || ''));
+    await p.waitForFunction(() => document.querySelector('[data-title-id=\"easy_master\"]')?.dataset.state === 'earned');
     assert.match(await state('easy_adept'), /取得済み/);
     assert.equal(t.writes.slice(before).filter((x) => /titleNextV1/.test(x.path)).length, 0, 'nothing is written twice');
     assert.deepEqual(t.tree.games.factor.accounts.ateacher.stats, stats);
     // the stored peak rises later: the new title is added, nothing else changes
     await p.evaluate(() => window.__fbApply({ kind: 'set', path: 'games/factor/onlineSparkV1/profiles/ateacher/normal/maxRating', v: 1821 }));
-    await p.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="normal_master"] small')?.textContent || ''), null, { timeout: 15000 });
+    await p.waitForFunction(() => document.querySelector('[data-title-id=\"normal_master\"]')?.dataset.state === 'earned', null, { timeout: 15000 });
     assert.match(await state('dual_master'), /取得済み/);
     assert.equal(await p.locator('[data-title-save-failed]').count(), 0, 'no warning when saving works');
     assert.deepEqual(t.errors, []);
@@ -59,9 +59,9 @@ window.firebase.database=Object.assign(()=>{const db=d();return{...db,ref:p=>wra
     const f = await context(b, { firebaseSource: 'window.__denyTitles=true;\n' + deny, tree: structuredClone(tree) });
     await f.page.locator('.account-main').click();
     await f.page.locator('[data-next-profile]').waitFor();
-    await f.page.getByRole('tab', { name: '称号・装備' }).click();
+    await f.page.getByRole('tab', { name: '称号・実績' }).click();
     await f.page.locator('[data-title-save-failed]').getByText('新称号の保存を確認できませんでした。通信状態をご確認ください。').waitFor();
-    assert.match(await f.page.locator('[data-title-id="tour1"] small').innerText(), /取得済み/, 'existing titles are unaffected by the failure');
+    assert.match(await f.page.locator('[data-title-id="tour1"]').getAttribute("aria-label"), /取得済み/, 'existing titles are unaffected by the failure');
     assert.equal(f.writes.filter((x) => /titleNextV1/.test(x.path)).length, 0);
     await f.ctx.close();
     console.log('PASS save failure shows the notice; existing titles stay'); 
@@ -69,8 +69,8 @@ window.firebase.database=Object.assign(()=>{const db=d();return{...db,ref:p=>wra
     const rm = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher' } }, onlineSparkV1: { profiles: { ateacher: { easy: { maxRating: 1830 }, normal: { maxRating: 1500 } } } } } } } });
     await rm.page.locator('.account-main').click();
     await rm.page.locator('[data-next-profile]').waitFor();
-    await rm.page.getByRole('tab', { name: '称号・装備' }).click();
-    await rm.page.waitForFunction(() => /取得済み/.test(document.querySelector('[data-title-id="easy_master"] small')?.textContent || ''));
+    await rm.page.getByRole('tab', { name: '称号・実績' }).click();
+    await rm.page.waitForFunction(() => document.querySelector('[data-title-id=\"easy_master\"]')?.dataset.state === 'earned');
     assert.equal(await rm.page.locator('[data-title-save-failed]').count(), 0);
     assert(rm.writes.some((x) => x.path === 'games/factor/titleNextV1/awards/ateacher/easy_master'), 'new title saved');
     assert(!rm.writes.some((x) => /titleNextV1\/snapshots/.test(x.path)), 'no premature (empty) legacy snapshot');

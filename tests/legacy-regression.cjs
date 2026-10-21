@@ -249,7 +249,9 @@ for (const [name, value] of Object.entries(before)) {
       "BattleGame", // Shared presentation-only BattleSurface; existing math, CPU and synchronization unchanged and E2E tested.
       "BattleApp", // Adds an opt-in server-backed random mode; legacy routes tested below.
       "Wardrobe", // Master tile alone reads immutable EASY/NORMAL history; other cosmetic rules unchanged.
-      "PlayerProfile", // Only optional online-context hiding of legacy rating; default profile unchanged.
+      "PlayerProfile", // Ver.6.4: removed. Replaced by the read-only PlayerView (other players only); own titles/equip live in the new profile only.
+      "AccountBar", // Ver.6.4: removed (unused old header; its only role was opening the old PlayerProfile modal).
+      "AccountPanelV7", // Ver.6.4: the old-modal fallback of the profile button removed (the new profile page is always used).
       "BattleResult", // Rating delta display only; raw result, rank and reward processing unchanged.
       "BattleHome", // Routes new ranking only when the protected feature flag is enabled.
       "FactorHunt",

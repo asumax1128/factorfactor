@@ -1190,8 +1190,8 @@
               )}
             </>
           )}
-          {selectedPlayer && H.PlayerProfile && (
-            <H.PlayerProfile
+          {selectedPlayer && H.PlayerView && (
+            <H.PlayerView
               name={selectedPlayer.name}
               st={selectedPlayer.cosmetics?.stats || {}}
               acctKey={selectedPlayer.key}

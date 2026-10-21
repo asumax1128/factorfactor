@@ -32,16 +32,56 @@ export function TitleEquipCurrent({equip}){
   {statusEl}
  </div>
 }
-export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=true,presentationStore=null,equip=null}){
- const state=compat.read({legacyEarned:earnedIds,flags,equipped,deriveHidden:true}),[filter,setFilter]=React.useState('all'),[scene,setScene]=React.useState(false);
+// ---- 称号・実績：一覧（3列〜のグリッド）と詳細（スマホは下から出るシート、広い画面は中央）。通常100＋隠し1（取得後だけ分母にも加わる）-----------------------
+// 未取得は固有の絵文字を出さず 🔒。名称・★は常に見せ、条件は★1〜3と取得済みだけ（★4〜5の未取得は「？？？」）。隠し称号は取得するまで存在も見せない。
+const RARITY=['','ふつう','まあまあ','めずらしい','レア','とくべつ'];
+function TitleDetail({t,earned,equipped,iconOf,equip,readOnly,onClose,onScene,hidden}){
+ const ref=React.useRef(null);
+ React.useEffect(()=>{const d=ref.current;if(d&&!d.open)d.showModal();return()=>{try{d&&d.open&&d.close()}catch(e){}}},[]);
+ const isHidden=!!hidden,name=isHidden?catalog.hidden.name:t.name,stars=isHidden?5:t.stars,id=isHidden?catalog.hidden.id:t.id;
+ const cond=isHidden?(earned?`通常称号のうち ${catalog.hidden.requiredDistinctFiveStar} 種類の★5を集める`:''):(t.stars<=3||earned?t.condition:'？？？');
+ return <dialog ref={ref} className="tc-sheet" data-title-detail={id} aria-label={name+'の詳細'} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===ref.current)onClose()}}>
+  <div className="tc-sheet-body">
+   <div className="tc-sheet-icon" aria-hidden="true" data-rarity={stars}>{earned?iconOf(id):'🔒'}</div>
+   <h4>{name}</h4>
+   <p className="tc-sheet-stars" aria-label={`${stars}つ星`}><span data-rarity={stars}>{'★'.repeat(stars)}</span> <small>{RARITY[stars]}</small></p>
+   <p className="tc-sheet-state" data-state={earned?'earned':'locked'}>{earned?(earned.at?`取得済み ・ ${new Date(earned.at).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'})+(earned.dateWasUnknown?'（確認日・取得日不明）':'')}`:'取得済み ・ 取得日未記録'):'未取得'}{equipped===id?' ・ 装備中':''}</p>
+   <dl><dt>取得条件</dt><dd>{cond||'？？？'}</dd>{!isHidden&&<><dt>分類</dt><dd>{t.category}</dd></>}</dl>
+   {!readOnly&&equip&&earned&&<TitleEquipControl equip={equip} id={id} name={name} earned={true}/>}
+   {!readOnly&&equip&&!earned&&<p className="tc-sheet-note">未取得のため装備できません</p>}
+   {isHidden&&earned&&<button type="button" className="tc-sheet-sub" onClick={onScene}>獲得演出を再視聴</button>}
+   <button type="button" className="tc-sheet-close" onClick={onClose}>とじる</button>
+  </div>
+ </dialog>
+}
+export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=true,presentationStore=null,equip=null,readOnly=false,iconOf=()=>catalog.hidden.icon||'🏅'}){
+ const state=compat.read({legacyEarned:earnedIds,flags,equipped,deriveHidden:true}),[filter,setFilter]=React.useState('all'),[scene,setScene]=React.useState(false),[open,setOpen]=React.useState(null);
  const [presentationError,setPresentationError]=React.useState('');
  const presentationKey=accountKey?'fxf_title_presentation_v1:'+accountKey:null;
- React.useEffect(()=>{if(!state.hiddenOwned||!presentationKey)return;let active=true;
+ React.useEffect(()=>{if(readOnly||!state.hiddenOwned||!presentationKey)return;let active=true;
   if(presentationStore){(presentationStore.claimAutomatic?presentationStore.claimAutomatic():presentationStore.seen().then(seen=>!seen)).then(claimed=>{if(active&&claimed)setScene(true)}).catch(()=>{if(active)setPresentationError('演出の閲覧状況を取得できません。再視聴は利用できます。')});}
   else {let seen=false;try{seen=localStorage.getItem(presentationKey)==='seen'}catch(e){}if(!seen)setScene(true);}
   return()=>{active=false};
- },[state.hiddenOwned,presentationKey,presentationStore]);
+ },[readOnly,state.hiddenOwned,presentationKey,presentationStore]);
  const closeScene=()=>{setScene(false);if(presentationStore){presentationStore.acknowledge().then(()=>setPresentationError('')).catch(()=>setPresentationError('閲覧状況を保存できませんでした。再視聴後に再試行します。'));return;}if(presentationKey)try{localStorage.setItem(presentationKey,'seen')}catch(e){}};
-
- return <section className="next-title-inventory" data-title-inventory><h3>称号一覧</h3>{equip&&<TitleEquipCurrent equip={equip}/>}<p>通常称号 {state.normal.length} / 100</p><div role="group" aria-label="称号の絞り込み">{[['all','すべて'],['earned','取得済み'],['locked','未取得']].map(([id,label])=><button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><ol>{catalog.titles.filter(t=>filter==='all'||(filter==='earned')===!!state.earned[t.id]).map(t=>{const e=state.earned[t.id];return <li key={t.id} data-title-id={t.id}><header><span>No.{t.number}</span><strong>{t.name}</strong><span aria-label={`${t.stars}つ星`}>{'★'.repeat(t.stars)}</span></header><p>{t.stars<=3?t.condition:'？？？'}</p><small>{e?'取得済み':'未取得'}{equipped===t.id?' ・ 装備中':''}{e?.at?` ・ ${new Date(e.at).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'})+(e.dateWasUnknown?'（確認日・取得日不明）':'')}`:e?' ・ 取得日未記録':''}</small>{equip&&<TitleEquipControl equip={equip} id={t.id} name={t.name} earned={!!e}/>}</li>})}</ol>{state.hiddenOwned&&<section className="next-title-special"><h4>FACTOR×FACTOR</h4><p>特別称号・取得済み</p><button onClick={()=>setScene(true)}>獲得演出を再視聴</button>{equip&&<TitleEquipControl equip={equip} id={catalog.hidden.id} name={catalog.hidden.name} earned={true}/>}</section>}<p>未公開の取得条件は？？？と表示します。</p>{presentationError&&state.hiddenOwned&&<p role="alert">{presentationError}</p>}{scene&&state.hiddenOwned&&<TitleCinematic muted={muted} reducedMotion={window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} onFinish={closeScene}/>}</section>;
+ const total=100+(state.hiddenOwned?1:0),got=state.normal.length+(state.hiddenOwned?1:0),pct=Math.round(got*100/total);
+ const shown=catalog.titles.filter(t=>filter==='all'||(filter==='earned')===!!state.earned[t.id]);
+ const openT=open==='__hidden'?null:catalog.titles.find(t=>t.id===open);
+ const card=(t,earned,hidden)=>{const id=hidden?catalog.hidden.id:t.id,name=hidden?catalog.hidden.name:t.name,stars=hidden?5:t.stars;
+  return <li key={id}><button type="button" className="tc-card" data-title-id={id} data-state={earned?'earned':'locked'} data-rarity={stars} data-equipped={equipped===id?'true':'false'} aria-label={`${name}、${stars}つ星、${earned?'取得済み':'未取得'}${equipped===id?'、装備中':''}`} onClick={()=>setOpen(hidden?'__hidden':id)}>
+   {equipped===id&&<span className="tc-ribbon" data-equipped>装備中</span>}
+   <span className="tc-icon" aria-hidden="true">{earned?iconOf(id):'🔒'}</span>
+   <strong className="tc-name">{name}</strong>
+   <span className="tc-stars" aria-hidden="true">{'★'.repeat(stars)}</span>
+  </button></li>};
+ return <section className="next-title-inventory tc" data-title-inventory>
+  <header className="tc-head"><h3>称号・実績</h3><p className="tc-count" data-title-count><b>{got}</b> / {total}<span>　達成率 {pct}%</span></p><div className="tc-bar" role="progressbar" aria-valuemin="0" aria-valuemax={total} aria-valuenow={got} aria-label="称号の獲得数"><i style={{width:pct+'%'}}/></div></header>
+  {!readOnly&&equip&&<TitleEquipCurrent equip={equip}/>}
+  <div role="group" aria-label="称号の絞り込み" className="tc-filter">{[['all','すべて'],['earned','取得済み'],['locked','未取得']].map(([id,label])=><button type="button" key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div>
+  <ol className="tc-grid">{shown.map(t=>card(t,state.earned[t.id],false))}{state.hiddenOwned&&filter!=='locked'&&card(null,true,true)}</ol>
+  <p className="tc-note">★4〜5の未取得の条件は「？？？」と表示します。</p>
+  {presentationError&&state.hiddenOwned&&<p role="alert">{presentationError}</p>}
+  {open&&(open==='__hidden'?state.hiddenOwned:openT)&&<TitleDetail t={openT} hidden={open==='__hidden'} earned={open==='__hidden'?state.earned[catalog.hidden.id]:state.earned[open]} equipped={equipped} iconOf={iconOf} equip={equip} readOnly={readOnly} onClose={()=>setOpen(null)} onScene={()=>{setOpen(null);setScene(true)}}/>}
+  {scene&&state.hiddenOwned&&<TitleCinematic muted={muted} reducedMotion={window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} onFinish={closeScene}/>}
+ </section>;
 }

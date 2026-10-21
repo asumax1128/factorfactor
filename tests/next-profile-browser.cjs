@@ -15,7 +15,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');const {chromium
  await p.getByRole('tab',{name:'概要'}).click();assert(!await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth));
  if(process.env.CAPTURE_PROFILE==='1'&&[390,1440].includes(width)){await p.evaluate(()=>document.fonts.ready);const vh=width>900?1080:844;if(width<900)await p.setViewportSize({width,height:await p.evaluate(()=>document.documentElement.scrollHeight)});await p.screenshot({path:`docs/next-major/phase2a/profile-${width}.png`,fullPage:true});await p.setViewportSize({width,height:vh});}
  await profile.getByRole('button',{name:'きせかえ',exact:true}).click();await p.getByRole('button',{name:'タイル',exact:true}).waitFor();await p.getByRole('button',{name:'とじる',exact:true}).click();
- await profile.getByRole('button',{name:'称号の装備・詳細記録',exact:true}).click();await p.getByRole('button',{name:'とじる',exact:true}).click();
+ await profile.getByRole('button',{name:'ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:'とじる',exact:true}).click();
  await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('.home-content').waitFor();
  await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.locator('.ranking-grid').waitFor();
  if(width>900)await p.getByRole('navigation',{name:'PCメインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();else{await p.getByRole('button',{name:'メニューを開く'}).click();await p.getByRole('dialog',{name:'メインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();}

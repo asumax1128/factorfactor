@@ -1,0 +1,39 @@
+/* 称号・実績（新プロフィールの唯一の称号画面／他のプレイヤーの読み取り専用表示）。変数は .next-home の外（ランキングの相手プロフィール）でも使えるようここで定義 */
+.tc{--accent:#72dfce;--line:#324354;--text:#e8f0f5;--muted:#9daebd;--tc-panel:#132733;--tc-gold:#f5c96d;color:var(--text);min-width:0}
+.tc h3{font:900 18px/1.3 var(--heading,BHeading,'Yu Gothic',sans-serif);margin:0 0 4px}
+.tc-count{margin:0;font-size:13px}.tc-count b{font:900 22px var(--number,BNumber,sans-serif);color:var(--accent)}.tc-count span{color:var(--muted);font-size:12px}
+.tc-bar{height:8px;border-radius:99px;background:#0c1620;border:1px solid var(--line);overflow:hidden;margin:8px 0 12px}.tc-bar i{display:block;height:100%;background:linear-gradient(90deg,#3fb8a6,var(--accent))}
+.tc-filter{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.tc-filter button{min-height:40px;padding:6px 14px;border:1px solid #375867;border-radius:8px;background:transparent;color:var(--text);font:700 13px inherit}.tc-filter button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:#1a3541}
+.tc-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media(min-width:600px){.tc-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}}
+@media(min-width:900px){.tc-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(min-width:1250px){.tc-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.tc-grid li{min-width:0}
+.tc-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;width:100%;min-height:96px;padding:10px 4px 8px;border:1px solid var(--line);border-top:3px solid var(--rc,#6f7f8d);border-radius:10px;background:var(--tc-panel);color:var(--text);text-align:center;cursor:pointer;font:inherit}
+.tc-card[data-rarity="1"],.tc-sheet [data-rarity="1"]{--rc:#8a9ba8}.tc-card[data-rarity="2"],.tc-sheet [data-rarity="2"]{--rc:#5fb37c}.tc-card[data-rarity="3"],.tc-sheet [data-rarity="3"]{--rc:#4aa3df}.tc-card[data-rarity="4"],.tc-sheet [data-rarity="4"]{--rc:#a77bff}.tc-card[data-rarity="5"],.tc-sheet [data-rarity="5"]{--rc:#f0b429}
+.tc-card[data-state=earned]{background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 16%,#132733),#132733)}
+.tc-card[data-state=locked]{opacity:.62}
+.tc-card[data-equipped=true]{border-color:var(--tc-gold);box-shadow:0 0 0 2px var(--tc-gold) inset}
+.tc-card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tc-icon{font-size:26px;line-height:1.1}
+.tc-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font:900 11px/1.3 var(--heading,BHeading,'Yu Gothic',sans-serif)}
+.tc-stars{font-size:9px;letter-spacing:-1px;color:var(--rc)}
+.tc-ribbon{position:absolute;top:-1px;right:-1px;padding:1px 6px;border-radius:0 9px 0 8px;background:var(--tc-gold);color:#2a1d00;font:900 9px/1.5 sans-serif}
+.tc-note{font-size:11px;color:var(--muted);margin:10px 0 0}
+/* 詳細：スマホは下からのシート、広い画面は中央 */
+.tc-sheet{border:1px solid var(--line);border-radius:16px 16px 0 0;background:#192b38;color:var(--text);padding:0;width:100%;max-width:560px;margin:auto auto 0;max-height:86vh;overflow:auto}
+.tc-sheet::backdrop{background:rgba(5,9,14,.7)}
+@media(min-width:768px){.tc-sheet{margin:auto;border-radius:14px;width:min(520px,92vw)}}
+.tc-sheet-body{padding:18px 18px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.tc-sheet-icon{font-size:44px;line-height:1.1;padding:8px 18px;border-radius:14px;border:2px solid var(--rc,#6f7f8d);background:#132733}
+.tc-sheet h4{margin:4px 0 0;font:900 20px/1.3 var(--heading,BHeading,'Yu Gothic',sans-serif);overflow-wrap:anywhere}
+.tc-sheet-stars{margin:0;color:var(--rc)}.tc-sheet-stars small{color:var(--muted)}
+.tc-sheet-state{margin:0;font-size:13px;font-weight:700}.tc-sheet-state[data-state=earned]{color:var(--accent)}
+.tc-sheet dl{margin:8px 0;width:100%;text-align:left;font-size:13px;line-height:1.7}.tc-sheet dt{color:var(--muted);font-size:11px;margin-top:6px}.tc-sheet dd{margin:0;overflow-wrap:anywhere}
+.tc-sheet-note{font-size:12px;color:var(--muted);margin:4px 0}
+.tc-sheet .next-title-equip{justify-content:center;margin-top:6px}
+.tc-sheet button{font:inherit}
+.tc-sheet-close,.tc-sheet-sub{min-height:44px;min-width:120px;margin-top:8px;padding:8px 18px;border:1px solid #375867;border-radius:8px;background:transparent;color:var(--text);font-weight:700}
+.tc-sheet-sub{border-color:var(--tc-gold)}
+@media(prefers-reduced-motion:no-preference){.tc-sheet[open]{animation:tc-up .18s ease-out}@keyframes tc-up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}}
+.pv-titles{margin-top:12px}
