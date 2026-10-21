@@ -107,7 +107,8 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
         });
         assert(r.win < 0.25, `dark window ${width}`); assert.deepEqual(r.light.filter((x) => !/^(〈|🏆|装備中)/.test(x)), [], `no light panel ${width}`);
         assert(r.doc <= r.vw + 1 && !r.wide, `no horizontal overflow ${width}`);
-        for (const need of ['オンライン対戦の成績', 'イージーで自分のゴースト対戦', 'ノーマルで自分のゴースト対戦', '最高レート']) assert(r.text.includes(need), `kept: ${need} ${width}`);
+        for (const need of ['イージーで自分のゴーストと対戦', 'ノーマルで自分のゴーストと対戦', 'ハイパーゴーストと対戦'])  assert(r.text.includes(need), `kept: ${need} ${width}`);
+        for (const gone of ['現在レート', '最高レート', '従来レート', '勝率', 'Perfect', '最大コンボ']) assert(!r.text.includes(gone), `removed: ${gone} ${width}`);
         await p.getByRole('button', { name: 'とじる', exact: true }).click(); await win.waitFor({ state: 'detached' });
         assert.deepEqual(t.errors, []); await t.ctx.close();
       }

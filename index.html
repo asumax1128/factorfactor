@@ -52,7 +52,7 @@
   .fxm { font-family: "KaTeX_Main", "Times New Roman", "Cambria Math", serif; font-style: normal; font-weight: 400; white-space: nowrap; letter-spacing: 0; line-height: 1.2; }
   .fxm-v { font-family: "KaTeX_Math", "Times New Roman", "Cambria Math", serif; font-style: italic; padding-right: 0.04em; }
   .fxm-op { margin: 0 0.22em; }
-  .fxm-sup { font-size: 0.62em; vertical-align: 0.6em; line-height: 0; margin-left: 0.03em; }
+  .fxm-sup { font-size: 0.7em; vertical-align: 0.38em; line-height: 0; margin-left: 0.04em; }
   .fxm-arrow { margin: 0 0.35em; }
   html, body { margin: 0; padding: 0; background: #F5F2EC; }
   #root { min-height: 100vh; }
@@ -572,12 +572,12 @@ function v7Wipe(cb, o = {}) {
   requestAnimationFrame(step);
 }
 /* ウィンドウ（メニューから開く画面）。開くときにウィンドウのように広がる */
-function V7Modal({ title, onClose, children, wide }) {
+function V7Modal({ title, onClose, children, wide, hideClose }) {
   const ref = useMenuCursor();
   return (
     <div className="v7-modal" onClick={() => { uiSnd('back'); onClose(); }} ref={ref}>
       <div className="v7-modal-win v7-open" onClick={e => e.stopPropagation()} style={wide ? { maxWidth: '64rem' } : null}>
-        <div className="v7-modal-head"><h3>{title}</h3><button className="v7-pill" data-snd="back" onClick={onClose}>とじる</button></div>
+        <div className="v7-modal-head"><h3>{title}</h3>{!hideClose && <button className="v7-pill" data-snd="back" onClick={onClose}>とじる</button>}</div>
         {children}
       </div>
     </div>
@@ -5707,7 +5707,7 @@ function LoginBonus({ acct }) {
   };
   const close = async () => { if (!got) await claim(); setOpen(false); };
   return (
-    <V7Modal title="ログインボーナス" onClose={close}>
+    <V7Modal title="ログインボーナス" onClose={close} hideClose>
       <div className="text-xs font-bold mb-2" style={{ color: 'var(--v7-sub)' }}>{got ? `通算${got.n}日目のログイン！` : '今日のスタンプを押そう！ 7日分たまると大きなごほうび（休んでもリセットされません）'}</div>
       <div className="grid grid-cols-4 gap-2 mb-3">
         {LB_REWARDS.map((r, i) => { const stamped = i < done, isToday = i === todayIdx; return (
@@ -9971,6 +9971,37 @@ function AResultDetails({ report, me, names = {} }) {
 // id が文字列なら（""＝明示的な装備解除 を含め）そのまま保存、それ以外は消去。
 const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(typeof id === 'string' ? id : null);
 // 他のプレイヤー(ランキング・賞金首リストなど)の読み取り専用プロフィール。称号は新しい「称号・実績」の読み取り専用表示。自分の称号の装備・解除は新プロフィールだけで行う
+/* ---------- ゴースト対戦（自分のゴースト／ハイパーゴースト）：対戦の入口だけを出す簡素な画面 ---------- */
+function GhostBattlePanel({ acctKey, onClose }) {
+  const [eligible, setEligible] = useState(null), [fight, setFight] = useState(null);
+  const self = loadLS(ACCT_LS, null);
+  useEffect(() => {
+    let active = true; setEligible(null);
+    if (acctKey && FB.db) FB.db.ref(`games/factor/accounts/${acctKey}/prof`).get().then(x => { const p = x.val(); if (active) setEligible(Object.values(p?.lv || {}).reduce((n, L) => n + (typeof L?.n === 'number' && L.n > 0 ? L.n : 0), 0) >= 20); }).catch(() => { if (active) setEligible(false); });
+    return () => { active = false; };
+  }, [acctKey]);
+  if (fight && OnlineRatedApp) return <div className="fixed inset-0 overflow-y-auto" style={{ zIndex: 100, background: COLORS.paper }}>
+    {fight === 'hyper'
+      ? <OnlineRatedApp acct={self} view="ghosts" startHyper onExit={() => setFight(null)} />
+      : <OnlineRatedApp acct={self} initialGhost={{ target: acctKey, difficulty: fight, origin: 'profile' }} onExit={() => { setFight(null); onClose(); }} />}
+  </div>;
+  return (
+    <div onClick={onClose} className="pp-dark fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 80 }}>
+      <div onClick={e => e.stopPropagation()} data-ghost-panel className="w-full rounded-2xl p-4 v7-open" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '24rem' }}>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="text-xl font-black" style={{ color: COLORS.ink, ...bFont }}>👻 ゴースト対戦</div>
+          <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
+        </div>
+        <p className="text-xs font-bold mb-3" style={{ color: COLORS.inkSoft }}>{eligible === false ? '自分のゴーストの記録がありません（20問以上の学習記録が必要です）' : '自分のゴーストとの練習は、レート・勝敗・EXP・称号・学習記録を更新しません'}</p>
+        <div className="flex flex-col gap-2">
+          {['easy', 'normal'].map(d => <BigBtn key={d} disabled={!eligible} onClick={() => setFight(d)}>{DIFFICULTY_CONFIG[d].label}で自分のゴーストと対戦</BigBtn>)}
+          <BigBtn color="#7B61FF" disabled={!OnlineRatedApp} onClick={() => setFight('hyper')}>ハイパーゴーストと対戦</BigBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlayerView({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating = false, ghostOrigin = "profile" }) {
   st = st || {};
   const historicalProfile = useRatingHistoryProfile(acctKey);
@@ -11489,7 +11520,7 @@ function DailyApp(props){
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');

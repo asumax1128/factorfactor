@@ -426,7 +426,7 @@
         </section>
       );
     }
-    function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false }) {
+    function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
         [feedback, setFeedback] = useState(null),
@@ -434,7 +434,7 @@
           view === "ratings" ? "ratings" : "select",
         ),
         [tab, setTab] = useState("easy"),
-        [hyperChoice,setHyperChoice] = useState(false),
+        [hyperChoice,setHyperChoice] = useState(!!startHyper),
         [busy, setBusy] = useState(false),
         [selectedPlayer, setSelectedPlayer] = useState(null),
         [rankEquip, setRankEquip] = useState(null),
