@@ -1,2 +1,2 @@
 /* Generated from version.json. */
-window.FactorVersion = Object.freeze({"major":6,"minor":2,"number":"6.2","label":"Ver. 6.2"});
+window.FactorVersion = Object.freeze({"major":6,"minor":3,"number":"6.3","label":"Ver. 6.3"});
