@@ -375,3 +375,8 @@
 .next-home .mobile-brand{flex-direction:row;align-items:flex-end;gap:6px}
 .next-home .mobile-brand .brand-ver{padding-bottom:3px}
 .next-home .brand-slot .brand-ver{margin-left:2px;margin-top:-4px}
+/* Ver.6.6: the visible page title is dropped on home / online / ranking hub (the h1 stays for screen readers and focus). */
+.next-home .page-header[data-title-hidden]{margin-bottom:16px;min-height:0}
+.next-home .page-header[data-title-hidden] h1{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.next-home .ranking-content[data-hub] .ranking-grid{margin-top:0}
+@media(max-width:900px){.next-home .page-header[data-title-hidden]{margin-bottom:0;height:0}.next-home .ranking-content[data-hub] .ranking-grid{margin-top:0}}

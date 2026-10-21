@@ -41,6 +41,7 @@ const fs = require("fs");
     await p
       .getByRole("button", { name: "イージーで相手を探す", exact: true })
       .waitFor();
+    await p.mouse.move(0, 0); // the pointer must not hover a difficulty button (the layout moved up with the removed toolbar)
     const styles = await p.locator(".or-difficulty").evaluateAll((es) =>
       es.map((e) => ({
         color: getComputedStyle(e).borderLeftColor,

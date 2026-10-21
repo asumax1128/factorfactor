@@ -7,7 +7,6 @@ export function createLobby(H){
  return function Lobby({fb,acct,who,err,onQuick,quickPending,quickMessage,quickError,onConfigRetry,ratedEnabled,onRatedStats,onCreate,onJoin,onPractice,onGhosts,onProfile,onNavigate,onExit,code,setCode,pc,setPc,onPlayers,onBounty,bountyCount,onVs,teacherArea,currentRatings}){
   const ready=!!fb.ready;
   return <main className="next-lobby" data-next-lobby>
-   <div className="next-toolbar"><BackButton onClick={onExit} children="ホームへ戻る"/><button className="small-button" onClick={onProfile}>称号とくわしい成績</button></div>
    {!ready&&<p className="next-note" role="status">{fb.err||'サーバーに接続しています…'} CPU練習は通信なしで遊べます。</p>}
    {err&&<p className="next-error" role="alert">{err}</p>}
    <section className="next-quick"><Icon name="online"/><div><h2>ランダムレーティング対戦</h2><p>イージー・ノーマル。マッチング後にA・新B方式を選択。</p>{!quickPending&&!ratedEnabled&&<p>レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。</p>}{quickMessage&&<p role={quickError?'alert':'status'}>{quickMessage}</p>}</div><button className="next-primary" disabled={!ready||quickPending||!ratedEnabled} onClick={onQuick}>すぐ遊ぶ（ランダム対戦）</button>{quickError&&<button className="small-button" onClick={onConfigRetry}>設定を再試行</button>}</section>

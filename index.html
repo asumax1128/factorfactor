@@ -52,7 +52,8 @@
   .fxm { font-family: "KaTeX_Main", "Times New Roman", "Cambria Math", serif; font-style: normal; font-weight: 400; white-space: nowrap; letter-spacing: 0; line-height: 1.2; }
   .fxm-v { font-family: "KaTeX_Math", "Times New Roman", "Cambria Math", serif; font-style: italic; padding-right: 0.04em; }
   .fxm-op { margin: 0 0.22em; }
-  .fxm-sup { font-size: 0.7em; vertical-align: 0.38em; line-height: 0; margin-left: 0.04em; }
+  /* Tailwind preflight gives sup position:relative; top:-.5em, which doubled the raise. Raise with vertical-align only. */
+  .fxm-sup { font-size: 0.7em; position: static; top: auto; vertical-align: 0.55em; line-height: 0; margin-left: 0.03em; }
   .fxm-arrow { margin: 0 0.35em; }
   html, body { margin: 0; padding: 0; background: #F5F2EC; }
   #root { min-height: 100vh; }

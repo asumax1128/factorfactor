@@ -90,7 +90,7 @@
 .pf-surface .fxm{font-family:FxMathMain,"KaTeX_Main","Times New Roman","Cambria Math",serif;font-size:1.1em;line-height:1.25}
 .pf-surface .fxm-v{font-family:FxMathItalic,"KaTeX_Math","Times New Roman","Cambria Math",serif;font-style:italic;padding-right:.02em}
 .pf-surface .fxm-op{margin:0 .2222em}
-.pf-surface .fxm-sup{font-size:.7em;vertical-align:.38em;margin-left:.04em}
+.pf-surface .fxm-sup{font-size:.7em;position:static;top:auto;vertical-align:.55em;margin-left:.03em}
 /* fit: the glyphs are wider than the old fallback, so a formula never grows past its card.
    --mw (em width estimate set by MathText) + container width units shrink only the long ones. */
 @supports (width:1cqw){
