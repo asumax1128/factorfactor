@@ -100,7 +100,7 @@ const { chromium, context, sleep, drag } = require("./browser-harness.cjs");
         });
       }, uid);
       await t.page
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
       await t.page
         .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })

@@ -68,13 +68,13 @@ const { chromium, context } = require("./browser-harness.cjs");
       const t = await context(b, { tree }),
         p = t.page;
       await p.setViewportSize({ width, height: 844 });
-      await p.locator(".action-card.solo").click();
+      await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
       await p.getByRole("button", { name: /学びの部屋/ }).click();
       await p.getByText("最高速 1.20秒", { exact: true }).waitFor();
       assert.equal(await p.getByText("最高速 ―", { exact: true }).count(), 8);
       await p.reload();
       // new home: solo 成績 page -> 対戦記録 tab holds the ghost history
-      await p.locator(".action-card.solo").click();
+      await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
       await p.getByRole("button", { name: "成績", exact: true }).click();
       await p.getByRole("tab", { name: "対戦記録", exact: true }).click();   // Ver.6.4: the ghost history lives in the new profile's record tab
       await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
@@ -92,7 +92,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       assert.equal(tree.games.factor.accounts.ateacher.stats.exp, 105);
       await p.reload();
       await p
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
       await p
         .getByRole("button", { name: "クラス大会を開催", exact: true })

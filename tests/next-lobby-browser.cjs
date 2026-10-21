@@ -18,14 +18,15 @@ const assert=require('node:assert/strict');const {chromium,context,drag}=require
   }
   await p.getByPlaceholder('部屋コード4桁').fill('12');await p.getByRole('button',{name:'参加',exact:true}).click();await p.getByRole('alert').getByText('4桁の数字を入れてください',{exact:true}).waitFor();
   await p.getByRole('button',{name:'ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:/イージーゴースト/}).waitFor();await p.getByRole('button',{name:'オンラインへ戻る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();
+  await p.getByRole('button',{name:'ホームへ',exact:true}).first().click();await p.locator('.action-card.solo').click();await p.locator('[data-solo-mode=cpu]').click();
   const choice=p.getByRole('group',{name:'方式',exact:true});assert.equal(await choice.getByRole('button',{name:/^C /}).count(),0,'C hidden in CPU practice');await choice.getByRole('button',{name:'A方式',exact:true}).click();await p.getByRole('group',{name:'難易度',exact:true}).getByRole('button',{name:'ノーマル',exact:true}).click();await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).click();await p.locator('[data-btile]').first().waitFor();assert(!await p.locator('.bottom-nav').count(),'no menu navigation during combat');
   assert.deepEqual(t.errors,[]);console.log(`PASS lobby ${width}: actual A/B room creation (C hidden), search/bounty modal replacement, own profile, ghost menu, CPU NORMAL A start, protected room/game navigation`);await t.ctx.close();
  }
 for(const isTeacher of [false,true]){
  const tree={games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{}}},teachers:isTeacher?{ateacher:true}:{},onlineSparkV1:{config:{enabled:false,protocol:'spark-v1'}}}}};
  const t=await context(b,{tree}),p=t.page;await p.locator('.action-card.online').click();await p.locator('[data-next-lobby]').waitFor();
- await p.getByText('レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。',{exact:true}).waitFor();
- assert(await p.getByRole('button',{name:'すぐ遊ぶ（ランダム対戦）',exact:true}).isDisabled());assert(await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).isEnabled());
+ await p.getByText('レーティング対戦は現在利用できません。ルーム対戦を利用できます。',{exact:true}).waitFor();
+ assert(await p.getByRole('button',{name:'すぐ遊ぶ（ランダム対戦）',exact:true}).isDisabled());assert(await p.getByRole('button',{name:'部屋を作る（ホスト）',exact:true}).isEnabled());
  if(isTeacher){await p.getByRole('button',{name:/先生用ダッシュボード/}).waitFor();await p.getByRole('button',{name:/クラス協力レイドを開く/}).waitFor();}else assert.equal(await p.getByRole('button',{name:/先生用ダッシュボード/}).count(),0);
  assert.deepEqual(t.errors,[]);console.log(`PASS lobby config disabled; teacher=${isTeacher}: existing role gate, CPU available, no old random fallback`);await t.ctx.close();
  }

@@ -10,7 +10,7 @@ const {chromium,context}=require('./browser-harness.cjs');
  const ui=fs.readFileSync('online-rated-ui.js','utf8')+'\n(()=>{const f=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{window.__ratingH=H;return f(H)}})();';
  const t=await context(b,{tree,assetOverrides:{'/online-rated-ui.js':ui}}),p=t.page;
  await p.setViewportSize({width,height:844});
- await p.getByRole('button',{name:'オンライン対戦・CPU練習',exact:true}).click();
+ await p.getByRole('button',{name:'オンライン対戦（ロビー）',exact:true}).click();
  const current=p.locator('[data-current-ratings]');await current.getByText('1666',{exact:true}).waitFor();assert.match(await current.innerText(),/イージー 現在レート/);assert.match(await current.innerText(),/ノーマル 現在レート/);assert.match(await current.innerText(),/1540/);assert(!await current.innerText().then(x=>x.includes('1650')));
  // A committed ghost/BOT rating update must immediately refresh the lobby.
  await p.evaluate(()=>window.__fbApply({kind:'set',path:'games/factor/onlineSparkV1/profiles/ateacher/easy/rating',v:1667.6}));await current.getByText('1668',{exact:true}).waitFor();

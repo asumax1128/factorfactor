@@ -1,7 +1,7 @@
 // Ver.6.0 release adjustment: a completed solo play counts once for the total-games titles; quitting does not.
 const assert = require('node:assert/strict'), { chromium, context } = require('./browser-harness.cjs'), { soloDrag } = require('./solo-test-helper.cjs');
 const exe = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const begin = async (p) => { await p.locator('.action-card.solo').click(); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); };
+const begin = async (p) => { await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=play]').click(); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); };
 (async () => {
   const b = await chromium.launch({ executablePath: exe });
   try {

@@ -28,7 +28,7 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
         return f();
       };
     });
-    await p.locator(".action-card.solo").click(); // new home: solo mode is entered from its card, then スタート
+    await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click(); // new home: solo mode is entered from its card, then スタート
     await p.getByRole("button", { name: "スタート", exact: true }).click();
     await p.getByRole("button", { name: "音を消す", exact: true }).click();
     await sleep(150);
@@ -41,7 +41,7 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
       "battle mute must also suppress menu/button oscillators",
     );
     await p.reload();
-    await p.locator(".action-card.solo").click(); // new home: solo mode is entered from its card, then スタート
+    await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click(); // new home: solo mode is entered from its card, then スタート
     await p.getByRole("button", { name: "スタート", exact: true }).click();
     await p.getByRole("button", { name: "音を出す", exact: true }).waitFor();
     assert.equal(
@@ -109,9 +109,7 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
     for (const mode of ["cpu", "weekly", "daily"]) {
       await p.reload();
       if (mode === "cpu") {
-        await p
-          .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
-          .click();
+        await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();
         await p
           .getByRole("button", { name: "CPUと練習スタート", exact: true })
           .click();

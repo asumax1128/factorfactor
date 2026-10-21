@@ -30,7 +30,7 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
         p = t.page;
       await p.setViewportSize({ width, height: 844 });
       await p
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
       const bounty = p.getByRole("button", { name: /賞金首リスト/ });
       await bounty.waitFor();

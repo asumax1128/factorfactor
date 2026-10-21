@@ -34,7 +34,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     });
     const p = t.page;
     await p
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+      .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
       .click();
     const quick = p.getByRole("button", {
       name: "すぐ遊ぶ（ランダム対戦）",
@@ -79,7 +79,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
         },
       });
       await u.page
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
       await u.page
         .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
@@ -182,11 +182,11 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     assert.equal(await offQuick.isDisabled(), true, "random match must be disabled");
     await off.page
       .getByText(
-        "レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。",
+        "レーティング対戦は現在利用できません。ルーム対戦を利用できます。",
         { exact: true },
       )
       .waitFor();
-    for (const name of ["部屋を作る（ホスト）", "CPUと練習スタート"])
+    for (const name of ["部屋を作る（ホスト）"])
       assert.equal(
         await off.page.getByRole("button", { name, exact: true }).isEnabled(),
         true,
@@ -221,7 +221,7 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       },
     });
     await publicPage.page
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+      .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
       .click();
     await publicPage.page
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
@@ -260,6 +260,9 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
       "PASS exact Pages payload/hash URLs render EASY/NORMAL without JS errors",
     );
     const cpu = await open({ enabled: false, protocol: "spark-v1" });
+    await cpu.page.getByRole("button", { name: "ホームへ", exact: true }).first().click();
+    await cpu.page.locator(".action-card.solo").click();
+    await cpu.page.locator("[data-solo-mode=cpu]").click();
     await cpu.page
       .getByRole("button", { name: "CPUと練習スタート", exact: true })
       .click();
@@ -277,6 +280,9 @@ const mock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace(
     await cpu.page
       .getByRole("button", { name: "CPUの設定にもどる", exact: true })
       .click();
+    // CPU practice now lives under solo; the random match is reached from the online lobby
+    await cpu.page.getByRole("button", { name: "ホームへ", exact: true }).first().click();
+    await cpu.page.locator(".action-card.online").click();
     await cpu.page
       .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })
       .click();

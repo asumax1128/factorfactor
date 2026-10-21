@@ -46,7 +46,7 @@ const seed = () => ({
       const t = await context(browser, { tree, account, uid });
       await sleep(700);
       // new home: the tower tile lives in the solo menu, so denied users must lack it there too
-      await t.page.locator(".action-card.solo").click();
+      await t.page.locator(".action-card.solo").click(); await t.page.locator('[data-solo-mode=play]').click();
       await t.page.getByRole("button", { name: "スタート", exact: true }).waitFor();
       assert.equal(
         await t.page

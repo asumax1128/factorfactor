@@ -2,7 +2,7 @@
 // database write paths, EXP delta, ghost/ranking/mission local storage. Run on two checkouts and diff the JSON.
 const fs=require('node:fs'),{chromium,context}=require('./browser-harness.cjs'),{soloDrag}=require('./solo-test-helper.cjs');
 const exe=process.env.CHROMIUM_PATH||'/usr/bin/chromium';
-async function start(p,label){await p.locator('.action-card.solo').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor()}
+async function start(p,label){await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor()}
 const norm=o=>JSON.parse(JSON.stringify(o,(k,v)=>typeof v==='number'?'#':typeof v==='string'&&/^\d{10,}/.test(v)?'#':v));
 (async()=>{const b=await chromium.launch({executablePath:exe}),out={};try{
  for(const [name,label,plan] of [['easy-clear','イージー',{right:15,wrong:0}],['normal-over','ノーマル',{right:3,wrong:6}],['hard-over','ハード',{right:0,wrong:6}]]){

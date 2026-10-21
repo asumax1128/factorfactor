@@ -33,7 +33,7 @@ async function open(
     assetOverrides: { "/online-rated-ui.js": ui,"/online-spark.js": fs.readFileSync("online-spark.js","utf8")+"\n(()=>{const c=window.OnlineSpark.create;window.OnlineSpark.create=o=>c({...o,modernB:false});})();" },
   });
   await t.page
-    .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+    .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
     .click();
   await t.page.evaluate((kind) => {
     const H = window.__onlineHelpers;

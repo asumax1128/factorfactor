@@ -1,0 +1,31 @@
+/* Ver.6.7 ソロモード選択：4枚の大型カード + コンパクトなプロフィール。ホームのダークネイビー系を踏襲 */
+.next-home .solo-hub{display:flex;flex-direction:column;gap:18px;min-width:0}
+.next-home .solo-modes{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.next-home .solo-modes li{min-width:0}
+.next-home .solo-card{--tone:#5aa9ff;position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;width:100%;height:100%;padding:10px 10px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--tone) 38%,#2c3c4c);border-top:3px solid var(--tone);background:linear-gradient(165deg,#1d2a38,#16212d);color:#e8f0f6;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.next-home .solo-card[data-tone=green]{--tone:#3fd0b0}
+.next-home .solo-card[data-tone=gold]{--tone:#f2b84b}
+.next-home .solo-card[data-tone=purple]{--tone:#a779ff}
+.next-home .solo-card:hover{border-color:var(--tone);background:linear-gradient(165deg,#223244,#192634)}
+.next-home .solo-card:focus-visible{outline:2px solid var(--tone);outline-offset:2px}
+.next-home .solo-art{display:block;width:100%;aspect-ratio:1/1;overflow:hidden}
+.next-home .solo-art img{display:block;width:100%;height:100%;object-fit:contain}
+.next-home .solo-card strong{display:block;margin-top:4px;font:900 17px/1.3 var(--heading,inherit);color:var(--tone)}
+.next-home .solo-card small{display:block;font-size:11.5px;line-height:1.5;color:#a9bccb;overflow-wrap:anywhere}
+.next-home .solo-badge{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:99px;background:#0d1721cc;border:1px solid var(--tone);color:#fff;font:800 11px/1.4 var(--heading,inherit)}
+.next-home .solo-profile{display:flex;align-items:center;gap:14px;width:100%;padding:12px 14px;border-radius:10px;border:1px solid #354b5c;background:linear-gradient(105deg,#1e2d3a,#18242f);color:#e8f0f6;text-align:left;cursor:pointer;min-height:64px}
+.next-home .solo-profile .avatar{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:8px;background:#2a3d4d;color:#9bc2cd}
+.next-home .solo-profile .avatar svg{width:22px;height:22px}
+.next-home .solo-profile-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.next-home .solo-profile-main strong{font:900 15px/1.3 var(--heading,inherit);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.next-home .solo-profile .level{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9bccb;flex-wrap:wrap}
+.next-home .solo-profile .xp{position:relative;display:block;width:70px;height:5px;border-radius:3px;background:#2c3c4c;overflow:hidden}
+.next-home .solo-profile .xp i{position:absolute;inset:0 auto 0 0;background:#3fd0b0}
+.next-home .solo-best{flex:none;text-align:right;display:flex;flex-direction:column}
+.next-home .solo-best small{font-size:10px;color:#8aa2b3}
+.next-home .solo-best b{font:900 14px/1.4 var(--heading,inherit)}
+.next-home .solo-profile-link{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#9bc2cd}
+.next-home .solo-profile-link svg{width:13px;height:13px}
+@media(max-width:520px){.next-home .solo-modes{gap:11px}.next-home .solo-card{padding:8px 8px 12px}.next-home .solo-card strong{font-size:15px}.next-home .solo-card small{font-size:11px}.next-home .solo-profile{flex-wrap:wrap;gap:8px 12px}.next-home .solo-best{text-align:left;margin-left:auto}.next-home .solo-profile-link{display:none}}
+@media(min-width:1100px){.next-home .solo-modes{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.next-home .solo-card strong{font-size:19px}.next-home .solo-card small{font-size:12.5px}}
+.next-home .solo-art:empty{background:radial-gradient(circle at 50% 50%,#a779ff22 0 38%,transparent 40%)}

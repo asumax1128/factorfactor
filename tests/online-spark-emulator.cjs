@@ -373,7 +373,7 @@ assert.deepEqual(restored, original);
           });
         });
         await t.page
-          .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+          .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
           .click();
         await t.page
           .getByRole("button", {
@@ -506,7 +506,7 @@ assert.deepEqual(restored, original);
             });
             await t.page
               .getByRole("button", {
-                name: "オンライン対戦・CPU練習",
+                name: "オンライン対戦（ロビー）",
                 exact: true,
               })
               .click();

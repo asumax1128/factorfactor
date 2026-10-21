@@ -34,7 +34,7 @@ try{for(const width of [375,390,430,1440]){
  await p.evaluate(()=>{window.__denyBoss=false});await p.getByRole('button',{name:'再試行',exact:true}).click();await p.getByText('次のボスを準備中',{exact:true}).waitFor();
  const nav=p.getByRole('navigation',{name:width>900?'PCメインメニュー':'スマホメインメニュー'});
  if(width<900){await p.getByRole('button',{name:'メニューを開く'}).click();await p.getByRole('dialog',{name:'メインメニュー'}).waitFor();await p.keyboard.press('Escape');await p.getByRole('dialog',{name:'メインメニュー'}).waitFor({state:'hidden'});}
- await nav.getByRole('button',{name:width>900?'ソロモード':'ソロ',exact:true}).click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
+ await nav.getByRole('button',{name:width>900?'ソロモード':'ソロ',exact:true}).click();await p.locator('[data-solo-hub]').waitFor();await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
  assert.equal(await p.locator('link[href="ui-next/home.css"]').count(),1,'shared shell stylesheet remains on solo menu');
  await p.getByRole('button',{name:'ホームへ',exact:true}).click();await p.locator('[data-next-home]').waitFor();
  await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.locator('.ranking-entry').filter({hasText:'ソロランキング'}).click();await p.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();

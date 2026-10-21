@@ -69,7 +69,7 @@ async function setup(b, { width = 390, height = 844, duration, stats, holdStats 
   const hold = (gt) => async () => { if (gt.frozen) await new Promise((r) => gt.waiters.push(r)); };
   const h = await context(b, { tree, peers, uid: 'host', account: { key: 'ah', name: 'Host' }, onOperation: async (op) => { if (gate.clockOnly && op.v && op.v.game && /\/b2\/[^/]+$/.test(op.path)) op.v = { ...op.v, game: gate.game }; await hold(gate)(); } });
   const g = await context(b, { tree, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' }, onOperation: async (op) => { if (ggate.fail && ggate.fail.test(op.path)) throw new Error('NETWORK'); if (ggate.stats && /accounts\/ag\/stats/.test(op.path)) await new Promise((r) => ggate.sw.push(r)); await hold(ggate)(); } });
-  for (const t of [h, g]) { await t.page.setViewportSize({ width, height }); await t.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); }
+  for (const t of [h, g]) { await t.page.setViewportSize({ width, height }); await t.page.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).click(); }
   await g.page.evaluate(() => { const c = RoomB2.create; RoomB2.create = (o) => { const t = c({ ...o, onView: (r) => { window.__raw = r; o.onView(r); } }); window.__b2 = t; window.__onView = o.onView; return t; }; RoomB2.config.warnMs = 1500; RoomB2.config.leaveMs = 3000; });
   await h.page.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
   await h.page.waitForFunction(() => /^[0-9]{4}$/.test(document.querySelector('.tracking-widest')?.textContent.trim() || ''));
@@ -86,7 +86,7 @@ async function setup(b, { width = 390, height = 844, duration, stats, holdStats 
 const panel = (p) => p.locator('[data-b2-stall]');
 const inputsOf = (s, u) => Object.keys(s.b2().inputs?.[u] || {});
 const homeSel = '.v7-bhome-wrap, [data-next-home]';
-const openOnline = (p) => p.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click();
+const openOnline = (p) => p.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).click();
 const pendLen = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('fxf_b2_pending_v1') || '[]').length);
 const banner = (p) => p.locator('[data-b2-recover]');
 const statsOf = (s) => s.tree.games.factor.accounts.ag.stats || {};

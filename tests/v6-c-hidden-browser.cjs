@@ -11,7 +11,7 @@ const accounts = { ateacher: { name: 'Teacher', stats: { rating: 1700 } } };
       const t = await context(b, { tree: { games: { factor: { accounts, ...cfg(true) } } } }), p = t.page;
       await p.evaluate(() => localStorage.setItem('fxf_cpu_cfg_v1', JSON.stringify({ mode: 'C', diff: 'easy', lv: 'normal', n: 1 })));
       await p.reload();
-      await p.locator('.action-card.online').click();
+      await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();
       const choice = p.getByRole('group', { name: '方式', exact: true });
       assert.equal(await choice.getByRole('button', { name: /^C / }).count(), 0);
       await p.getByRole('button', { name: 'CPUと練習スタート', exact: true }).click();
@@ -61,7 +61,7 @@ const accounts = { ateacher: { name: 'Teacher', stats: { rating: 1700 } } };
     // 4. Random match switch OFF through the legacy lobby (new home bundle unavailable): disabled, explained, nothing written.
     for (const enabled of [false, true]) {
       const t = await context(b, { blockedAssets: ['/next-home-ui.js'], tree: { games: { factor: { accounts, ...cfg(enabled) } } } }), p = t.page;
-      await p.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click();
+      await p.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).click();
       const quick = p.getByRole('button', { name: 'すぐ遊ぶ（ランダム対戦）', exact: true });
       await quick.waitFor();
       if (!enabled) {

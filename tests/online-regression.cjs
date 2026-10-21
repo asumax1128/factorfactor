@@ -29,7 +29,7 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
       });
     for (const t of [h, g])
       await t.page
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
     await h.page
       .getByRole("button", { name: "部屋を作る（ホスト）", exact: true })
@@ -60,7 +60,7 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
     console.log("PASS two-player online battle and shared live updates");
     await h.page.reload();
     await h.page
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+      .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
       .click();
     await h.page.getByRole("button", { name: /クラス大会を開く/ }).click();
     await h.page.locator(".tracking-widest").waitFor();
@@ -68,7 +68,7 @@ const { chromium, context, drag, sleep } = require("./browser-harness.cjs");
     console.log("PASS teacher tournament lobby");
     await h.page.reload();
     await h.page
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+      .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
       .click();
     await h.page
       .getByRole("button", { name: /クラス協力レイドを開く/ })

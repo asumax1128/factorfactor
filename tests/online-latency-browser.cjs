@@ -42,7 +42,7 @@ async function open(
     },
   });
   await t.page
-    .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+    .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
     .click();
   await t.page.evaluate((kind) => {
     const H = window.__onlineHelpers;

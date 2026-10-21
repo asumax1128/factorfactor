@@ -53,7 +53,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       const p = t.page;
       await p.setViewportSize({ width, height: width === 1366 ? 768 : 844 });
       await p
-        .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
+        .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
       await p
         .getByRole("button", { name: "すぐ遊ぶ（ランダム対戦）", exact: true })

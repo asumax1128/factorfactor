@@ -32,7 +32,7 @@ function rules(text) {
   walk(text);
   return out;
 }
-const MATH_PROPS = new Set(["font-family", "font-size", "font-style", "line-height", "margin", "margin-left", "padding-right", "vertical-align", "container-type"]);
+const MATH_PROPS = new Set(["font-family", "font-size", "font-style", "line-height", "margin", "margin-left", "padding-right", "vertical-align", "position", "top", "container-type"]);
 assert(!/touch-action/.test(css), "play-frame.css must not change touch-action");
 assert(!/!important/.test(css), "play-frame.css must not use !important");
 const all = rules(css);
@@ -70,7 +70,7 @@ async function startRated(b, mode, w, h) {
 async function startCpu(b, mode, count, w, h, skin) {
   const t = await context(b, { tree: tree(skin), assetOverrides: { "/online-rated-ui.js": ui } }), p = t.page;
   await p.setViewportSize({ width: w, height: h });
-  await p.locator(".action-card.online").click();
+  await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();
   await p.getByRole("group", { name: "方式", exact: true }).getByRole("button", { name: mode === "A" ? /^A/ : "新B方式" }).click();
   await p.getByRole("group", { name: "CPUの強さ", exact: true }).getByRole("button", { name: "よわい", exact: true }).click(); // a slow CPU cannot advance the question while a drag is held
   if (count > 1) await p.getByRole("group", { name: "CPUの人数", exact: true }).getByRole("button", { name: `${count}人`, exact: true }).click();

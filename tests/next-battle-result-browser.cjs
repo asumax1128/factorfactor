@@ -62,7 +62,7 @@ for(const[tag,outcome]of [['win','w'],['lose','l'],['draw','d']])for(const n of 
   const initial={rating:1600,exp:100,games:12,w:7,l:5,skin:{tile:'wood'},nick:'first'},tree={games:{factor:{accounts:{ateacher:{name:'Teacher',stats:structuredClone(initial)}},onlineSparkV1:{config:{enabled:true,protocol:'spark-v1'}}}}};
   const spark=fs.readFileSync('online-spark.js','utf8')+'\n{const c=RoomB2.create;RoomB2.create=o=>c({...o,onView:r=>{window.localView=r;o.onView(r)}})}';
   const t=await context(b,{tree,assetOverrides:{'/online-spark.js':spark}}),p=t.page;
-  await p.locator('.action-card.online').click();await p.getByRole('group',{name:'方式',exact:true}).getByRole('button',{name:mode==='B'?'新B方式':/^A/}).first().click();
+  await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();await p.getByRole('group',{name:'方式',exact:true}).getByRole('button',{name:mode==='B'?'新B方式':/^A/}).first().click();
   await p.getByRole('group',{name:'CPUの強さ',exact:true}).getByRole('button',{name:mode==='B'?'つよい':'よわい',exact:true}).click();await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).click();
   if(mode==='B'){await p.waitForFunction(()=>document.querySelector('[data-online-ready]')?.dataset.onlineReady==='true');await drag(p);await p.waitForFunction(()=>window.localView?.game.states.me.c===1);await p.clock.install();await p.clock.fastForward(91000)}
   else for(let i=0;i<80&&!await p.locator('[data-battle-summary]').count();i++){await p.waitForTimeout(250);await drag(p).catch(()=>{})}

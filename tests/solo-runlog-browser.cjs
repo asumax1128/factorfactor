@@ -7,7 +7,7 @@ const html=fs.readFileSync('index.html','utf8').replace('Math.random() < REVERSE
 assert(html.includes('window.__revChance'),'hook inserted');
 const tree=()=>({games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{exp:100,rating:1600}}}}}});
 async function begin(b,label,extra={}){const tr=tree(),t=await context(b,{tree:tr,assetOverrides:{'/':html},...extra}),p=t.page;await p.evaluate(()=>{window.__revChance=0});
- await p.locator('.action-card.solo').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor();return{t,p,tr}}
+ await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:new RegExp('^'+label)}).first().click();await p.getByRole('button',{name:'スタート',exact:true}).click();await p.locator('[data-tile-id]').first().waitFor();return{t,p,tr}}
 const judge=p=>p.evaluate(()=>[...document.querySelectorAll('.combat-judge')].map(e=>e.textContent.trim()).find(Boolean)||null);
 // a recorder that mirrors what the player really did/saw
 const mk=()=>({caught:0,wrong:0,timeouts:0,perfect:0,combo:0,maxCombo:0,reverseOk:0,reverseWrong:0});

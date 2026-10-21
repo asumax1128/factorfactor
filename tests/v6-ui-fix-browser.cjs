@@ -60,7 +60,7 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
       const rt = { games: { factor: { accounts: { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: { name: 'Guest', stats: { exp: 100, rating: 1500 } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } };
       for (const width of [320, 375, 390]) {
         const peers = [], h = await context(b, { tree: rt, peers, uid: 'host', account: { key: 'ah', name: 'Host' } }), g = await context(b, { tree: rt, peers, uid: 'guest', account: { key: 'ag', name: 'Guest' } });
-        for (const t of [h, g]) { await t.page.setViewportSize({ width, height: 844 }); await t.page.getByRole('button', { name: 'オンライン対戦・CPU練習', exact: true }).click(); }
+        for (const t of [h, g]) { await t.page.setViewportSize({ width, height: 844 }); await t.page.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).click(); }
         await h.page.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
         await h.page.waitForFunction(() => /^[0-9]{4}$/.test(document.querySelector('.tracking-widest')?.textContent.trim() || ''));
         const code = (await h.page.locator('.tracking-widest').innerText()).trim();

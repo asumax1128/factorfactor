@@ -283,7 +283,7 @@ console.log(
   try {
     const t = await context(b, { account: { guest: true, name: "Guest" } }),
       p = t.page;
-    await p.locator(".action-card.solo").click();
+    await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
     await p.getByRole("button", { name: "スタート", exact: true }).click();
     await p.locator("[data-tile-id]").first().waitFor();
     console.log("PASS solo battle");
@@ -293,9 +293,7 @@ console.log(
     await p.getByText("レベル別の正答率と平均時間", { exact: true }).waitFor();
     console.log("PASS learning room");
     await p.reload();
-    await p
-      .getByRole("button", { name: "オンライン対戦・CPU練習", exact: true })
-      .click();
+    await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();
     await p
       .getByRole("button", { name: "CPUと練習スタート", exact: true })
       .click();
