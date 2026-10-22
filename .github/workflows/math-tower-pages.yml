@@ -68,6 +68,7 @@ jobs:
           path: dist
           retention-days: 7
           if-no-files-found: error
+          include-hidden-files: true # .nojekyll is part of the public payload
   test:
     needs: build
     runs-on: ubuntu-24.04
@@ -169,7 +170,19 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     steps:
+      - name: Require every test shard of this run to have succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name | startswith("test (")) | {name, status, conclusion}]' > shards.json
+          cat shards.json
+          node -e 'const j=require("./shards.json");const want=["online-a","online-b","tower","emulator-artifact"].map(s=>"test ("+s+")");for(const n of want){const x=j.find(y=>y.name===n);if(!x||x.status!=="completed"||x.conclusion!=="success")throw Error("shard not successful: "+n+" "+JSON.stringify(x||null));}if(j.length!==want.length)throw Error("unexpected shard list");console.log("all test shards succeeded")'
+          rm shards.json
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
           ref: ${{ needs.build.outputs.sha }}
@@ -193,7 +206,7 @@ jobs:
           path: verified-dist
           retention-days: 30
   deploy:
-    needs: [build, release]
+    needs: [build, test, release]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MATH_TOWER_AUTODEPLOY == 'true'
     runs-on: ubuntu-24.04
     permissions:
