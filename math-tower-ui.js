@@ -470,7 +470,8 @@
           setAllowed(null);
           if (!fb.ready) return;
           let live = true;
-          Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => live && setAllowed(false));
+          Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => {
+          });
           const path = Store.BASE + "/access/" + acct.key;
           const fn = () => Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => live && setAllowed(false));
           H.FB.db.ref(path).on("value", fn, () => live && setAllowed(false));

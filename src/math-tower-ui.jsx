@@ -736,7 +736,7 @@
         let live = true;
         Store.access(H.FB.db, H.FB.uid, acct)
           .then(() => live && setAllowed(true))
-          .catch(() => live && setAllowed(false));
+          .catch(() => {});   // 初回の失敗(ログイン情報の準備前など)では確定しない。下の監視が許可/不可を決める
         const path = Store.BASE + "/access/" + acct.key;
         const fn = () =>
           Store.access(H.FB.db, H.FB.uid, acct)

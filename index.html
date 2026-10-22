@@ -11544,7 +11544,21 @@ function DailyApp(props){
  if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
-const { App: MathTowerApp, Tile: MathTowerTile, useAccess: useTowerAccess } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null, useAccess: () => false };
+const { App: MathTowerApp, Tile: MathTowerTile, useAccess: towerUseAccess } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null, useAccess: () => false };
+/* 数学の塔の権限判定（AXIOMIAの入口用）。塔の画面部品が useAccess を持たない古い版でも、同じ Store.access の判定で動く */
+const useTowerAccess = towerUseAccess || function useTowerAccessCompat(acct) {
+  const fb = useFbReady(), [allowed, setAllowed] = useState(null), S = window.MathTowerStore;
+  useEffect(() => {
+    if (!acct || acct.guest || !S) { setAllowed(false); return; }
+    setAllowed(null);
+    if (!fb.ready) return;
+    let live = true;
+    const path = S.BASE + '/access/' + acct.key, fn = () => S.access(FB.db, FB.uid, acct).then(() => live && setAllowed(true)).catch(() => live && setAllowed(false));
+    FB.db.ref(path).on('value', fn, () => live && setAllowed(false));
+    return () => { live = false; FB.db.ref(path).off('value', fn); };
+  }, [fb.ready, acct && acct.key]);
+  return allowed;
+};
 const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,useTowerAccess,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
