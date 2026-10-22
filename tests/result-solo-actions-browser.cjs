@@ -1,9 +1,9 @@
-const nav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
+const harnessNav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
 // Ver.6.0 solo result: ranking submit (name / send / retry / skip), replay, back, learning room, single scroll, reachable buttons.
 const assert = require('node:assert/strict');
 const { chromium, context } = require('./browser-harness.cjs');
 const { soloDrag } = require('./solo-test-helper.cjs');
-async function start(p) { await nav.openSoloMode(p, 'play'); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); }
+async function start(p) { await harnessNav.openSoloMode(p, 'play'); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); }
 async function finish(p, { right = 0, wrong = 0 }) {
   for (let i = 0; i < right; i++) { await soloDrag(p, true); await p.waitForTimeout(650); }
   for (let w = 0; w < wrong && !await p.locator('[data-battle-summary]').count(); w++) { await soloDrag(p, false); await p.waitForTimeout(650); }

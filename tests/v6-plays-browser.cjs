@@ -1,8 +1,8 @@
-const nav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
+const harnessNav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
 // Ver.6.0 release adjustment: a completed solo play counts once for the total-games titles; quitting does not.
 const assert = require('node:assert/strict'), { chromium, context } = require('./browser-harness.cjs'), { soloDrag } = require('./solo-test-helper.cjs');
 const exe = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const begin = async (p) => { await nav.openSoloMode(p, 'play'); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); };
+const begin = async (p) => { await harnessNav.openSoloMode(p, 'play'); await p.getByRole('button', { name: /^イージー/ }).first().click(); await p.getByRole('button', { name: 'スタート', exact: true }).click(); await p.locator('[data-tile-id]').first().waitFor(); };
 (async () => {
   const b = await chromium.launch({ executablePath: exe });
   try {

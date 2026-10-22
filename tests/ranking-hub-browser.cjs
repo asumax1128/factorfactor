@@ -1,4 +1,4 @@
-const nav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
+const harnessNav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
 const assert=require('node:assert/strict');const {chromium,context}=require('./browser-harness.cjs');
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium'});try{
  for(const width of [375,390,430,1440]){
@@ -21,7 +21,7 @@ const assert=require('node:assert/strict');const {chromium,context}=require('./b
   await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  }
  if(width<900){await p.getByRole('button',{name:'メニューを開く',exact:true}).click();await p.getByRole('dialog',{name:'メインメニュー'}).waitFor();await p.keyboard.press('Escape');}
- await nav.goHome(p);await p.locator('.home-content').waitFor();
+ await harnessNav.goHome(p);await p.locator('.home-content').waitFor();
  await nav.getByRole('button',{name:width>900?'ランキング':'順位',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  await nav.getByRole('button',{name:'ホーム',exact:true}).click();await p.locator('.home-content').waitFor();
  assert.deepEqual(t.errors,[]);assert.equal(tree.games.factor.onlineSparkV1.profiles.ateacher.easy.rating,1665.6);assert.equal(tree.games.factor.dailyV2.boards[day].easy.records.fixture.score,321);

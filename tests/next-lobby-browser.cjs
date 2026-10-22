@@ -1,4 +1,4 @@
-const nav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
+const harnessNav = require("./browser-harness.cjs"); // shared navigation (goHome / openSoloMode …)
 const assert=require('node:assert/strict');const {chromium,context,drag}=require('./browser-harness.cjs');
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium'});try{
  for(const width of [375,390,430,1440].filter(w=>!process.env.NEXT_LOBBY_WIDTH||w===Number(process.env.NEXT_LOBBY_WIDTH))){
@@ -19,7 +19,7 @@ const assert=require('node:assert/strict');const {chromium,context,drag}=require
   }
   await p.getByPlaceholder('部屋コード4桁').fill('12');await p.getByRole('button',{name:'参加',exact:true}).click();await p.getByRole('alert').getByText('4桁の数字を入れてください',{exact:true}).waitFor();
   await p.getByRole('button',{name:'ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:/イージーゴースト/}).waitFor();await p.getByRole('button',{name:'オンラインへ戻る',exact:true}).click();await p.locator('[data-next-lobby]').waitFor();
-  await nav.goHome(p);await p.locator('.action-card.solo').click();await p.locator('[data-solo-mode=cpu]').click();
+  await harnessNav.goHome(p);await p.locator('.action-card.solo').click();await p.locator('[data-solo-mode=cpu]').click();
   const choice=p.getByRole('group',{name:'方式',exact:true});assert.equal(await choice.getByRole('button',{name:/^C /}).count(),0,'C hidden in CPU practice');await choice.getByRole('button',{name:'A方式',exact:true}).click();await p.getByRole('group',{name:'難易度',exact:true}).getByRole('button',{name:'ノーマル',exact:true}).click();await p.getByRole('button',{name:'CPUと練習スタート',exact:true}).click();await p.locator('[data-btile]').first().waitFor();assert(!await p.locator('.bottom-nav').count(),'no menu navigation during combat');
   assert.deepEqual(t.errors,[]);console.log(`PASS lobby ${width}: actual A/B room creation (C hidden), search/bounty modal replacement, own profile, ghost menu, CPU NORMAL A start, protected room/game navigation`);await t.ctx.close();
  }
