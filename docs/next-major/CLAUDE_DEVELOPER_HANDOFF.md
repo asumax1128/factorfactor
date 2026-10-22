@@ -94,3 +94,11 @@ firebase emulators:exec --only auth,database --project demo-factorfactor-tower -
 本番移行は対象限定バックアップ→dry-run→差分提示→所有者承認→冪等実行→照合。今は実行しない。旧BとB2の`stats.B`は共有値を一度だけ使い、レートは加算しない。取得済み称号・装備・EXPを読み取りUIの都合で書き換えない。
 
 次は資料の理解を所有者へ報告した後、**C writerのEmulator最小確定経路**から着手する。UIを新しく作る場合は実装前にChatGPT側のデザイン確認を受ける。
+
+## ローカルとCIのブラウザ差（Ver.6.10 で確認）
+
+- 公開CI：`npx playwright install --with-deps chromium`（Playwright 1.64.0 同梱の Chromium、build 1248）。
+- Claude のクラウド開発環境：事前インストール済みの Chromium build 1194 のみ（`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`、ブラウザのダウンロード不可）。
+- そのため「手元では通るが CI で落ちる」ことがある。手元で通っても、最終判定は公開CIで行う。ダウンロードできる環境では `npx playwright install chromium` を実行し、`CHROMIUM_PATH` を指定せずに実行すると CI と同じ版になる。
+- CI でブラウザテストが失敗したときは、ワークフロー実行の成果物 `failure-evidence`（失敗時の画面のスクリーンショットと表示文字）を確認する（`tests/browser-harness.cjs` の `PW_ARTIFACT_DIR`）。
+- 画面移動は `tests/browser-harness.cjs` の共通ヘルパー（`goHome` / `openSoloHub` / `openSoloMode` / `openOnlineLobby` / `openProfile`）を使う。画面の構成を変えたら、まずここを直す。

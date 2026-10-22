@@ -1,7 +1,37 @@
 const fs = require("node:fs"),
   path = require("node:path"),
   assert = require("node:assert/strict");
-const { chromium } = require("playwright");
+const { chromium: playwrightChromium } = require("playwright");
+// Failure evidence (CI only): with PW_ARTIFACT_DIR set, browser.close() first saves a screenshot and the visible
+// text of every page still open. A failing test closes its browser in `finally` while the failing page is still
+// open, so this captures the failure state; passing tests have usually closed their contexts already.
+// Mock data only (no credentials). Without PW_ARTIFACT_DIR nothing changes.
+const ARTIFACT_DIR = process.env.PW_ARTIFACT_DIR;
+let artifactCount = 0;
+async function saveEvidence(browser) {
+  if (!ARTIFACT_DIR) return;
+  const test = path.basename(process.argv[1] || "test").replace(/\.c?js$/, "");
+  for (const ctx of browser.contexts())
+    for (const page of ctx.pages()) {
+      const base = path.join(ARTIFACT_DIR, `${test}-${++artifactCount}`);
+      try {
+        fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+        await page.screenshot({ path: base + ".png", timeout: 5000 });
+        const text = await page.locator("body").innerText({ timeout: 3000 });
+        fs.writeFileSync(base + ".txt", page.url() + "\n\n" + text.slice(0, 6000));
+      } catch (e) {}
+    }
+}
+const chromium = Object.create(playwrightChromium);
+chromium.launch = async (options) => {
+  const browser = await playwrightChromium.launch(options);
+  const close = browser.close.bind(browser);
+  browser.close = async (...args) => {
+    await saveEvidence(browser);
+    return close(...args);
+  };
+  return browser;
+};
 const root = path.resolve(__dirname, ".."),
   sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function context(
@@ -244,7 +274,36 @@ async function continueTower(page, d = "normal") {
     await newTower(page, d);
   } else await btn.click();
 }
+// Shared navigation for the new UI (Ver.6.10). Each helper waits for the destination marker, so tests do not
+// depend on how the screens are laid out. Update these first when a route moves.
+async function goHome(page) {
+  // The logo button exists twice (sidebar / phone header) and both can be briefly visible while the
+  // stylesheet re-attaches; a DOM click on either goes home.
+  await page.locator('button[aria-label="ホームへ"]').first().evaluate((e) => e.click());
+  await page.locator("[data-next-home] .home-content").waitFor();
+}
+async function openSoloHub(page) {
+  await page.locator(".action-card.solo").click();
+  await page.locator("[data-solo-hub]").waitFor();
+}
+async function openSoloMode(page, mode) {
+  await openSoloHub(page);
+  await page.locator(`[data-solo-mode=${mode}]`).click();
+}
+async function openOnlineLobby(page) {
+  await page.locator(".action-card.online").click();
+  await page.locator("[data-next-lobby]").waitFor();
+}
+async function openProfile(page) {
+  await page.locator(".account-main").click();
+  await page.locator("[data-next-profile]").waitFor();
+}
 module.exports = {
+  goHome,
+  openSoloHub,
+  openSoloMode,
+  openOnlineLobby,
+  openProfile,
   pair,
   newTower,
   continueTower,

@@ -21,6 +21,9 @@ jobs:
     timeout-minutes: 45
     outputs:
       version: ${{ steps.release.outputs.version }}
+    env:
+      # Failure evidence: tests/browser-harness.cjs saves screenshots + visible text of pages still open when a browser test fails (mock data only).
+      PW_ARTIFACT_DIR: ${{ github.workspace }}/../pw-artifacts
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
@@ -117,6 +120,18 @@ jobs:
         with:
           path: dist
           retention-days: 30
+      - name: Collect browser-test failure evidence
+        if: failure()
+        run: |
+          mkdir -p "$PW_ARTIFACT_DIR"
+          ls -la "$PW_ARTIFACT_DIR" > "$PW_ARTIFACT_DIR/index.txt"
+      - name: Upload browser-test failure evidence (screenshots and page text; never used for deployment)
+        if: failure()
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          name: failure-evidence
+          path: ${{ github.workspace }}/../pw-artifacts
+          retention-days: 7
   deploy:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.MATH_TOWER_AUTODEPLOY == 'true'
