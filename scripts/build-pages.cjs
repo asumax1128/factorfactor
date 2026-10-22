@@ -119,6 +119,12 @@ assert.deepEqual(
   "Approved policy must be unchanged",
 );
 assert.deepEqual(Object.keys(c.floors).sort(), ["1", "2", "3", "4", "5"]);
+{
+  // Ver.6.12: the engine derives the floor count / boss floor from the scenario; chapter one stays 5 / 5.
+  const L = require("../math-tower-core.js").layout(c);
+  assert.equal(L.floorCount, 5);
+  assert.equal(L.bossFloor, 5);
+}
 const files = [];
 function walk(dir) {
   for (const d of fs.readdirSync(dir, { withFileTypes: true })) {

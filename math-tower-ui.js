@@ -369,7 +369,7 @@
       }, [c, p.seen, p.reveal]);
       const drag = useRef(null);
       let floors = Object.keys(c.floors).map(Number).filter((f) => p.seen[f]);
-      if (filter === "boss") floors = floors.filter((f) => f === 5);
+      if (filter === "boss") floors = floors.filter((f) => f === R.bossFloor(c.policy));
       if (filter === "alive") floors = floors.filter((f) => !p.kills[f]);
       floors.sort(
         (a, b) => sort === "name" ? name(c, c.floors[a], p.reveal).localeCompare(
@@ -377,7 +377,7 @@
           "ja"
         ) : sort === "count" ? (p.kills[b] || 0) - (p.kills[a] || 0) : a - b
       );
-      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { disabled: closing, onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor] && !n.fragment).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, difficultyLabel(d), "\uFF1A", x.best, "/5\u968E ", x.records[5] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), Object.entries(p.difficulties).flatMap(
+      return /* @__PURE__ */ React.createElement("section", { className: "mt-panel", "data-math-book": true }, /* @__PURE__ */ React.createElement("h2", null, "\u6570\u7406\u306E\u66F8"), /* @__PURE__ */ React.createElement(Button, { disabled: closing, onClick: onClose }, "\u3068\u3058\u308B"), /* @__PURE__ */ React.createElement("nav", null, /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("notes") }, "\u5B66\u7FD2\u8A18\u9332"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("monsters") }, "\u56F3\u9451"), /* @__PURE__ */ React.createElement(Button, { onClick: () => setTab("journal") }, "\u5192\u967A\u65E5\u8A8C")), tab === "notes" && c.notes.filter((n) => p.notes[n.floor] && !n.fragment).map((n) => /* @__PURE__ */ React.createElement("article", { key: n.floor }, /* @__PURE__ */ React.createElement("h3", null, n.title), /* @__PURE__ */ React.createElement("p", null, n.law), (n.formulas || []).map((f, i) => /* @__PURE__ */ React.createElement("p", { key: i }, f)), /* @__PURE__ */ React.createElement("p", null, n.point))), tab === "notes" && !Object.keys(p.notes).length && /* @__PURE__ */ React.createElement("p", null, "\u5192\u967A\u3092\u9032\u3081\u308B\u3068\u8A18\u9332\u304C\u5897\u3048\u307E\u3059\u3002"), tab === "notes" && p.fragment && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, c.fragment.title, "\u300C", c.fragment.name, "\u300D"), /* @__PURE__ */ React.createElement("p", null, c.fragment.law)), tab === "journal" && /* @__PURE__ */ React.createElement("article", null, /* @__PURE__ */ React.createElement("h3", null, "\u7B2C1\u7AE0"), Object.entries(p.difficulties).map(([d, x]) => /* @__PURE__ */ React.createElement("p", { key: d }, difficultyLabel(d), "\uFF1A", x.best, "/", R.lastFloor(c.policy), "\u968E", " ", x.records[R.lastFloor(c.policy)] ? "\u7AE0\u30AF\u30EA\u30A2" : "")), Object.entries(p.difficulties).flatMap(
         ([d, x]) => Object.entries(x.records).filter(([, r]) => r != null).map(([floor, r]) => /* @__PURE__ */ React.createElement("p", { key: d + floor }, difficultyLabel(d), " \u7B2C", floor, "\u968E\uFF1A\u6700\u9AD8", r.rank, " \u30FB \u6B63\u7B54\u7387", Math.round(r.accuracy * 100), "%"))
       ), /* @__PURE__ */ React.createElement("h3", null, "\u6700\u8FD1\u306E\u6226\u7E3E"), Object.entries(p.history).filter(([, r]) => r != null).sort(([, a], [, b]) => b.at - a.at).slice(0, 10).map(([id, r]) => /* @__PURE__ */ React.createElement("p", { key: id }, difficultyLabel(r.difficulty || ""), " \u7B2C", r.floor, "\u968E \u30FB", " ", r.mode === "replay" ? "\u518D\u6311\u6226" : "\u672C\u7DE8", " \u30FB", " ", r.rank || "\u6557\u5317")), p.reward && /* @__PURE__ */ React.createElement("p", null, "\u96F6\u5149\u306E\u63A2\u7D22\u8005\uFF08\u5148\u751F\u8A66\u904A\u306E\u8A18\u9332\uFF09")), tab === "monsters" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("label", null, "\u4E26\u3079\u66FF\u3048", /* @__PURE__ */ React.createElement("select", { value: sort, onChange: (e) => setSort(e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "floor" }, "\u968E\u9806"), /* @__PURE__ */ React.createElement("option", { value: "name" }, "\u540D\u524D"), /* @__PURE__ */ React.createElement("option", { value: "count" }, "\u8A0E\u4F10\u6570"))), /* @__PURE__ */ React.createElement("label", null, "\u7D5E\u308A\u8FBC\u307F", /* @__PURE__ */ React.createElement(
         "select",
@@ -532,7 +532,7 @@
             await writer.current.idle();
             const latest = await Store.load(H.FB.db, H.FB.uid, acctRef.current);
             if (!life.current) return;
-            R.validatePolicy(latest.content.policy);
+            latest.content.policy = R.layout(latest.content);
             writer.current.reset(latest.progress);
             pending.current = null;
             afterStory.current = null;
@@ -588,7 +588,7 @@
           };
           Store.load(H.FB.db, H.FB.uid, acct).then((x) => {
             if (!live) return;
-            R.validatePolicy(x.content.policy);
+            x.content.policy = R.layout(x.content);
             writer.current.reset(x.progress);
             setData(x);
             setScreen("home");
@@ -754,7 +754,7 @@
               setNotice("");
               explained.current = /* @__PURE__ */ new Set();
               setScreen("battle");
-              if (floor === 5)
+              if (floor === R.bossFloor(content.policy))
                 explain({
                   id: "nul",
                   title: "\u96F6\u306E\u756A\u4EBA\u30CC\u30EB",
@@ -917,7 +917,7 @@
             setProb(mk(fx.next.lv));
             clock.current = Date.now();
             setSeconds(Math.ceil(content.policy.problemMs / 1e3));
-            if (difficulty === "hard" && floor !== 5 && fx.next.damage >= 8 && !fx.next.solvedHigh)
+            if (difficulty === "hard" && floor !== R.bossFloor(content.policy) && fx.next.damage >= 8 && !fx.next.solvedHigh)
               explain({
                 id: "hard-remaining",
                 title: "\u3042\u3068\u4E00\u6B69\uFF01",
@@ -957,13 +957,16 @@
           onExit();
         };
         const showPost = (f, chosen = difficulty, mode = playMode) => showStory(
-          [f + "-post", ...f === 5 ? ["5-epilogue"] : []],
+          [
+            f + "-post",
+            ...f === R.lastFloor(content.policy) ? [f + "-epilogue"] : []
+          ],
           async () => {
             try {
               if (mode === "adventure")
-                await persist((p) => R.finishStory(p, chosen));
+                await persist((p) => R.finishStory(p, chosen, content.policy));
               setScreen(
-                mode === "adventure" && f === 5 ? "chapterEnd" : "afterFloor"
+                mode === "adventure" && f === R.lastFloor(content.policy) ? "chapterEnd" : "afterFloor"
               );
             } catch (e) {
               setError(e.message);
@@ -1117,7 +1120,10 @@
             },
             "\u7F6E\u304D\u63DB\u3048\u3066\u958B\u59CB"
           ), /* @__PURE__ */ React.createElement(Button, { onClick: () => setScreen("newSelect") }, "\u30AD\u30E3\u30F3\u30BB\u30EB")),
-          screen === "floorSelect" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u30AF\u30EA\u30A2\u3057\u305F\u968E\u3092\u9078\u3076"), /* @__PURE__ */ React.createElement("p", null, "\u518D\u6311\u6226\u306FHP100\u304B\u3089\u958B\u59CB\u3002\u672C\u7DE8\u306E\u5192\u967A\u306E\u9032\u884C\u30FBHP\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002"), [1, 2, 3, 4, 5].map((f) => /* @__PURE__ */ React.createElement(
+          screen === "floorSelect" && /* @__PURE__ */ React.createElement("section", { className: "mt-panel" }, /* @__PURE__ */ React.createElement("h2", null, "\u30AF\u30EA\u30A2\u3057\u305F\u968E\u3092\u9078\u3076"), /* @__PURE__ */ React.createElement("p", null, "\u518D\u6311\u6226\u306FHP100\u304B\u3089\u958B\u59CB\u3002\u672C\u7DE8\u306E\u5192\u967A\u306E\u9032\u884C\u30FBHP\u306F\u5909\u66F4\u3057\u307E\u305B\u3093\u3002"), Array.from(
+            { length: R.lastFloor(content.policy) },
+            (_, i) => i + 1
+          ).map((f) => /* @__PURE__ */ React.createElement(
             Button,
             {
               key: f,
@@ -1156,8 +1162,8 @@
                 height: 18,
                 hp: Math.max(
                   0,
-                  (floor === 5 ? content.policy.bossUnits : 8) - battle.damage
-                ) / (floor === 5 ? content.policy.bossUnits : 8) * 100
+                  (floor === R.bossFloor(content.policy) ? content.policy.bossUnits : 8) - battle.damage
+                ) / (floor === R.bossFloor(content.policy) ? content.policy.bossUnits : 8) * 100
               }
             )
           ), /* @__PURE__ */ React.createElement("div", { className: "mt-controls", "data-math-family": prob.family }, /* @__PURE__ */ React.createElement("div", { className: "mt-battle-toolbar" }, /* @__PURE__ */ React.createElement("span", null, "HP ", battle.hp), /* @__PURE__ */ React.createElement("span", null, "\u6B8B\u308A ", seconds, "\u79D2"), /* @__PURE__ */ React.createElement("span", null, "\u30B3\u30F3\u30DC ", battle.combo), /* @__PURE__ */ React.createElement(

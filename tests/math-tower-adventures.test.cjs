@@ -184,10 +184,27 @@ test("approved battle and math-level rules remain structurally identical to prod
     ["show", "9597af4:math-tower-core.js"],
     { encoding: "utf8" },
   );
-  assert.deepEqual(
-    pick(fs.readFileSync(require.resolve("../math-tower-core.js"), "utf8")),
-    pick(before),
-  );
+  // Ver.6.12: the floor count / boss floor come from the scenario. With the chapter-one values
+  // (5 floors, boss on floor 5) the rules must be the approved ones: substitute 5 for the two
+  // helpers and drop ONLY the exact optional floor-validation block, then compare everything else.
+  const floorCheck = `    if (
+      p.floorCount !== undefined &&
+      (!Number.isInteger(p.floorCount) ||
+        p.floorCount < 1 ||
+        !Number.isInteger(p.bossFloor) ||
+        p.bossFloor < 1 ||
+        p.bossFloor > p.floorCount)
+    )
+      throw Error("Invalid floors");
+`;
+  const now = fs.readFileSync(require.resolve("../math-tower-core.js"), "utf8");
+  assert.equal(now.split(floorCheck).length, 2, "floor validation block changed");
+  const chapterOne = now
+    .replace(floorCheck, "")
+    .replace(/\b(?:lastFloor|bossFloor)\(p\)/g, "5");
+  assert.equal(R.lastFloor(undefined), 5);
+  assert.equal(R.bossFloor({}), 5);
+  assert.deepEqual(pick(chapterOne), pick(before));
 });
 test("Firebase sparse numeric arrays keep actual ranks and remove only empty record slots", () => {
   const old = {
@@ -209,4 +226,30 @@ test("Firebase sparse numeric arrays keep actual ranks and remove only empty rec
   assert.equal(q.clearedFloors[0], undefined);
   assert.equal(q.clearedFloors[1], true);
   assert.deepEqual(R.migrate(q), q);
+});
+test("Ver.6.12 floor layout comes from the scenario; chapter one stays 5 floors with the boss on 5", () => {
+  const ch1 = require("../math-tower/chapter1.json"),
+    L1 = R.layout(ch1);
+  assert.equal(L1.floorCount, 5);
+  assert.equal(L1.bossFloor, 5);
+  assert.throws(() => R.begin(6, "easy", 100, L1), /Invalid battle/);
+  // A hypothetical longer chapter (data only; no chapter two content exists).
+  const floors = Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map((f) => [f, "m" + f]));
+  const L7 = R.layout({ ...ch1, floors });
+  assert.equal(L7.floorCount, 7);
+  assert.equal(L7.bossFloor, 7);
+  assert.equal(R.begin(7, "easy", 100, L7).floor, 7);
+  assert.throws(() => R.begin(8, "easy", 100, L7), /Invalid battle/);
+  assert.equal(R.answer(R.begin(5, "easy", 100, L7), false, 0, L7).hp, 100 - L7.miss);
+  assert.equal(R.answer(R.begin(7, "easy", 100, L7), false, 0, L7).hp, 100 - L7.miss * 2);
+  assert.equal(R.answer(R.begin(5, "easy", 100, L1), false, 0, L1).hp, 100 - L1.miss * 2);
+  const mid = R.layout({ ...ch1, floors, policy: { ...ch1.policy, bossFloor: 4 } });
+  assert.equal(mid.bossFloor, 4);
+  assert.throws(() => R.layout({ ...ch1, floors: { 1: "a", 3: "b" } }), /Invalid floors/);
+  assert.throws(() => R.layout({ ...ch1, policy: { ...ch1.policy, bossFloor: 9 } }), /Invalid floors/);
+  const p = { adventures: { easy: { difficulty: "easy", floor: 5, hp: 50, phase: "post" } } };
+  assert.equal(R.finishStory(p, "easy", L1).adventures.easy.phase, "cleared");
+  assert.equal(R.finishStory(p, "easy").adventures.easy.phase, "cleared");
+  const q = R.finishStory(p, "easy", L7).adventures.easy;
+  assert.deepEqual([q.phase, q.floor], ["ready", 6]);
 });

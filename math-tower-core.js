@@ -4,6 +4,22 @@
   const CAPS = { easy: 4, normal: 7, hard: 9 },
     COMBO = [1, 1.2, 1.4, 1.5];
   const copy = (x) => JSON.parse(JSON.stringify(x));
+  // Ver.6.12: the floor count and the boss floor come from the scenario (layout() fills them
+  // from content.floors). Without them the chapter-one values apply: 5 floors, boss on floor 5.
+  const lastFloor = (p) => (p && p.floorCount) || 5,
+    bossFloor = (p) => (p && p.bossFloor) || lastFloor(p);
+  function layout(content) {
+    const floors = Object.keys((content && content.floors) || {})
+      .map(Number)
+      .sort((a, b) => a - b);
+    if (!floors.length || floors.some((f, i) => f !== i + 1))
+      throw Error("Invalid floors");
+    return validatePolicy({
+      ...content.policy,
+      floorCount: floors.length,
+      bossFloor: content.policy.bossFloor || floors.length,
+    });
+  }
   function validatePolicy(p) {
     if (
       !p ||
@@ -31,6 +47,15 @@
       !(p.ranks[0] > p.ranks[1] && p.ranks[1] > p.ranks[2])
     )
       throw Error("Invalid ranks");
+    if (
+      p.floorCount !== undefined &&
+      (!Number.isInteger(p.floorCount) ||
+        p.floorCount < 1 ||
+        !Number.isInteger(p.bossFloor) ||
+        p.bossFloor < 1 ||
+        p.bossFloor > p.floorCount)
+    )
+      throw Error("Invalid floors");
     return p;
   }
   function begin(floor, difficulty, hp, p) {
@@ -38,7 +63,7 @@
     if (
       !Number.isInteger(floor) ||
       floor < 1 ||
-      floor > 5 ||
+      floor > lastFloor(p) ||
       !CAPS[difficulty] ||
       !Number.isFinite(hp) ||
       hp <= 0 ||
@@ -76,7 +101,7 @@
     if (!ok) {
       n.misses++;
       n.combo = 0;
-      n.hp = Math.max(0, s.hp - p.miss * (s.floor === 5 ? 2 : 1));
+      n.hp = Math.max(0, s.hp - p.miss * (s.floor === bossFloor(p) ? 2 : 1));
       return n;
     }
     n.correct++;
@@ -86,9 +111,9 @@
     n.damage += COMBO[Math.min(3, n.combo - 1)];
     n.solvedHigh = n.solvedHigh || s.lv >= 8;
     n.won =
-      n.damage >= (s.floor === 5 ? p.bossUnits : 8) &&
+      n.damage >= (s.floor === bossFloor(p) ? p.bossUnits : 8) &&
       (!p.hardHighGuard ||
-        s.floor === 5 ||
+        s.floor === bossFloor(p) ||
         s.difficulty !== "hard" ||
         n.solvedHigh);
     n.lv = nextLevel(s.lv, s.difficulty, p, random);
@@ -125,7 +150,7 @@
       answerMs: s.answerMs,
       averageMs: s.correct ? s.answerMs / s.correct : 0,
       hp: s.hp,
-      enemyRemaining: Math.max(0, (s.floor === 5 ? p.bossUnits : 8) - s.damage),
+      enemyRemaining: Math.max(0, (s.floor === bossFloor(p) ? p.bossUnits : 8) - s.damage),
       verified: false,
       purpose: "trial",
       rulesVersion: p.id,
@@ -212,6 +237,7 @@
         else if (!n.adventures[d] && played)
           n.adventures[d] = {
             difficulty: d,
+            // progressVersion 1 records exist only for chapter one (5 floors).
             floor: pending ? pending.floor : Math.min(5, old.best + 1),
             hp: old.hp,
             phase: pending
@@ -258,12 +284,12 @@
     n.adventures[difficulty] = copy(original);
     return n;
   }
-  function finishStory(progress, difficulty) {
+  function finishStory(progress, difficulty, p) {
     const n = copy(progress),
       a = n.adventures[difficulty];
     if (a && a.phase === "post") {
-      a.phase = a.floor === 5 ? "cleared" : "ready";
-      a.floor = Math.min(5, a.floor + 1);
+      a.phase = a.floor === lastFloor(p) ? "cleared" : "ready";
+      a.floor = Math.min(lastFloor(p), a.floor + 1);
     }
     return n;
   }
@@ -280,7 +306,7 @@
     };
     const d = n.difficulties[s.difficulty];
     if (mode === "adventure") {
-      d.hp = s.won && s.floor === 5 ? Math.min(100, s.hp + p.bossHeal) : s.hp;
+      d.hp = s.won && s.floor === bossFloor(p) ? Math.min(100, s.hp + p.bossHeal) : s.hp;
       n.adventures[s.difficulty] = {
         ...(n.adventures[s.difficulty] || {}),
         difficulty: s.difficulty,
@@ -311,7 +337,7 @@
       n.newInfo["floor" + s.floor] = true;
       n.kills[s.floor] = (n.kills[s.floor] || 0) + 1;
       n.clearedFloors[s.floor] = true;
-      if (s.floor === 5) {
+      if (s.floor === lastFloor(p)) {
         n.fragment = true;
         n.reward = true;
       }
@@ -322,6 +348,9 @@
     CAPS,
     COMBO,
     validatePolicy,
+    layout,
+    lastFloor,
+    bossFloor,
     begin,
     answer,
     timeout,

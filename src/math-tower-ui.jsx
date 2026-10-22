@@ -531,7 +531,7 @@
     let floors = Object.keys(c.floors)
       .map(Number)
       .filter((f) => p.seen[f]);
-    if (filter === "boss") floors = floors.filter((f) => f === 5);
+    if (filter === "boss") floors = floors.filter((f) => f === R.bossFloor(c.policy));
     if (filter === "alive") floors = floors.filter((f) => !p.kills[f]);
     floors.sort((a, b) =>
       sort === "name"
@@ -583,7 +583,8 @@
             <h3>第1章</h3>
             {Object.entries(p.difficulties).map(([d, x]) => (
               <p key={d}>
-                {difficultyLabel(d)}：{x.best}/5階 {x.records[5] ? "章クリア" : ""}
+                {difficultyLabel(d)}：{x.best}/{R.lastFloor(c.policy)}階{" "}
+                {x.records[R.lastFloor(c.policy)] ? "章クリア" : ""}
               </p>
             ))}
             {Object.entries(p.difficulties).flatMap(([d, x]) =>
@@ -849,7 +850,7 @@
           await writer.current.idle();
           const latest = await Store.load(H.FB.db, H.FB.uid, acctRef.current);
           if (!life.current) return;
-          R.validatePolicy(latest.content.policy);
+          latest.content.policy = R.layout(latest.content);
           writer.current.reset(latest.progress);
           pending.current = null;
           afterStory.current = null;
@@ -916,7 +917,7 @@
         Store.load(H.FB.db, H.FB.uid, acct)
           .then((x) => {
             if (!live) return;
-            R.validatePolicy(x.content.policy);
+            x.content.policy = R.layout(x.content);
             writer.current.reset(x.progress);
             setData(x);
             setScreen("home");
@@ -1095,7 +1096,7 @@
             setNotice("");
             explained.current = new Set();
             setScreen("battle");
-            if (floor === 5)
+            if (floor === R.bossFloor(content.policy))
               explain({
                 id: "nul",
                 title: "零の番人ヌル",
@@ -1269,7 +1270,7 @@
           setSeconds(Math.ceil(content.policy.problemMs / 1000));
           if (
             difficulty === "hard" &&
-            floor !== 5 &&
+            floor !== R.bossFloor(content.policy) &&
             fx.next.damage >= 8 &&
             !fx.next.solvedHigh
           )
@@ -1317,13 +1318,18 @@
       };
       const showPost = (f, chosen = difficulty, mode = playMode) =>
         showStory(
-          [f + "-post", ...(f === 5 ? ["5-epilogue"] : [])],
+          [
+            f + "-post",
+            ...(f === R.lastFloor(content.policy) ? [f + "-epilogue"] : []),
+          ],
           async () => {
             try {
               if (mode === "adventure")
-                await persist((p) => R.finishStory(p, chosen));
+                await persist((p) => R.finishStory(p, chosen, content.policy));
               setScreen(
-                mode === "adventure" && f === 5 ? "chapterEnd" : "afterFloor",
+                mode === "adventure" && f === R.lastFloor(content.policy)
+                  ? "chapterEnd"
+                  : "afterFloor",
               );
             } catch (e) {
               setError(e.message);
@@ -1581,7 +1587,10 @@
             <section className="mt-panel">
               <h2>クリアした階を選ぶ</h2>
               <p>再挑戦はHP100から開始。本編の冒険の進行・HPは変更しません。</p>
-              {[1, 2, 3, 4, 5].map((f) => (
+              {Array.from(
+                { length: R.lastFloor(content.policy) },
+                (_, i) => i + 1,
+              ).map((f) => (
                 <Button
                   key={f}
                   disabled={!progress.clearedFloors[f]}
@@ -1642,10 +1651,10 @@
                   hp={
                     (Math.max(
                       0,
-                      (floor === 5 ? content.policy.bossUnits : 8) -
+                      (floor === R.bossFloor(content.policy) ? content.policy.bossUnits : 8) -
                         battle.damage,
                     ) /
-                      (floor === 5 ? content.policy.bossUnits : 8)) *
+                      (floor === R.bossFloor(content.policy) ? content.policy.bossUnits : 8)) *
                     100
                   }
                 />
