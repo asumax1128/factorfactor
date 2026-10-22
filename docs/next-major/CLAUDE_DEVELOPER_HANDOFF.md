@@ -102,3 +102,20 @@ firebase emulators:exec --only auth,database --project demo-factorfactor-tower -
 - そのため「手元では通るが CI で落ちる」ことがある。手元で通っても、最終判定は公開CIで行う。ダウンロードできる環境では `npx playwright install chromium` を実行し、`CHROMIUM_PATH` を指定せずに実行すると CI と同じ版になる。
 - CI でブラウザテストが失敗したときは、ワークフロー実行の成果物 `failure-evidence`（失敗時の画面のスクリーンショットと表示文字）を確認する（`tests/browser-harness.cjs` の `PW_ARTIFACT_DIR`）。
 - 画面移動は `tests/browser-harness.cjs` の共通ヘルパー（`goHome` / `openSoloHub` / `openSoloMode` / `openOnlineLobby` / `openProfile`）を使う。画面の構成を変えたら、まずここを直す。
+
+## Ver.6.12 の整理と AXIOMIA 第2章以降に必要な変更
+
+- 公開版（dist）は `scripts/build-pages.cjs` が app-source を esbuild で事前変換し（`data-compiled="1"`）、Babel の読み込みを除去する。ルートの `index.html` は開発用で従来どおり Babel で動く。dist そのものを画面テストするには `PW_SITE_ROOT=dist npm run test:…`。
+- AST 固定テスト（`tests/legacy-regression.cjs`）は保護対象112関数を `PIN_BASE`（Ver.6.11）と完全一致で比較する。保護対象を意図的に変えるときは、内容を確認したうえで `PIN_BASE` を確認済みの公開コミットへ進める。画面だけの関数は E2E で守る。
+- 公開CIは build → test（4並列）→ release（再ビルドしてバイト一致を確認）→ deploy。
+- 数学の塔の階数・ボス階は `MathTowerRules.layout(content)` が `content.floors`（1..N の連番）と `policy.bossFloor`（省略時は最終階）から決める。第1章は 5階・ボス5階。
+
+第2章以降を作るときに残っている作業（Ver.6.12 では未着手。セーブ形式・Firebase ルールの変更を伴うため要承認）:
+
+1. `math-tower-store.js`: `content/<key>/chapter1` 固定の読込と `chapter === 1 && version === 1` の検査、`trialProgress/<key>` が章を区別しない1件の保存。章ごとの content パスと進行保存（章キー）が必要。
+2. セーブ形式（`math-tower-core.js` の `fresh`/`migrate`）: `clearedFloors`・`kills`・`notes`・`records` が階番号だけをキーにしており、`fragment`/`reward` が真偽値1個。章をまたぐと衝突するため、章ごとの入れ物か progressVersion 3 への移行が必要。progressVersion 1 からの移行は第1章専用（5階）のまま。
+3. Firebase ルール: `mathTowerV2/content/<key>/chapterN` と章ごとの進行パスの許可。`mathTowerV2/access/<key>` の章ごとの解放の有無。
+4. `scripts/build-pages.cjs`: chapter1.json の章番号・版・5階・`math-tower-policy.json` との一致を検査している。章ごとのポリシーファイルと検査が必要。
+5. `validatePolicy`: `bossUnits` は 15/20、`bossAbility` は `double-miss` のみ許可。新しいボス能力には承認済みルールの追加と core の実装が必要。
+6. UI（`src/math-tower-ui.jsx`）: 数理の書の「第1章」見出し、章クリア画面の文言、`<階>-pre/-post/-epilogue` のイベントID規約、章選択画面がない。
+7. 素材: chapter1.json は画像を base64 で内包（約5.3MB）。章ごとに分割読込が必要。旧塔の世界データ（index.html の `TOWER_MOBS`/`TOWER_BOSSES`/`KING_PARTS`）は資料として残してあるが未使用。
