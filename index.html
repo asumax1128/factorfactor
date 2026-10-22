@@ -4356,7 +4356,7 @@ function DailyCard({ acct, onOpen }) {
 /* =====================================================================
    学びの部屋：苦手分析・苦手ドリル・型の図鑑
    ===================================================================== */
-function LearnApp({ acct, onExit, init }) {
+function LearnApp({ acct, onExit, init, renderMenu }) {
   const [tab, setTab] = useState('weak');
   const [tick, setTick] = useState(0);
   const prof = useProf(acct, tick);
@@ -4378,10 +4378,10 @@ function LearnApp({ acct, onExit, init }) {
   const startDrill = (targets, title) => { setDrillRes(null); setDrill({ problems: drillProblems(targets, 10), title, targets }); };
   const got = ptRows.filter(r => r.st && r.st.ok > 0).length;
   return (
-    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    (renderMenu || (x => x))(<div className="min-h-screen w-full flex flex-col items-center py-6 px-4" data-learn-room style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       <div className="w-full" style={{ maxWidth: '34rem' }}>
-        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
+        <button onClick={onExit} className={renderMenu ? 'small-button ld-back mb-2' : 'v7-pill v7-cur mb-2'} data-snd="back">{renderMenu ? '← 戻る' : '← タイトルにもどる'}</button>
         <div className="text-center mb-3">
           <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>学びの部屋</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ソロ・対戦・デイリー・ドリルで解いた問題が、ここにたまっていきます{isReal(acct) ? '' : '（ゲスト：この端末に保存）'}</div>
@@ -4461,7 +4461,7 @@ function LearnApp({ acct, onExit, init }) {
           </Card>
         )}
       </div>
-    </div>
+    </div>)
   );
 }
 
@@ -5750,13 +5750,13 @@ function BossDex({ st }) {
   );
 }
 
-function WeeklyAuthorityGate({acct,onExit}) {
+function WeeklyAuthorityGate({acct,onExit,renderMenu}) {
  const fb=useFbReady();
  if(fb.ready&&acct?.key&&window.NextAuthority?.enabled(FB.db,window.location))return <window.NextResults.AuthorityWeekly H={{FB,fbNow,weekKey,useTick,TargetCard,BattleBoard,weeklyInfo,bossForm,MonsterPic}} acct={acct} onExit={onExit}/>;
- return <WeeklyRaidApp acct={acct} onExit={onExit}/>;
+ return <WeeklyRaidApp acct={acct} onExit={onExit} renderMenu={renderMenu}/>;
 }
 
-function WeeklyRaidApp({ acct, onExit }) {
+function WeeklyRaidApp({ acct, onExit, renderMenu }) {
   const wk = weekKey(), pwk = prevWeek(wk);
   const fb = useFbReady();
   const legacyV = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
@@ -6015,12 +6015,12 @@ function WeeklyRaidApp({ acct, onExit }) {
 
   const prevBoss = pinfo ? pinfo.boss : weeklyBoss(pwk);
   return (
-    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    (renderMenu || (x => x))(<div className="min-h-screen w-full flex flex-col items-center py-6 px-4" data-weekly-menu style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
       <FontImport />
       {dev && <div role="status">開発検証モード：出撃・ダメージ・報酬は専用データにのみ記録します</div>}
       {devError && <div role="alert">{devError}</div>}
       <div className="w-full" style={{ maxWidth: '30rem' }}>
-        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
+        <button onClick={onExit} className={renderMenu ? 'small-button ld-back mb-2' : 'v7-pill v7-cur mb-2'} data-snd="back">{renderMenu ? '← 戻る' : '← タイトルにもどる'}</button>
         <div className="text-center mb-3">
           <div className="v7-name" style={{ fontSize: 24 }}>今週のボス</div>
           <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{wk.replace(/-/g, '/')} の週 ・ みんなのダメージを合わせて倒そう（月曜に新しいボス）</div>
@@ -6150,7 +6150,7 @@ function WeeklyRaidApp({ acct, onExit }) {
           {meKey ? <BossDex st={st} /> : <p className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ボス図鑑・討伐報酬・称号は、ログインすると記録されます</p>}
         </Card>
       </div>
-    </div>
+    </div>)
   );
 }
 /* ---------- 数理の塔（ひとりで1階ずつ登る） ----------
@@ -11576,13 +11576,18 @@ function AppRoot() {
     return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('touchstart', unlock); window.removeEventListener('keydown', unlock); };
   }, []);
   const go = (m, arg) => { setModeArg(arg || null); setMode(m === 'solo' ? 'solo' : m); window.scrollTo(0, 0); };
+  // Ver.6.11: where the 学びの部屋 / 今週のボス / デイリー / AXIOMIA(数学の塔) exits go — the solo hub when entered from it, else home
+  const backTo = useRef('home');
   const navigateNext = key => {
+    backTo.current = mode === 'solo' ? 'solo' : 'home';
     if(key==='back'){const back=window.NextNavigation?window.NextNavigation.back(modeArg):{page:'home',arg:null};go(back.page,back.arg);return;}
     if(key==='profile'||key==='account'){if(mode!=='profile')go('profile',{from:mode,fromArg:modeArg});return;}
     if(key==='solo-play'){go('solo',{play:true});return;}
     go(window.NextNavigation?window.NextNavigation.target(key):({online:'battle',rank:'rankings',boss:'raidw',help:'solo'})[key]||key,key==='help'?{menu:'help'}:null);
   };
   const toSolo = () => go('home');
+  const goBack = () => go(backTo.current);
+  const darkFrame = (page, cls) => NextHome.Lobby ? children => <NextHome page={page} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className={cls}>{children}</div></NextHome> : undefined;
   usePresenceRoot(acct, mode);
   useEffect(() => { if (!isReal(acct)) { keepFreezeSeen.clear(); return; } let stop = false, t; const run = () => { if (stop) return; if (!FB.db || !FB.uid) { t = setTimeout(run, 500); return; } keepFreezeOnLogin(acct); }; run(); return () => { stop = true; clearTimeout(t); }; }, [acct && acct.key]);
   useEffect(()=>{if(!isReal(acct))return;let stop=false,t;const claim=()=>{if(stop)return;if(!FB.db||!FB.uid){t=setTimeout(claim,500);return;}window.DailyV2?.create({db:FB.db,uid:FB.uid,account:acct}).awards().catch(()=>{});};claim();return()=>{stop=true;clearTimeout(t)}},[acct?.key]);
@@ -11599,10 +11604,10 @@ function AppRoot() {
         {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
       </NextHome>
       : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="battle" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
-      : mode === 'daily' ? <DailyApp renderMenu={NextHome.Lobby?children=><NextHome page="daily" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-daily">{children}</div></NextHome>:undefined} acct={acct} onExit={toSolo} onMode={go} />
-      : mode === 'learn' ? <LearnApp acct={acct} onExit={toSolo} init={modeArg} />
-      : mode === 'raidw' ? <WeeklyAuthorityGate acct={acct} onExit={toSolo} />
-      : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
+      : mode === 'daily' ? <DailyApp renderMenu={NextHome.Lobby?children=><NextHome page="daily" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-daily ld-dark">{children}</div></NextHome>:undefined} acct={acct} onExit={goBack} onMode={go} />
+      : mode === 'learn' ? <LearnApp acct={acct} onExit={goBack} init={modeArg} renderMenu={darkFrame('solo', 'next-legacy-skin ld-dark')} />
+      : mode === 'raidw' ? <WeeklyAuthorityGate acct={acct} onExit={goBack} renderMenu={darkFrame('solo', 'next-legacy-skin ld-dark')} />
+      : mode === 'tower' ? <MathTowerApp acct={acct} onExit={goBack} />
       : mode === 'cpu' ? <BattleApp acct={acct} cpuOnly onExit={()=>go('solo')} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
       : mode === 'axiomia' ? (NextHome.Lobby ? <NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><AxiomiaGate acct={acct} onBack={()=>go('solo')} onStart={()=>go('tower')} /></NextHome> : <AxiomiaGate acct={acct} onBack={()=>go('solo')} onStart={()=>go('tower')} />)
       : (mode === 'solo' && NextHome.Lobby && !modeArg?.play && !modeArg?.menu) ? <NextHome page="solo" hub acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext} />

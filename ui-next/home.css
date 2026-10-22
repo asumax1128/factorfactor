@@ -382,5 +382,30 @@
 @media(max-width:900px){.next-home .page-header[data-title-hidden]{margin-bottom:0;height:0}.next-home .ranking-content[data-hub] .ranking-grid{margin-top:0}}
 .next-home .next-legacy-menu .v7-solo-back{align-self:flex-start;width:max-content;margin-bottom:12px}
 
-/* Ver.6.10: inside the new frame the daily page uses the header / bottom navigation; the legacy "← タイトルへ" (to home) is hidden */
-.next-home .next-legacy-daily .or-app>header{display:none}
+
+/* Ver.6.11 dark skin for legacy screens shown inside the new frame (学びの部屋・今週のボス・デイリーミッション).
+   Display only: the v7 theme variables and the legacy inline colours are remapped to the navy theme; no behaviour. */
+.next-home .ld-dark{--v7-bg:transparent;--v7-card:#192b38;--v7-ink:#e8f0f5;--v7-sub:#b8c6d2;--v7-line:#324354;color:#e8f0f5}
+.next-home .ld-dark>[data-learn-room],.next-home .ld-dark>[data-weekly-menu]{min-height:0!important;padding:0!important;background:transparent!important;align-items:stretch!important}
+.next-home .ld-dark>[data-learn-room]>div,.next-home .ld-dark>[data-weekly-menu]>div{width:100%;max-width:860px!important;margin:0 auto}
+.next-home .ld-dark .ld-back,.next-home .next-legacy-daily .or-app>header>button{display:inline-flex;width:max-content;min-height:44px;margin-bottom:14px;padding:9px 14px;border:1px solid #50757a;border-radius:4px;background:#243e4366;color:#acded7;font-size:12px;box-shadow:none}
+.next-home .next-legacy-daily .or-app>header{display:flex;justify-content:flex-start;background:transparent;border:0;padding:0;margin:0}
+.next-home .ld-dark .v7-panel,.next-home .ld-dark .rounded-2xl.shadow-lg{background:#192b38!important;border:1px solid #324354!important;border-radius:12px;box-shadow:none!important;color:#e8f0f5}
+.next-home .ld-dark .v7-name,.next-home .ld-dark .v7-cap{color:#e8f0f5}
+.next-home .ld-dark [style*="rgb(29, 38, 51)"]{color:#e8f0f5!important}
+.next-home .ld-dark [style*="rgb(111, 119, 133)"]{color:#b8c6d2!important}
+.next-home .ld-dark [style*="color: rgb(45, 106, 79)"]{color:#72dfce!important}
+.next-home .ld-dark [style*="color: rgb(14, 134, 198)"]{color:#8fd3f4!important}
+.next-home .ld-dark [style*="background: rgb(255, 255, 255)"],.next-home .ld-dark [style*="background-color: rgb(255, 255, 255)"]{background:#101c26!important}
+.next-home .ld-dark [style*="background: rgb(239, 234, 224)"],.next-home .ld-dark [style*="background: rgb(243, 240, 234)"],.next-home .ld-dark [style*="background: rgb(251, 243, 232)"],.next-home .ld-dark [style*="background: rgb(245, 242, 236)"]{background:#22364a!important}
+.next-home .ld-dark [style*="border-bottom: 1px solid rgb(239, 234, 224)"],.next-home .ld-dark [style*="border-top: 1px solid rgb(239, 234, 224)"]{border-color:#324354!important}
+.next-home .ld-dark [style*="rgb(228, 222, 211)"]{border-color:#324354!important}
+.next-home .ld-dark button[style*="background: rgb(255, 255, 255)"]{background:#101720!important;color:#e8f0f5!important;border-color:#4a6073!important}
+.next-home .ld-dark button[aria-pressed="true"][style*="background: rgb(29, 38, 51)"]{background:#2f7f8a!important;border-color:#72dfce!important;color:#fff!important}
+.next-home .ld-dark button[aria-pressed="false"]{color:#cfdbe4!important}
+.next-home .ld-dark .v7-pill{background:#101720;color:#e8f0f5;border-color:#4a6073}
+.next-home .ld-dark .v7-badge{background:#22364a;color:#e8f0f5}
+.next-home .ld-dark .or-app section section{background:#14222e!important;border:1px solid #324354!important;box-shadow:none!important;color:#e8f0f5}
+.next-home .ld-dark .or-app section button{border:1px solid #4a6073;border-radius:8px;background:#101720;color:#e8f0f5}
+.next-home .ld-dark .or-app .or-difficulty.selected,.next-home .ld-dark .or-app button[aria-pressed="true"]{background:#2f7f8a;border-color:#72dfce;color:#fff}
+.next-home .ld-dark .or-app .or-difficulty-grid+button:not(:disabled){background:var(--accent,#72dfce);border-color:transparent;color:#08252b;font-weight:900}

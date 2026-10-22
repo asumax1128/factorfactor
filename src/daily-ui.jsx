@@ -30,7 +30,7 @@
     <p className="rk-foot">得点→クリア→タイム／正解数→確定時刻の順。前日の優勝称号は日跨ぎ挑戦の終了猶予後、次回起動時に付与します。</p>
    </div>;
   }
-  return (renderMenu&&!rankingsOnly?renderMenu:x=>x)(<main className="or-app"><header><button onClick={onExit}>{rankingsOnly?'ランキング総合へ':'← タイトルへ'}</button><h1>{rankingsOnly?'デイリーランキング':'デイリーチャレンジ'}</h1></header>
+  return (renderMenu&&!rankingsOnly?renderMenu:x=>x)(<main className="or-app"><header><button onClick={onExit}>{rankingsOnly?'ランキング総合へ':renderMenu?'← 戻る':'← タイトルへ'}</button><h1>{rankingsOnly?'デイリーランキング':'デイリーチャレンジ'}</h1></header>
    {!client&&<section><p>1日3回の挑戦権とランキングを管理するため、登録アカウントでログインしてください。ソロ・CPU練習はゲストでも遊べます。</p></section>}
    {err&&<section role="alert"><p>{err}</p>{pending.current&&<button onClick={()=>done(pending.current.s,pending.current.a)}>記録の送信を再試行</button>}</section>}
    {game?.done&&<section><h2>{game.cleared?'クリア！':'未クリア'}</h2><p>{game.score}点・{game.correct}問正解</p><p>{game.cleared?`クリアタイム ${(game.elapsed/1000).toFixed(2)}秒`:'途中終了も獲得得点でランキングに参加します'}</p><button onClick={()=>{setGame(null);setAttempt(null)}}>デイリーへ戻る</button></section>}
