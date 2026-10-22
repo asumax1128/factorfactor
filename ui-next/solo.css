@@ -27,5 +27,9 @@
 .next-home .solo-profile-link{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#9bc2cd}
 .next-home .solo-profile-link svg{width:13px;height:13px}
 @media(max-width:520px){.next-home .solo-modes{gap:11px}.next-home .solo-card{padding:8px 8px 12px}.next-home .solo-card strong{font-size:15px}.next-home .solo-card small{font-size:11px}.next-home .solo-profile{flex-wrap:wrap;gap:8px 12px}.next-home .solo-best{text-align:left;margin-left:auto}.next-home .solo-profile-link{display:none}}
-@media(min-width:1100px){.next-home .solo-modes{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.next-home .solo-card strong{font-size:19px}.next-home .solo-card small{font-size:12.5px}}
+@media(min-width:1100px){.next-home .solo-modes{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:980px}.next-home .solo-card strong{font-size:19px}.next-home .solo-card small{font-size:12.5px}}
 .next-home .solo-art:empty{background:radial-gradient(circle at 50% 50%,#a779ff22 0 38%,transparent 40%)}
+
+.next-home .solo-card[data-tone=lime]{--tone:#9bd46a}
+.next-home .solo-card[data-tone=indigo]{--tone:#8fa2ff}
+.next-home .solo-extra{max-width:320px}

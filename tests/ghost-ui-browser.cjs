@@ -74,8 +74,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       assert.equal(await p.getByText("最高速 ―", { exact: true }).count(), 8);
       await p.reload();
       // new home: solo 成績 page -> 対戦記録 tab holds the ghost history
-      await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
-      await p.getByRole("button", { name: "成績", exact: true }).click();
+      await p.locator(".action-card.solo").click(); await p.locator('[data-solo-profile]').click();
       await p.getByRole("tab", { name: "対戦記録", exact: true }).click();   // Ver.6.4: the ghost history lives in the new profile's record tab
       await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
       await p.getByText(/ハイパーゴースト/).first().waitFor(); // the history loads asynchronously

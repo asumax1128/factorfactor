@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');const {chromium,context,sleep}=requir
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium'});try{for(const width of [390,1366]){
  const tree={games:{factor:{accounts:{ateacher:{name:'Teacher',stats:{exp:100,maxRating:1500,skin:{tile:'wood',bg:'sky',fx:'std'}}},atarget:{name:'Target',stats:{games:4,w:3,rating:1700,maxRating:1700}}},onlineSparkV1:{profiles:{ateacher:{easy:{rating:1600,maxRating:1900},normal:{rating:1800,maxRating:1800}},atarget:{easy:{rating:1700,maxRating:1750},normal:{rating:1700,maxRating:1950}}}}}}};
  const t=await context(b,{tree}),p=t.page;await p.setViewportSize({width,height:844});
- await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:'成績',exact:true}).click();await p.locator('[data-next-profile]').getByText('1900',{exact:true}).first().waitFor();
+ await p.locator('.action-card.solo').click(); await p.locator('[data-solo-profile]').click();await p.locator('[data-next-profile]').getByText('1900',{exact:true}).first().waitFor();
  await p.evaluate(()=>window.__fbApply({kind:'set',path:'games/factor/onlineSparkV1/profiles/ateacher',v:{easy:{rating:1819.9,maxRating:1819.9},normal:{rating:1500,maxRating:1500,games:0}}}));
  await p.getByRole('button',{name:'きせかえ',exact:true}).click();await p.getByRole('button',{name:/マスター/}).getByText('🔒マスター',{exact:true}).waitFor();
  await p.evaluate(()=>window.__fbApply({kind:'set',path:'games/factor/onlineSparkV1/profiles/ateacher/easy',v:{rating:1820,maxRating:1820}}));await p.getByRole('button',{name:/マスター/}).getByText('マスター',{exact:true}).waitFor();

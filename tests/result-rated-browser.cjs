@@ -89,7 +89,7 @@ async function render(p, m, extra = {}) {
     {
       const tr = { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: { rating: 1600, exp: 100 }, prof: { lv: { L1: { n: 30, ok: 20, ms: 360000 } } } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } };
       const r = await context(b, { tree: tr, assetOverrides: { '/online-rated-ui.js': ui } }), q = r.page;
-      await q.locator('.action-card.solo').click(); await q.locator('[data-solo-mode=play]').click(); await q.getByRole('button', { name: '成績', exact: true }).click(); await q.getByRole('button', { name: /ゴースト対戦/ }).click();
+      await q.locator('.action-card.solo').click(); await q.locator('[data-solo-profile]').click(); await q.getByRole('button', { name: /ゴースト対戦/ }).click();
       await q.getByRole('button', { name: 'イージーで自分のゴーストと対戦', exact: true }).waitFor();
       await q.waitForFunction(() => [...document.querySelectorAll('button')].some((x) => x.textContent === 'イージーで自分のゴーストと対戦' && !x.disabled));
       await q.getByRole('button', { name: 'イージーで自分のゴーストと対戦', exact: true }).click();

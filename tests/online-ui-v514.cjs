@@ -29,8 +29,7 @@ const fs = require("fs");
         assetOverrides: { "/online-rated-ui.js": ui },
       }),
       p = t.page;
-    await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
-    await p.getByRole("button", { name: "成績", exact: true }).click();
+    await p.locator(".action-card.solo").click(); await p.locator('[data-solo-profile]').click();
     await p.getByRole("tab", { name: "対戦記録", exact: true }).click();
     await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
     await p.reload();

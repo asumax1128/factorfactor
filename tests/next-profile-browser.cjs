@@ -21,7 +21,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');const {chromium
  if(width>900)await p.getByRole('navigation',{name:'PCメインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();else{await p.getByRole('button',{name:'メニューを開く'}).click();await p.getByRole('dialog',{name:'メインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();}
  await profile.waitFor();await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  if(width<900){await p.addStyleTag({content:'.next-home .bottom-nav{padding-bottom:40px}.next-home .page-shell{padding-bottom:139px}'});}
- await p.locator('button[aria-label="ホームへ"]').first().evaluate(e=>e.click());await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:'成績',exact:true}).click();await profile.waitFor();
+ await p.locator('button[aria-label="ホームへ"]').first().evaluate(e=>e.click());await p.locator('.action-card.solo').click(); await p.locator('[data-solo-profile]').click();await profile.waitFor();
  const last=profile.locator('.next-stat').last();await last.evaluate(e=>e.scrollIntoView({block:'center'}));assert(await last.evaluate(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return e===hit||e.contains(hit)}));
  await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
  assert.equal(JSON.stringify({stats:tree.games.factor.accounts.ateacher.stats,profiles:tree.games.factor.onlineSparkV1.profiles}),original);
