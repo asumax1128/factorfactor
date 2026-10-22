@@ -444,6 +444,6 @@
 .next-home .next-admin select:focus-visible,.next-home .next-admin input:focus-visible,.next-home .next-admin button:focus-visible{outline:2px solid #73dfce;outline-offset:2px}
 .next-home .next-admin button{color:#fff}
 .next-home .next-admin button:disabled{opacity:.5;filter:grayscale(.6);cursor:not-allowed}
-.next-home .next-admin .fxf-new-ui button{background:#2a6170!important;border:1px solid #6fb3bf!important;color:#ffffff!important;border-radius:8px!important;min-height:44px}
+.next-home .next-admin .fxf-new-ui button{background:#2a6170!important;border:1px solid #6fb3bf!important;color:#ffffff!important;border-radius:8px!important;min-height:44px;padding:8px 12px!important;text-align:center}
 .next-home .next-admin .fxf-new-ui button:disabled{background:#26343d!important;border-color:#4a5b66!important;color:#9fb0ba!important;opacity:1!important;filter:none}
 .next-home .next-admin>button:only-child{color:#c3d3dc!important}
