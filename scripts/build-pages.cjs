@@ -83,6 +83,29 @@ for (const file of [
     .replaceAll('src="' + file + '"', 'src="' + file + "?v=" + hash + '"')
     .replaceAll('href="' + file + '"', 'href="' + file + "?v=" + hash + '"');
 }
+// Ver.6.12: compile the app's JSX here (same React classic transform as the in-browser Babel step), so the
+// published page no longer downloads Babel or transforms ~870KB of JSX on every start. The repository's
+// index.html keeps the JSX source (tests, the rated-engine extraction and local play still read it).
+{
+  const APP = /<script type="text\/plain" id="app-source">([\s\S]*?)<\/script>/;
+  const m = html.match(APP);
+  assert(m, "app-source not found");
+  const code = require("esbuild").transformSync(m[1], {
+    loader: "jsx",
+    jsx: "transform",
+    jsxFactory: "React.createElement",
+    jsxFragment: "React.Fragment",
+    charset: "utf8",
+    legalComments: "none",
+    minifyWhitespace: true,
+  }).code;
+  assert(!/<\/script/i.test(code), "compiled app must not contain a closing script tag");
+  html = html.replace(m[0], () => '<script type="text/plain" id="app-source" data-compiled="1">' + code + "</script>");
+  const babelTag = /<script src="https:\/\/unpkg\.com\/@babel\/standalone@[^"]+\/babel\.min\.js"><\/script>\n?/;
+  assert(babelTag.test(html), "Babel script tag not found");
+  html = html.replace(babelTag, "");
+  assert(!/babel\.min\.js/.test(html) && html.includes('data-compiled="1"'), "published page must not load Babel");
+}
 fs.writeFileSync(path.join(out, "index.html"), html);
 
 const c = JSON.parse(

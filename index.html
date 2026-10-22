@@ -11641,14 +11641,16 @@ root.render(<AppRoot />);
   });
 
   try {
-    if (typeof Babel === 'undefined') throw new Error('Babel(コード変換ツール)の読み込みに失敗しました。通信環境を確認してください。');
+    var sourceEl = document.getElementById('app-source');
+    // Ver.6.12: the published build (dist) ships app-source already compiled (data-compiled="1"), so Babel is not needed there.
+    var compiled = sourceEl.getAttribute('data-compiled') === '1';
+    if (!compiled && typeof Babel === 'undefined') throw new Error('Babel(コード変換ツール)の読み込みに失敗しました。通信環境を確認してください。');
     if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') throw new Error('React の読み込みに失敗しました。通信環境を確認してください。');
     if (typeof Tone === 'undefined') throw new Error('Tone.js(音声ライブラリ)の読み込みに失敗しました。通信環境を確認してください。');
 
-    var sourceEl = document.getElementById('app-source');
     var source = sourceEl.textContent;
 
-    var transformed = Babel.transform(source, {
+    var transformed = compiled ? source : Babel.transform(source, {
       presets: [['react', { runtime: 'classic' }]],
       filename: 'factor-hunt.jsx',
     }).code;

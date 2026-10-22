@@ -50,7 +50,7 @@ async function context(
     blockedAssets = [],
     firebaseSource = null,
     emulatorNetwork = false,
-    siteRoot = root,
+    siteRoot = process.env.PW_SITE_ROOT ? path.resolve(process.env.PW_SITE_ROOT) : root,
     keepLogin = "observe",
   } = {},
 ) {
