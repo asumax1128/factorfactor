@@ -90,7 +90,7 @@ jobs:
     name: test (${{ matrix.shard }})
     env:
       # Failure evidence: tests/browser-harness.cjs saves screenshots + visible text of pages still open when a browser test fails (mock data only).
-      PW_ARTIFACT_DIR: ${{ github.workspace }}/../pw-artifacts
+      PW_ARTIFACT_DIR: ${{ github.workspace }}/pw-artifacts
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
@@ -149,7 +149,7 @@ jobs:
         env:
           SCRIPTS: ${{ matrix.artifact_scripts }}
         run: |
-          test "$(grep -c 'data-compiled="1"' dist/index.html)" = 1
+          grep -q 'id="app-source" data-compiled="1">' dist/index.html
           if grep -q 'babel.min.js' dist/index.html; then echo 'published page must not load Babel'; exit 1; fi
           export PW_SITE_ROOT="$GITHUB_WORKSPACE/dist"
           for s in $SCRIPTS; do echo "::group::npm run $s (artifact)"; npm run "$s"; echo "::endgroup::"; done
@@ -163,7 +163,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: failure-evidence-${{ matrix.shard }}
-          path: ${{ github.workspace }}/../pw-artifacts
+          path: ${{ github.workspace }}/pw-artifacts
           retention-days: 7
   release:
     needs: [build, test]
