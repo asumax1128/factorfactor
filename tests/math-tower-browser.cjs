@@ -45,15 +45,16 @@ const seed = () => ({
       if (who === "wrong-uid") uid = "other";
       const t = await context(browser, { tree, account, uid });
       await sleep(700);
-      // new home: the tower tile lives in the solo menu, so denied users must lack it there too
-      await t.page.locator(".action-card.solo").click(); await t.page.locator('[data-solo-mode=play]').click();
-      await t.page.getByRole("button", { name: "スタート", exact: true }).waitFor();
-      assert.equal(
-        await t.page
-          .getByRole("button", { name: "数学の塔", exact: false })
-          .count(),
-        0,
-      );
+      // Ver.6.9: the only entry is the AXIOMIA card; denied users see "準備中" and the gate never starts the tower
+      await t.page.locator(".action-card.solo").click(); await t.page.locator('[data-solo-hub]').waitFor();
+      await t.page.locator('[data-solo-mode=axiomia]').waitFor();
+      assert.match(await t.page.locator('[data-solo-mode=axiomia]').innerText(), /準備中/);
+      assert.equal(await t.page.getByRole("button", { name: "数学の塔", exact: false }).count(), 0);
+      await t.page.locator('[data-solo-mode=axiomia]').click();
+      await t.page.locator('[data-axiomia-gate]').waitFor();
+      await t.page.waitForFunction(() => document.querySelector('[data-axiomia-gate]')?.dataset.axiomiaGate === 'locked');
+      assert.match(await t.page.locator('[data-axiomia-gate] p').innerText(), /準備中/);
+      assert.equal(await t.page.locator("[data-math-dialog]").count(), 0);
       await t.page.goto("http://localhost/#math-tower");
       await t.page
         .getByText(/試遊権限|先生アカウント/)

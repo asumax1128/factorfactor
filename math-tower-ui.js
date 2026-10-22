@@ -460,14 +460,17 @@
     root.MathTowerFactory = function(H) {
       const { BattleBoard, TargetCard, HpBar } = H;
       MathRenderer = H.MathText || InlineMathFallback;
-      function Tile({ acct, onOpen }) {
-        const fb = H.useFbReady(), [allowed, setAllowed] = useState(false);
+      function useAccess(acct) {
+        const fb = H.useFbReady(), [allowed, setAllowed] = useState(null);
         useEffect(() => {
-          setAllowed(false);
-          if (!fb.ready || !acct || acct.guest) return;
+          if (!acct || acct.guest) {
+            setAllowed(false);
+            return;
+          }
+          setAllowed(null);
+          if (!fb.ready) return;
           let live = true;
-          Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => {
-          });
+          Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => live && setAllowed(false));
           const path = Store.BASE + "/access/" + acct.key;
           const fn = () => Store.access(H.FB.db, H.FB.uid, acct).then(() => live && setAllowed(true)).catch(() => live && setAllowed(false));
           H.FB.db.ref(path).on("value", fn, () => live && setAllowed(false));
@@ -476,7 +479,11 @@
             H.FB.db.ref(path).off("value", fn);
           };
         }, [fb.ready, acct && acct.key]);
-        if (!allowed) return null;
+        return allowed;
+      }
+      function Tile({ acct, onOpen }) {
+        const allowed = useAccess(acct);
+        if (allowed !== true) return null;
         return /* @__PURE__ */ React.createElement("button", { className: "v7-tile v7-cur", onClick: onOpen }, /* @__PURE__ */ React.createElement("div", { className: "top" }, /* @__PURE__ */ React.createElement("span", { className: "v7-ico" }, "\u{1F4D6}"), /* @__PURE__ */ React.createElement("span", { className: "v7-badge" }, "\u5148\u751F\u8A66\u904A")), /* @__PURE__ */ React.createElement("b", null, "\u6570\u5B66\u306E\u5854"), /* @__PURE__ */ React.createElement("span", { className: "s" }, "\u5192\u967A\u3092\u59CB\u3081\u308B"));
       }
       function App({ acct, onExit }) {
@@ -1254,7 +1261,7 @@
           )
         );
       }
-      return { App, Tile, CutIn, Target: TowerTarget, Victory };
+      return { App, Tile, useAccess, CutIn, Target: TowerTarget, Victory };
     };
   })(window);
 })();

@@ -14,8 +14,10 @@ window.NextRanking={...RankingKit,SoloRanking};
 const icons = require('./next-home-icons.json');
 window.NextHomeFactory = H => {
  const {useState,useEffect,useRef}=React;
- const {DailyProgress,soloBestOf,MathTowerTile,FB,useFbReady,weekKey,now,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin}=H;
+ const {DailyProgress,soloBestOf,useTowerAccess,FB,useFbReady,weekKey,now,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,Wardrobe,useFbValue,useGameMute,LoginBonus,syncSkin}=H;
  const Profile=createProfile(H);
+ // AXIOMIA（=既存の数学の塔）の表示：先生など権限のあるアカウントは「プレイ可能」、それ以外は「準備中」。権限が確定するまでは「準備中」
+ const AxiomiaText=({acct,kind})=>{const ok=useTowerAccess?useTowerAccess(acct)===true:false;return kind==='badge'?(ok?'プレイ可能':'準備中'):(ok?'数理の塔を冒険しよう':'準備中（先生限定）')};
  const Icon=({name})=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[name]||icons.home}/></svg>;
  function useBoss(enabled){
   const fb=useFbReady(),[tick,setTick]=useState(0),[retry,setRetry]=useState(0),[data,setData]=useState(null);
@@ -70,7 +72,7 @@ const soloHub=()=>{
     ['daily','デイリーミッション','今日のミッションと報酬','gold','ui-next/solo/dairymission.png','暁光の報酬宝箱',DailyProgress?<DailyProgress acct={acct}/>:null],
     ['boss','今週のボス','みんなで挑む週替わりの強敵','purple',bossArt,boss.boss?.name||'今週のボス',null],
     ['learn','学びの部屋','苦手分析・ドリル・図鑑','lime','ui-next/solo/learning.png','学びの部屋',null],
-    ['axiomia','AXIOMIA','準備中（先生限定）','indigo','ui-next/solo/axiomia.png','AXIOMIA',<>準備中</>]];
+    ['axiomia','AXIOMIA',<AxiomiaText acct={acct} kind="desc"/>,'indigo','ui-next/solo/axiomia.png','AXIOMIA',<AxiomiaText acct={acct} kind="badge"/>]];
    const route={play:'solo-play',cpu:'cpu',daily:'daily',boss:'boss',learn:'learn',axiomia:'axiomia'};
    return <main className="solo-hub" data-solo-hub>
     <ul className="solo-modes">{cards.map(([k,name,desc,tone,art,alt,badge])=><li key={k}><button type="button" className="solo-card" data-solo-mode={k} data-tone={tone} onClick={()=>go(route[k])}>
@@ -83,8 +85,6 @@ const soloHub=()=>{
      <span className="solo-best"><small>ベストスコア</small><b>{best>0?best.toLocaleString('ja-JP')+'点':'―'}</b></span>
      <span className="solo-profile-link">プロフィール <Icon name="chevron"/></span>
     </button>
-    {/* 数学の塔（先生試遊）：権限のあるアカウントだけに出る既存のタイル。通常プレイ画面から移設 */}
-    {MathTowerTile&&<div className="solo-extra" data-solo-extra><MathTowerTile acct={acct} onOpen={()=>go('tower')}/></div>}
    </main>;
   };
   return <><link rel="stylesheet" href="ui-next/home.css"/>{page==='solo'&&hub&&<link rel="stylesheet" href="ui-next/solo.css"/>}<link rel="stylesheet" href="ui-next/ranking.css"/><div className="next-home" data-next-home>

@@ -9983,17 +9983,14 @@ function AResultDetails({ report, me, names = {} }) {
 const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(typeof id === 'string' ? id : null);
 // 他のプレイヤー(ランキング・賞金首リストなど)の読み取り専用プロフィール。称号は新しい「称号・実績」の読み取り専用表示。自分の称号の装備・解除は新プロフィールだけで行う
 /* ---------- AXIOMIA（準備中・先生限定）：入口の権限チェック。本体ができたら window.AxiomiaApp を先生にだけ開く ---------- */
-function AxiomiaGate({ acct, onBack }) {
-  const fb = useFbReady();
-  const real = isReal(acct);
-  const teacher = useFbValue(fb.ready && real ? `teachers/${acct.key}` : null);
-  const checking = real && (!fb.ready || teacher === undefined);
-  const App = window.AxiomiaApp;
-  if (!checking && real && !!teacher && App) return <App acct={acct} onExit={onBack} />;
+function AxiomiaGate({ acct, onBack, onStart }) {
+  const allowed = useTowerAccess(acct);   // 数学の塔の既存の権限判定（先生試遊）。null=確認中
+  useEffect(() => { if (allowed === true) onStart(); }, [allowed]);   // AXIOMIA = 既存の数学の塔。権限が確定した先生だけ、従来の塔の画面(#tower)を起動する
+  if (allowed === true) return <section className="next-panel" data-axiomia-gate="starting" style={{ textAlign: 'center' }}><p className="next-note" role="status">AXIOMIAを起動しています…</p></section>;
   return (
-    <section className="next-panel" data-axiomia-gate={checking ? 'checking' : real && teacher ? 'teacher' : 'locked'} style={{ maxWidth: '34rem', margin: '0 auto', textAlign: 'center' }}>
+    <section className="next-panel" data-axiomia-gate={allowed === null ? 'checking' : 'locked'} style={{ maxWidth: '34rem', margin: '0 auto', textAlign: 'center' }}>
       <h2 style={{ fontSize: 22, marginBottom: 8 }}>AXIOMIA</h2>
-      <p className="next-note" role="status">{checking ? '権限を確認しています…' : real && teacher ? 'AXIOMIA は準備中です。公開の準備が整いしだい、先生アカウントからここで開始できます。' : 'AXIOMIA は準備中です（先生限定）。公開までもう少し待ってね。'}</p>
+      <p className="next-note" role="status">{allowed === null ? '権限を確認しています…' : 'AXIOMIAは準備中です（先生限定）。公開までもう少し待ってね。'}</p>
       <button className="next-secondary" data-snd="back" onClick={onBack} style={{ marginTop: 14 }}>ソロへ戻る</button>
     </section>
   );
@@ -11547,8 +11544,8 @@ function DailyApp(props){
  if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
 }
-const { App: MathTowerApp, Tile: MathTowerTile } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,MathTowerTile,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const { App: MathTowerApp, Tile: MathTowerTile, useAccess: useTowerAccess } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null, useAccess: () => false };
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,useTowerAccess,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');
@@ -11593,7 +11590,7 @@ function AppRoot() {
       : mode === 'raidw' ? <WeeklyAuthorityGate acct={acct} onExit={toSolo} />
       : mode === 'tower' ? <MathTowerApp acct={acct} onExit={toSolo} />
       : mode === 'cpu' ? <BattleApp acct={acct} cpuOnly onExit={()=>go('solo')} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
-      : mode === 'axiomia' ? (NextHome.Lobby ? <NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><AxiomiaGate acct={acct} onBack={()=>go('solo')} /></NextHome> : <AxiomiaGate acct={acct} onBack={()=>go('solo')} />)
+      : mode === 'axiomia' ? (NextHome.Lobby ? <NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><AxiomiaGate acct={acct} onBack={()=>go('solo')} onStart={()=>go('tower')} /></NextHome> : <AxiomiaGate acct={acct} onBack={()=>go('solo')} onStart={()=>go('tower')} />)
       : (mode === 'solo' && NextHome.Lobby && !modeArg?.play && !modeArg?.menu) ? <NextHome page="solo" hub acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext} />
       : <FactorHunt renderMenu={NextHome.Lobby?(children,page="solo")=><NextHome page={page} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-menu">{children}</div></NextHome>:undefined} initialMenu={modeArg?.menu} acct={acct} onLogout={() => setAcct(null)} onBattle={() => go('battle')} onMode={(key,arg)=>key==='profile'?navigateNext(key):go(key,arg)} />}
   </>);

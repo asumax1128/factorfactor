@@ -725,16 +725,18 @@
   root.MathTowerFactory = function (H) {
     const { BattleBoard, TargetCard, HpBar } = H;
     MathRenderer = H.MathText || InlineMathFallback;
-    function Tile({ acct, onOpen }) {
+    /* 権限確認：true=許可 / false=不可（ゲスト含む）/ null=確認中。タイルとAXIOMIAの入口が同じ判定を使う */
+    function useAccess(acct) {
       const fb = H.useFbReady(),
-        [allowed, setAllowed] = useState(false);
+        [allowed, setAllowed] = useState(null);
       useEffect(() => {
-        setAllowed(false);
-        if (!fb.ready || !acct || acct.guest) return;
+        if (!acct || acct.guest) { setAllowed(false); return; }
+        setAllowed(null);
+        if (!fb.ready) return;
         let live = true;
         Store.access(H.FB.db, H.FB.uid, acct)
           .then(() => live && setAllowed(true))
-          .catch(() => {});
+          .catch(() => live && setAllowed(false));
         const path = Store.BASE + "/access/" + acct.key;
         const fn = () =>
           Store.access(H.FB.db, H.FB.uid, acct)
@@ -746,7 +748,11 @@
           H.FB.db.ref(path).off("value", fn);
         };
       }, [fb.ready, acct && acct.key]);
-      if (!allowed) return null;
+      return allowed;
+    }
+    function Tile({ acct, onOpen }) {
+      const allowed = useAccess(acct);
+      if (allowed !== true) return null;
       return (
         <button className="v7-tile v7-cur" onClick={onOpen}>
           <div className="top">
@@ -1830,6 +1836,6 @@
         </main>
       );
     }
-    return { App, Tile, CutIn, Target: TowerTarget, Victory };
+    return { App, Tile, useAccess, CutIn, Target: TowerTarget, Victory };
   };
 })(window);
