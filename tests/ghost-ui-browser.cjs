@@ -68,8 +68,7 @@ const { chromium, context } = require("./browser-harness.cjs");
       const t = await context(b, { tree }),
         p = t.page;
       await p.setViewportSize({ width, height: 844 });
-      await p.locator(".action-card.solo").click(); await p.locator('[data-solo-mode=play]').click();
-      await p.getByRole("button", { name: /学びの部屋/ }).click();
+      await p.locator(".action-card.solo").click(); await p.locator("[data-solo-mode=learn]").click(); // Ver.6.8: 学びの部屋 is a solo card
       await p.getByText("最高速 1.20秒", { exact: true }).waitFor();
       assert.equal(await p.getByText("最高速 ―", { exact: true }).count(), 8);
       await p.reload();

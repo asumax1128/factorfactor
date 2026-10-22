@@ -23,7 +23,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');const {chromium
  if(width<900){await p.addStyleTag({content:'.next-home .bottom-nav{padding-bottom:40px}.next-home .page-shell{padding-bottom:139px}'});}
  await p.locator('button[aria-label="ホームへ"]').first().evaluate(e=>e.click());await p.locator('.action-card.solo').click(); await p.locator('[data-solo-profile]').click();await profile.waitFor();
  const last=profile.locator('.next-stat').last();await last.evaluate(e=>e.scrollIntoView({block:'center'}));assert(await last.evaluate(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return e===hit||e.contains(hit)}));
- await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
+ await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('[data-solo-hub]').waitFor(); // opened from the solo hub's profile card
  assert.equal(JSON.stringify({stats:tree.games.factor.accounts.ateacher.stats,profiles:tree.games.factor.onlineSparkV1.profiles}),original);
  assert.equal(t.writes.filter(x=>/\/stats(?:\/|$)|onlineSparkV1\/profiles\//.test(x.path)).length,0);assert.deepEqual(t.errors,[]);
  console.log(`PASS profile ${width}: known/unknown values, separate records, titles/equipment retained, keyboard tabs, origin return, no stats/profile writes`);await t.ctx.close();
