@@ -1,6 +1,6 @@
 // Browser interaction with synthetic data only; no production account/PIN/network.
 const assert = require("node:assert/strict");
-const { chromium, context } = require("./browser-harness.cjs");
+const { chromium, context, openRankingHub } = require("./browser-harness.cjs");
 (async () => {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
@@ -56,7 +56,7 @@ const { chromium, context } = require("./browser-harness.cjs");
     console.log(
       "PASS existing account login/reload, existing stats unchanged, no tower grant entry",
     );
-    await p.getByRole("button", { name: "ランキング", exact: true }).click();
+    await openRankingHub(p); // Ver.6.13: ranking is the 順位 tab (the home ranking tile was removed)
     // new ranking hub: the "みんなのランキング" board lives under ソロランキング
     await p.locator("main.ranking-content").waitFor();
     await p.getByRole("button", { name: /ソロランキング/ }).click();
