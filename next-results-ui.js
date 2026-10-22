@@ -261,6 +261,226 @@
     }
   });
 
+  // ui-next/guide/guide-shots.json
+  var require_guide_shots = __commonJS({
+    "ui-next/guide/guide-shots.json"(exports, module) {
+      module.exports = {
+        version: 1,
+        scale: 2,
+        width: 390,
+        shots: {
+          "s3-difficulty": {
+            file: "s3-difficulty.webp",
+            w: 780,
+            h: 384,
+            alt: "\u96E3\u6613\u5EA6\u306E\u9078\u629E\u753B\u9762",
+            marks: [
+              {
+                label: "\u96E3\u6613\u5EA6",
+                x: 8.97,
+                y: 33.56,
+                w: 25.98,
+                h: 27.76
+              },
+              {
+                label: "\u30B9\u30BF\u30FC\u30C8",
+                x: 8.97,
+                y: 67.62,
+                w: 82.05,
+                h: 24.58
+              }
+            ]
+          },
+          meta: {
+            tiles: 6
+          },
+          "s1-board": {
+            file: "s1-board.webp",
+            w: 780,
+            h: 1304,
+            alt: "\u30A4\u30FC\u30B8\u30FC\u306E\u554F\u984C\u753B\u9762\uFF08\u4E0A\u304C\u5F0F\u3001\u4E0B\u304C6\u679A\u306E\u56E0\u6570\u30BF\u30A4\u30EB\uFF09",
+            marks: [
+              {
+                label: "\u5F0F",
+                x: 3.08,
+                y: 1.35,
+                w: 93.85,
+                h: 18.12
+              },
+              {
+                label: "\u30BF\u30A4\u30EB1",
+                x: 3.08,
+                y: 60.19,
+                w: 29.91,
+                h: 38.27
+              },
+              {
+                label: "\u30BF\u30A4\u30EB2",
+                x: 35.04,
+                y: 60.19,
+                w: 29.92,
+                h: 38.27
+              }
+            ]
+          },
+          "s1-drag": {
+            file: "s1-drag.webp",
+            w: 780,
+            h: 1304,
+            alt: "1\u679A\u3092\u62BC\u3055\u3048\u305F\u307E\u307E\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u3044\u308B\u753B\u9762\uFF08\u91D1\u8272\u306E\u67A0\u3068\u7DDA\uFF09",
+            marks: [
+              {
+                label: "\u62BC\u3055\u3048\u308B",
+                x: 2.48,
+                y: 58.97,
+                w: 31.11,
+                h: 39.81
+              },
+              {
+                label: "\u3053\u3053\u3067\u96E2\u3059",
+                x: 35.04,
+                y: 60.19,
+                w: 29.92,
+                h: 38.27
+              }
+            ]
+          },
+          "s1-correct": {
+            file: "s1-correct.webp",
+            w: 780,
+            h: 1304,
+            alt: "\u6B63\u89E3\u3057\u305F2\u679A\u304C\u6C34\u8272\u306B\u5149\u308B\u753B\u9762",
+            marks: []
+          },
+          "s2-perfect": {
+            file: "s2-perfect.webp",
+            w: 780,
+            h: 620,
+            alt: "Perfect\u306E\u6F14\u51FA\uFF08HP\uFF0B25%\uFF09",
+            marks: [
+              {
+                label: "\u5224\u5B9A",
+                x: 36.67,
+                y: 47.61,
+                w: 26.65,
+                h: 14.89
+              },
+              {
+                label: "HP",
+                x: 3.08,
+                y: 48.32,
+                w: 93.85,
+                h: 7.1
+              }
+            ]
+          },
+          "s1-miss": {
+            file: "s1-miss.webp",
+            w: 780,
+            h: 1650,
+            alt: "\u4E0D\u6B63\u89E3\u306E\u753B\u9762\uFF082\u679A\u304C\u8D64\u304F\u306A\u308ABad\uFF09",
+            marks: []
+          },
+          "s5-battle-a": {
+            file: "s5-battle-a.webp",
+            w: 780,
+            h: 1688,
+            alt: "A\u65B9\u5F0F\u306E\u5BFE\u6226\u753B\u9762\uFF08CPU\u7DF4\u7FD2\u306E\u4F8B\uFF09",
+            marks: []
+          },
+          "s5-battle-b": {
+            file: "s5-battle-b.webp",
+            w: 780,
+            h: 1688,
+            alt: "\u65B0B\u65B9\u5F0F\u306E\u5BFE\u6226\u753B\u9762\uFF08CPU\u7DF4\u7FD2\u306E\u4F8B\uFF09",
+            marks: []
+          },
+          "s6-ghost-tiles": {
+            file: "s6-ghost-tiles.webp",
+            w: 780,
+            h: 714,
+            alt: "\u30AA\u30F3\u30E9\u30A4\u30F3\u753B\u9762\u306E\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\uFF083\u7A2E\u985E\uFF09",
+            marks: [
+              {
+                label: "\u30A4\u30FC\u30B8\u30FC",
+                x: 9.74,
+                y: 15.78,
+                w: 80.51,
+                h: 18.72
+              },
+              {
+                label: "\u30CE\u30FC\u30DE\u30EB",
+                x: 9.74,
+                y: 37.3,
+                w: 80.51,
+                h: 18.72
+              },
+              {
+                label: "\u30CF\u30A4\u30D1\u30FC",
+                x: 9.74,
+                y: 58.83,
+                w: 80.51,
+                h: 34.41
+              }
+            ]
+          },
+          "s6-ghost-start": {
+            file: "s6-ghost-start.webp",
+            w: 780,
+            h: 1280,
+            alt: "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\u306E\u958B\u59CB\u753B\u9762\uFF08\u65B9\u5F0F\u3092\u9078\u3076\uFF09",
+            marks: []
+          },
+          "s7-weekly": {
+            file: "s7-weekly.webp",
+            w: 780,
+            h: 1212,
+            alt: "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u51FA\u6483\u753B\u9762",
+            marks: []
+          },
+          "s8-ranking": {
+            file: "s8-ranking.webp",
+            w: 780,
+            h: 1082,
+            alt: "\u30E9\u30F3\u30AD\u30F3\u30B0\uFF08\u30BD\u30ED\u30FB\u30C7\u30A4\u30EA\u30FC\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\uFF09",
+            marks: []
+          },
+          "s8-profile": {
+            file: "s8-profile.webp",
+            w: 780,
+            h: 1500,
+            alt: "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\uFF08\u30EC\u30D9\u30EB\u30FBEXP\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\uFF09",
+            marks: []
+          },
+          "art-solo": {
+            file: "art-solo.webp",
+            w: 540,
+            h: 540,
+            alt: "\u901A\u5E38\u30D7\u30EC\u30A4",
+            marks: [],
+            source: "ui-next/solo/solo.png"
+          },
+          "art-cpu": {
+            file: "art-cpu.webp",
+            w: 540,
+            h: 540,
+            alt: "CPU\u7DF4\u7FD2",
+            marks: [],
+            source: "ui-next/solo/cpu.png"
+          },
+          "art-boss": {
+            file: "art-boss.webp",
+            w: 540,
+            h: 540,
+            alt: "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u4F8B\uFF08\u56E0\u6570\u30C9\u30E9\u30B4\u30F3\uFF09",
+            marks: [],
+            source: "img/monsters/dragon.webp"
+          }
+        }
+      };
+    }
+  });
+
   // src/title-catalog-next.json
   var require_title_catalog_next = __commonJS({
     "src/title-catalog-next.json"(exports, module) {
@@ -1767,11 +1987,43 @@
 
   // src/next-help-ui.jsx
   var B2 = require_b2();
-  function Help({ tiers, difficulties, aLockMs, onClose }) {
-    var _a, _b;
-    const [tab, setTab] = React.useState("play");
-    const sections = [["play", "\u57FA\u672C\u64CD\u4F5C\u30FB\u30BD\u30ED"], ["online", ((_a = window.FXF_FEATURES) == null ? void 0 : _a.cMode) ? "A\u30FB\u65B0B\u30FBC\u65B9\u5F0F" : "A\u30FB\u65B0B\u65B9\u5F0F"], ["daily", "\u30C7\u30A4\u30EA\u30FC\u30FB\u30E9\u30F3\u30AD\u30F3\u30B0"], ["growth", "\u79F0\u53F7\u30FB\u304D\u305B\u304B\u3048\u30FB\u5354\u529B"]];
-    return /* @__PURE__ */ React.createElement("main", { className: "next-help", "data-next-help": true }, /* @__PURE__ */ React.createElement("button", { className: "small-button", onClick: onClose }, "\u30BD\u30ED\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"), /* @__PURE__ */ React.createElement("nav", { "aria-label": "\u3042\u305D\u3073\u304B\u305F\u306E\u9805\u76EE" }, sections.map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, "aria-pressed": tab === id, onClick: () => setTab(id) }, label))), tab === "play" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u56E0\u6570\u30BF\u30A4\u30EB\u3092\u3064\u306A\u3052\u308B"), /* @__PURE__ */ React.createElement("p", null, "\u5F0F\u3068\u540C\u3058\u7A4D\u306B\u306A\u308B2\u679A\u3092\u3001\u6307\u307E\u305F\u306F\u30DE\u30A6\u30B9\u3067\u62BC\u3055\u3048\u305F\u307E\u307E\u3064\u306A\u304E\u3001\u3082\u30461\u679A\u306E\u4E0A\u3067\u306F\u306A\u3057\u307E\u3059\u3002\u5225\u3005\u306B2\u56DE\u30BF\u30C3\u30D7\u3059\u308B\u56DE\u7B54\u65B9\u5F0F\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("p", null, "\u5404\u554F\u984C\u306F20\u79D2\u3002HP\u304C0\u306B\u306A\u308B\u3068\u7D42\u4E86\u3057\u307E\u3059\u3002\u5236\u9650\u554F\u6570\u30FB\u30DF\u30B9\u6642\u306EHP\u6E1B\u5C11\u306F\u96E3\u6613\u5EA6\u3054\u3068\u306B\u7570\u306A\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("ul", null, Object.entries(difficulties).map(([id, d]) => /* @__PURE__ */ React.createElement("li", { key: id }, d.label, "\uFF1A", d.clearCount, "\u554F")))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u30BF\u30A4\u30E0\u5224\u5B9A\u3068\u56DE\u5FA9"), /* @__PURE__ */ React.createElement("p", null, "\u4E0B\u306E\u6642\u9593\u300C\u4EE5\u5185\u300D\u304C\u5404\u5224\u5B9A\u306E\u4E0A\u9650\u3067\u3059\u3002\u6B63\u89E3\u3067HP\u304C\u56DE\u5FA9\u3057\u3001\u9023\u7D9A\u6B63\u89E3\u3067\u30B3\u30F3\u30DC\u304C\u5897\u3048\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("table", null, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "\u5224\u5B9A"), /* @__PURE__ */ React.createElement("th", null, "\u89E3\u7B54\u6642\u9593"), /* @__PURE__ */ React.createElement("th", null, "HP\u56DE\u5FA9"))), /* @__PURE__ */ React.createElement("tbody", null, tiers.map((t) => /* @__PURE__ */ React.createElement("tr", { key: t.label }, /* @__PURE__ */ React.createElement("th", null, t.label), /* @__PURE__ */ React.createElement("td", null, t.max / 1e3, "\u79D2\u4EE5\u5185"), /* @__PURE__ */ React.createElement("td", null, "\uFF0B", t.recover, "%"))))), /* @__PURE__ */ React.createElement("p", null, "\u8AA4\u7B54\u30FB\u6642\u9593\u5207\u308C\u306FBad\u3002\u8AA4\u7B54\u30DA\u30CA\u30EB\u30C6\u30A3\u3068\u6642\u9593\u5207\u308C\u306E\u8FFD\u52A0\u6E1B\u5C11\u306F\u540C\u3058\u5024\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002"))), tab === "online" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "A\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "\u540C\u3058\u554F\u984C\u3092\u540C\u6642\u306B\u89E3\u304D\u3001\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u304C\u5F97\u70B9\u3057\u307E\u3059\u3002\u304A\u624B\u3064\u304D\u306F", aLockMs / 1e3, "\u79D2\u3002\u7D42\u4E86\u5F8C\u306F\u554F\u984C\u3054\u3068\u306E\u78BA\u5B9A\u5F97\u70B9\u3068\u63A8\u79FB\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u65B0B\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "\u6642\u9593\u7D42\u4E86\u6642\u306E\u5F97\u70B9\u3067\u52DD\u6557\u3092\u6C7A\u3081\u3001HP0\u306FKO\u3067\u3059\u3002\u3059\u3050\u904A\u3076\u306F90\u79D2\u3001\u30EB\u30FC\u30E0\u3067\u306F60\u30FB90\u30FB120\u30FB180\u79D2\u304B\u3089\u9078\u3079\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "HP\u306F\u6BCE\u79D21%\u6E1B\u5C11\u3002\u8AA4\u7B54\u306F\u30A4\u30FC\u30B8\u30FC20%\u30FB\u30CE\u30FC\u30DE\u30EB25%\u6E1B\u5C11\u3002\u554F\u984C\u6642\u9593\u5207\u308C\u306E\u8FFD\u52A0\u6E1B\u5C11\u306F\u30A4\u30FC\u30B8\u30FC0%\u30FB\u30CE\u30FC\u30DE\u30EB5%\u3067\u3059\u3002\u6B63\u89E3\u56DE\u5FA9\u306EHP\u8D85\u904E\u5206\u306F\u5F97\u70B9\u306B\u306A\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "2\u30B3\u30F3\u30DC\u30671\u679A\u30013\u30B3\u30F3\u30DC\u30672\u679A\u30014\u30B3\u30F3\u30DC\u4EE5\u964D\u306F3\u679A\u306E\u304A\u90AA\u9B54\u3092\u9001\u308A\u307E\u3059\u3002\u901A\u5E386\u679A\uFF0F9\u679A\u3001\u76E4\u9762\u306F\u6700\u592712\u679A\u3002\u304A\u90AA\u9B54\u306F\u6B63\u89E3\u306B\u4F7F\u3048\u306A\u3044\u507D\u30AB\u30FC\u30C9\u3067\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "\u554F\u984C\u958B\u59CB\u6642\u306B\u914D\u7F6E\u3055\u308C\u305F\u304A\u90AA\u9B541\u679A\u306B\u3064\u304D\u901A\u5E38\u5F97\u70B9\u306E10%\u3092\u52A0\u7B97\u3002\u5230\u7740\u3057\u305F\u653B\u6483\u306F3\u79D2\u9593\u3001\u4ECA\u56DE\u306E\u6B63\u89E3\u3067\u767A\u751F\u3057\u305F\u653B\u6483\u3068\u76F8\u6BBA\u3067\u304D\u307E\u3059\u3002\u78BA\u5B9A\u3057\u305F\u304A\u90AA\u9B54\u306F\u6B21\u306E\u554F\u984C\u304B\u3089\u9069\u7528\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "2\u30B3\u30F3\u30DC\u76EE\u304B\u3089\u30EC\u30D9\u30EB\xD73%\u306E\u30B2\u30FC\u30B8\u3092\u7372\u5F97\u3002100%\u3067FREEZE\u304C\u81EA\u52D5\u767A\u52D5\u3057\u3001\u76F8\u624B\u306E\u5F0F\u30FB\u30AB\u30FC\u30C9\u3068\u64CD\u4F5C\u30923\u79D2\u906E\u853D\u3057\u307E\u3059\u3002\u8A66\u5408\u6642\u9593\u30FB\u554F\u984C\u6642\u9593\u30FBHP\u6E1B\u5C11\u306F\u9032\u307F\u3001\u30B3\u30F3\u30DC\u7D99\u7D9A\u3068\u30AB\u30A6\u30F3\u30BF\u30FC\u306E\u6642\u8A08\u306F\u505C\u6B62\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "\u30B3\u30F3\u30DC\u306F\u6B21\u306E\u554F\u984C\u304C\u64CD\u4F5C\u53EF\u80FD\u306B\u306A\u3063\u3066\u304B\u308910\u79D2\u4EE5\u5185\u306B\u6B63\u89E3\u3059\u308B\u3068\u7D99\u7D9A\u3057\u307E\u3059\u3002\u89B3\u6226\u5FDC\u63F4\u306F1\u56DE10pt\u30011\u4EBA3\u56DE\u300230pt\u3067\u6B21\u554F\u306E\u304A\u90AA\u9B541\u679A\u3092\u9664\u53BB\u3057\u3001\u8A66\u5408\u5168\u4F53\u3067\u6700\u59273\u679A\u3067\u3059\u3002"), /* @__PURE__ */ React.createElement("details", null, /* @__PURE__ */ React.createElement("summary", null, "\u30EC\u30D9\u30EB\u5225\u306E\u57FA\u790E\u5F97\u70B9"), /* @__PURE__ */ React.createElement("ul", null, Object.entries(B2.POINTS).map(([lv, n]) => /* @__PURE__ */ React.createElement("li", { key: lv }, "Lv.", lv, "\uFF1A", n, "\u70B9"))))), ((_b = window.FXF_FEATURES) == null ? void 0 : _b.cMode) && /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "C\u65B9\u5F0F"), /* @__PURE__ */ React.createElement("p", null, "4\u4EBA\u30FB2\u5BFE2\u306E\u30C1\u30FC\u30E0\u6226\u3067\u3059\u3002HP\u306F\u30C1\u30FC\u30E0\u3067\u5171\u6709\u3057\u307E\u3059\u3002\u5473\u65B9\u3078\u306E\u653B\u6483\u3092\u30AB\u30D0\u30FC\u3067\u304D\u3001\u6761\u4EF6\u3092\u305D\u308D\u3048\u308B\u3068\u5408\u4F53\u653B\u6483\u304C\u767A\u751F\u3057\u307E\u3059\u3002\u7D50\u679C\u3067\u306F\u500B\u4EBA\u306E\u6B63\u89E3\u6570\u30FB\u5F97\u70B9\u3092\u5225\u3005\u306B\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u7DF4\u7FD2\u30FB\u30B4\u30FC\u30B9\u30C8"), /* @__PURE__ */ React.createElement("p", null, "CPU\u7DF4\u7FD2\u3068\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u306F\u516C\u5F0F\u5BFE\u4EBA\u6226\u7E3E\u30FB\u79F0\u53F7\u53D6\u5F97\u306E\u5BFE\u8C61\u5916\u3067\u3059\u3002"))), tab === "daily" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u4ECA\u65E5\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u3068\u4ECA\u65E5\u306E\u6311\u6226"), /* @__PURE__ */ React.createElement("p", null, "\u30DF\u30C3\u30B7\u30E7\u30F3\u306E\u304A\u984C\u3068\u30011\u65E5\u5408\u8A083\u56DE\u306E\u30C7\u30A4\u30EA\u30FC\u30C1\u30E3\u30EC\u30F3\u30B8\u306F\u5225\u306E\u6A5F\u80FD\u3067\u3059\u3002\u30C1\u30E3\u30EC\u30F3\u30B8\u306F\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB\u30FB\u30CF\u30FC\u30C9\u3092\u81EA\u7531\u306B\u9078\u3073\u3001\u30BD\u30ED\u3068\u540C\u3058\u554F\u984C\u6570\u30FB\u7BC4\u56F2\u3067\u6311\u307F\u307E\u3059\u3002\u65E5\u672C\u6642\u95930\u6642\u3067\u6311\u6226\u6A29\u304C\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "\u958B\u59CB\u5F8C\u306E\u9000\u51FA\u30FB\u518D\u8AAD\u307F\u8FBC\u307F\u3067\u3082\u56DE\u6570\u306F\u623B\u308A\u307E\u305B\u3093\u3002\u8AA4\u7B54\u304C\u3042\u3063\u3066\u3082\u6700\u5F8C\u307E\u3067\u5B8C\u8D70\u3059\u308C\u3070\u30AF\u30EA\u30A2\u30BF\u30A4\u30E0\u3092\u8A18\u9332\u3057\u3001\u672A\u30AF\u30EA\u30A2\u3067\u3082\u5F97\u70B9\u304C\u3042\u308C\u3070\u30E9\u30F3\u30AD\u30F3\u30B0\u5BFE\u8C61\u3067\u3059\u3002")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u30E9\u30F3\u30AD\u30F3\u30B0"), /* @__PURE__ */ React.createElement("p", null, "\u30E9\u30F3\u30AD\u30F3\u30B0\u7DCF\u5408\u304B\u3089\u30BD\u30ED\u30FB\u30C7\u30A4\u30EA\u30FC\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u3078\u9032\u3081\u307E\u3059\u3002\u30C7\u30A4\u30EA\u30FC\u306F\u5F97\u70B9\u3092\u6700\u512A\u5148\u3057\u3001\u540C\u70B9\u306A\u3089\u30AF\u30EA\u30A2\u72B6\u614B\u3001\u30BF\u30A4\u30E0\uFF0F\u6B63\u89E3\u6570\u3001\u78BA\u5B9A\u6642\u523B\u3067\u9806\u4F4D\u3092\u6C7A\u3081\u307E\u3059\u3002\u73FE\u5728\u30EC\u30FC\u30C8\u3068\u6B74\u4EE3\u6700\u9AD8\u30EC\u30FC\u30C8\u306F\u5225\u306E\u8A18\u9332\u3067\u3059\u3002"))), tab === "growth" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u79F0\u53F7\u30FB\u304D\u305B\u304B\u3048"), /* @__PURE__ */ React.createElement("p", null, "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u304B\u3089\u53D6\u5F97\u6E08\u307F\u79F0\u53F7\u3068\u30BF\u30A4\u30EB\u30FB\u80CC\u666F\u30FB\u30A8\u30D5\u30A7\u30AF\u30C8\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002\u79F0\u53F7\u306E\u672A\u516C\u958B\u6761\u4EF6\u306F\uFF1F\uFF1F\uFF1F\u3067\u3059\u3002\u73FE\u5728\u306E\u88C5\u5099\u3084\u904E\u53BB\u306E\u53D6\u5F97\u8A18\u9332\u306F\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002")), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", null, "\u4ECA\u9031\u306E\u30DC\u30B9\u30FB\u5354\u529B\u30EC\u30A4\u30C9"), /* @__PURE__ */ React.createElement("p", null, "\u9031\u9593\u30DC\u30B9\u306F\u307F\u3093\u306A\u306E\u30C0\u30E1\u30FC\u30B8\u3092\u5408\u308F\u305B\u3066\u8A0E\u4F10\u3057\u307E\u3059\u3002\u30AF\u30E9\u30B9\u5354\u529B\u30EC\u30A4\u30C9\u306F\u5148\u751F\u304C\u958B\u50AC\u3057\u3001\u30D5\u30EC\u30F3\u30C9\u30EC\u30A4\u30C9\u306F\u53C2\u52A0\u8005\u304C\u5F79\u5272\u3092\u5206\u62C5\u3057\u3066\u5354\u529B\u3057\u307E\u3059\u3002\u30DC\u30B9\u3084\u5F79\u5272\u3054\u3068\u306E\u7279\u6027\u3092\u78BA\u8A8D\u3057\u3066\u6311\u307F\u307E\u3057\u3087\u3046\u3002"))));
+  var GUIDE = require_guide_shots();
+  var STEPS = [["basic", "\u57FA\u672C\u64CD\u4F5C"], ["perfect", "Perfect"], ["difficulty", "\u96E3\u6613\u5EA6"], ["solo", "\u30BD\u30ED\u30E2\u30FC\u30C9"], ["online", "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226"], ["ghost", "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226"], ["boss", "\u4ECA\u9031\u306E\u30DC\u30B9"], ["growth", "\u6210\u9577\u3068\u3084\u308A\u3053\u307F"]];
+  function Shot({ name, marks = [], note, wide }) {
+    var _a;
+    const s = GUIDE.shots[name];
+    if (!s) return null;
+    const v = ((_a = window.FactorVersion) == null ? void 0 : _a.number) ? "?v=" + window.FactorVersion.number : "";
+    return /* @__PURE__ */ React.createElement("figure", { className: "hg-shot" + (wide ? " hg-wide" : ""), "data-guide-shot": name }, /* @__PURE__ */ React.createElement("div", { className: "hg-frame", style: { aspectRatio: `${s.w} / ${s.h}` } }, /* @__PURE__ */ React.createElement("img", { src: "ui-next/guide/" + s.file + v, alt: s.alt, width: s.w, height: s.h, loading: "lazy", decoding: "async" }), marks.map(([label, n, tone]) => {
+      const m = s.marks.find((x) => x.label === label);
+      return m && /* @__PURE__ */ React.createElement("span", { key: label, className: "hg-mark" + (tone ? " hg-" + tone : ""), style: { left: m.x + "%", top: m.y + "%", width: m.w + "%", height: m.h + "%" }, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("b", null, n));
+    })), note && /* @__PURE__ */ React.createElement("figcaption", null, note));
+  }
+  var Art = ({ name }) => {
+    const s = GUIDE.shots[name];
+    return s ? /* @__PURE__ */ React.createElement("img", { className: "hg-art", src: "ui-next/guide/" + s.file, alt: s.alt, width: s.w, height: s.h, loading: "lazy", decoding: "async", "data-guide-shot": name }) : null;
+  };
+  var Play = ({ onClick, children = "\u904A\u3093\u3067\u307F\u308B" }) => /* @__PURE__ */ React.createElement("button", { type: "button", className: "hg-play", "data-guide-play": true, onClick }, children, " ", /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u2192"));
+  function Help({ tiers, difficulties, missPenalty, timeoutExtra, questionMs, aLockMs, aLastSpurt, visual = {}, onClose, onPlay, onGo }) {
+    var _a;
+    const top = React.useRef(null);
+    const jump = (id) => {
+      const el = document.getElementById("hg-" + id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.focus({ preventScroll: true });
+      }
+    };
+    const shown = (t) => t.label === "Fair" ? "OK" : t.label;
+    const colorOf = (t) => visual[shown(t)] || t.color;
+    const perfect = tiers[0], sec = (ms) => ms / 1e3;
+    const diffs = Object.entries(difficulties);
+    const go = (key) => onGo && onGo(key);
+    const Step = ({ id, n, title, lead, children, hero }) => /* @__PURE__ */ React.createElement("section", { id: "hg-" + id, tabIndex: -1, className: "hg-step" + (hero ? " hg-hero" : ""), "data-guide-step": id, "aria-labelledby": "hg-" + id + "-h" }, /* @__PURE__ */ React.createElement("header", null, /* @__PURE__ */ React.createElement("span", { className: "hg-num" }, "STEP ", n), /* @__PURE__ */ React.createElement("h2", { id: "hg-" + id + "-h" }, title), lead && /* @__PURE__ */ React.createElement("p", { className: "hg-lead" }, lead)), children);
+    return /* @__PURE__ */ React.createElement("main", { className: "next-help hg", "data-next-help": true, ref: top }, /* @__PURE__ */ React.createElement("link", { rel: "stylesheet", href: "ui-next/help.css" }), /* @__PURE__ */ React.createElement("div", { className: "hg-top" }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "small-button", "data-guide-home": true, onClick: onClose }, "\u2190 \u30DB\u30FC\u30E0\u3078\u623B\u308B")), /* @__PURE__ */ React.createElement("nav", { className: "hg-toc", "aria-label": "\u3042\u305D\u3073\u304B\u305F\u306E\u76EE\u6B21" }, STEPS.map(([id, label], i) => /* @__PURE__ */ React.createElement("button", { key: id, type: "button", "data-toc": id, onClick: () => jump(id) }, /* @__PURE__ */ React.createElement("b", null, i + 1), label))), /* @__PURE__ */ React.createElement(Step, { id: "basic", n: 1, hero: true, title: "\u56E0\u6570\u5206\u89E3\u306E\u57FA\u672C\u64CD\u4F5C", lead: "\u4E0A\u306E\u5F0F\u3092\u3001\u4E0B\u306E\u56E0\u6570\u30BF\u30A4\u30EB2\u679A\u306E\u304B\u3051\u7B97\u3067\u4F5C\u308D\u3046\u3002" }, /* @__PURE__ */ React.createElement("ol", { className: "hg-flow" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(Shot, { name: "s1-board", marks: [["\u5F0F", 1], ["\u30BF\u30A4\u30EB1", 2], ["\u30BF\u30A4\u30EB2", 2]] }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", null, /* @__PURE__ */ React.createElement("b", null, "1"), "\u4E0A\u306E\u5F0F\u3092\u898B\u308B"), /* @__PURE__ */ React.createElement("h3", null, /* @__PURE__ */ React.createElement("b", null, "2"), "\u4E0B\u306E\u30BF\u30A4\u30EB\u304B\u3089\u6B63\u3057\u30442\u679A\u3092\u63A2\u3059"), /* @__PURE__ */ React.createElement("p", null, "\u30BF\u30A4\u30EB\u306F\u30A4\u30FC\u30B8\u30FC", difficulties.easy.tileCount, "\u679A\u3001\u30CE\u30FC\u30DE\u30EB", difficulties.normal.tileCount, "\u679A\u3001\u30CF\u30FC\u30C9", difficulties.hard.tileCount, "\u679A\u3002"))), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(Shot, { name: "s1-drag", marks: [["\u62BC\u3055\u3048\u308B", 3], ["\u3053\u3053\u3067\u96E2\u3059", 3, "drop"]] }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", null, /* @__PURE__ */ React.createElement("b", null, "3"), "1\u679A\u3092\u62BC\u3055\u3048\u305F\u307E\u307E\u3001\u3082\u30461\u679A\u307E\u3067\u30C9\u30E9\u30C3\u30B0\u3057\u3066\u96E2\u3059"), /* @__PURE__ */ React.createElement("p", null, "\u62BC\u3055\u3048\u305F\u30BF\u30A4\u30EB\u306F\u91D1\u8272\u306E\u67A0\u306B\u306A\u308A\u3001\u6307\u307E\u3067\u7DDA\u304C\u4F38\u3073\u307E\u3059\u30022\u679A\u3092\u5225\u3005\u306B\u30BF\u30C3\u30D7\u3059\u308B\u3060\u3051\u3067\u306F\u7B54\u3048\u306B\u306A\u308A\u307E\u305B\u3093\u3002"))), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement(Shot, { name: "s1-correct" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", null, /* @__PURE__ */ React.createElement("b", null, "4"), "\u6B63\u89E3\u3059\u308B\u30682\u679A\u304C\u5408\u4F53\uFF01"), /* @__PURE__ */ React.createElement("p", null, "2\u679A\u304C\u6C34\u8272\u306B\u5149\u308A\u3001\u5F0F\u306B\u5438\u3044\u3053\u307E\u308C\u3066\u6B21\u306E\u554F\u984C\u3078\u3002"))), /* @__PURE__ */ React.createElement("li", { className: "hg-miss" }, /* @__PURE__ */ React.createElement(Shot, { name: "s1-miss" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", null, /* @__PURE__ */ React.createElement("b", null, "\xD7"), "\u307E\u3061\u304C\u3048\u308B\u3068"), /* @__PURE__ */ React.createElement("p", null, "2\u679A\u304C\u8D64\u304F\u306A\u3063\u3066\u300CBad\u300D\u3002HP\u304C\u6E1B\u308A\u3001\u30B3\u30F3\u30DC\u304C\u9014\u5207\u308C\u3066\u6B21\u306E\u554F\u984C\u306B\u9032\u307F\u307E\u3059\u3002")))), /* @__PURE__ */ React.createElement(Play, { onClick: onPlay }, "\u904A\u3093\u3067\u307F\u308B\uFF08\u96E3\u6613\u5EA6\u3092\u9078\u3076\uFF09")), /* @__PURE__ */ React.createElement(Step, { id: "perfect", n: 2, hero: true, title: "Perfect\u3092\u72D9\u304A\u3046\uFF01", lead: `\u51FA\u984C\u304B\u3089${sec(perfect.max)}\u79D2\u4EE5\u5185\u306B\u6B63\u89E3\u3059\u308B\u3068Perfect\uFF01` }, /* @__PURE__ */ React.createElement(Shot, { name: "s2-perfect", wide: true, marks: [["\u5224\u5B9A", 1, "gold"], ["HP", 2, "gold"]] }), /* @__PURE__ */ React.createElement("ul", { className: "hg-points" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "1"), "HP\u304C", /* @__PURE__ */ React.createElement("strong", null, perfect.recover, "%"), "\u56DE\u5FA9\uFF08\u3044\u3061\u3070\u3093\u591A\u3044\uFF09"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "2"), "HP\u304C100%\u3092\u8D85\u3048\u305F\u5206\u306F\u30011%\uFF1D1\u70B9\u3068\u3057\u3066\u5F97\u70B9\u306B\u52A0\u7B97"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "\u2605"), "Perfect\u306E\u901A\u7B97\u56DE\u6570\u306F\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u306B\u8A18\u9332\u3055\u308C\u3001\u79F0\u53F7\uFF08Perfect 50\u56DE\u306A\u3069\uFF09\u306B\u3064\u306A\u304C\u308B"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "\u2605"), "\u4ECA\u9031\u306E\u30DC\u30B9\u306B\u306F\u3001Perfect\u306E\u30C0\u30E1\u30FC\u30B8\u304C2\u500D\u306B\u306A\u308B\u30DC\u30B9\u3082\u3044\u308B")), /* @__PURE__ */ React.createElement("p", { className: "hg-note" }, "\u6B63\u89E3\u306E\u5F97\u70B9\u306F\u554F\u984C\u306E\u30EC\u30D9\u30EB\u3068\u30B3\u30F3\u30DC\u3067\u6C7A\u307E\u308A\u307E\u3059\u3002Perfect\u3067\u5F97\u70B9\u306E\u500D\u7387\u304C\u4E0A\u304C\u308B\u306E\u3067\u306F\u306A\u304F\u3001HP\u306E\u56DE\u5FA9\u3068\u3001\u305D\u306E\u8D85\u904E\u5206\u304C\u5F97\u70B9\u306B\u306A\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("table", { className: "hg-judge", "data-guide-judge": true }, /* @__PURE__ */ React.createElement("caption", null, "\u5224\u5B9A\u3068\u56DE\u5FA9\uFF08\u89E3\u7B54\u6642\u9593\u306F\u300C\u4EE5\u5185\u300D\uFF09"), /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "\u753B\u9762\u306E\u8868\u793A"), /* @__PURE__ */ React.createElement("th", null, "\u89E3\u7B54\u6642\u9593"), /* @__PURE__ */ React.createElement("th", null, "HP\u56DE\u5FA9"))), /* @__PURE__ */ React.createElement("tbody", null, tiers.map((t) => /* @__PURE__ */ React.createElement("tr", { key: t.label, "data-tier": t.label }, /* @__PURE__ */ React.createElement("th", { style: { color: colorOf(t) } }, shown(t)), /* @__PURE__ */ React.createElement("td", null, sec(t.max), "\u79D2\u4EE5\u5185"), /* @__PURE__ */ React.createElement("td", null, "\uFF0B", t.recover, "%"))), /* @__PURE__ */ React.createElement("tr", { "data-tier": "Bad" }, /* @__PURE__ */ React.createElement("th", { style: { color: visual.Bad || "#FF5C5C" } }, "Bad"), /* @__PURE__ */ React.createElement("td", null, "\u30DF\u30B9\u30FB\u6642\u9593\u5207\u308C"), /* @__PURE__ */ React.createElement("td", null, "\u56DE\u5FA9\u306A\u3057")))), /* @__PURE__ */ React.createElement("p", { className: "hg-note" }, "\u300COK\u300D\u306F2\u6BB5\u968E\u3042\u308A\u307E\u3059\uFF08", sec(tiers[4].max), "\u79D2\u4EE5\u5185\u306F\uFF0B", tiers[4].recover, "%\u3001", sec(tiers[5].max), "\u79D2\u4EE5\u5185\u306F\uFF0B", tiers[5].recover, "%\uFF09\u3002")), /* @__PURE__ */ React.createElement(Step, { id: "difficulty", n: 3, title: "\u96E3\u6613\u5EA6\u3092\u9078\u307C\u3046", lead: "\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB\u30FB\u30CF\u30FC\u30C9\u306E3\u3064\u304B\u3089\u9078\u3093\u3067\u30B9\u30BF\u30FC\u30C8\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-two" }, /* @__PURE__ */ React.createElement(Shot, { name: "s3-difficulty", marks: [["\u96E3\u6613\u5EA6", 1], ["\u30B9\u30BF\u30FC\u30C8", 2]] }), /* @__PURE__ */ React.createElement("div", { className: "hg-diffs", "data-guide-difficulty": true }, diffs.map(([id, d]) => /* @__PURE__ */ React.createElement("div", { key: id, className: "hg-diff", "data-diff": id, style: { "--d": d.color } }, /* @__PURE__ */ React.createElement("h3", null, d.label), /* @__PURE__ */ React.createElement("dl", null, /* @__PURE__ */ React.createElement("dt", null, "\u30AF\u30EA\u30A2"), /* @__PURE__ */ React.createElement("dd", null, d.clearCount, "\u554F"), /* @__PURE__ */ React.createElement("dt", null, "\u30BF\u30A4\u30EB"), /* @__PURE__ */ React.createElement("dd", null, d.tileCount, "\u679A"), /* @__PURE__ */ React.createElement("dt", null, "\u30DF\u30B9"), /* @__PURE__ */ React.createElement("dd", null, "\u2212", missPenalty[id], "%"), /* @__PURE__ */ React.createElement("dt", null, "\u6642\u9593\u5207\u308C"), /* @__PURE__ */ React.createElement("dd", null, "\u2212", timeoutExtra[id], "%")))))), /* @__PURE__ */ React.createElement("p", { className: "hg-note" }, "\u30DF\u30B9\u30FB\u6642\u9593\u5207\u308C\u306E\u6570\u5B57\u306FHP\u306E\u6E1B\u308A\u65B9\u3067\u3059\uFF08\u6642\u9593\u5207\u308C\u306F\u3001\u6BCE\u79D2\u306E\u6E1B\u5C11\u306B\u52A0\u3048\u3066\u3055\u3089\u306B\u6E1B\u308A\u307E\u3059\uFF09\u3002"), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, "HP\u306F1\u79D2\u306B1%\u305A\u3064\u6E1B\u308A\u30010%\u306B\u306A\u308B\u3068\u7D42\u4E86\u30021\u554F\u306F", sec(questionMs), "\u79D2\u3067\u6642\u9593\u5207\u308C\uFF08Bad\uFF09\u3002"), /* @__PURE__ */ React.createElement("li", null, "3\u554F\u6B63\u89E3\u3059\u308B\u3054\u3068\u306B\u3001\u6B21\u306E\u30EC\u30D9\u30EB\u306E\u554F\u984C\u304C\u51FA\u308B\u3088\u3046\u306B\u306A\u308A\u307E\u3059\uFF08\u6700\u5927Lv.9\uFF09\u3002"), /* @__PURE__ */ React.createElement("li", null, "\u30AF\u30EA\u30A2\u306B\u5FC5\u8981\u306A\u554F\u984C\u6570\u3092\u89E3\u304F\u3068\u30AF\u30EA\u30A2\u3002\u65E9\u304F\u30AF\u30EA\u30A2\u3059\u308B\u307B\u3069\u30BF\u30A4\u30E0\u30DC\u30FC\u30CA\u30B9\u304C\u5897\u3048\u307E\u3059\u3002"))), /* @__PURE__ */ React.createElement(Step, { id: "solo", n: 4, title: "\u30BD\u30ED\u30E2\u30FC\u30C9", lead: "\u3072\u3068\u308A\u3067\u3058\u3063\u304F\u308A\u3001\u307E\u305F\u306FCPU\u3068\u5BFE\u6226\u7DF4\u7FD2\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-cards" }, /* @__PURE__ */ React.createElement("div", { className: "hg-card" }, /* @__PURE__ */ React.createElement(Art, { name: "art-solo" }), /* @__PURE__ */ React.createElement("h3", null, "\u901A\u5E38\u30D7\u30EC\u30A4"), /* @__PURE__ */ React.createElement("p", null, "\u96E3\u6613\u5EA6\u3092\u9078\u3093\u3067\u3001\u30B9\u30B3\u30A2\u3068\u30AF\u30EA\u30A2\u3092\u76EE\u6307\u305D\u3046\u3002\u30E9\u30F3\u30AD\u30F3\u30B0\u306B\u3082\u6311\u6226\u3067\u304D\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement(Play, { onClick: onPlay })), /* @__PURE__ */ React.createElement("div", { className: "hg-card" }, /* @__PURE__ */ React.createElement(Art, { name: "art-cpu" }), /* @__PURE__ */ React.createElement("h3", null, "CPU\u7DF4\u7FD2"), /* @__PURE__ */ React.createElement("p", null, "CPU\u3092\u76F8\u624B\u306BA\u65B9\u5F0F\u30FB\u65B0B\u65B9\u5F0F\u306E\u7DF4\u7FD2\u3002\u96E3\u6613\u5EA6\u30FBCPU\u306E\u5F37\u3055\u30FB\u4EBA\u6570\u3092\u9078\u3079\u307E\u3059\u3002", /* @__PURE__ */ React.createElement("strong", null, "\u516C\u5F0F\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u30FB\u5BFE\u4EBA\u6226\u7E3E\u306B\u306F\u53CD\u6620\u3055\u308C\u307E\u305B\u3093\u3002")), /* @__PURE__ */ React.createElement(Play, { onClick: () => go("cpu") }))), /* @__PURE__ */ React.createElement("div", { className: "hg-sub" }, /* @__PURE__ */ React.createElement("h3", null, "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3"), /* @__PURE__ */ React.createElement("p", null, "\u6BCE\u65E5\u5909\u308F\u308B\u30DF\u30C3\u30B7\u30E7\u30F3\u3068\u30011\u65E5\u5408\u8A083\u56DE\u306E\u30C7\u30A4\u30EA\u30FC\u30C1\u30E3\u30EC\u30F3\u30B8\uFF08\u65E5\u672C\u6642\u95930\u6642\u306B\u66F4\u65B0\uFF09\u3002\u958B\u59CB\u5F8C\u306E\u9000\u51FA\u3084\u518D\u8AAD\u307F\u8FBC\u307F\u3067\u3082\u56DE\u6570\u306F\u623B\u308A\u307E\u305B\u3093\u3002\u30C7\u30A4\u30EA\u30FC\u306F\u30DB\u30FC\u30E0\u304B\u3089\u958B\u3051\u307E\u3059\u3002"))), /* @__PURE__ */ React.createElement(Step, { id: "online", n: 5, title: "\u30AA\u30F3\u30E9\u30A4\u30F3\u5BFE\u6226", lead: "\u540C\u3058\u554F\u984C\u3067\u53CB\u3060\u3061\u3084\u5168\u56FD\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u3068\u52DD\u8CA0\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-vs" }, /* @__PURE__ */ React.createElement("div", { className: "hg-mode" }, /* @__PURE__ */ React.createElement(Shot, { name: "s5-battle-a", note: "\u753B\u9762\u306FCPU\u7DF4\u7FD2\u306E\u4F8B" }), /* @__PURE__ */ React.createElement("h3", null, "A\u65B9\u5F0F\uFF08\u65E9\u3044\u8005\u52DD\u3061\uFF09"), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, "\u540C\u3058\u554F\u984C\u3092\u307F\u3093\u306A\u3067\u540C\u6642\u306B\u89E3\u304F"), /* @__PURE__ */ React.createElement("li", null, "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u304C\u5F97\u70B9"), /* @__PURE__ */ React.createElement("li", null, "\u307E\u3061\u304C\u3048\u308B\u3068", sec(aLockMs), "\u79D2\u64CD\u4F5C\u3067\u304D\u306A\u3044\uFF08\u304A\u624B\u3064\u304D\uFF09"), /* @__PURE__ */ React.createElement("li", null, "\u6700\u5F8C\u306E", aLastSpurt, "\u554F\u306F\u5F97\u70B92\u500D"), /* @__PURE__ */ React.createElement("li", null, "\u5168\u90E8\u306E\u554F\u984C\u304C\u7D42\u308F\u3063\u305F\u3068\u304D\u3001\u5F97\u70B9\u304C\u591A\u3044\u4EBA\u306E\u52DD\u3061"))), /* @__PURE__ */ React.createElement("div", { className: "hg-mode" }, /* @__PURE__ */ React.createElement(Shot, { name: "s5-battle-b", note: "\u753B\u9762\u306FCPU\u7DF4\u7FD2\u306E\u4F8B" }), /* @__PURE__ */ React.createElement("h3", null, "\u65B0B\u65B9\u5F0F\uFF08\u30EC\u30FC\u30B9\uFF0B\u653B\u6483\uFF09"), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, "HP\u3068\u5F97\u70B9\u3092\u6301\u3063\u3066\u81EA\u5206\u306E\u30DA\u30FC\u30B9\u3067\u89E3\u304F"), /* @__PURE__ */ React.createElement("li", null, "\u9023\u7D9A\u6B63\u89E3\uFF08\u30B3\u30F3\u30DC\uFF09\u3067\u76F8\u624B\u306B\u304A\u90AA\u9B54\u30BF\u30A4\u30EB\u3092\u9001\u308B"), /* @__PURE__ */ React.createElement("li", null, "\u5C4A\u3044\u305F\u304A\u90AA\u9B54\u306F3\u79D2\u4EE5\u5185\u306E\u6B63\u89E3\u3067\u76F8\u6BBA\u3067\u304D\u308B"), /* @__PURE__ */ React.createElement("li", null, "\u30B2\u30FC\u30B8\u304C100%\u306B\u306A\u308B\u3068FREEZE\u304C\u81EA\u52D5\u767A\u52D5"), /* @__PURE__ */ React.createElement("li", null, "\u6642\u9593\u7D42\u4E86\u6642\u306E\u5F97\u70B9\u304C\u591A\u3044\u4EBA\u306E\u52DD\u3061\u3002HP0\u306FKO")))), /* @__PURE__ */ React.createElement("details", { className: "hg-details" }, /* @__PURE__ */ React.createElement("summary", null, "\u65B0B\u65B9\u5F0F\u306E\u304F\u308F\u3057\u3044\u30EB\u30FC\u30EB"), /* @__PURE__ */ React.createElement("p", null, "\u3059\u3050\u904A\u3076\u306F90\u79D2\u3001\u30EB\u30FC\u30E0\u3067\u306F60\u30FB90\u30FB120\u30FB180\u79D2\u304B\u3089\u9078\u3079\u307E\u3059\u3002HP\u306F\u6BCE\u79D21%\u6E1B\u5C11\u3002\u8AA4\u7B54\u306F\u30A4\u30FC\u30B8\u30FC20%\u30FB\u30CE\u30FC\u30DE\u30EB25%\u6E1B\u5C11\u3002\u554F\u984C\u6642\u9593\u5207\u308C\u306E\u8FFD\u52A0\u6E1B\u5C11\u306F\u30A4\u30FC\u30B8\u30FC0%\u30FB\u30CE\u30FC\u30DE\u30EB5%\u3067\u3059\u3002\u6B63\u89E3\u56DE\u5FA9\u306EHP\u8D85\u904E\u5206\u306F\u5F97\u70B9\u306B\u306A\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "2\u30B3\u30F3\u30DC\u30671\u679A\u30013\u30B3\u30F3\u30DC\u30672\u679A\u30014\u30B3\u30F3\u30DC\u4EE5\u964D\u306F3\u679A\u306E\u304A\u90AA\u9B54\u3092\u9001\u308A\u307E\u3059\u3002\u304A\u90AA\u9B54\u306F\u30A4\u30FC\u30B8\u30FC\u6700\u5927", B2.cap("easy"), "\u679A\u30FB\u30CE\u30FC\u30DE\u30EB\u6700\u5927", B2.cap("normal"), "\u679A\u307E\u3067\u76E4\u9762\u306B\u52A0\u308F\u308A\u3001\u6B63\u89E3\u306B\u4F7F\u3048\u306A\u3044\u507D\u30AB\u30FC\u30C9\u3067\u3059\u3002\u554F\u984C\u958B\u59CB\u6642\u306B\u914D\u7F6E\u3055\u308C\u305F\u304A\u90AA\u9B541\u679A\u306B\u3064\u304D\u901A\u5E38\u5F97\u70B9\u306E10%\u3092\u52A0\u7B97\u3057\u307E\u3059\u3002\u5230\u7740\u3057\u305F\u653B\u6483\u306F3\u79D2\u9593\u3001\u4ECA\u56DE\u306E\u6B63\u89E3\u3067\u767A\u751F\u3057\u305F\u653B\u6483\u3068\u76F8\u6BBA\u3067\u304D\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("p", null, "2\u30B3\u30F3\u30DC\u76EE\u304B\u3089\u30EC\u30D9\u30EB\xD73%\u306E\u30B2\u30FC\u30B8\u3092\u7372\u5F97\u3002100%\u3067FREEZE\u304C\u81EA\u52D5\u767A\u52D5\u3057\u3001\u76F8\u624B\u306E\u5F0F\u30FB\u30AB\u30FC\u30C9\u3068\u64CD\u4F5C\u30923\u79D2\u906E\u853D\u3057\u307E\u3059\u3002\u30B3\u30F3\u30DC\u306F\u6B21\u306E\u554F\u984C\u304C\u64CD\u4F5C\u53EF\u80FD\u306B\u306A\u3063\u3066\u304B\u308910\u79D2\u4EE5\u5185\u306B\u6B63\u89E3\u3059\u308B\u3068\u7D99\u7D9A\u3057\u307E\u3059\u3002\u89B3\u6226\u5FDC\u63F4\u306F1\u56DE10pt\u30011\u4EBA3\u56DE\u300230pt\u3067\u6B21\u554F\u306E\u304A\u90AA\u9B541\u679A\u3092\u9664\u53BB\u3057\u3001\u8A66\u5408\u5168\u4F53\u3067\u6700\u59273\u679A\u3067\u3059\u3002"), /* @__PURE__ */ React.createElement("ul", { className: "hg-levels" }, Object.entries(B2.POINTS).map(([lv, n]) => /* @__PURE__ */ React.createElement("li", { key: lv }, "Lv.", lv, "\uFF1A", n, "\u70B9"))), ((_a = window.FXF_FEATURES) == null ? void 0 : _a.cMode) && /* @__PURE__ */ React.createElement("p", null, "C\u65B9\u5F0F\uFF1A4\u4EBA\u30FB2\u5BFE2\u306E\u30C1\u30FC\u30E0\u6226\u3067\u3059\u3002HP\u306F\u30C1\u30FC\u30E0\u3067\u5171\u6709\u3057\u307E\u3059\u3002")), /* @__PURE__ */ React.createElement("div", { className: "hg-sub" }, /* @__PURE__ */ React.createElement("h3", null, "\u5BFE\u6226\u306E\u5165\u53E3\uFF08\u300C\u5BFE\u6226\u300D\u30BF\u30D6\uFF09"), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u3059\u3050\u904A\u3076"), "\uFF1A\u30E9\u30F3\u30C0\u30E0\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u5BFE\u6226\u3002\u30DE\u30C3\u30C1\u30F3\u30B0\u5F8C\u306BA\u30FB\u65B0B\u65B9\u5F0F\u3092\u9078\u3073\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "4\u6841\u30EB\u30FC\u30E0"), "\uFF1A\u90E8\u5C4B\u3092\u4F5C\u3063\u305F\u3042\u3068\u3001\u30DB\u30B9\u30C8\u304C\u65B9\u5F0F\u3092\u9078\u3073\u307E\u3059\u3002\u53CB\u3060\u3061\u306F4\u6841\u306E\u30B3\u30FC\u30C9\u3067\u53C2\u52A0\u30FB\u89B3\u6226\u3067\u304D\u307E\u3059\u3002"))), /* @__PURE__ */ React.createElement(Play, { onClick: () => go("battle") }, "\u5BFE\u6226\u753B\u9762\u3078")), /* @__PURE__ */ React.createElement(Step, { id: "ghost", n: 6, title: "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226", lead: "\u5B9F\u5728\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u5B66\u7FD2\u8A18\u9332\u304B\u3089\u52D5\u304F\u30B4\u30FC\u30B9\u30C8\u3068\u5BFE\u6226\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-two" }, /* @__PURE__ */ React.createElement(Shot, { name: "s6-ghost-tiles", marks: [["\u30A4\u30FC\u30B8\u30FC", 1], ["\u30CE\u30FC\u30DE\u30EB", 2], ["\u30CF\u30A4\u30D1\u30FC", 3]] }), /* @__PURE__ */ React.createElement("ul", { className: "hg-points" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "1"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30A4\u30FC\u30B8\u30FC\u30B4\u30FC\u30B9\u30C8"), "\uFF1A\u30A4\u30FC\u30B8\u30FC\u3067\u3001\u81EA\u5206\u4EE5\u5916\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u30B4\u30FC\u30B9\u30C8\uFF08\u306A\u308B\u3079\u304F\u540C\u3058\u30E9\u30F3\u30AF\u5E2F\uFF09\u3068\u5BFE\u6226")), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "2"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30CE\u30FC\u30DE\u30EB\u30B4\u30FC\u30B9\u30C8"), "\uFF1A\u30CE\u30FC\u30DE\u30EB\u3067\u540C\u3058\u3088\u3046\u306B\u5BFE\u6226")), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("b", null, "3"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("strong", null, "\u30CF\u30A4\u30D1\u30FC\u30B4\u30FC\u30B9\u30C8"), "\uFF1A\u30BF\u30A4\u30EB\u306E\u4E2D\u306E\u300C\u30A4\u30FC\u30B8\u30FC\u300D\u300C\u30CE\u30FC\u30DE\u30EB\u300D\u3067\u96E3\u6613\u5EA6\u3092\u9078\u3076\u3002\u305D\u306E\u96E3\u6613\u5EA6\u306E\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0TOP10\u304B\u3089\u62BD\u9078\uFF08\u9806\u4F4D\u304C\u9AD8\u3044\u307B\u3069\u51FA\u3084\u3059\u3044\uFF09")))), /* @__PURE__ */ React.createElement(Shot, { name: "s6-ghost-start", note: "\u958B\u59CB\u3059\u308B\u3068\u65B9\u5F0F\uFF08A\u30FB\u65B0B\uFF09\u3092\u9078\u3073\u307E\u3059" }), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, "\u767B\u9332\u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u306E\u30ED\u30B0\u30A4\u30F3\u304C\u5FC5\u8981\u3002\u5B66\u7FD2\u8A18\u9332\u304C20\u554F\u4EE5\u4E0A\u3042\u308B\u30D7\u30EC\u30A4\u30E4\u30FC\u304C\u30B4\u30FC\u30B9\u30C8\u306B\u306A\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("li", null, "\u30AA\u30F3\u30E9\u30A4\u30F3\u753B\u9762\u306E\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226\u3067\u306F\u3001\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u306F\u5909\u308F\u308A\u307E\u305B\u3093\u3002"), /* @__PURE__ */ React.createElement("li", null, "\u300C\u3059\u3050\u904A\u3076\u300D\u306E\u5F85\u3061\u6642\u9593\u306B\u30B4\u30FC\u30B9\u30C8\u304C\u4E71\u5165\u3057\u305F\u5BFE\u6226\u306F\u3001\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u304C\u901A\u5E38\u306E3\u5206\u306E1\u3060\u3051\u5909\u52D5\u3057\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("li", null, "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u5BFE\u6226\u306F\u7DF4\u7FD2\uFF08\u5831\u916C\u306A\u3057\uFF09\u3067\u3059\u3002")), /* @__PURE__ */ React.createElement(Play, { onClick: () => go("battle") }, "\u5BFE\u6226\u753B\u9762\u3078")), /* @__PURE__ */ React.createElement(Step, { id: "boss", n: 7, title: "\u4ECA\u9031\u306E\u30DC\u30B9", lead: "\u307F\u3093\u306A\u306E\u30C0\u30E1\u30FC\u30B8\u3092\u5408\u308F\u305B\u3066\u30011\u9031\u9593\u3067\u30DC\u30B9\u3092\u5012\u305D\u3046\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-two" }, /* @__PURE__ */ React.createElement("div", { className: "hg-bossart" }, /* @__PURE__ */ React.createElement(Art, { name: "art-boss" }), /* @__PURE__ */ React.createElement("p", { className: "hg-note" }, "\u30DC\u30B9\u306E\u4F8B\uFF1A\u56E0\u6570\u30C9\u30E9\u30B4\u30F3")), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, "\u6708\u66DC\u65E5\u306B\u65B0\u3057\u3044\u30DC\u30B9\u304C\u767B\u5834"), /* @__PURE__ */ React.createElement("li", null, "1\u56DE\u306E\u51FA\u6483\u306F60\u79D2"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u30A2\u30BF\u30C3\u30AB\u30FC"), "\u3067\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u308B\u304B\u3001", /* @__PURE__ */ React.createElement("strong", null, "\u30B5\u30DD\u30FC\u30BF\u30FC"), "\u3067\u307F\u3093\u306A\u306E\u30C0\u30E1\u30FC\u30B8\u3092\u4E0A\u3052\u308B"), /* @__PURE__ */ React.createElement("li", null, "\u5F31\u70B9\u30BF\u30A4\u30E0\u306F\u30C0\u30E1\u30FC\u30B82\u500D\u3002\u53CD\u6483\u306E\u4E88\u544A\u304C\u51FA\u305F\u3089\u6B63\u89E3\u3057\u3066\u8EAB\u3092\u5B88\u308D\u3046"), /* @__PURE__ */ React.createElement("li", null, "\u5012\u3059\u3068\u3001\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u305F\u5168\u54E1\u306B\u8A0E\u4F10\u5831\u916C\u3002\u53C2\u52A0\u3057\u305F\u30DC\u30B9\u306E\u8A18\u5FF5\u304D\u305B\u304B\u3048\u3082\u89E3\u653E"))), /* @__PURE__ */ React.createElement(Shot, { name: "s7-weekly", note: "\u4ECA\u9031\u306E\u30DC\u30B9\u306E\u51FA\u6483\u753B\u9762" }), /* @__PURE__ */ React.createElement(Play, { onClick: () => go("raidw") }, "\u4ECA\u9031\u306E\u30DC\u30B9\u3078")), /* @__PURE__ */ React.createElement(Step, { id: "growth", n: 8, title: "\u6210\u9577\u3068\u3084\u308A\u3053\u307F", lead: "\u904A\u3076\u307B\u3069\u8A18\u9332\u304C\u5897\u3048\u3066\u3001\u30EC\u30D9\u30EB\u3068\u79F0\u53F7\u304C\u80B2\u3064\u3002" }, /* @__PURE__ */ React.createElement("div", { className: "hg-two" }, /* @__PURE__ */ React.createElement(Shot, { name: "s8-profile", note: "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB" }), /* @__PURE__ */ React.createElement("ul", { className: "hg-bullets" }, /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0"), "\uFF1A\u30A4\u30FC\u30B8\u30FC\u30FB\u30CE\u30FC\u30DE\u30EB\u5225\u3002\u5BFE\u6226\u306E\u52DD\u6557\u3067\u4E0A\u4E0B\u3057\u3001\u30E9\u30F3\u30AF\u5E2F\u304C\u6C7A\u307E\u308A\u307E\u3059\u3002\u6BCE\u6708\u65B0\u3057\u3044\u30B7\u30FC\u30BA\u30F3\u3002"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "EXP\u3068\u30EC\u30D9\u30EB"), "\uFF1A\u30BD\u30ED\u30FB\u5BFE\u6226\u30FB\u30DF\u30C3\u30B7\u30E7\u30F3\u306A\u3069\u3067\u7D4C\u9A13\u5024\u304C\u305F\u307E\u308A\u3001\u30EC\u30D9\u30EB\u304C\u4E0A\u304C\u308A\u307E\u3059\u3002"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u79F0\u53F7"), "\uFF1A\u6761\u4EF6\u3092\u6E80\u305F\u3059\u3068\u53D6\u5F97\u3057\u3001\u540D\u524D\u306E\u4E0A\u306B\u98FE\u308C\u307E\u3059\uFF08\u672A\u516C\u958B\u306E\u6761\u4EF6\u306F\uFF1F\uFF1F\uFF1F\uFF09\u3002"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u304D\u305B\u304B\u3048"), "\uFF1A\u30BF\u30A4\u30EB\u30FB\u80CC\u666F\u30FB\u30A8\u30D5\u30A7\u30AF\u30C8\u3092\u7740\u305B\u304B\u3048\u3002\u30EC\u30D9\u30EB\u3084\u30E9\u30F3\u30AF\u3001\u30DC\u30B9\u8A0E\u4F10\u306A\u3069\u3067\u89E3\u653E\u3002"), /* @__PURE__ */ React.createElement("li", null, /* @__PURE__ */ React.createElement("strong", null, "\u30E9\u30F3\u30AD\u30F3\u30B0"), "\uFF1A\u300C\u9806\u4F4D\u300D\u30BF\u30D6\u304B\u3089\u30BD\u30ED\u30FB\u30C7\u30A4\u30EA\u30FC\u30FB\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0\u3002"))), /* @__PURE__ */ React.createElement(Shot, { name: "s8-ranking", note: "\u30E9\u30F3\u30AD\u30F3\u30B0\uFF08\u9806\u4F4D\u30BF\u30D6\uFF09" }), /* @__PURE__ */ React.createElement("div", { className: "hg-actions" }, /* @__PURE__ */ React.createElement(Play, { onClick: () => go("profile") }, "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3078"), /* @__PURE__ */ React.createElement(Play, { onClick: () => go("rankings") }, "\u30E9\u30F3\u30AD\u30F3\u30B0\u3078"))), /* @__PURE__ */ React.createElement("div", { className: "hg-top hg-bottom" }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "small-button", onClick: () => {
+      var _a2;
+      (_a2 = top.current) == null ? void 0 : _a2.scrollIntoView({ behavior: "smooth", block: "start" });
+    } }, "\u2191 \u76EE\u6B21\u3078"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "small-button", onClick: onClose }, "\u2190 \u30DB\u30FC\u30E0\u3078\u623B\u308B")));
   }
 
   // src/title-inventory-ui.jsx

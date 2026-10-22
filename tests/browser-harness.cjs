@@ -52,11 +52,13 @@ async function context(
     emulatorNetwork = false,
     siteRoot = process.env.PW_SITE_ROOT ? path.resolve(process.env.PW_SITE_ROOT) : root,
     keepLogin = "observe",
+    scale = undefined, // optional deviceScaleFactor (tools/capture-guide.cjs); tests leave it unset
   } = {},
 ) {
   const ctx = await browser.newContext({
     viewport: pc ? { width: 1366, height: 768 } : { width: 390, height: 844 },
     hasTouch: !pc,
+    ...(scale ? { deviceScaleFactor: scale } : {}),
   });
   const writes = [],
     errors = [],

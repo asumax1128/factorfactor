@@ -1,0 +1,214 @@
+{
+ "version": 1,
+ "scale": 2,
+ "width": 390,
+ "shots": {
+  "s3-difficulty": {
+   "file": "s3-difficulty.webp",
+   "w": 780,
+   "h": 384,
+   "alt": "難易度の選択画面",
+   "marks": [
+    {
+     "label": "難易度",
+     "x": 8.97,
+     "y": 33.56,
+     "w": 25.98,
+     "h": 27.76
+    },
+    {
+     "label": "スタート",
+     "x": 8.97,
+     "y": 67.62,
+     "w": 82.05,
+     "h": 24.58
+    }
+   ]
+  },
+  "meta": {
+   "tiles": 6
+  },
+  "s1-board": {
+   "file": "s1-board.webp",
+   "w": 780,
+   "h": 1304,
+   "alt": "イージーの問題画面（上が式、下が6枚の因数タイル）",
+   "marks": [
+    {
+     "label": "式",
+     "x": 3.08,
+     "y": 1.35,
+     "w": 93.85,
+     "h": 18.12
+    },
+    {
+     "label": "タイル1",
+     "x": 3.08,
+     "y": 60.19,
+     "w": 29.91,
+     "h": 38.27
+    },
+    {
+     "label": "タイル2",
+     "x": 35.04,
+     "y": 60.19,
+     "w": 29.92,
+     "h": 38.27
+    }
+   ]
+  },
+  "s1-drag": {
+   "file": "s1-drag.webp",
+   "w": 780,
+   "h": 1304,
+   "alt": "1枚を押さえたままドラッグしている画面（金色の枠と線）",
+   "marks": [
+    {
+     "label": "押さえる",
+     "x": 2.48,
+     "y": 58.97,
+     "w": 31.11,
+     "h": 39.81
+    },
+    {
+     "label": "ここで離す",
+     "x": 35.04,
+     "y": 60.19,
+     "w": 29.92,
+     "h": 38.27
+    }
+   ]
+  },
+  "s1-correct": {
+   "file": "s1-correct.webp",
+   "w": 780,
+   "h": 1304,
+   "alt": "正解した2枚が水色に光る画面",
+   "marks": []
+  },
+  "s2-perfect": {
+   "file": "s2-perfect.webp",
+   "w": 780,
+   "h": 620,
+   "alt": "Perfectの演出（HP＋25%）",
+   "marks": [
+    {
+     "label": "判定",
+     "x": 36.67,
+     "y": 47.61,
+     "w": 26.65,
+     "h": 14.89
+    },
+    {
+     "label": "HP",
+     "x": 3.08,
+     "y": 48.32,
+     "w": 93.85,
+     "h": 7.1
+    }
+   ]
+  },
+  "s1-miss": {
+   "file": "s1-miss.webp",
+   "w": 780,
+   "h": 1650,
+   "alt": "不正解の画面（2枚が赤くなりBad）",
+   "marks": []
+  },
+  "s5-battle-a": {
+   "file": "s5-battle-a.webp",
+   "w": 780,
+   "h": 1688,
+   "alt": "A方式の対戦画面（CPU練習の例）",
+   "marks": []
+  },
+  "s5-battle-b": {
+   "file": "s5-battle-b.webp",
+   "w": 780,
+   "h": 1688,
+   "alt": "新B方式の対戦画面（CPU練習の例）",
+   "marks": []
+  },
+  "s6-ghost-tiles": {
+   "file": "s6-ghost-tiles.webp",
+   "w": 780,
+   "h": 714,
+   "alt": "オンライン画面のゴースト対戦（3種類）",
+   "marks": [
+    {
+     "label": "イージー",
+     "x": 9.74,
+     "y": 15.78,
+     "w": 80.51,
+     "h": 18.72
+    },
+    {
+     "label": "ノーマル",
+     "x": 9.74,
+     "y": 37.3,
+     "w": 80.51,
+     "h": 18.72
+    },
+    {
+     "label": "ハイパー",
+     "x": 9.74,
+     "y": 58.83,
+     "w": 80.51,
+     "h": 34.41
+    }
+   ]
+  },
+  "s6-ghost-start": {
+   "file": "s6-ghost-start.webp",
+   "w": 780,
+   "h": 1280,
+   "alt": "ゴースト対戦の開始画面（方式を選ぶ）",
+   "marks": []
+  },
+  "s7-weekly": {
+   "file": "s7-weekly.webp",
+   "w": 780,
+   "h": 1212,
+   "alt": "今週のボスの出撃画面",
+   "marks": []
+  },
+  "s8-ranking": {
+   "file": "s8-ranking.webp",
+   "w": 780,
+   "h": 1082,
+   "alt": "ランキング（ソロ・デイリー・レーティング）",
+   "marks": []
+  },
+  "s8-profile": {
+   "file": "s8-profile.webp",
+   "w": 780,
+   "h": 1500,
+   "alt": "プロフィール（レベル・EXP・レーティング）",
+   "marks": []
+  },
+  "art-solo": {
+   "file": "art-solo.webp",
+   "w": 540,
+   "h": 540,
+   "alt": "通常プレイ",
+   "marks": [],
+   "source": "ui-next/solo/solo.png"
+  },
+  "art-cpu": {
+   "file": "art-cpu.webp",
+   "w": 540,
+   "h": 540,
+   "alt": "CPU練習",
+   "marks": [],
+   "source": "ui-next/solo/cpu.png"
+  },
+  "art-boss": {
+   "file": "art-boss.webp",
+   "w": 540,
+   "h": 540,
+   "alt": "今週のボスの例（因数ドラゴン）",
+   "marks": [],
+   "source": "img/monsters/dragon.webp"
+  }
+ }
+}

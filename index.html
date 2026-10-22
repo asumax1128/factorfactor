@@ -2743,7 +2743,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
      画面: チュートリアル
      ============================================================ */
   if (screen === 'tutorial') {
-    if(window.NextResults?.Help){const help=<window.NextResults.Help tiers={JUDGE_TIERS} difficulties={DIFFICULTY_CONFIG} aLockMs={A_LOCK_MS} onClose={()=>setScreen('menu')}/>;return renderMenu?renderMenu(help,'help'):help;}
+    if(window.NextResults?.Help){/* Ver.6.14: visual guide; back goes home (the home tile is the entry), 遊んでみる opens the real modes */const help=<window.NextResults.Help tiers={JUDGE_TIERS} difficulties={DIFFICULTY_CONFIG} missPenalty={DIFFICULTY_MISS_PENALTY} timeoutExtra={DIFFICULTY_TIMEOUT_EXTRA} questionMs={QUESTION_TIMEOUT_MS} aLockMs={A_LOCK_MS} aLastSpurt={A_LASTSPURT} visual={TIMING_VISUAL} onClose={()=>onMode?onMode('home'):setScreen('menu')} onPlay={()=>setScreen('menu')} onGo={onMode?(key=>onMode(key)):null}/>;return renderMenu?renderMenu(help,'help'):help;}
     return <TutorialV7 step={tutorialStep} setStep={setTutorialStep} onClose={() => setScreen('menu')} />;
   }
 

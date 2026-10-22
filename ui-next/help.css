@@ -1,0 +1,94 @@
+/* Ver.6.14 「あそびかた」visual guide (dark navy, phone first). Loaded by src/next-help-ui.jsx. */
+.next-home .hg{max-width:980px;margin:0 auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.next-home .hg *{box-sizing:border-box}
+.next-home .hg .hg-top{display:flex;gap:10px;justify-content:space-between;margin:4px 0 14px}
+.next-home .hg .hg-top .small-button{min-height:44px}
+.next-home .hg .hg-bottom{margin-top:22px}
+/* table of contents: sticky chips, one line, scrolls sideways inside itself only */
+.next-home .hg .hg-toc{position:sticky;top:0;z-index:5;display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 -16px 16px;padding:10px 16px;background:linear-gradient(#101720 80%,rgba(16,23,32,0))}
+.next-home .hg .hg-toc::-webkit-scrollbar{display:none}
+.next-home .hg .hg-toc button{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 13px;border:1px solid #3b5262;border-radius:999px;background:#1a2b37;color:var(--text);font-weight:900;font-size:13px;white-space:nowrap}
+.next-home .hg .hg-toc button b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#2a4552;color:var(--accent);font:900 12px/1 var(--number)}
+.next-home .hg .hg-toc button:focus-visible,.next-home .hg .hg-play:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* sections */
+.next-home .hg .hg-step{scroll-margin-top:72px;margin:0 0 18px;padding:18px 16px;background:linear-gradient(160deg,#1b2b38,#141f2b);border:1px solid #324354;border-radius:10px}
+.next-home .hg .hg-step:focus{outline:none}
+.next-home .hg .hg-hero{border-color:#4d7f83;box-shadow:inset 3px 0 0 var(--accent)}
+.next-home .hg .hg-step header{margin-bottom:14px}
+.next-home .hg .hg-num{display:inline-block;font:900 11px/1 var(--number);letter-spacing:.12em;color:#09262b;background:var(--accent);border-radius:4px;padding:5px 8px}
+.next-home .hg h2{font:900 21px/1.35 var(--heading);margin:9px 0 4px;color:#eef5f8}
+.next-home .hg .hg-hero h2{font-size:23px}
+.next-home .hg .hg-lead{font-size:14px;line-height:1.7;color:#c9d7df;margin:4px 0 0}
+.next-home .hg h3{font:900 16px/1.45 var(--heading);margin:6px 0;color:#eef5f8}
+.next-home .hg h3 b,.next-home .hg .hg-points b{display:inline-grid;place-items:center;flex:none;width:26px;height:26px;margin-right:8px;border-radius:50%;background:#ffc94d;color:#1a1500;font:900 14px/1 var(--number);vertical-align:-5px}
+.next-home .hg p{font-size:14px;line-height:1.75;margin:6px 0;color:#c3d3dc}
+.next-home .hg strong{color:#fff}
+.next-home .hg .hg-note{font-size:12px;color:var(--muted);line-height:1.6}
+/* screenshots with numbered marks */
+.next-home .hg .hg-shot{margin:0;width:100%;max-width:360px}
+.next-home .hg .hg-shot.hg-wide{max-width:420px;margin:0 auto 12px}
+.next-home .hg .hg-frame{position:relative;width:100%;border-radius:10px;overflow:hidden;border:1px solid #3b5262;background:#0b1520;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.next-home .hg .hg-frame img{display:block;width:100%;height:100%;object-fit:cover}
+.next-home .hg .hg-mark{position:absolute;border:3px solid #ffc94d;border-radius:12px;box-shadow:0 0 0 2px rgba(10,18,26,.55),0 0 16px rgba(255,201,77,.55);pointer-events:none}
+.next-home .hg .hg-mark b{position:absolute;left:-10px;top:-12px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#ffc94d;color:#1a1500;font:900 15px/1 var(--number);box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.next-home .hg .hg-mark.hg-drop{border-style:dashed}
+.next-home .hg .hg-mark.hg-gold{border-color:#ffd54a}
+.next-home .hg figcaption{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+.next-home .hg .hg-art{display:block;width:100%;max-width:200px;aspect-ratio:1/1;height:auto;margin:0 auto 6px;border-radius:12px}
+/* STEP 1 flow */
+.next-home .hg .hg-flow{list-style:none;margin:0;padding:0;display:grid;gap:16px;counter-reset:none}
+.next-home .hg .hg-flow>li{display:grid;gap:10px;align-items:start}
+.next-home .hg .hg-flow>li>div{min-width:0}
+.next-home .hg .hg-flow>li+li{padding-top:16px;border-top:1px dashed #33495a}
+.next-home .hg .hg-flow>li.hg-miss h3 b{background:#ff8a75}
+/* lists */
+.next-home .hg .hg-points{list-style:none;margin:10px 0;padding:0;display:grid;gap:9px}
+.next-home .hg .hg-points li{display:flex;align-items:flex-start;font-size:14px;line-height:1.6;color:#d8e4ea}
+.next-home .hg .hg-bullets{margin:10px 0;padding-left:1.2em}
+.next-home .hg .hg-bullets li{font-size:14px;line-height:1.65;margin:5px 0;color:#d8e4ea}
+.next-home .hg .hg-sub{margin-top:14px;padding:12px 14px;border:1px solid #33495a;border-radius:8px;background:#16232f}
+/* judgement table */
+.next-home .hg .hg-judge{width:100%;border-collapse:collapse;margin:12px 0 4px;font-size:14px}
+.next-home .hg .hg-judge caption{text-align:left;font-size:12px;color:var(--muted);padding-bottom:6px}
+.next-home .hg .hg-judge th,.next-home .hg .hg-judge td{padding:9px 8px;border-bottom:1px solid #2c3d4c;text-align:left}
+.next-home .hg .hg-judge thead th{font-size:12px;color:var(--muted);font-weight:700}
+.next-home .hg .hg-judge tbody th{font:900 16px/1 var(--heading);text-shadow:0 0 10px currentColor}
+.next-home .hg .hg-judge tr[data-tier=Perfect]{background:rgba(255,213,74,.08)}
+/* difficulty cards */
+.next-home .hg .hg-diffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.next-home .hg .hg-diff{border:1px solid #33495a;border-top:4px solid var(--d);border-radius:8px;background:#16232f;padding:10px 8px}
+.next-home .hg .hg-diff h3{font-size:15px;margin:0 0 6px;color:var(--d)}
+.next-home .hg .hg-diff dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 6px;font-size:12px}
+.next-home .hg .hg-diff dt{color:var(--muted)}
+.next-home .hg .hg-diff dd{margin:0;font-weight:900;color:#eef5f8;white-space:nowrap}
+/* cards, modes */
+.next-home .hg .hg-cards,.next-home .hg .hg-vs{display:grid;gap:12px}
+.next-home .hg .hg-card,.next-home .hg .hg-mode{padding:12px;border:1px solid #33495a;border-radius:10px;background:#16232f;min-width:0}
+.next-home .hg .hg-mode .hg-shot{margin:0 auto 8px}
+.next-home .hg .hg-details{margin-top:12px;border:1px solid #33495a;border-radius:8px;background:#121d27;padding:0 12px}
+.next-home .hg .hg-details summary{min-height:44px;display:flex;align-items:center;font-weight:900;color:var(--accent);cursor:pointer}
+.next-home .hg .hg-levels{display:flex;flex-wrap:wrap;gap:6px 12px;padding:0;list-style:none;font-size:13px;color:#c3d3dc}
+.next-home .hg .hg-two{display:grid;gap:14px;align-items:start}
+.next-home .hg .hg-bossart{text-align:center}
+.next-home .hg .hg-actions{display:flex;flex-wrap:wrap;gap:10px}
+.next-home .hg .hg-play{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-top:14px;padding:12px 18px;border:1px solid #a1efe2;border-radius:6px;background:#73dfce;color:#09262b;font-weight:900;font-size:15px}
+.next-home .hg .hg-play:hover{filter:brightness(1.06)}
+.next-home .hg .hg-shot:not(.hg-wide){margin:0 auto}
+/* PC / wide: image beside text */
+@media (min-width:760px){
+ .next-home .hg .hg-flow>li{grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px}
+ .next-home .hg .hg-two{grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:22px}
+ .next-home .hg .hg-cards,.next-home .hg .hg-vs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .next-home .hg .hg-step{padding:22px 24px}
+ .next-home .hg .hg-toc{margin:0 0 16px;padding:10px 0}
+}
+/* phones: one row per difficulty, the four values side by side (label above value) */
+@media (max-width:759px){
+ .next-home .hg .hg-diffs{grid-template-columns:1fr;gap:8px}
+ .next-home .hg .hg-diff{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:8px;border-top-width:1px;border-left:4px solid var(--d);padding:10px}
+ .next-home .hg .hg-diff h3{margin:0;font-size:15px}
+ .next-home .hg .hg-diff dl{grid-auto-flow:column;grid-template-rows:auto auto;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px 6px}
+ .next-home .hg .hg-diff dt{font-size:10px}
+ .next-home .hg .hg-diff dd{font-size:12.5px}
+}
+@media (prefers-reduced-motion:reduce){.next-home .hg *{scroll-behavior:auto}}
