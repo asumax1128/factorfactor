@@ -154,6 +154,16 @@ jobs:
           if grep -q 'babel.min.js' dist/index.html; then echo 'published page must not load Babel'; exit 1; fi
           export PW_SITE_ROOT="$GITHUB_WORKSPACE/dist"
           for s in $SCRIPTS; do echo "::group::npm run $s (artifact)"; npm run "$s"; echo "::endgroup::"; done
+      - name: Record that every step of this shard passed
+        run: |
+          mkdir -p shard-pass
+          printf '%s\n' "${{ needs.build.outputs.sha }}" > "shard-pass/${{ matrix.shard }}.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pass-${{ matrix.shard }}
+          path: shard-pass
+          retention-days: 7
+          if-no-files-found: error
       - name: Collect browser-test failure evidence
         if: failure()
         run: |
@@ -170,19 +180,24 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
     steps:
-      - name: Require every test shard of this run to have succeeded
+      # Each shard uploads its pass marker only after all of its steps succeeded (job statuses in the
+      # REST API lag behind completion, so they are not used here).
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: pass-*
+          path: shard-pass
+          merge-multiple: true
+      - name: Require every test shard of this run to have passed
         env:
-          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.build.outputs.sha }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
-            --jq '[.jobs[] | select(.name | startswith("test (")) | {name, status, conclusion}]' > shards.json
-          cat shards.json
-          node -e 'const j=require("./shards.json");const want=["online-a","online-b","tower","emulator-artifact"].map(s=>"test ("+s+")");for(const n of want){const x=j.find(y=>y.name===n);if(!x||x.status!=="completed"||x.conclusion!=="success")throw Error("shard not successful: "+n+" "+JSON.stringify(x||null));}if(j.length!==want.length)throw Error("unexpected shard list");console.log("all test shards succeeded")'
-          rm shards.json
+          for shard in online-a online-b tower emulator-artifact; do
+            test "$(cat "shard-pass/$shard.txt")" = "$SHA" || { echo "shard not passed: $shard"; exit 1; }
+          done
+          test "$(find shard-pass -type f | wc -l)" = 4
+          echo "all test shards passed for $SHA"
+          rm -r shard-pass
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13
         with:
           ref: ${{ needs.build.outputs.sha }}
