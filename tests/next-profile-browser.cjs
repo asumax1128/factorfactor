@@ -18,8 +18,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs');const {chromium
  await profile.getByRole('button',{name:'きせかえ',exact:true}).click();await p.getByRole('button',{name:'タイル',exact:true}).waitFor();await p.getByRole('button',{name:'とじる',exact:true}).click();
  await profile.getByRole('button',{name:'ゴースト対戦',exact:true}).click();await p.getByRole('button',{name:'とじる',exact:true}).click();
  await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('.home-content').waitFor();
- await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.locator('.ranking-grid').waitFor();
- if(width>900)await p.getByRole('navigation',{name:'PCメインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();else{await p.getByRole('button',{name:'メニューを開く'}).click();await p.getByRole('dialog',{name:'メインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click();}
+ await harnessNav.openRankingHub(p);
+ await p.getByRole('navigation',{name:width>900?'PCメインメニュー':'スマホメインメニュー'}).getByRole('button',{name:'プロフィール',exact:true}).click(); // Ver.6.13: profile is a main tab on PC and phone
  await profile.waitFor();await profile.getByRole('button',{name:'戻る',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  if(width<900){await p.addStyleTag({content:'.next-home .bottom-nav{padding-bottom:40px}.next-home .page-shell{padding-bottom:139px}'});}
  await harnessNav.goHome(p);await p.locator('.action-card.solo').click(); await p.locator('[data-solo-profile]').click();await profile.waitFor();

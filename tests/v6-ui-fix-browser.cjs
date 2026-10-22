@@ -1,3 +1,4 @@
+const harnessNav = require("./browser-harness.cjs"); // shared navigation
 // Ver.6.0 post-release UI fixes: home version label + sound toggle, battle card without caption/timer, lobby wording (stage 1) and the dark room waiting screen (stage 4).
 const assert = require('node:assert/strict'), { chromium, context } = require('./browser-harness.cjs');
 const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: { exp: 900, rating: 1650 } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } });
@@ -43,10 +44,11 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
     { // lobby wording
       const t = await context(b, { tree: tree() }), p = t.page;
       await p.locator('.action-card.online').click();
-      const btnB = p.locator('.next-mode-links button', { hasText: '新B方式' });
-      await btnB.waitFor();
-      const small = await btnB.locator('small').evaluate((e) => ({ text: e.textContent, html: e.innerHTML, ws: getComputedStyle(e).whiteSpace, h: e.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(e).lineHeight) || 14 }));
-      assert.equal(small.text, '時間制\n得点と妨害'); assert.equal(small.ws, 'pre-line'); assert(small.h >= small.lh * 1.8, 'two visible lines');
+      // Ver.6.13: the A / 新B tiles were removed from the room card; the host chooses the mode in the room lobby.
+      await p.locator('[data-next-lobby]').waitFor();
+      assert.equal(await p.locator('.next-mode-links').count(), 0);
+      assert.match(await p.locator('[data-next-lobby]').innerText(), /対戦方式（A方式・新B方式）は、部屋を作ったあとホストが選びます/);
+      await harnessNav.goHome(p); await harnessNav.openSoloMode(p, 'cpu'); // CPU practice lives on the solo screen (Ver.6.7)
       const choice = p.getByRole('group', { name: '方式', exact: true });
       assert.equal(await choice.getByRole('button', { name: 'A方式', exact: true }).count(), 1);
       assert.equal(await choice.getByRole('button', { name: 'A 早い者勝ち', exact: true }).count(), 0);
@@ -54,7 +56,7 @@ const tree = () => ({ games: { factor: { accounts: { ateacher: { name: 'Teacher'
       assert.equal(await p.getByText('時間制の新B方式。CPUの強さ・誤答率は従来と同じ設定です。').count(), 0, 'the explanation is removed');
       await choice.getByRole('button', { name: 'A方式', exact: true }).click();
       assert.deepEqual(t.errors, []); await t.ctx.close();
-      console.log('PASS lobby: 新B方式 shows 時間制 / 得点と妨害 on two lines; CPU practice says A方式 and has no explanation line');
+      console.log('PASS lobby: no mode tiles, host chooses A / 新B after creating the room; CPU practice (solo) says A方式 and has no explanation line');
     }
     { // stage 4: 4-digit room waiting screen on the dark theme (host / participant), permissions and settings unchanged
       const rt = { games: { factor: { accounts: { ah: { name: 'Host', stats: { exp: 100, rating: 1500 } }, ag: { name: 'Guest', stats: { exp: 100, rating: 1500 } } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' } } } } };

@@ -298,12 +298,28 @@ async function openProfile(page) {
   await page.locator(".account-main").click();
   await page.locator("[data-next-profile]").waitFor();
 }
+// Ver.6.13: the main navigation (phone bottom tabs / PC sidebar) is ホーム・対戦・ソロ・順位・プロフィール.
+// Only one of the two navs is visible at a time; click the visible item with the given label.
+function mainNavItem(page, label) {
+  return page.locator(".bottom-nav .nav-item:visible, .sidebar nav .nav-item:visible").filter({ hasText: label instanceof RegExp ? label : new RegExp("^" + label + "$") });
+}
+async function openRankingHub(page) {
+  await mainNavItem(page, /^(順位|ランキング)$/).click();
+  await page.locator(".ranking-grid").waitFor();
+}
+async function openProfileTab(page) {
+  await mainNavItem(page, "プロフィール").click();
+  await page.locator("[data-next-profile]").waitFor();
+}
 module.exports = {
   goHome,
   openSoloHub,
   openSoloMode,
   openOnlineLobby,
   openProfile,
+  mainNavItem,
+  openRankingHub,
+  openProfileTab,
   pair,
   newTower,
   continueTower,

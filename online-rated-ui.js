@@ -314,7 +314,7 @@
         const outcome = { win: "w", draw: "d", lose: "l" }[m.outcome] || "l";
         return /* @__PURE__ */ React.createElement("section", { className: `or-result rs-rated ${won ? "or-victory" : "or-defeat"}`, "data-result-kind": m.outcome }, won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(NR.ResultShell, { kind: "R", outcome: m.outcome, busy }, model ? /* @__PURE__ */ React.createElement(NR.BattleSummary, { model, notes, growth }) : /* @__PURE__ */ React.createElement(NR.MinimalSummary, { outcome: m.outcome, methodLabel: m.mode === "A" ? "A\u65B9\u5F0F" : m.mode === "B" ? "B\u65B9\u5F0F" : "\u30E9\u30F3\u30C0\u30E0\u5BFE\u6226", notes, growth }), m.rules === "b2" && /* @__PURE__ */ React.createElement(NR.BDetails, { report: m.bResult, me: m.selfUid, names }), m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names }), /* @__PURE__ */ React.createElement(NR.ResultActions, { busy }, /* @__PURE__ */ React.createElement(NR.ResultButton, { tone: "primary", disabled: busy, onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))));
       }
-      function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false }) {
+      function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false, autoGhost = null }) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
         const [state, setState] = useState(null), [error, setError] = useState(""), [feedback, setFeedback] = useState(null), [screen, setScreen] = useState(
           view === "ratings" ? "ratings" : "select"
@@ -476,6 +476,10 @@
             if (view === "match" && !initialGhost && ((_a2 = v == null ? void 0 : v.match) == null ? void 0 : _a2.phase) === "settled")
               await send({ type: "ackReceipt", matchId: v.match.id });
             initializing.current = false;
+            if (view === "ghosts" && autoGhost && ["easy", "normal"].includes(autoGhost.difficulty) && ["ghost", "hyper"].includes(autoGhost.kind) && v && !v.match && !v.ticket && v.ghostReady) {
+              if (autoGhost.kind === "hyper") setHyperChoice(true);
+              await send({ type: "randomGhost", difficulty: autoGhost.difficulty, kind: autoGhost.kind });
+            }
           })();
         }, []);
         useEffect(() => {

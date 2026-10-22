@@ -41,9 +41,14 @@ const accounts = { ateacher: { name: 'Teacher', stats: { rating: 1700 } } };
     for (const flagOn of [false, true]) {
       const t = await context(b, { tree: { games: { factor: { accounts, ...cfg(true) } } } }), p = t.page;
       await p.locator('.action-card.online').click();
-      await p.locator('.next-mode-links').getByRole('button', { name: /^A方式/ }).click();
+      // Ver.6.13: create the room, then the host chooses A in the room lobby (the mode tiles were removed).
+      await p.getByRole('button', { name: '部屋を作る（ホスト）', exact: true }).click();
       await p.getByRole('button', { name: '部屋を出る', exact: true }).waitFor();
       const code = Object.keys(t.tree.games.factor.rooms)[0];
+      await p.locator('button').filter({ hasText: /^A：/ }).click();
+      await p.waitForFunction(() => [...document.querySelectorAll('button[aria-pressed=true]')].some((e) => e.textContent.startsWith('A：')));
+      for (let i = 0; i < 50 && t.tree.games.factor.rooms[code].state.mode !== 'A'; i++) await p.waitForTimeout(100);
+      assert.equal(t.tree.games.factor.rooms[code].state.mode, 'A', 'host choice saved');
       await p.evaluate((c) => window.__fbApply({ kind: 'set', path: 'games/factor/rooms/' + c + '/players/cpu1', v: { name: 'CPU1', cpu: 'normal', joinedAt: Date.now() + 5 } }), code);
       const start = p.getByRole('button', { name: /対戦スタート/ });
       await start.waitFor();

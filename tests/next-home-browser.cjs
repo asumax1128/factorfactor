@@ -18,7 +18,7 @@ try{for(const width of [375,390,430,1440]){
  if(process.env.CAPTURE_NEXT_HOME==='1' && [375,390,430,1440].includes(width)){if(width<900)await p.setViewportSize({width,height:await p.evaluate(()=>document.documentElement.scrollHeight)});await p.screenshot({path:`${out}/home-${width}.png`,fullPage:true});await p.setViewportSize({width,height:width===1440?1080:844});}
  if(width<900){
   await p.addStyleTag({content:'.next-home .bottom-nav{padding-bottom:40px}.next-home .page-shell{padding-bottom:139px}'});
-  for(const sel of ['.boss-details .small-button','.mission-strip','.support-link'])for(const target of await p.locator(sel).all()){
+  for(const sel of ['.boss-details .small-button','[data-home-tile]'])for(const target of await p.locator(sel).all()){
    await target.evaluate(e=>e.scrollIntoView({block:'center',behavior:'instant'}));
    assert(await target.evaluate(e=>{const r=e.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===e||e.contains(h)}),'safe-area target must be reachable');
   }
@@ -34,12 +34,19 @@ try{for(const width of [375,390,430,1440]){
  await p.evaluate(()=>{window.__denyBoss=true;window.__homeTime=Date.parse('2026-10-26T00:00:01+09:00')});await p.getByRole('alert').waitFor();assert.match(await p.getByRole('alert').innerText(),/権限不足/);assert.equal(await hp.count(),0);
  await p.evaluate(()=>{window.__denyBoss=false});await p.getByRole('button',{name:'再試行',exact:true}).click();await p.getByText('次のボスを準備中',{exact:true}).waitFor();
  const nav=p.getByRole('navigation',{name:width>900?'PCメインメニュー':'スマホメインメニュー'});
- if(width<900){await p.getByRole('button',{name:'メニューを開く'}).click();await p.getByRole('dialog',{name:'メインメニュー'}).waitFor();await p.keyboard.press('Escape');await p.getByRole('dialog',{name:'メインメニュー'}).waitFor({state:'hidden'});}
+ // Ver.6.13: five tabs (PC sidebar and phone bottom nav alike); the old メニュー sheet no longer exists.
+ assert.deepEqual(await nav.locator('.nav-item span').allInnerTexts(),width>900?['ホーム','オンライン対戦','ソロモード','ランキング','プロフィール']:['ホーム','対戦','ソロ','順位','プロフィール']);
+ assert.equal(await p.getByRole('button',{name:/メニューを開く/}).count(),0,'no menu button');assert.equal(await p.locator('dialog[aria-label="メインメニュー"]').count(),0,'no menu sheet');
+ assert.equal(await p.locator('.home-support button').filter({hasText:'ランキング'}).count(),0,'ranking tile removed from home');
+ const tiles=await p.locator('[data-home-tile]').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {k:e.dataset.homeTile,top:Math.round(r.top),h:Math.round(r.height),w:Math.round(r.width),wrap:e.querySelector('strong').scrollWidth>e.querySelector('strong').clientWidth}}));
+ assert.deepEqual(tiles.map(x=>x.k),['daily','help']);assert.equal(tiles[0].top,tiles[1].top,'side by side');assert.equal(tiles[0].h,tiles[1].h,'same height');assert.equal(tiles[0].w,tiles[1].w,'same width');assert(!tiles.some(x=>x.wrap),'tile titles are not cut off at '+width+' '+JSON.stringify(tiles));
+ await nav.getByRole('button',{name:'プロフィール',exact:true}).click();await p.locator('[data-next-profile]').waitFor();assert.equal(await nav.getByRole('button',{name:'プロフィール',exact:true}).getAttribute('aria-current'),'page','profile tab is selected');
+ await harnessNav.goHome(p);
  await nav.getByRole('button',{name:width>900?'ソロモード':'ソロ',exact:true}).click();await p.locator('[data-solo-hub]').waitFor();await p.locator('[data-solo-mode=play]').click();await p.getByRole('button',{name:'スタート',exact:true}).waitFor();
  assert.equal(await p.locator('link[href="ui-next/home.css"]').count(),1,'shared shell stylesheet remains on solo menu');
  await harnessNav.goHome(p);await p.locator('[data-next-home]').waitFor();
- await p.locator('.support-link').filter({hasText:'ランキング'}).click();await p.locator('.ranking-entry').filter({hasText:'ソロランキング'}).click();await p.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();
- await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await harnessNav.goHome(p);await p.locator('.support-link').filter({hasText:'あそびかた'}).click();await p.getByRole('heading',{name:'あそびかた',exact:true}).waitFor();await p.locator('[data-next-help]').waitFor();
+ await harnessNav.openRankingHub(p);await p.locator('.ranking-entry').filter({hasText:'ソロランキング'}).click();await p.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();
+ await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await harnessNav.goHome(p);await p.locator('[data-home-tile=daily]').click();await p.locator('.next-today-missions').waitFor();await harnessNav.goHome(p);await p.locator('[data-home-tile=help]').click();await p.getByRole('heading',{name:'あそびかた',exact:true}).waitFor();await p.locator('[data-next-help]').waitFor();
  // Return by root callback through exposed helpers is unnecessary: reloading tests listener cleanup too.
  await p.reload();await p.locator('[data-next-home]').waitFor();await p.locator('.action-card.online').click();await p.getByRole('button',{name:'オンラインレーティング',exact:true}).waitFor();
  assert.deepEqual(t.errors,[]);results.push({width,cardHeight:card.height,realtime:true,defeated:true,weekRollover:true,permissionAndRetry:true,navigation:true,safeArea34:width<900,bossWrites:0,errors:t.errors});await t.ctx.close();

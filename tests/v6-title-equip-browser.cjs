@@ -1,7 +1,7 @@
 // New profile: one equip slot (stats/nick) for all 100 catalog titles + the hidden title (mock Firebase).
 // Reuses the existing save (equipNick, shared with the old modal). Never writes profile.title or snapshots.equipped.
 const assert = require("node:assert/strict");
-const { chromium, context, sleep } = require("./browser-harness.cjs");
+const { chromium, context, sleep, openRankingHub } = require("./browser-harness.cjs"); // Ver.6.13: ranking = 順位 tab
 const SHOT = process.env.TE_SHOTS || "";
 const catalog = require("../src/title-catalog-next.json");
 const NOT_IN_BADGES = ["online_first", "wins100_ab", "dual50", "giant250", "easy_adept", "easy_master", "flash3", "accuracy10", "tour_streak2", "wksup500", "wk_runs20", "lb_cards7"];
@@ -245,7 +245,7 @@ const untouched = (tree, t0) => {
       const tree = { games: { factor: { accounts, onlineSparkV1: { config: { enabled: true, protocol: "spark-v1" }, profiles } } } };
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width: 390, height: 844 });
-      await p.locator(".support-link").filter({ hasText: "ランキング" }).click();
+      await openRankingHub(p);
       await p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
       const view = p.locator('[data-ranking="rating"]');
       await view.locator(".rk-row").first().waitFor();
@@ -275,7 +275,7 @@ const untouched = (tree, t0) => {
         prof.easy.rating = 1700; prof.easy.season = season; prof.easy.seasonMax = 1700; prof.normal.season = season; prof.normal.seasonMax = 1600;
         const t = await context(b, { tree, onOperation }), p = t.page;
         await p.setViewportSize({ width: 390, height: 844 });
-        await p.locator(".support-link").filter({ hasText: "ランキング" }).click();
+        await openRankingHub(p);
         await p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
         await p.getByRole("button", { name: "初級の覇者を装備", exact: true }).waitFor();
         return { tree, t, p, state: () => ({ nick: tree.games.factor.accounts.ateacher.stats.nick, title: tree.games.factor.onlineSparkV1.profiles.ateacher.title }), status: () => p.locator("[data-rank-equip]") };
@@ -320,7 +320,7 @@ const untouched = (tree, t0) => {
         await sleep(3500);
         const st = c.state();
         assert(["tour1", "easy_adept"].includes(st.nick) && st.title === "easy_master", "step 2 never ran because the page was gone: " + JSON.stringify(st));
-        await c.p.locator(".support-link").filter({ hasText: "ランキング" }).click();
+        await openRankingHub(c.p);
         await c.p.locator(".ranking-entry").filter({ hasText: "レーティングランキング" }).click();
         await BTN(c.p).waitFor();
         assert.equal(await c.p.locator("[data-rank-equip]").count(), 0, "a fresh screen shows no stale success");

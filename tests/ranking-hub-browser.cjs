@@ -9,7 +9,7 @@ const assert=require('node:assert/strict');const {chromium,context}=require('./b
  f.dailyV2={ready:true,boards:{[day]:{easy:{records:{fixture:{key:'fixture',name:'DailyFixture',score:321,cleared:true,elapsed:45000,correct:15,sortKey:'a'}}}}}};
  f.onlineSparkV1={config:{enabled:true,protocol:'spark-v1'},profiles:{ateacher:{name:'Teacher',easy:{rating:1665.6,season,games:3,w:2,l:1},normal:{rating:1550,season,games:1,w:1}}}};
  const t=await context(b,{tree}),p=t.page;await p.setViewportSize({width,height:844});
- await p.locator('[data-next-home]').waitFor();await p.locator('.support-link').filter({hasText:'ランキング'}).click();
+ await p.locator('[data-next-home]').waitFor();await harnessNav.openRankingHub(p);
  const nav=p.getByRole('navigation',{name:width>900?'PCメインメニュー':'スマホメインメニュー'});
  await p.locator('.ranking-grid').waitFor();assert.equal(await p.locator('.ranking-entry').count(),3);assert.equal(await nav.locator('[aria-current=page]').innerText(),width>900?'ランキング':'順位');
  for(const name of ['ソロランキング','デイリーランキング','レーティングランキング']){
@@ -20,7 +20,7 @@ const assert=require('node:assert/strict');const {chromium,context}=require('./b
   assert(!await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),name+' overflow '+width);
   await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  }
- if(width<900){await p.getByRole('button',{name:'メニューを開く',exact:true}).click();await p.getByRole('dialog',{name:'メインメニュー'}).waitFor();await p.keyboard.press('Escape');}
+ assert.equal(await p.getByRole('button',{name:/メニューを開く/}).count(),0,'Ver.6.13: no menu sheet');
  await harnessNav.goHome(p);await p.locator('.home-content').waitFor();
  await nav.getByRole('button',{name:width>900?'ランキング':'順位',exact:true}).click();await p.locator('.ranking-grid').waitFor();
  await nav.getByRole('button',{name:'ホーム',exact:true}).click();await p.locator('.home-content').waitFor();

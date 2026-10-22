@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const {chromium,context}=require('./browser-harness.cjs');
+const {chromium,context,mainNavItem}=require('./browser-harness.cjs');
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium'});try{for(const width of [390,1366]){
  const season=new Date(Date.now()+9*3600e3).toISOString().slice(0,7);
  const record=(rating,maxRating=rating)=>({rating,maxRating,seasonMax:maxRating,season,games:3,w:2,l:1,d:0});
@@ -15,7 +15,7 @@ const {chromium,context}=require('./browser-harness.cjs');
  // A committed ghost/BOT rating update must immediately refresh the lobby.
  await p.evaluate(()=>window.__fbApply({kind:'set',path:'games/factor/onlineSparkV1/profiles/ateacher/easy/rating',v:1667.6}));await current.getByText('1668',{exact:true}).waitFor();
  await p.evaluate(()=>window.__fbApply({kind:'set',path:'games/factor/onlineSparkV1/profiles/ateacher/easy/rating',v:1665.6}));await current.getByText('1666',{exact:true}).waitFor();
- await p.getByRole('button',{name:'自分のゴースト・成績',exact:true}).click();await p.locator('[data-next-profile]').getByText('1820',{exact:true}).first().waitFor();await p.locator('[data-next-profile]').getByText('1666',{exact:true}).first().waitFor();await p.getByRole('button',{name:'戻る',exact:true}).click();
+ assert.equal(await p.getByRole('button',{name:'自分のゴースト・成績',exact:true}).count(),0);await mainNavItem(p,'プロフィール').click();/* Ver.6.13: profile tab */await p.locator('[data-next-profile]').getByText('1820',{exact:true}).first().waitFor();await p.locator('[data-next-profile]').getByText('1666',{exact:true}).first().waitFor();await p.getByRole('button',{name:'戻る',exact:true}).click();
  await p.getByRole('button',{name:'オンラインレーティング',exact:true}).click();await p.locator('.or-rating').getByText('1666',{exact:true}).waitFor();const row=p.locator('.or-ranking li').filter({has:p.getByRole('button',{name:'Asuma',exact:true})});assert.match(await row.innerText(),/7位/);assert.equal(await row.locator('strong').innerText(),'1666');const target=p.locator('.or-ranking li').filter({has:p.getByRole('button',{name:'Target',exact:true})});assert.match(await target.innerText(),/8位/);assert.equal(await target.locator('strong').innerText(),'1666');
  await target.getByRole('button',{name:'Target',exact:true}).click();await p.locator('[data-current-ratings]').getByText('1666',{exact:true}).waitFor();await p.locator('.fixed.inset-0 [data-highest-rating]').getByText('1850',{exact:true}).waitFor();await p.getByRole('button',{name:'とじる',exact:true}).click();
  await p.getByRole('button',{name:'ノーマル',exact:true}).click();assert.equal(await p.locator('.or-rating').innerText(),'1540');

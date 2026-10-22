@@ -426,7 +426,7 @@
         </section>
       );
     }
-    function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false }) {
+    function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false, autoGhost = null }) {
       const [state, setState] = useState(null),
         [error, setError] = useState(""),
         [feedback, setFeedback] = useState(null),
@@ -625,6 +625,19 @@
           )
             await send({ type: "ackReceipt", matchId: v.match.id });
           initializing.current = false;
+          // Ver.6.13: a ghost tile in the online lobby starts that ghost directly. It uses the same command as the
+          // ghost menu buttons, only after the normal status load, and only when the menu itself would allow it
+          // (no running match or queue ticket, ghosts ready). Otherwise the usual screens and messages are shown.
+          if (
+            view === "ghosts" &&
+            autoGhost &&
+            ["easy", "normal"].includes(autoGhost.difficulty) &&
+            ["ghost", "hyper"].includes(autoGhost.kind) &&
+            v && !v.match && !v.ticket && v.ghostReady
+          ) {
+            if (autoGhost.kind === "hyper") setHyperChoice(true);
+            await send({ type: "randomGhost", difficulty: autoGhost.difficulty, kind: autoGhost.kind });
+          }
         })();
       }, []);
       useEffect(() => {

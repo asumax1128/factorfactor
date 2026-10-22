@@ -1,6 +1,6 @@
 // Ver.6.0 ranking lists (solo / daily / rating): unified rows, tabs, self highlight, states, back, narrow + short viewports.
 const assert = require('node:assert/strict');
-const { chromium, context } = require('./browser-harness.cjs');
+const { chromium, context, openRankingHub } = require('./browser-harness.cjs'); // Ver.6.13: ranking = 順位 tab
 const rec = (name, difficulty, score, caught) => ({ name, difficulty, score, caught });
 const records = [
   ...Array.from({ length: 24 }, (_, i) => rec('E' + String(i + 1).padStart(2, '0'), 'easy', 3000 - i * 50, 30 - (i % 7))),
@@ -13,7 +13,7 @@ const gas = (body, status = 200, delay = 0) => async (route) => {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 };
 async function openSolo(t, p) {
-  await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+  await openRankingHub(p);
   await p.locator('.ranking-entry').filter({ hasText: 'ソロランキング' }).click();
   await p.locator('[data-ranking="solo"]').waitFor();
 }
@@ -93,7 +93,7 @@ async function openSolo(t, p) {
       } } } } };
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width, height });
-      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await openRankingHub(p);
       await p.locator('.ranking-entry').filter({ hasText: 'デイリーランキング' }).click();
       const view = p.locator('[data-ranking="daily"]');
       await view.locator('.rk-row').first().waitFor();
@@ -126,7 +126,7 @@ async function openSolo(t, p) {
     }
     {
       const g = await context(b, { account: { guest: true, name: 'Guest' } }), p = g.page;
-      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await openRankingHub(p);
       await p.locator('.ranking-entry').filter({ hasText: 'デイリーランキング' }).click();
       await p.locator('[data-ranking="daily"]').getByText(/登録アカウントでログインしてください/).waitFor();
       await g.ctx.close();
@@ -141,7 +141,7 @@ async function openSolo(t, p) {
       const tree = { games: { factor: { accounts, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' }, profiles } } } };
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width, height });
-      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await openRankingHub(p);
       await p.locator('.ranking-entry').filter({ hasText: 'レーティングランキング' }).click();
       const view = p.locator('[data-ranking="rating"]');
       await view.locator('.rk-row').first().waitFor();
@@ -176,7 +176,7 @@ async function openSolo(t, p) {
     }
     {
       const t = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: {} } }, onlineSparkV1: { config: { enabled: true, protocol: 'spark-v1' }, profiles: { ateacher: { name: 'Teacher', easy: { rating: 1500, maxRating: 1500, games: 0 }, normal: { rating: 1500, maxRating: 1500, games: 0 } } } } } } } }), p = t.page;
-      await p.locator('.support-link').filter({ hasText: 'ランキング' }).click();
+      await openRankingHub(p);
       await p.locator('.ranking-entry').filter({ hasText: 'レーティングランキング' }).click();
       await p.locator('[data-ranking="rating"]').getByText('掲載条件を満たすプレイヤーはまだいません').waitFor();
       assert.match(await p.locator('[data-ranking="rating"] .rk-selfcard').innerText(), /自分の順位：未掲載/);

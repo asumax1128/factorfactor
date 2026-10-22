@@ -56,8 +56,9 @@ console.log("PASS " + names.length + " protected functions unchanged (AST, exact
     await p.locator("[data-tile-id]").first().waitFor();
     console.log("PASS solo battle");
     await p.reload();
-    await p.getByRole("button", { name: "メニューを開く" }).click();
-    await p.getByRole("button", { name: /学びの部屋/ }).click();
+    // Ver.6.13: the old メニュー sheet is gone; the learning room is the solo screen's 学びの部屋 card.
+    await p.locator(".action-card.solo").click();
+    await p.locator("[data-solo-mode=learn]").click();
     await p.getByText("レベル別の正答率と平均時間", { exact: true }).waitFor();
     console.log("PASS learning room");
     await p.reload();

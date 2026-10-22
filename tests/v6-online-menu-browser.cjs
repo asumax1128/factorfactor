@@ -53,25 +53,34 @@ async function layout(p, vw, vh, name) {
 }
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium" });
-  const ui = fs.readFileSync("online-rated-ui.js", "utf8");
+  // Records every transport command (unchanged transport; read-only wrapper) so the direct ghost start can be checked.
+  const ui = fs.readFileSync("online-rated-ui.js", "utf8") + '\n(()=>{const f=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{const create=H.createTransport;H.createTransport=acct=>{const c=create(acct);return {...c,request:async cmd=>{(window.__cmds=window.__cmds||[]).push(cmd);return c.request(cmd)}}};return f(H);}})();';
   try {
     for (const [vw, vh] of VIEWPORTS) {
-      // ---- ghost menu ----
-      {
+      // ---- ghost tiles (Ver.6.13): the lobby shows イージー / ノーマル / ハイパー directly; a tile sends the existing
+      // randomGhost command right after the normal status load (no intermediate menu). With no ghost records the
+      // existing guidance is shown and the in-app menu stays available. ----
+      for (const [tile, difficulty, kind, empty] of [
+        ["easy", "easy", "ghost", "対戦可能なゴーストの学習記録がありません"],
+        ["normal", "normal", "ghost", "対戦可能なゴーストの学習記録がありません"],
+        ["hyper-easy", "easy", "hyper", "HYPER GHOST 乱入！"], // own easy record is in the TOP10 → a real match starts
+      ]) {
         const t = await context(b, { tree: tree(), assetOverrides: { "/online-rated-ui.js": ui } }),
           p = t.page;
         await p.setViewportSize({ width: vw, height: vh });
         await p.locator(".action-card.online").click();
-        await p.getByRole("button", { name: /^ゴースト対戦/ }).click();
-        await p.getByRole("heading", { name: "ゴースト対戦を選ぶ" }).waitFor();
-        await p.getByRole("button", { name: "イージーゴースト", exact: true }).waitFor();
-        await layout(p, vw, vh, "ghost-menu");
-        await p.getByRole("button", { name: "ハイパーゴースト", exact: true }).click();
-        await p.getByRole("button", { name: "イージーハイパーゴースト", exact: true }).waitFor();
-        await p.getByRole("button", { name: "ゴーストメニューへ戻る", exact: true }).waitFor();
-        await layout(p, vw, vh, "ghost-hyper");
-        await p.getByRole("button", { name: "ゴーストメニューへ戻る", exact: true }).click();
-        await p.getByRole("button", { name: "ノーマルゴースト", exact: true }).waitFor();
+        await p.locator("[data-ghost-tiles]").waitFor();
+        assert.equal(await p.getByRole("button", { name: /^ゴースト対戦$/ }).count(), 0, "no intermediate ゴースト対戦 button");
+        await p.waitForFunction(() => !document.querySelector("[data-ghost-start=easy]").disabled);
+        const tiles = await p.locator("[data-ghost-tiles] button").evaluateAll((es) => es.map((e) => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim(), h: r.height, x: r.x, right: r.right }; }));
+        for (const x of tiles) { assert(x.h >= 44, `ghost tile tap target >=44px: ${x.t} at ${vw}x${vh}`); assert(x.x >= 0 && x.right <= vw + 1, `ghost tile inside viewport: ${x.t}`); }
+        await p.locator(`[data-ghost-start=${tile}]`).click();
+        await p.getByText(empty, { exact: true }).waitFor();
+        const cmds = await p.evaluate(() => window.__cmds.map((c) => ({ type: c.type, difficulty: c.difficulty, kind: c.kind })));
+        assert.deepEqual(cmds.slice(0, 2).map((c) => c.type), ["status", "randomGhost"], `status load first, then one direct start (${tile})`);
+        assert.equal(cmds.filter((c) => c.type === "randomGhost").length, 1, `exactly one start (${tile})`);
+        assert.deepEqual(cmds[1], { type: "randomGhost", difficulty, kind }, `same command as the ghost menu (${tile})`);
+        if (kind === "ghost") await layout(p, vw, vh, "ghost-" + tile);
         assert.deepEqual(t.errors, []);
         await t.ctx.close();
       }
@@ -120,7 +129,7 @@ async function layout(p, vw, vh, name) {
         await t.ctx.close();
       }
     }
-    console.log("PASS v6 online menu: ghost menu, search select/wait/cancel, vote, dark navy, 44px targets, 4 viewports");
+    console.log("PASS v6 online menu: lobby ghost tiles start directly (status → one randomGhost; hyper starts a real match), search select/wait/cancel, vote, dark navy, 44px targets, 4 viewports");
   } finally {
     await b.close();
   }
