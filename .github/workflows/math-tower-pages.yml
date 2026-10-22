@@ -150,7 +150,7 @@ jobs:
           SCRIPTS: ${{ matrix.artifact_scripts }}
         run: |
           test "$(grep -c 'data-compiled="1"' dist/index.html)" = 1
-          ! grep -q 'babel.min.js' dist/index.html
+          if grep -q 'babel.min.js' dist/index.html; then echo 'published page must not load Babel'; exit 1; fi
           export PW_SITE_ROOT="$GITHUB_WORKSPACE/dist"
           for s in $SCRIPTS; do echo "::group::npm run $s (artifact)"; npm run "$s"; echo "::endgroup::"; done
       - name: Collect browser-test failure evidence
