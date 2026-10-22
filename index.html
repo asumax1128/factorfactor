@@ -13,9 +13,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="theme-color" content="#F5F2EC" />
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@8.0.7/babel.min.js"></script>
 <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 <script src="game-version.js"></script>
 <script src="game-audio.js"></script>
@@ -2475,7 +2475,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           <button className="v7-pill" onClick={()=>onMode?.('home')}>ホームへ</button>
           <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
           <div className="v7-col">
-            {renderMenu && <button className="v7-pill v7-cur v7-solo-back" data-snd="back" data-solo-back onClick={() => onMode?.('solo')}>← ソロへ戻る</button>}
+            {renderMenu && <button className="small-button v7-solo-back" data-snd="back" data-solo-back onClick={() => onMode?.('solo')}>← ソロへ戻る</button>}
             {acct && !renderMenu && <AccountPanelV7 acct={acct} onLogout={onLogout} onProfile={()=>onMode?.('profile')} />}
             <div className="v7-panel">
               <div className="v7-cap"><span>ソロで遊ぶ</span><span className="flex items-center gap-2">{soloBest > 0 && <span>ベスト {soloBest.toLocaleString()}点</span>}<button className="v7-link" onClick={() => setMenuWin('lv')}>レベル表</button></span></div>
@@ -2545,7 +2545,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? 'メニュー音オフ' : 'メニュー音オン'}</button>
               {!renderMenu && <button className="v7-pill v7-cur" data-snd="none" aria-label={muted ? 'ゲーム全体の音を出す' : 'ゲーム全体の音を消す'} onClick={() => setMuted(m => !m)}>{muted ? '全音オフ' : '全音オン'}</button>}
               {acct && !renderMenu && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              <span className="v7-ver">{window.FactorVersion?.label || 'Ver.確認中'}</span>
+              {!renderMenu && <span className="v7-ver">{window.FactorVersion?.label || 'Ver.確認中'}</span>}
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>

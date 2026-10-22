@@ -7,7 +7,7 @@ export function createLobby(H){
  return function Lobby({cpuOnly=false,fb,acct,who,err,onQuick,quickPending,quickMessage,quickError,onConfigRetry,ratedEnabled,onRatedStats,onCreate,onJoin,onPractice,onGhosts,onProfile,onNavigate,onExit,code,setCode,pc,setPc,onPlayers,onBounty,bountyCount,onVs,teacherArea,currentRatings}){
   const ready=!!fb.ready;
   const cpuPanel=<Panel title="CPU練習"><p className="next-note">公式レート・対人戦績には反映されません。</p><Choices label="方式" items={[['A','A方式'],['B','新B方式'],...(window.FXF_FEATURES?.cMode?[['C','C 2対2']]:[])]} value={pc.mode} onChange={mode=>setPc({mode})}/><Choices label="難易度" items={['easy','normal'].map(d=>[d,DIFFICULTY_CONFIG[d].label])} value={pc.diff} onChange={diff=>setPc({diff})}/><Choices label="CPUの強さ" items={Object.entries(CPU_LEVELS).map(([id,c])=>[id,c.label])} value={pc.lv} onChange={lv=>setPc({lv})}/>{pc.mode==='C'?<p className="next-note">あなた＋味方CPU 対 相手CPU2人。体力はチームで共有。</p>:<Choices label="CPUの人数" items={[[1,'1人'],[2,'2人'],[3,'3人']]} value={pc.n} onChange={n=>setPc({n})}/>}<button className="next-secondary" onClick={()=>onPractice(pc)}>CPUと練習スタート</button></Panel>;
-  if(cpuOnly)return <main className="next-lobby next-cpu" data-next-lobby data-cpu-only><div className="next-lobby-grid">{cpuPanel}</div></main>;
+  if(cpuOnly)return <main className="next-lobby next-cpu" data-next-lobby data-cpu-only><div className="next-toolbar"><BackButton onClick={onExit} children="← ソロへ戻る"/></div><div className="next-lobby-grid">{cpuPanel}</div></main>;
   return <main className="next-lobby" data-next-lobby>
    {!ready&&<p className="next-note" role="status">{fb.err||'サーバーに接続しています…'}</p>}
    {err&&<p className="next-error" role="alert">{err}</p>}
