@@ -3462,13 +3462,13 @@ function AccountGate({ onDone }) {
           <label className="lg-field"><input value={nm} onChange={e => setNm(e.target.value.slice(0, 10))} placeholder="名前（10文字まで）" aria-label="名前" maxLength={10} /></label>
           <label className="lg-field"><input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="合言葉（4桁の数字）" aria-label="合言葉（4桁の数字）" inputMode="numeric" type="password" maxLength={4} /></label>
           <div className="lg-actions">
-            <button type="button" className="lg-btn lg-primary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(false); }}>ログイン</button>
-            <button type="button" className="lg-btn lg-secondary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(true); }}>新しく登録</button>
+            <button className="lg-btn lg-primary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(false); }}>ログイン</button>
+            <button className="lg-btn lg-secondary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(true); }}>新しく登録</button>
           </div>
           {!fb.ready && <p className="lg-status">{fb.err || 'サーバーに接続しています…'}</p>}
           {msg && <p className="lg-error" role="alert">{msg}</p>}
           <div className="lg-guest">
-            <button type="button" className="lg-btn" onClick={() => { uiSnd('ok'); const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
+            <button className="lg-btn" onClick={() => { uiSnd('ok'); const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
             <p className="lg-note">あとで登録すると、ゲストの記録を引き継げます</p>
           </div>
         </section>

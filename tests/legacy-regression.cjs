@@ -14,9 +14,31 @@ const PROTECTED = {
   battle: "addOjama attackFor scoreA createBEngine bTarget BattleBoard GameA GameB BattleGame",
   online: "rankOf ratingDelta matchOutcome openMatch recordMatch b2PendRaw b2PendWrite b2PendLoad b2PendAdd b2PendDrop b2Confirm swissStandings swissPair flushOnlineLearn fetchRatings pickGhost makeBotProfile CpuBots",
   weekly: "weekKey weeklyInfo raidSchedule raidCalc chestRoll ensureWeekMeta settleWeek RaidPlay useBossGim",
-  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn applyMis missionEvent claimMission misRunStep missionsFor statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher completeDailySolo fbStart makeLocalDb AccountGate GhostNews",
+  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn applyMis missionEvent claimMission misRunStep missionsFor statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher completeDailySolo fbStart makeLocalDb GhostNews",
   ranking: "compareEntries dedupeByName withRanks aggregateTotalRanking fetchNetRanking submitNetScore loadRankingFromStorage saveRankingToStorage",
 };
+// Ver.6.15: the login screen is restyled. Its LOGIC stays pinned exactly: everything in the function except the returned markup
+// (state, doLogin → acctLogin / migrateGuest) plus every behaviour attribute inside the markup (onClick, onChange, disabled, value,
+// type, inputMode, maxLength, placeholder), so a changed handler, call or limit still fails. Colours, classes and layout are free.
+const LOGIC_ONLY = ["AccountGate"], BEHAVIOUR_ATTRS = ["onClick", "onChange", "disabled", "value", "type", "inputMode", "maxLength", "placeholder"];
+function logicOnly(jsx) {
+  const ast = Babel.transform(jsx, { presets: ["react"], ast: true, code: false }).ast;
+  const drop = ["loc", "start", "end", "leadingComments", "trailingComments", "innerComments", "extra"], j = (n) => JSON.stringify(n, (k, v) => (drop.includes(k) ? undefined : v));
+  const out = {};
+  for (const n of ast.program.body.filter((x) => x.type === "FunctionDeclaration" && LOGIC_ONLY.includes(x.id.name))) {
+    // (The parsed tree is the React-transformed one: markup attributes are the props objects of the _jsx(...) calls.)
+    const body = n.body.body, ret = body[body.length - 1];
+    assert.equal(ret.type, "ReturnStatement", n.id.name + " ends with its markup");
+    const attrs = [], keyOf = (p) => (p.key && (p.key.name || p.key.value)) || "";
+    const walk = (x) => { if (!x || typeof x !== "object") return; if (x.type === "ObjectProperty" && BEHAVIOUR_ATTRS.includes(keyOf(x))) attrs.push([keyOf(x), j(x.value)]); for (const v of Object.values(x)) if (Array.isArray(v)) v.forEach(walk); else walk(v); };
+    walk(ret.argument);
+    // inputStyle (the old light colours of the inputs) is presentation, not logic.
+    const logic = body.slice(0, -1).filter((st) => !(st.type === "VariableDeclaration" && st.declarations.every((d) => d.id.name === "inputStyle")));
+    assert(attrs.length >= 8, "behaviour attributes found in the markup: " + attrs.length);
+    out[n.id.name] = JSON.stringify({ params: j(n.params), logic: logic.map(j), attrs: attrs.sort((a, b) => (a.join() < b.join() ? -1 : 1)) });
+  }
+  return out;
+}
 const appSource = (html) =>
   html.match(/<script type="text\/plain" id="app-source">([\s\S]*?)<\/script>/)[1];
 function functions(jsx) {
@@ -42,6 +64,17 @@ for (const name of names) {
   assert.ok(before[name], "Protected function missing from the pin baseline: " + name);
   assert.ok(after[name], "Protected function removed: " + name);
   assert.equal(after[name], before[name], "Protected function changed: " + name + " (review it, then move PIN_BASE deliberately)");
+}
+{
+  const b0 = logicOnly(baseJsx), a0 = logicOnly(nowJsx);
+  for (const name of LOGIC_ONLY) { assert.ok(b0[name] && a0[name], name + " found"); assert.equal(a0[name], b0[name], "Login logic changed: " + name + " (state / handlers / limits must stay as audited)"); }
+  // Self-test: changing a handler call or a limit inside the login markup is detected; changing only a class is not.
+  const swap = (from, to) => logicOnly(nowJsx.replace(from, to)).AccountGate;
+  assert.notEqual(swap("doLogin(false); }}>ログイン", "doLogin(true); }}>ログイン"), a0.AccountGate, "self-test: handler change detected");
+  assert.notEqual(swap("slice(0, 4))} placeholder=\"合言葉", "slice(0, 5))} placeholder=\"合言葉"), a0.AccountGate, "self-test: input limit change detected");
+  assert.notEqual(swap("const r = await acctLogin(nm, pin, create);", "const r = await acctLogin(nm, pin, false);"), a0.AccountGate, "self-test: logic change detected");
+  assert.equal(swap('className="lg-card"', 'className="lg-card x"'), a0.AccountGate, "self-test: styling-only change is allowed");
+  console.log("PASS login logic (AccountGate state, handlers, limits) unchanged against Ver.6.11; markup/styling free");
 }
 console.log("PASS " + names.length + " protected functions unchanged (AST, exact) against Ver.6.11 " + PIN_BASE.slice(0, 7) + ": math/judging, battle/online scoring, save/auth/rewards, ranking");
 (async () => {
