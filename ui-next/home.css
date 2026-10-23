@@ -450,3 +450,20 @@
 /* Ver.6.15: solo difficulty tiles — name and the "15問・ミス-20%" line centred, equal height. */
 .next-home .next-legacy-menu .v7-diff button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:62px;padding:10px 4px 9px;text-align:center}
 .next-home .next-legacy-menu .v7-diff button small{display:block;width:100%;text-align:center;white-space:nowrap}
+/* Ver.6.16: hyper-ghost difficulty buttons centred, equal size (presentation only) */
+.next-home .next-ghost-diff button{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:48px;padding:10px 12px;line-height:1.3}
+/* Ver.6.16: profile 「ゴースト対戦」 dialog buttons get side padding, wrap and centre long labels */
+[data-ghost-panel] .flex-col>button{display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:12px 16px;line-height:1.4;overflow-wrap:anywhere}
+/* Ver.6.16: ghost history on the dark profile (it used the old light panel colour with the page's white text) */
+.next-home .gh-history{background:#16232f!important;border:1px solid #324354;color:#e8f0f5}
+.next-home .gh-history h3,.next-home .gh-history strong{color:#fff}
+.next-home .gh-history p{color:#c3d3dc}
+.next-home .gh-history>div[style*="border-top"]{border-top-color:#324354!important}
+.next-home .gh-history .v7-pill{min-height:44px;background:#22394a;color:#eaf6f8;border:1px solid #5b8294}
+.next-home .gh-history .v7-pill:disabled{background:#243542;color:#9daebd;opacity:1}
+/* Ver.6.16: collapsible detailed record */
+.next-home .next-fold{margin:12px 0}
+.next-home .next-fold-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;padding:12px 16px;border:1px solid #4d7f83;border-radius:8px;background:#1b2b38;color:#eef5f8;font-weight:900;font-size:15px;text-align:left}
+.next-home .next-fold-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.next-home .next-fold-toggle::after{content:"";flex:none;width:9px;height:9px;border-right:2.5px solid var(--accent);border-bottom:2.5px solid var(--accent);transform:rotate(45deg) translate(-2px,-2px)}
+.next-home .next-fold-toggle[aria-expanded=true]::after{transform:rotate(-135deg) translate(-2px,-2px)}

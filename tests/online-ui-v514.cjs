@@ -31,6 +31,7 @@ const fs = require("fs");
       p = t.page;
     await p.locator(".action-card.solo").click(); await p.locator('[data-solo-profile]').click();
     await p.getByRole("tab", { name: "対戦記録", exact: true }).click();
+    await p.locator("[data-detail-toggle]").click(); // Ver.6.16: history is inside the fold
     await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
     await p.reload();
     await p.locator(".action-card.online").click();

@@ -75,6 +75,9 @@ const { chromium, context } = require("./browser-harness.cjs");
       // new home: solo 成績 page -> 対戦記録 tab holds the ghost history
       await p.locator(".action-card.solo").click(); await p.locator('[data-solo-profile]').click();
       await p.getByRole("tab", { name: "対戦記録", exact: true }).click();   // Ver.6.4: the ghost history lives in the new profile's record tab
+      assert.equal(await p.locator("[data-detail-toggle]").getAttribute("aria-expanded"), "false", "detailed record starts closed");
+      assert.equal(await p.getByText("ゴースト対戦履歴", { exact: true }).count(), 0, "closed: the long history is not shown");
+      await p.locator("[data-detail-toggle]").click(); // Ver.6.16: the history sits inside 「詳細な成績を見る」
       await p.getByText("ゴースト対戦履歴", { exact: true }).waitFor();
       await p.getByText(/ハイパーゴースト/).first().waitFor(); // the history loads asynchronously
       assert.match(await p.locator("body").innerText(), /ハイパーゴースト/);

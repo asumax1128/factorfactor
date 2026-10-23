@@ -56,7 +56,8 @@
     "test:title-next": "node --test tests/title-compat-next.test.cjs && node tests/title-next-browser.cjs",
     "test:next-help": "node tests/next-help-browser.cjs",
     "test:login-ui": "node tests/login-ui-browser.cjs",
-    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs"
+    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs",
+    "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",
