@@ -30,6 +30,17 @@ async function openHelp(p){await p.locator('[data-home-tile=help]').click();awai
   for(const [id,d]of Object.entries(diff)){const card=await text(`[data-diff=${id}]`);for(const v of [d.label,`${d.clear}問`,`${d.tiles}枚`,`−${miss[id]}%`,`−${extra[id]}%`])assert(card.includes(v),id+' shows '+v);}
   const basic=await text('[data-guide-step=basic]');assert.match(basic,new RegExp(`イージー${diff.easy.tiles}枚、ノーマル${diff.normal.tiles}枚、ハード${diff.hard.tiles}枚`));
   assert.match(basic,/別々にタップするだけでは答えになりません/);
+  // Ver.6.15: STEP 1 is compact — each image shows its own caption on one phone screen, the images keep their aspect ratio and are
+  // never squashed, and the numbered marks sit exactly on the elements they describe (positions come from the capture data).
+  const gd=require('../ui-next/guide/guide-shots.json');
+  assert(/KaTeX_Main/.test(gd.shots.meta.fonts),'guide images were captured with the game math fonts');
+  const metrics=await help.locator('[data-guide-step=basic] .hg-flow>li').evaluateAll(es=>es.map(li=>{const im=li.querySelector('img'),r=im.getBoundingClientRect(),l=li.getBoundingClientRect();return {w:r.width,h:r.height,nw:im.naturalWidth,nh:im.naturalHeight,li:l.height};}));
+  for(const m of metrics){assert(Math.abs(m.w/m.h-m.nw/m.nh)<0.01*(m.nw/m.nh),'image keeps its aspect ratio');if(width<900)assert(m.li<=470,'image + caption fit one phone screen: '+m.li+' at '+width);}
+  if(width<900){const drag=metrics[1],corr=metrics[2];assert(drag.h<=215&&corr.h<=215,'drag / merge crops are one row: '+drag.h);assert(metrics[0].h<=330,'board crop is compact: '+metrics[0].h);}
+  assert.equal(await help.locator('[data-guide-strip] li').count(),4,'STEP 1 flow strip');
+  for(const name of ['s1-board','s1-drag','s1-correct','s1-miss','s2-perfect','s3-difficulty','s6-ghost-tiles']){for(const m of gd.shots[name].marks)assert(m.x>=0&&m.y>=0&&m.x+m.w<=100.5&&m.y+m.h<=100.5&&m.w>1&&m.h>1,'mark inside its image: '+name+' '+m.label);}
+  {const sh=await help.locator('[data-guide-shot=s1-drag]').evaluate(f=>{const fr=f.querySelector('.hg-frame').getBoundingClientRect();return [...f.querySelectorAll('.hg-mark')].map(m=>{const r=m.getBoundingClientRect();return {x:(r.x-fr.x)/fr.width*100,y:(r.y-fr.y)/fr.height*100};});});
+   const want=gd.shots['s1-drag'].marks;assert.equal(sh.length,want.length);sh.forEach((m,i)=>{assert(Math.abs(m.x-want[i].x)<1&&Math.abs(m.y-want[i].y)<1,'mark placed at its recorded element position');});}
   // table of contents jumps to each section
   for(const id of STEPS){await help.locator(`[data-toc=${id}]`).click();await p.waitForFunction(id=>{const r=document.getElementById('hg-'+id).getBoundingClientRect();return r.top>=-2&&r.top<innerHeight*0.45},id);}
   assert(!await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),'no horizontal scroll '+width);

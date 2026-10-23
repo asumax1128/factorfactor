@@ -31,6 +31,7 @@ export function Help({tiers,difficulties,missPenalty,timeoutExtra,questionMs,aLo
   <nav className="hg-toc" aria-label="あそびかたの目次">{STEPS.map(([id,label],i)=><button key={id} type="button" data-toc={id} onClick={()=>jump(id)}><b>{i+1}</b>{label}</button>)}</nav>
 
   <Step id="basic" n={1} hero title="因数分解の基本操作" lead="上の式を、下の因数タイル2枚のかけ算で作ろう。">
+   <ol className="hg-strip" aria-label="操作の流れ" data-guide-strip><li><b>1</b>式を見る</li><li><b>2</b>正しい2枚を探す</li><li><b>3</b>ドラッグして離す</li><li><b>4</b>合体！</li></ol>
    <ol className="hg-flow">
     <li><Shot name="s1-board" marks={[['式',1],['タイル1',2],['タイル2',2]]}/><div><h3><b>1</b>上の式を見る</h3><h3><b>2</b>下のタイルから正しい2枚を探す</h3><p>タイルはイージー{difficulties.easy.tileCount}枚、ノーマル{difficulties.normal.tileCount}枚、ハード{difficulties.hard.tileCount}枚。</p></div></li>
     <li><Shot name="s1-drag" marks={[['押さえる',3],['ここで離す',3,'drop']]}/><div><h3><b>3</b>1枚を押さえたまま、もう1枚までドラッグして離す</h3><p>押さえたタイルは金色の枠になり、指まで線が伸びます。2枚を別々にタップするだけでは答えになりません。</p></div></li>

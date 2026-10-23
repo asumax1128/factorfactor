@@ -53,6 +53,7 @@ async function context(
     siteRoot = process.env.PW_SITE_ROOT ? path.resolve(process.env.PW_SITE_ROOT) : root,
     keepLogin = "observe",
     scale = undefined, // optional deviceScaleFactor (tools/capture-guide.cjs); tests leave it unset
+    realMathFonts = false, // opt-in (tools/capture-guide.cjs): serve KaTeX_Main/KaTeX_Math like the CDN stylesheet does on a real device
   } = {},
 ) {
   const ctx = await browser.newContext({
@@ -140,6 +141,16 @@ async function context(
       [/unpkg\.com\/tone/, "tone/build/Tone.js"],
       [/cdn.tailwindcss.com/, "@tailwindcss/browser/dist/index.global.js"],
     ];
+    // index.html loads katex.min.css from cdnjs, which declares the KaTeX_Main / KaTeX_Math faces the formulas use. Tests abort
+    // that request (no network), so formulas fall back to a system serif. With realMathFonts the same two faces are served from
+    // the repository's own copies (fonts/katex, identical KaTeX 0.16.9 files), so captured formulas look like the real game.
+    if (realMathFonts && /cdnjs\.cloudflare\.com\/ajax\/libs\/KaTeX\/[^/]+\/katex\.min\.css/.test(u.href))
+      return route.fulfill({
+        contentType: "text/css",
+        body:
+          '@font-face{font-family:KaTeX_Main;font-style:normal;font-weight:400;src:url(http://localhost/fonts/katex/KaTeX_Main-Regular.woff2) format("woff2")}' +
+          '@font-face{font-family:KaTeX_Math;font-style:italic;font-weight:400;src:url(http://localhost/fonts/katex/KaTeX_Math-Italic.woff2) format("woff2")}',
+      });
     for (const [re, file] of libs)
       if (re.test(u.href))
         return route.fulfill({

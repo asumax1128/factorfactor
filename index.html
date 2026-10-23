@@ -44,6 +44,7 @@
 <link rel="stylesheet" href="online-rated.css" />
 <link rel="stylesheet" href="ui-next/online-menu.css" />
 <link rel="stylesheet" href="ui-next/play-frame.css" />
+<link rel="stylesheet" href="ui-next/login.css" />
 <link rel="preload" href="fonts/katex/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/katex/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" crossorigin="anonymous" />
@@ -3449,30 +3450,30 @@ function AccountGate({ onDone }) {
     setBusy(false);
     onDone(r.acct);
   };
-  const inputStyle = { background: '#FBFAF7', color: '#1D2633', border: '1.5px solid #E4DED3', fontSize: '16px' };
+  // Ver.6.15: dark navy login (ui-next/login.css). Markup / colours only: the handlers below are exactly the previous ones.
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4" style={{ background: 'var(--v7-bg)', fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
+    <div className="lg-gate" data-login-gate>
       <FontImport />
-      <div className="w-full" style={{ maxWidth: '26rem' }}>
-        <div className="flex justify-center mb-4" style={{ animation: 'fxEnter 600ms ease both' }}><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" style={{ width: '100%', maxWidth: '220px', height: 'auto' }} /></div>
-        <div className="rounded-3xl p-5 v7-open" style={{ background: '#fff', border: '1px solid var(--v7-line)' }}>
-          <div className="text-center font-black text-lg mb-1" style={{ color: COLORS.ink, fontFamily: "'Zen Maru Gothic', sans-serif" }}>ようこそ！</div>
-          <p className="text-[11px] font-bold mb-3 text-center" style={{ color: COLORS.inkSoft }}>名前と4桁の合言葉でログインすると、成績・称号・レベル・苦手分析などが<br />どの端末からでも続きから遊べます</p>
-          <input value={nm} onChange={e => setNm(e.target.value.slice(0, 10))} placeholder="名前（10文字まで）" maxLength={10} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
-          <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="合言葉（4桁の数字）" inputMode="numeric" type="password" maxLength={4} className="w-full rounded-xl px-3 py-2 font-bold mb-2" style={inputStyle} />
-          <div className="grid grid-cols-2 gap-2">
-            <BigBtn small disabled={!fb.ready || busy} color="#E4572E" onClick={() => { uiSnd('ok'); doLogin(false); }}>ログイン</BigBtn>
-            <BigBtn small disabled={!fb.ready || busy} color="#1D2633" onClick={() => { uiSnd('ok'); doLogin(true); }}>新しく登録</BigBtn>
+      <main className="lg-wrap">
+        <img className="lg-logo" src="ui-next/logo-login.webp" alt="FACTOR × FACTOR" width="720" height="327" />
+        <section className="lg-card" aria-labelledby="lg-title">
+          <h1 id="lg-title">ようこそ！</h1>
+          <p className="lg-lead">名前と4桁の合言葉でログインすると、成績・称号・レベル・苦手分析などが<br />どの端末からでも続きから遊べます</p>
+          <label className="lg-field"><input value={nm} onChange={e => setNm(e.target.value.slice(0, 10))} placeholder="名前（10文字まで）" aria-label="名前" maxLength={10} /></label>
+          <label className="lg-field"><input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="合言葉（4桁の数字）" aria-label="合言葉（4桁の数字）" inputMode="numeric" type="password" maxLength={4} /></label>
+          <div className="lg-actions">
+            <button type="button" className="lg-btn lg-primary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(false); }}>ログイン</button>
+            <button type="button" className="lg-btn lg-secondary" disabled={!fb.ready || busy} onClick={() => { uiSnd('ok'); doLogin(true); }}>新しく登録</button>
           </div>
-          {!fb.ready && <p className="text-[11px] font-bold mt-2 text-center" style={{ color: COLORS.inkSoft }}>{fb.err || 'サーバーに接続しています…'}</p>}
-          {msg && <p className="text-xs font-bold mt-2 text-center" style={{ color: COLORS.coral }}>{msg}</p>}
-          <div className="mt-4 pt-3" style={{ borderTop: '1px dashed var(--v7-line)' }}>
-            <button onClick={() => { uiSnd('ok'); const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }} className="v7-sub-btn" style={{ fontSize: 14, padding: 11 }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
-            <p className="text-[10px] font-bold mt-1 text-center" style={{ color: COLORS.inkSoft }}>あとで登録すると、ゲストの記録を引き継げます</p>
+          {!fb.ready && <p className="lg-status">{fb.err || 'サーバーに接続しています…'}</p>}
+          {msg && <p className="lg-error" role="alert">{msg}</p>}
+          <div className="lg-guest">
+            <button type="button" className="lg-btn" onClick={() => { uiSnd('ok'); const n = nm.trim().slice(0, 10) || 'ゲスト'; saveLS(NAME_LS, n); onDone({ guest: true, name: n }); }}>ゲストで遊ぶ（記録はこの端末だけ・通信なしでもOK）</button>
+            <p className="lg-note">あとで登録すると、ゲストの記録を引き継げます</p>
           </div>
-        </div>
-        <div className="text-center mt-3"><ConnCheck v7 /></div>
-      </div>
+        </section>
+        <div className="lg-conn"><ConnCheck v7 dark /></div>
+      </main>
     </div>
   );
 }
@@ -6493,7 +6494,7 @@ function TourSplit({ code, state, m, onClose }) {
 }
 
 /* ---------- 接続チェック：つながらない端末の原因を調べる ---------- */
-function ConnCheck({ v7 }) {
+function ConnCheck({ v7, dark }) {
   const [open, setOpen] = useState(false);
   const [r, setR] = useState(null);
   const run = async () => {
@@ -6522,7 +6523,7 @@ function ConnCheck({ v7 }) {
     {v7 ? <button onClick={() => { setOpen(true); run(); }} className="v7-pill v7-cur"><V7Icon name="wifi" />接続チェック</button>
       : <button onClick={() => { setOpen(true); run(); }} className="text-[10px] font-bold rounded-full px-3 py-1" style={{ background: '#ffffff33', color: '#ffffffcc' }}>📶 接続チェック</button>}
     {open && <div onClick={() => setOpen(false)} className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(29,38,51,.45)', zIndex: 90 }}>
-      <div onClick={e => e.stopPropagation()} className="w-full rounded-2xl p-4 v7-open text-left" style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '26rem' }}>
+      <div onClick={e => e.stopPropagation()} className={'w-full rounded-2xl p-4 v7-open text-left' + (dark ? ' cc-dark' : '')} style={{ background: COLORS.paper, border: '1px solid var(--v7-line)', boxShadow: '0 16px 40px rgba(0,0,0,.25)', maxWidth: '26rem' }}>
         <div className="flex items-center justify-between mb-2"><div className="font-black" style={{ color: COLORS.ink }}>📶 接続チェック</div><button onClick={() => setOpen(false)} className="v7-pill v7-cur" data-snd="back">とじる</button></div>
         {!r ? <p className="text-sm" style={{ color: COLORS.inkSoft }}>調べています…（10秒ほど）</p> : (<>
           {r.map(([a, st, b]) => <div key={a} className="flex gap-2 text-xs py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}><span className="font-black w-5">{st === 'ok' ? '✅' : st === 'ng' ? '❌' : 'ℹ️'}</span><span className="font-black w-28 shrink-0" style={{ color: COLORS.ink }}>{a}</span><span className="break-all" style={{ color: COLORS.inkSoft }}>{b}</span></div>)}

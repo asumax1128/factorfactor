@@ -41,6 +41,12 @@
 .next-home .hg .hg-flow>li>div{min-width:0}
 .next-home .hg .hg-flow>li+li{padding-top:16px;border-top:1px dashed #33495a}
 .next-home .hg .hg-flow>li.hg-miss h3 b{background:#ff8a75}
+/* Ver.6.15: STEP 1 at a glance (the whole flow in one row) and compact images on phones */
+.next-home .hg .hg-strip{list-style:none;margin:0 0 14px;padding:10px;display:flex;flex-wrap:wrap;gap:8px 6px;justify-content:center;border:1px solid #4d7f83;border-radius:10px;background:#16303a}
+.next-home .hg .hg-strip li{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:900;color:#eef5f8;white-space:nowrap}
+.next-home .hg .hg-strip li+li::before{content:"→";margin-right:2px;color:var(--accent);font-weight:900}
+.next-home .hg .hg-strip b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ffc94d;color:#1a1500;font:900 12px/1 var(--number)}
+@media (max-width:759px){.next-home .hg .hg-flow .hg-shot{max-width:300px}.next-home .hg .hg-flow{gap:12px}.next-home .hg .hg-flow>li{gap:8px}.next-home .hg .hg-flow>li+li{padding-top:12px}.next-home .hg .hg-two .hg-shot,.next-home .hg .hg-mode .hg-shot{max-width:320px}}
 /* lists */
 .next-home .hg .hg-points{list-style:none;margin:10px 0;padding:0;display:grid;gap:9px}
 .next-home .hg .hg-points li{display:flex;align-items:flex-start;font-size:14px;line-height:1.6;color:#d8e4ea}

@@ -54,7 +54,9 @@
     "test:next-menus": "node tests/next-menu-shell-browser.cjs",
     "test:weekly-next": "node --test tests/weekly-next.test.cjs",
     "test:title-next": "node --test tests/title-compat-next.test.cjs && node tests/title-next-browser.cjs",
-    "test:next-help": "node tests/next-help-browser.cjs"
+    "test:next-help": "node tests/next-help-browser.cjs",
+    "test:login-ui": "node tests/login-ui-browser.cjs",
+    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

@@ -85,9 +85,9 @@ jobs:
             scripts: test:tower:browser test:tower:rpg test:tower:polish test:tower:flow test:audio test:tower:background test:tower:recovery
           - shard: emulator-artifact
             emulator: true
-            scripts: test:chromebook test:ghost
+            scripts: test:chromebook test:ghost test:next-help test:login-ui test:solo-difficulty
             # The published payload is precompiled (no Babel); these suites run against that exact artifact.
-            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook
+            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook test:next-help test:login-ui
     name: test (${{ matrix.shard }})
     env:
       # Failure evidence: tests/browser-harness.cjs saves screenshots + visible text of pages still open when a browser test fails (mock data only).
