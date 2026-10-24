@@ -135,9 +135,11 @@ test("explicit legacy adventure restore keeps post-migration permanent and other
 });
 test("a future save format is never silently downgraded or overwritten", () => {
   assert.throws(
-    () => R.migrate({ schemaVersion: 1, progressVersion: 3, revision: 12 }),
+    () => R.migrate({ schemaVersion: 1, progressVersion: 4, revision: 12 }),
     /新しい版/,
   );
+  // Ver.6.17: progressVersion 3 is the current format.
+  assert.equal(R.migrate({ schemaVersion: 1, progressVersion: 3, revision: 12 }).revision, 12);
 });
 test("approved battle and math-level rules remain structurally identical to production 9597af4", () => {
   const cp = require("node:child_process"),

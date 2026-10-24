@@ -25,14 +25,19 @@
       const response = await root.fetch(root.MathTowerContentUrl, {
         cache: "no-cache",
       });
-      if (!response.ok) throw Error("第1章の素材を読み込めませんでした");
+      if (!response.ok) throw Error("素材を読み込めませんでした");
       content = await response.json();
       await access(db, uid, acct);
     } else {
       content = (await db.ref(`${BASE}/content/${key}/chapter1`).get()).val();
     }
-    if (!content || content.chapter !== 1 || content.version !== 1)
-      throw Error("第1章のコンテンツが準備されていません");
+    // The old chapter-one file, or AXIOMIA part 1 (layers). Anything else is not played.
+    if (
+      !content ||
+      content.version !== 1 ||
+      (content.chapter !== 1 && content.part !== 1)
+    )
+      throw Error("コンテンツが準備されていません");
     const value = (await db.ref(`${BASE}/trialProgress/${key}`).get()).val();
     const progress = root.MathTowerRules.migrate(value);
     return { key, content, progress };

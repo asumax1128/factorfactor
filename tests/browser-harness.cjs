@@ -52,6 +52,7 @@ async function context(
     emulatorNetwork = false,
     siteRoot = process.env.PW_SITE_ROOT ? path.resolve(process.env.PW_SITE_ROOT) : root,
     keepLogin = "observe",
+    axiomia = false, // Ver.6.17: the tower tests of the old chapter-one story keep running on chapter1.json; AXIOMIA part 1 tests pass true
     scale = undefined, // optional deviceScaleFactor (tools/capture-guide.cjs); tests leave it unset
     realMathFonts = false, // opt-in (tools/capture-guide.cjs): serve KaTeX_Main/KaTeX_Math like the CDN stylesheet does on a real device
   } = {},
@@ -121,6 +122,8 @@ async function context(
             : "application/javascript",
           body: assetOverrides[u.pathname],
         });
+      if (!axiomia && u.pathname === "/math-tower-release.js")
+        return route.fulfill({ contentType: "application/javascript", body: 'window.MathTowerContentUrl = "math-tower/chapter1.json";' });
       if (towerContent && u.pathname === "/math-tower/chapter1.json")
         return route.fulfill({ json: towerContent });
       const f = path.resolve(siteRoot, "." + u.pathname);

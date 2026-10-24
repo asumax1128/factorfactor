@@ -8,3 +8,7 @@ esbuild.buildSync({
   format: "iife",
   legalComments: "inline",
 });
+// Ver.6.17: the AXIOMIA scripts (docs/axiomia/story) -> math-tower/axiomia-part1.json
+const fs = require("node:fs");
+const axiomia = require("./build-axiomia.cjs");
+fs.writeFileSync(axiomia.OUT, axiomia.serialize(axiomia.build()));

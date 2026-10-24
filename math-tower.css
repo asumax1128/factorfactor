@@ -1170,3 +1170,44 @@
     animation: none !important;
   }
 }
+
+/* AXIOMIA: title / location / fragment cards inside the story stage (text comes from the approved scripts). */
+.mt-card {
+  position: absolute;
+  inset: 12% 6% auto;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  padding: 16px 14px;
+  text-align: center;
+  background: #091333dd;
+  border: 1px solid #d4a017;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px #0008;
+}
+.mt-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.mt-card-xs {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: #f3d27a;
+}
+.mt-card-sm {
+  font-size: 14px;
+  color: #cdd6ee;
+}
+.mt-card-md {
+  font-size: 15px;
+}
+.mt-card-lg {
+  font-size: clamp(20px, 5.6vw, 32px);
+  font-weight: 700;
+}
+.mt-card-xl {
+  font-size: clamp(26px, 7.4vw, 44px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}

@@ -9,12 +9,12 @@ if (fs.existsSync(out)) fs.rmSync(out, { recursive: true });
 fs.mkdirSync(out);
 const materialHash = crypto
   .createHash("sha256")
-  .update(fs.readFileSync(path.join(root, "math-tower/chapter1.json")))
+  .update(fs.readFileSync(path.join(root, "math-tower/axiomia-part1.json")))
   .digest("hex")
   .slice(0, 16);
 fs.writeFileSync(
   path.join(root, "math-tower-release.js"),
-  '/* Public game material, expressly approved on 2026-10-13. */\nwindow.MathTowerContentUrl = "math-tower/chapter1.json?v=' +
+  '/* Public game material, expressly approved on 2026-10-13. */\nwindow.MathTowerContentUrl = "math-tower/axiomia-part1.json?v=' +
     materialHash +
     '";\n',
 );
@@ -42,6 +42,7 @@ const allowed = [
   "math-tower-release.js",
   "math-tower.css",
   "math-tower/chapter1.json",
+  "math-tower/axiomia-part1.json",
 ];
 for (const name of allowed) {
   const target = path.join(out, name);
@@ -124,6 +125,24 @@ assert.deepEqual(Object.keys(c.floors).sort(), ["1", "2", "3", "4", "5"]);
   const L = require("../math-tower-core.js").layout(c);
   assert.equal(L.floorCount, 5);
   assert.equal(L.bossFloor, 5);
+}
+{
+  // Ver.6.17: AXIOMIA part 1. Same approved battle policy; every layer lays out; every referenced picture is published.
+  const part = JSON.parse(
+    fs.readFileSync(path.join(out, "math-tower/axiomia-part1.json")),
+  );
+  assert.equal(part.part, 1);
+  assert.equal(part.version, 1);
+  assert.deepEqual(part.policy, require("../math-tower-policy.json"), "Approved policy must be unchanged");
+  const core = require("../math-tower-core.js");
+  for (const n of core.layerNumbers(part)) {
+    const v = core.view(part, n);
+    assert.equal(v.policy.floorCount, 5);
+    assert.equal(v.policy.bossFloor, 5);
+    for (const f of [1, 2, 3, 4, 5]) assert(v.flow.pre(f).length && v.flow.post(f).length, `layer ${n} floor ${f} has story`);
+  }
+  for (const x of [...Object.values(part.characters), ...Object.values(part.backgrounds)])
+    if (x.image) assert(fs.existsSync(path.join(out, x.image)), "published picture missing: " + x.image);
 }
 const files = [];
 function walk(dir) {

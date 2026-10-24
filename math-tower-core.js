@@ -8,6 +8,9 @@
   // from content.floors). Without them the chapter-one values apply: 5 floors, boss on floor 5.
   const lastFloor = (p) => (p && p.floorCount) || 5,
     bossFloor = (p) => (p && p.bossFloor) || lastFloor(p);
+  // Ver.6.17: AXIOMIA part 1 has several layers (each with 5 locations). Progress that belongs to a layer
+  // is stored under "L<layer>-<floor>"; the old chapter-one content keeps the bare floor number.
+  const fk = (p, f) => ((p && p.keyPrefix) || "") + f;
   function layout(content) {
     const floors = Object.keys((content && content.floors) || {})
       .map(Number)
@@ -159,7 +162,7 @@
   function fresh() {
     return {
       schemaVersion: 1,
-      progressVersion: 2,
+      progressVersion: 3,
       adventures: {},
       clearedFloors: {},
       purpose: "trial",
@@ -172,6 +175,7 @@
       notes: {},
       newInfo: {},
       fragment: false,
+      fragments: {},
       reward: false,
       history: {},
       difficulties: Object.fromEntries(
@@ -183,7 +187,7 @@
   function migrate(value) {
     const raw = copy(value || {}),
       n = { ...fresh(), ...raw };
-    if ((raw.progressVersion || 1) > 2 || (raw.schemaVersion || 1) > 1)
+    if ((raw.progressVersion || 1) > 3 || (raw.schemaVersion || 1) > 1)
       throw Error(
         "この記録には新しい版の数学の塔が必要です。更新してから読み込んでください",
       );
@@ -197,6 +201,7 @@
       "history",
       "clearedFloors",
       "adventures",
+      "fragments",
     ])
       n[k] = n[k] || {};
     n.difficulties = Object.fromEntries(
@@ -206,6 +211,9 @@
           best: 0,
           hp: 100,
           ...(raw.difficulties || {})[d],
+          layerBest: {
+            ...((raw.difficulties || {})[d] || {}).layerBest,
+          },
           records: Object.fromEntries(
             Object.entries(
               ((raw.difficulties || {})[d] || {}).records || {},
@@ -214,7 +222,7 @@
         },
       ]),
     );
-    if (raw.progressVersion !== 2 && value) {
+    if (!(raw.progressVersion >= 2) && value) {
       n.migrationBackup = raw; // immutable original, including unknown fields
       n.migration = { from: 1, to: 2 };
       for (const d of Object.keys(CAPS)) {
@@ -255,20 +263,34 @@
       delete n.pendingStory;
     }
     for (const d of Object.values(n.difficulties)) {
-      if (raw.progressVersion !== 2)
+      if (!(raw.progressVersion >= 2))
         for (let f = 1; f <= d.best; f++) n.clearedFloors[f] = true;
       for (const f of Object.keys(d.records)) n.clearedFloors[f] = true;
     }
     for (const [f, count] of Object.entries(n.kills))
       if (count > 0) n.clearedFloors[f] = true;
-    n.progressVersion = 2;
+    // Ver.6.17 (progressVersion 3, AXIOMIA part 1 with layers). Everything stored before stays exactly as it was
+    // (old chapter-one records use bare floor numbers and old events keep their read flags); the new layers use
+    // their own "L<layer>-<floor>" keys and event ids, so a player who finished the old chapter starts the new
+    // story unread. The exact input is kept, unknown fields included, in migrationBackup2.
+    if ((raw.progressVersion || 1) < 3 && value) {
+      n.migrationBackup2 = copy(raw);
+      n.migration = { from: raw.progressVersion || 1, to: 3 };
+    }
+    n.progressVersion = 3;
     return n;
   }
-  function startAdventure(progress, difficulty, now) {
+  function startAdventure(progress, difficulty, now, layer) {
     if (!CAPS[difficulty]) throw Error("Invalid difficulty");
-    const n = migrate(progress);
+    const n = migrate(progress),
+      old = n.adventures[difficulty];
+    // An adventure from before the layers (no "layer" field) is set aside, not lost, when a layered one begins.
+    if (layer !== undefined && old && old.layer === undefined) {
+      n.legacyAdventures = { ...n.legacyAdventures, [difficulty]: copy(old) };
+    }
     n.adventures[difficulty] = {
       difficulty,
+      ...(layer !== undefined ? { layer } : {}),
       floor: 1,
       hp: 100,
       phase: "ready",
@@ -288,8 +310,15 @@
     const n = copy(progress),
       a = n.adventures[difficulty];
     if (a && a.phase === "post") {
-      a.phase = a.floor === lastFloor(p) ? "cleared" : "ready";
-      a.floor = Math.min(lastFloor(p), a.floor + 1);
+      if (a.floor === lastFloor(p) && p && p.nextLayer) {
+        // The last location of a layer is done and another layer follows: the same adventure goes on there.
+        a.layer = p.nextLayer;
+        a.floor = 1;
+        a.phase = "ready";
+      } else {
+        a.phase = a.floor === lastFloor(p) ? "cleared" : "ready";
+        a.floor = Math.min(lastFloor(p), a.floor + 1);
+      }
     }
     return n;
   }
@@ -300,6 +329,7 @@
     n.history[id] = {
       ...r,
       floor: s.floor,
+      ...(p.layer ? { layer: p.layer } : {}),
       difficulty: s.difficulty,
       mode,
       at: now,
@@ -316,7 +346,8 @@
       };
     }
     if (s.won) {
-      const old = d.records[s.floor];
+      const key = fk(p, s.floor),
+        old = d.records[key];
       const better =
         old &&
         (r.averageMs < old.averageMs ||
@@ -328,24 +359,95 @@
         r.accuracy > old.accuracy ||
         (r.accuracy === old.accuracy && better)
       )
-        d.records[s.floor] = {
+        d.records[key] = {
           ...r,
           firstClearAt: old ? old.firstClearAt : now,
         };
-      d.best = Math.max(d.best, s.floor);
-      n.notes[s.floor] = true;
-      n.newInfo["floor" + s.floor] = true;
-      n.kills[s.floor] = (n.kills[s.floor] || 0) + 1;
-      n.clearedFloors[s.floor] = true;
+      if (p.layer)
+        d.layerBest = {
+          ...d.layerBest,
+          [p.layer]: Math.max((d.layerBest || {})[p.layer] || 0, s.floor),
+        };
+      else d.best = Math.max(d.best, s.floor);
+      n.notes[key] = true;
+      n.newInfo["floor" + key] = true;
+      n.kills[key] = (n.kills[key] || 0) + 1;
+      n.clearedFloors[key] = true;
       if (s.floor === lastFloor(p)) {
-        n.fragment = true;
-        n.reward = true;
+        if (p.layer) n.fragments = { ...n.fragments, [p.layer]: true };
+        else {
+          n.fragment = true;
+          n.reward = true;
+        }
       }
     }
     return n;
   }
+  // The scenario shape the screens work with. Two content files exist:
+  //  - the old chapter-one file (content.chapter === 1): one layer, bare floor numbers, ids "prologue", "1-pre", ...
+  //  - AXIOMIA part 1 (content.part === 1): content.prologue.events + content.layers[]; each layer has its own
+  //    floors / events / notes / fragment / flow, and its progress is stored under "L<layer>-<floor>".
+  function layerNumbers(content) {
+    return content && Array.isArray(content.layers)
+      ? content.layers.map((l) => l.layer).sort((a, b) => a - b)
+      : [1];
+  }
+  function view(content, layer = 1) {
+    if (!content) throw Error("コンテンツがありません");
+    if (!Array.isArray(content.layers)) {
+      const policy = layout(content),
+        last = lastFloor(policy);
+      return {
+        ...content,
+        policy,
+        layer: 1,
+        legacy: true,
+        layerList: [1],
+        flow: {
+          prologue: ["prologue"],
+          intro: () => ["1-chapter"],
+          pre: (f) => [f + "-pre"],
+          post: (f) => [f + "-post", ...(f === last ? [f + "-epilogue"] : [])],
+        },
+        battleBg: (f) => (content.backgrounds || {})["f0" + f] || {},
+      };
+    }
+    const L = content.layers.find((x) => x.layer === layer);
+    if (!L) throw Error("この層はまだ実装されていません");
+    const list = layerNumbers(content),
+      next = list.find((n) => n > layer),
+      policy = {
+        ...layout({ ...content, floors: L.floors }),
+        keyPrefix: "L" + layer + "-",
+        layer,
+        ...(next ? { nextLayer: next } : {}),
+      };
+    return {
+      ...content,
+      title: L.title,
+      partTitle: content.title,
+      floors: L.floors,
+      notes: L.notes,
+      fragment: L.fragment,
+      events: [...((content.prologue || {}).events || []), ...L.events],
+      policy,
+      layer,
+      legacy: false,
+      layerList: list,
+      flow: {
+        prologue: ((content.prologue || {}).events || []).map((e) => e.id),
+        intro: () => [],
+        pre: (f) => (L.flow.pre || {})[f] || [],
+        post: (f) => (L.flow.post || {})[f] || [],
+      },
+      battleBg: (f) => content.backgrounds[(L.battleBg || {})[f]] || {},
+    };
+  }
   const api = {
     CAPS,
+    fk,
+    view,
+    layerNumbers,
     COMBO,
     validatePolicy,
     layout,

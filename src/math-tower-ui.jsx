@@ -1,7 +1,7 @@
-/* Chapter-one UI; Firebase protects trial access and progress. */
+/* AXIOMIA tower UI (old chapter one and part 1 with layers); Firebase protects trial access and progress. */
 (function (root) {
   const difficultyLabel = d => ({easy:"イージー",normal:"ノーマル",hard:"ハード"})[d] || d;
-  const { useState, useEffect, useRef } = React,
+  const { useState, useEffect, useRef, useMemo } = React,
     R = root.MathTowerRules,
     Store = root.MathTowerStore;
   let MathRenderer;
@@ -20,6 +20,21 @@
   }
   const line = (x) =>
     Array.isArray(x) ? { who: x[0], text: x[1], ...(x[2] || {}) } : x;
+  // A background is an adopted image (with an optional overlay) or a neutral placeholder drawn in CSS (to be replaced
+  // by setting `image`). `shade` is the darkening laid over an image.
+  const bgStyle = (b, shade = "linear-gradient(#09133344,#09133388)") =>
+    b && b.image
+      ? {
+          backgroundImage: `${b.overlay || shade},url("${b.image}")`,
+          backgroundPosition: b.focus || "50% 50%",
+        }
+      : b && b.css
+        ? {
+            backgroundImage: b.css,
+            ...(b.size ? { backgroundSize: b.size } : {}),
+            backgroundPosition: b.focus || "50% 50%",
+          }
+        : {};
   function Story({ events, content, progress, hero, onRead, onDone }) {
     const [ei, setEi] = useState(0),
       [li, setLi] = useState(0),
@@ -49,10 +64,12 @@
     const bookSeen = lines
       .slice(0, li + 1)
       .some((x) => ["book", "bookopen"].includes(x.fx));
-    const notebook = ev.id === "prologue" && bg === "classroom" && !bookSeen;
+    const inClassroom = String(bg).startsWith("classroom");
+    const notebook =
+      (ev.notebook ?? ev.id === "prologue") && inClassroom && !bookSeen;
     const book =
       ["book", "bookopen"].includes(l.fx) ||
-      (ev.id === "prologue" && bg === "classroom" && bookSeen);
+      ((ev.bookScene ?? ev.id === "prologue") && inClassroom && bookSeen);
     let sceneStart = 0;
     for (let j = 0; j <= li; j++) if (lines[j].bg) sceneStart = j;
     const visible = lines
@@ -100,12 +117,9 @@
         className="mt-story"
         data-math-story={ev.id}
         data-story-floor={ev.floor || 0}
-        style={{
-          backgroundImage: background.image
-            ? `linear-gradient(#09133344,#09133388),url("${background.image}")`
-            : undefined,
-          backgroundPosition: background.focus || "50% 50%",
-        }}
+        data-story-bg={bg || ""}
+        data-story-placeholder={background.placeholder ? "true" : undefined}
+        style={bgStyle(background)}
       >
         <header>
           <span>{ev.title || ""}</span>
@@ -171,7 +185,7 @@
               <i />
             </div>
           )}
-          {!ids.length && !notebook && !book && (
+          {!ids.length && !notebook && !book && l.kind !== "card" && (
             <span className="mt-symbol">
               {["book", "bookopen"].includes(l.fx)
                 ? "📖"
@@ -181,6 +195,15 @@
             </span>
           )}
           {l.kind === "title" && <h2 className="mt-title">{text}</h2>}
+          {l.kind === "card" && (
+            <div className="mt-card" data-math-card>
+              {(l.card || []).map((x, i) => (
+                <p key={i} className={"mt-card-" + x.s}>
+                  {x.t}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
         <button className="mt-dialog" onClick={next} data-math-dialog>
           <strong>{speaker}</strong>
@@ -414,7 +437,7 @@
     );
   }
   // Presentation only: results have already been committed before mounting.
-  function Victory({ outcome, onNext, background }) {
+  function Victory({ outcome, onNext, background, backgroundStyle }) {
     const [skip, setSkip] = useState(false),
       rank = outcome.rank;
     const stats = [
@@ -429,11 +452,13 @@
       <section
         className={"mt-victory" + (skip ? " mt-victory-skip" : "")}
         data-victory-rank={rank}
-        style={{
-          backgroundImage: background
-            ? `linear-gradient(#081331b8,#081331ed),url("${background}")`
-            : undefined,
-        }}
+        style={
+          backgroundStyle || {
+            backgroundImage: background
+              ? `linear-gradient(#081331b8,#081331ed),url("${background}")`
+              : undefined,
+          }
+        }
       >
         <div className="mt-victory-burst" aria-hidden="true" />
         <div className="mt-victory-stars" aria-hidden="true">
@@ -494,13 +519,23 @@
       [imageStates, setImageStates] = useState({}),
       [scale, setScale] = useState(1),
       [pan, setPan] = useState({ x: 0, y: 0 });
+    // Every layer of the scenario (one for the old chapter). Progress keys are per layer: see R.fk.
+    const views = useMemo(
+      () => R.layerNumbers(c).map((L) => R.view(c, L)),
+      [c],
+    );
+    const entries = views.flatMap((v) =>
+      Object.keys(v.floors)
+        .map(Number)
+        .map((f) => ({ v, f, key: R.fk(v.policy, f), id: v.floors[f] })),
+    );
     useEffect(() => {
       let live = true;
       const images = [];
-      for (const [f, id] of Object.entries(c.floors)) {
+      for (const { key, id } of entries) {
         const char = c.characters[id];
         if (
-          !p.seen[f] ||
+          !p.seen[key] ||
           !char.image ||
           (char.revealKey && !p.reveal[char.revealKey])
         )
@@ -528,20 +563,16 @@
       };
     }, [c, p.seen, p.reveal]);
     const drag = useRef(null);
-    let floors = Object.keys(c.floors)
-      .map(Number)
-      .filter((f) => p.seen[f]);
-    if (filter === "boss") floors = floors.filter((f) => f === R.bossFloor(c.policy));
-    if (filter === "alive") floors = floors.filter((f) => !p.kills[f]);
+    let floors = entries.filter((e) => p.seen[e.key]);
+    if (filter === "boss")
+      floors = floors.filter((e) => e.f === R.bossFloor(e.v.policy));
+    if (filter === "alive") floors = floors.filter((e) => !p.kills[e.key]);
     floors.sort((a, b) =>
       sort === "name"
-        ? name(c, c.floors[a], p.reveal).localeCompare(
-            name(c, c.floors[b], p.reveal),
-            "ja",
-          )
+        ? name(c, a.id, p.reveal).localeCompare(name(c, b.id, p.reveal), "ja")
         : sort === "count"
-          ? (p.kills[b] || 0) - (p.kills[a] || 0)
-          : a - b,
+          ? (p.kills[b.key] || 0) - (p.kills[a.key] || 0)
+          : a.v.layer - b.v.layer || a.f - b.f,
     );
     return (
       <section className="mt-panel" data-math-book>
@@ -555,48 +586,77 @@
           <Button onClick={() => setTab("journal")}>冒険日誌</Button>
         </nav>
         {tab === "notes" &&
-          c.notes
-            .filter((n) => p.notes[n.floor] && !n.fragment)
-            .map((n) => (
-              <article key={n.floor}>
-                <h3>{n.title}</h3>
-                <p>{n.law}</p>
-                {(n.formulas || []).map((f, i) => (
-                  <p key={i}>{f}</p>
-                ))}
-                <p>{n.point}</p>
+          views.flatMap((v) =>
+            v.notes
+              .filter(
+                (n) => p.notes[R.fk(v.policy, n.floor)] && !n.fragment,
+              )
+              .map((n) => (
+                <article key={v.layer + "-" + n.floor}>
+                  <h3>{n.title}</h3>
+                  <p>{n.law}</p>
+                  {(n.formulas || []).map((f, i) => (
+                    <p key={i}>{f}</p>
+                  ))}
+                  <p>{n.point}</p>
+                </article>
+              )),
+          )}
+        {tab === "notes" &&
+          !views.some((v) =>
+            Object.keys(v.floors).some((f) => p.notes[R.fk(v.policy, f)]),
+          ) && <p>冒険を進めると記録が増えます。</p>}
+        {tab === "notes" &&
+          views
+            .filter((v) => (v.legacy ? p.fragment : p.fragments[v.layer]))
+            .map((v) => (
+              <article key={"fragment-" + v.layer}>
+                <h3>
+                  {v.fragment.title}「{v.fragment.name}」
+                </h3>
+                <p>{v.fragment.law}</p>
               </article>
             ))}
-        {tab === "notes" && !Object.keys(p.notes).length && (
-          <p>冒険を進めると記録が増えます。</p>
-        )}
-        {tab === "notes" && p.fragment && (
-          <article>
-            <h3>
-              {c.fragment.title}「{c.fragment.name}」
-            </h3>
-            <p>{c.fragment.law}</p>
-          </article>
-        )}
         {tab === "journal" && (
           <article>
-            <h3>第1章</h3>
-            {Object.entries(p.difficulties).map(([d, x]) => (
-              <p key={d}>
-                {difficultyLabel(d)}：{x.best}/{R.lastFloor(c.policy)}階{" "}
-                {x.records[R.lastFloor(c.policy)] ? "章クリア" : ""}
-              </p>
-            ))}
-            {Object.entries(p.difficulties).flatMap(([d, x]) =>
-              Object.entries(x.records)
-                .filter(([, r]) => r != null)
-                .map(([floor, r]) => (
-                  <p key={d + floor}>
-                    {difficultyLabel(d)} 第{floor}階：最高{r.rank} ・ 正答率
-                    {Math.round(r.accuracy * 100)}%
+            {views.map((v) => (
+              <div key={v.layer}>
+                <h3>{v.legacy ? "第1章" : `第${v.layer}層`}</h3>
+                {Object.entries(p.difficulties).map(([d, x]) => (
+                  <p key={d}>
+                    {difficultyLabel(d)}：
+                    {v.legacy ? x.best : (x.layerBest || {})[v.layer] || 0}/
+                    {R.lastFloor(v.policy)}
+                    {v.legacy ? "階" : "地点"}{" "}
+                    {x.records[R.fk(v.policy, R.lastFloor(v.policy))]
+                      ? v.legacy
+                        ? "章クリア"
+                        : "層クリア"
+                      : ""}
                   </p>
-                )),
-            )}
+                ))}
+                {Object.entries(p.difficulties).flatMap(([d, x]) =>
+                  Object.entries(x.records)
+                    .filter(
+                      ([key, r]) =>
+                        r != null &&
+                        (v.legacy
+                          ? !String(key).startsWith("L")
+                          : String(key).startsWith(v.policy.keyPrefix)),
+                    )
+                    .map(([key, r]) => (
+                      <p key={d + key}>
+                        {difficultyLabel(d)}{" "}
+                        {v.legacy
+                          ? `第${key}階`
+                          : `第${String(key).slice(v.policy.keyPrefix.length)}地点`}
+                        ：最高{r.rank} ・ 正答率
+                        {Math.round(r.accuracy * 100)}%
+                      </p>
+                    )),
+                )}
+              </div>
+            ))}
             <h3>最近の戦績</h3>
             {Object.entries(p.history)
               .filter(([, r]) => r != null)
@@ -604,7 +664,8 @@
               .slice(0, 10)
               .map(([id, r]) => (
                 <p key={id}>
-                  {difficultyLabel(r.difficulty || "")} 第{r.floor}階 ・{" "}
+                  {difficultyLabel(r.difficulty || "")}{" "}
+                  {r.layer ? `第${r.layer}層 第${r.floor}地点` : `第${r.floor}階`} ・{" "}
                   {r.mode === "replay" ? "再挑戦" : "本編"} ・{" "}
                   {r.rank || "敗北"}
                 </p>
@@ -633,13 +694,13 @@
                 <option value="alive">未討伐</option>
               </select>
             </label>
-            {floors.map((f) => {
-              const id = c.floors[f],
-                char = c.characters[id];
+            {floors.map(({ v, f, key, id }) => {
+              const char = c.characters[id];
               return (
-                <article key={f}>
+                <article key={key}>
                   <h3>
-                    {f}階 {name(c, id, p.reveal)}
+                    {v.legacy ? `${f}階` : `第${v.layer}層 ${f}地点`}{" "}
+                    {name(c, id, p.reveal)}
                   </h3>
                   {imageStates[id] === "ready" && (
                     <Button
@@ -657,8 +718,8 @@
                   {imageStates[id] === "error" && (
                     <p>画像は現在表示できません。</p>
                   )}
-                  <p>討伐 {p.kills[f] || 0}回</p>
-                  {p.kills[f] > 0 && (
+                  <p>討伐 {p.kills[key] || 0}回</p>
+                  {p.kills[key] > 0 && (
                     <>
                       <p>{(c.monsters[id] || {}).nature}</p>
                       <p>{(c.monsters[id] || {}).motif}</p>
@@ -772,6 +833,7 @@
         [screen, setScreen] = useState("loading"),
         [difficulty, setDifficulty] = useState("normal"),
         [floor, setFloor] = useState(1),
+        [layer, setLayer] = useState(1),
         [events, setEvents] = useState([]),
         [battle, setBattle] = useState(null),
         [prob, setProb] = useState(null),
@@ -788,6 +850,7 @@
         [impact, setImpact] = useState(null),
         [cutin, setCutin] = useState(null);
       const data = useRef(null),
+        viewRef = useRef(null),
         bref = useRef(null),
         screenRef = useRef(screen),
         pausedRef = useRef(false),
@@ -850,7 +913,6 @@
           await writer.current.idle();
           const latest = await Store.load(H.FB.db, H.FB.uid, acctRef.current);
           if (!life.current) return;
-          latest.content.policy = R.layout(latest.content);
           writer.current.reset(latest.progress);
           pending.current = null;
           afterStory.current = null;
@@ -917,7 +979,7 @@
         Store.load(H.FB.db, H.FB.uid, acct)
           .then((x) => {
             if (!live) return;
-            x.content.policy = R.layout(x.content);
+            R.view(x.content); // reject a scenario that cannot be laid out before showing anything
             writer.current.reset(x.progress);
             setData(x);
             setScreen("home");
@@ -965,8 +1027,27 @@
         }, 10000);
         return () => clearTimeout(timer);
       }, [saving]);
-      const content = loaded && loaded.content,
-        progress = loaded && loaded.progress;
+      const content = useMemo(() => {
+        if (!loaded) return null;
+        const list = R.layerNumbers(loaded.content);
+        return R.view(loaded.content, list.includes(layer) ? layer : list[0]);
+      }, [loaded && loaded.content, layer]);
+      viewRef.current = content;
+      const progress = loaded && loaded.progress;
+      // The scenario view of another layer, available at once (state updates only show on the next render).
+      const switchLayer = (L) => {
+        const list = R.layerNumbers(data.current.content),
+          n = list.includes(L) ? L : list[0];
+        viewRef.current = R.view(data.current.content, n);
+        setLayer(n);
+        return viewRef.current;
+      };
+      // An adventure from before the layers belongs to the old chapter and is not offered in the layered scenario.
+      const adventureOf = (pr, d) => {
+        const a = pr.adventures[d];
+        return a && (viewRef.current.legacy || a.layer !== undefined) ? a : null;
+      };
+      const unit = content && content.legacy ? "階" : "地点";
       useEffect(() => {
         if (screen !== "battle") return;
         const fit = () =>
@@ -1000,7 +1081,7 @@
       const showStory = (ids, next) => {
         const x = data.current;
         const list = ids
-          .map((id) => x.content.events.find((e) => e.id === id))
+          .map((id) => viewRef.current.events.find((e) => e.id === id))
           .filter(Boolean);
         if (!list.length) {
           next();
@@ -1034,13 +1115,14 @@
         setScreen("prepare");
       };
       const continueAdventure = (chosen = difficulty) => {
-        const adventure = data.current.progress.adventures[chosen];
+        const adventure = adventureOf(data.current.progress, chosen);
         if (!adventure) return;
+        const v = switchLayer(adventure.layer || 1);
         setDifficulty(chosen);
         setPlayMode("adventure");
         setFloor(adventure.floor);
         if (adventure.phase === "post") {
-          showPost(adventure.floor, chosen, "adventure");
+          showPost(adventure.floor, chosen, "adventure", v);
           return;
         }
         if (adventure.phase === "cleared") {
@@ -1053,10 +1135,14 @@
         }
         prepare(adventure.floor);
       };
-      const newAdventure = async (chosen) => {
+      const newAdventure = async (chosen, L = 1) => {
         if (writer.current.isBusy()) return;
         try {
-          await persist((p) => R.startAdventure(p, chosen, Date.now()));
+          const legacy = viewRef.current.legacy;
+          await persist((p) =>
+            R.startAdventure(p, chosen, Date.now(), legacy ? undefined : L),
+          );
+          if (!legacy) switchLayer(L);
           setDifficulty(chosen);
           setPlayMode("adventure");
           prepare(1);
@@ -1071,7 +1157,7 @@
         try {
           await persist((p) => {
             p.startedAt = p.startedAt || Date.now();
-            p.seen[floor] = true;
+            p.seen[R.fk(content.policy, floor)] = true;
             if (playMode === "adventure")
               p.adventures[difficulty].phase = "battle";
             return p;
@@ -1098,8 +1184,8 @@
             setScreen("battle");
             if (floor === R.bossFloor(content.policy))
               explain({
-                id: "nul",
-                title: "零の番人ヌル",
+                id: content.floors[floor],
+                title: content.characters[content.floors[floor]].trueName,
                 text: `能力：誤答ダメージ2倍（HP −${content.policy.miss * 2}）。時間切れはHP −${content.policy.timeout}です。`,
               });
             else if (difficulty === "hard")
@@ -1111,10 +1197,14 @@
           };
           const ids = [];
           if (floor === 1) {
-            if (!data.current.progress.read.prologue) ids.push("prologue");
-            ids.push("1-chapter");
+            ids.push(
+              ...content.flow.prologue.filter(
+                (id) => !data.current.progress.read[id],
+              ),
+              ...content.flow.intro(),
+            );
           }
-          ids.push(floor + "-pre");
+          ids.push(...content.flow.pre(floor));
           showStory(ids, begin);
         } catch (e) {
           setError(e.message);
@@ -1311,24 +1401,25 @@
         setPaused(false);
       };
       const restart = () =>
-        playMode === "replay" ? prepare(floor) : newAdventure(difficulty);
+        playMode === "replay"
+          ? prepare(floor)
+          : newAdventure(difficulty, content.layer);
       const exit = () => {
         sound.bgm(false);
         onExit();
       };
-      const showPost = (f, chosen = difficulty, mode = playMode) =>
+      const showPost = (f, chosen = difficulty, mode = playMode, v = content) =>
         showStory(
-          [
-            f + "-post",
-            ...(f === R.lastFloor(content.policy) ? [f + "-epilogue"] : []),
-          ],
+          v.flow.post(f),
           async () => {
             try {
               if (mode === "adventure")
-                await persist((p) => R.finishStory(p, chosen, content.policy));
+                await persist((p) => R.finishStory(p, chosen, v.policy));
               setScreen(
-                mode === "adventure" && f === R.lastFloor(content.policy)
-                  ? "chapterEnd"
+                mode === "adventure" && f === R.lastFloor(v.policy)
+                  ? v.policy.nextLayer
+                    ? "layerEnd"
+                    : "chapterEnd"
                   : "afterFloor",
               );
             } catch (e) {
@@ -1386,7 +1477,7 @@
             )}
           </>
         );
-      const d = progress.adventures[difficulty] || { hp: 100, floor: 1 },
+      const d = adventureOf(progress, difficulty) || { hp: 100, floor: 1 },
         enemy = content.characters[content.floors[floor]] || {};
       return (
         <main
@@ -1402,8 +1493,8 @@
           data-time-stopped={paused || !!attack || !!cutin || !!impact}
         >
           <header>
-            <h1>数学の塔</h1>
-            <span>先生試遊・第1章</span>
+            <h1>{content.legacy ? "数学の塔" : "AXIOMIA"}</h1>
+            <span>{content.legacy ? "先生試遊・第1章" : "先生試遊・第1部"}</span>
             <Button disabled={saving} onClick={exit}>
               タイトルへ
             </Button>
@@ -1411,8 +1502,12 @@
           {recoveryPanel}
           {screen === "home" && (
             <section className="mt-panel">
-              <h2>第1章</h2>
-              <p>{content.title}</p>
+              <h2>{content.legacy ? "第1章" : content.partTitle}</h2>
+              <p>
+                {content.legacy
+                  ? content.title
+                  : `第${content.layer}層「${content.title}」`}
+              </p>
               <nav className="mt-adventure-menu">
                 <Button onClick={() => setScreen("newSelect")}>
                   はじめから
@@ -1440,16 +1535,18 @@
                 数理の書
                 {Object.keys(progress.newInfo || {}).length ? " NEW" : ""}
               </Button>
-              {progress.read.prologue && (
+              {content.flow.prologue.some((id) => progress.read[id]) && (
                 <Button
                   onClick={() =>
-                    showStory(["prologue"], () => setScreen("home"))
+                    showStory(content.flow.prologue, () => setScreen("home"))
                   }
                 >
                   プロローグを読み返す
                 </Button>
               )}
-              {progress.migrationBackup && (
+              {(content.legacy
+                ? progress.migrationBackup
+                : progress.migrationBackup2 || progress.migrationBackup) && (
                 <Button onClick={() => setScreen("migrationBackup")}>
                   移行前の記録・復旧
                 </Button>
@@ -1467,7 +1564,16 @@
                 onClick={() => {
                   const url = URL.createObjectURL(
                     new Blob(
-                      [JSON.stringify(progress.migrationBackup, null, 2)],
+                      [
+                        JSON.stringify(
+                          content.legacy
+                            ? progress.migrationBackup
+                            : progress.migrationBackup2 ||
+                                progress.migrationBackup,
+                          null,
+                          2,
+                        ),
+                      ],
                       { type: "application/json" },
                     ),
                   );
@@ -1480,7 +1586,10 @@
               >
                 バックアップを保存
               </Button>
-              {Object.keys(R.migrate(progress.migrationBackup).adventures).map(
+              {(content.legacy
+                ? Object.keys(R.migrate(progress.migrationBackup).adventures)
+                : []
+              ).map(
                 (chosen) => (
                   <Button
                     key={chosen}
@@ -1494,7 +1603,9 @@
                 ),
               )}
               <p>
-                復元は選んだ難易度の進行中の冒険だけを戻します。移行後の図鑑・学習記録・クリア履歴・最高評価は消しません。
+                {content.legacy
+                  ? "復元は選んだ難易度の進行中の冒険だけを戻します。移行後の図鑑・学習記録・クリア履歴・最高評価は消しません。"
+                  : "旧第1章の冒険・既読・戦績は消さずに保存されています。AXIOMIA第1部の物語は最初から読めます。"}
               </p>
               <Button onClick={() => setScreen("home")}>戻る</Button>
             </section>
@@ -1530,19 +1641,23 @@
                   ? "はじめから"
                   : screen === "continueSelect"
                     ? "続きから"
-                    : `${floor}階の再挑戦`}
+                    : `${floor}${unit}の再挑戦`}
               </h2>
               {Object.keys(R.CAPS).map((chosen) => {
-                const a = progress.adventures[chosen];
+                const a = adventureOf(progress, chosen);
                 return (
                   <article key={chosen}>
                     <h3>{difficultyLabel(chosen)}</h3>
                     <p data-adventure={chosen}>
                       {!a
                         ? "データなし"
-                        : a.phase === "cleared"
-                          ? "第1章クリア"
-                          : `第${a.floor}階${a.phase === "post" ? "の会話から" : a.phase === "defeated" ? "・敗北（再開始）" : "から再開"} ・ HP ${a.hp}`}
+                        : content.legacy
+                          ? a.phase === "cleared"
+                            ? "第1章クリア"
+                            : `第${a.floor}階${a.phase === "post" ? "の会話から" : a.phase === "defeated" ? "・敗北（再開始）" : "から再開"} ・ HP ${a.hp}`
+                          : a.phase === "cleared"
+                            ? `第${a.layer}層クリア`
+                            : `第${a.layer}層 第${a.floor}地点${a.phase === "post" ? "の会話から" : a.phase === "defeated" ? "・敗北（再開始）" : "から再開"} ・ HP ${a.hp}`}
                     </p>
                     <Button
                       disabled={saving || (screen === "continueSelect" && !a)}
@@ -1572,7 +1687,10 @@
             <section className="mt-panel" role="dialog" aria-modal="true">
               <h2>{difficultyLabel(difficulty)}の冒険を置き換えますか？</h2>
               <p>
-                この難易度の進行中の冒険だけを第1階・HP100で置き換えます。他の難易度、クリア履歴、図鑑、学習記録、最高評価は残ります。
+                {content.legacy
+                  ? "この難易度の進行中の冒険だけを第1階・HP100で置き換えます。"
+                  : "この難易度の進行中の冒険だけを第1層の最初の地点・HP100で置き換えます。"}
+                他の難易度、クリア履歴、図鑑、学習記録、最高評価は残ります。
               </p>
               <Button
                 disabled={saving}
@@ -1587,19 +1705,36 @@
             <section className="mt-panel">
               <h2>クリアした階を選ぶ</h2>
               <p>再挑戦はHP100から開始。本編の冒険の進行・HPは変更しません。</p>
+              {content.layerList.length > 1 && (
+                <nav aria-label="層">
+                  {content.layerList.map((L) => (
+                    <Button
+                      key={L}
+                      aria-pressed={L === content.layer}
+                      onClick={() => setLayer(L)}
+                    >
+                      第{L}層
+                    </Button>
+                  ))}
+                </nav>
+              )}
               {Array.from(
                 { length: R.lastFloor(content.policy) },
                 (_, i) => i + 1,
               ).map((f) => (
                 <Button
                   key={f}
-                  disabled={!progress.clearedFloors[f]}
+                  disabled={!progress.clearedFloors[R.fk(content.policy, f)]}
                   onClick={() => {
                     setFloor(f);
                     setScreen("replaySelect");
                   }}
                 >
-                  {f}階{!progress.clearedFloors[f] ? " 未解放" : ""}
+                  {f}
+                  {unit}
+                  {!progress.clearedFloors[R.fk(content.policy, f)]
+                    ? " 未解放"
+                    : ""}
                 </Button>
               ))}
               <Button onClick={() => setScreen("home")}>戻る</Button>
@@ -1607,7 +1742,10 @@
           )}
           {screen === "prepare" && (
             <section className="mt-panel">
-              <h2>{floor}階の準備</h2>
+              <h2>
+                {floor}
+                {unit}の準備
+              </h2>
               <p>
                 HP {playMode === "replay" ? 100 : d.hp} ・{" "}
                 {difficultyLabel(difficulty)} ・{" "}
@@ -1618,7 +1756,7 @@
                   6枚から、掛け合わせると上の式になる2枚を選びます。1枚を押したまま、もう1枚へ線を引いて指（マウス）を離してください。
                 </p>
               )}
-              {progress.seen[floor] && (
+              {progress.seen[R.fk(content.policy, floor)] && (
                 <p>{name(content, content.floors[floor], progress.reveal)}</p>
               )}
               <Button disabled={saving} onClick={start}>
@@ -1631,9 +1769,13 @@
             <section className="mt-battle">
               <div
                 className={"mt-enemy" + (impact ? " mt-enemy-hit" : "")}
-                style={{
-                  backgroundImage: `url("${content.backgrounds["f0" + floor].image}")`,
-                }}
+                style={
+                  content.legacy
+                    ? {
+                        backgroundImage: `url("${content.backgrounds["f0" + floor].image}")`,
+                      }
+                    : bgStyle(content.battleBg(floor), "linear-gradient(#0000,#0000)")
+                }
               >
                 <h2>{name(content, content.floors[floor], progress.reveal)}</h2>
                 <img
@@ -1751,7 +1893,19 @@
               <Victory
                 outcome={outcome}
                 onNext={post}
-                background={content.backgrounds["f0" + floor].image}
+                background={
+                  content.legacy
+                    ? content.backgrounds["f0" + floor].image
+                    : undefined
+                }
+                backgroundStyle={
+                  content.legacy
+                    ? undefined
+                    : bgStyle(
+                        content.battleBg(floor),
+                        "linear-gradient(#081331b8,#081331ed)",
+                      )
+                }
               />
             ) : (
               <section className="mt-panel">
@@ -1769,32 +1923,48 @@
             ))}
           {screen === "restart" && (
             <section className="mt-panel">
-              <h2>{playMode === "replay" ? "同じ階の再挑戦" : "章の再挑戦"}</h2>
+              <h2>
+                {playMode === "replay"
+                  ? `同じ${unit}の再挑戦`
+                  : content.legacy
+                    ? "章の再挑戦"
+                    : "層の再挑戦"}
+              </h2>
               <p>
                 {playMode === "replay"
-                  ? "本編の保存はそのまま、この階をHP100で再挑戦します。"
-                  : "この難易度の冒険だけを1階・HP100で再開します。過去のランクと既読は残ります。"}
+                  ? `本編の保存はそのまま、この${unit}をHP100で再挑戦します。`
+                  : content.legacy
+                    ? "この難易度の冒険だけを1階・HP100で再開します。過去のランクと既読は残ります。"
+                    : `この難易度の冒険だけを第${content.layer}層の最初の地点・HP100から再開します。過去のランクと既読は残ります。`}
               </p>
               <Button disabled={saving} onClick={restart}>
-                {playMode === "replay" ? "この階を再挑戦" : "第1章を再開始"}
+                {playMode === "replay"
+                  ? `この${unit}を再挑戦`
+                  : content.legacy
+                    ? "第1章を再開始"
+                    : `第${content.layer}層を再開始`}
               </Button>
               <Button onClick={() => setScreen("home")}>ホームへ</Button>
             </section>
           )}
           {screen === "afterFloor" && (
             <section className="mt-panel" data-math-after-floor>
-              <h2>第{floor}階クリア</h2>
+              <h2>
+                第{floor}
+                {unit}クリア
+              </h2>
               <p>記録を保存しました。</p>
               {playMode === "adventure" ? (
                 <>
                   <p>
-                    {difficultyLabel(difficulty)} ・ HP {d.hp} ・ 次は第{d.floor}階
+                    {difficultyLabel(difficulty)} ・ HP {d.hp} ・ 次は第{d.floor}
+                    {unit}
                   </p>
                   <Button
                     disabled={saving || recovering}
                     onClick={() => chooseAfterFloor("next")}
                   >
-                    次の階へ進む
+                    {content.legacy ? "次の階へ進む" : "次の地点へ進む"}
                   </Button>
                 </>
               ) : (
@@ -1806,7 +1976,7 @@
                     disabled={saving || recovering}
                     onClick={() => chooseAfterFloor("floorSelect")}
                   >
-                    クリアした階を選ぶ
+                    {content.legacy ? "クリアした階を選ぶ" : "クリアした地点を選ぶ"}
                   </Button>
                 </>
               )}
@@ -1818,7 +1988,7 @@
               </Button>
             </section>
           )}
-          {screen === "chapterEnd" && (
+          {screen === "chapterEnd" && content.legacy && (
             <section className="mt-panel">
               <h2>第1章クリア</h2>
               <p>第一の断片を数理の書に記録しました。</p>
@@ -1830,9 +2000,37 @@
               </Button>
             </section>
           )}
+          {screen === "chapterEnd" && !content.legacy && (
+            <section className="mt-panel" data-math-layer-end="last">
+              <h2>第{content.layer}層クリア</h2>
+              <p>
+                {content.fragment.title}「{content.fragment.name}」を数理の書に記録しました。
+              </p>
+              <p>続きは制作中です。（試遊記録は公式称号・ランキングに反映されません）</p>
+              <Button onClick={() => setScreen("home")}>ホームへ</Button>
+              <Button disabled={saving} onClick={restart}>
+                第{content.layer}層を再挑戦
+              </Button>
+            </section>
+          )}
+          {screen === "layerEnd" && (
+            <section className="mt-panel" data-math-layer-end="next">
+              <h2>第{content.layer}層クリア</h2>
+              <p>
+                {content.fragment.title}「{content.fragment.name}」を数理の書に記録しました。
+              </p>
+              <Button
+                disabled={saving || recovering}
+                onClick={() => continueAdventure(difficulty)}
+              >
+                第{content.policy.nextLayer}層へ進む
+              </Button>
+              <Button onClick={() => setScreen("home")}>ホームへ</Button>
+            </section>
+          )}
           {screen === "book" && (
             <Book
-              c={content}
+              c={loaded.content}
               p={progress}
               closing={saving}
               onClose={() =>
