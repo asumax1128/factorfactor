@@ -57,7 +57,8 @@
     "test:next-help": "node tests/next-help-browser.cjs",
     "test:login-ui": "node tests/login-ui-browser.cjs",
     "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs",
-    "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs"
+    "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs",
+    "test:tower:axiomia": "node tests/math-tower-axiomia-browser.cjs"
   },
   "devDependencies": {
     "esbuild": "0.23.1",

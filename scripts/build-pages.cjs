@@ -14,7 +14,7 @@ const materialHash = crypto
   .slice(0, 16);
 fs.writeFileSync(
   path.join(root, "math-tower-release.js"),
-  '/* Public game material, expressly approved on 2026-10-13. */\nwindow.MathTowerContentUrl = "math-tower/axiomia-part1.json?v=' +
+  '/* Public game material: chapter one approved 2026-10-13; AXIOMIA part 1 (prologue + layer 1) approved for the same Pages delivery 2026-10-24. */\nwindow.MathTowerContentUrl = "math-tower/axiomia-part1.json?v=' +
     materialHash +
     '";\n',
 );

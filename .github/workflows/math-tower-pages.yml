@@ -59,7 +59,7 @@ jobs:
         id: release
         run: node -e 'const fs=require("fs"),v=require("./version.json"),sha=require("child_process").execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();fs.appendFileSync(process.env.GITHUB_OUTPUT,"version="+v.major+"."+v.minor+"\nsha="+sha+"\n")'
       - name: Check committed generated UI
-        run: git diff --exit-code -- next-home-ui.js next-results-ui.js game-version.js math-tower-ui.js math-tower-release.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
+        run: git diff --exit-code -- next-home-ui.js next-results-ui.js game-version.js math-tower-ui.js math-tower-release.js math-tower/axiomia-part1.json online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
       - run: npm run test:version
       - run: npm run test:tower
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -82,12 +82,12 @@ jobs:
           - shard: online-b
             scripts: test:online-playability test:online-v524 test:online-latency test:bounty-profile test:rating-history test:rating-display test:rewards-audit test:accounts
           - shard: tower
-            scripts: test:tower:browser test:tower:rpg test:tower:polish test:tower:flow test:audio test:tower:background test:tower:recovery
+            scripts: test:tower:browser test:tower:rpg test:tower:polish test:tower:flow test:audio test:tower:background test:tower:recovery test:tower:axiomia
           - shard: emulator-artifact
             emulator: true
             scripts: test:chromebook test:ghost test:next-help test:login-ui test:solo-difficulty test:ghost-profile-ui
             # The published payload is precompiled (no Babel); these suites run against that exact artifact.
-            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook test:next-help test:login-ui test:ghost-profile-ui
+            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook test:next-help test:login-ui test:ghost-profile-ui test:tower:axiomia
     name: test (${{ matrix.shard }})
     env:
       # Failure evidence: tests/browser-harness.cjs saves screenshots + visible text of pages still open when a browser test fails (mock data only).

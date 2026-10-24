@@ -1,6 +1,6 @@
 # 称号・実績・きせかえ実装監査
 
-対象: Ver.6.16（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
+対象: Ver.6.17（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
 
 ## システムの区別
 
@@ -79,3 +79,11 @@ node scripts/audit-rewards.cjsで3CSVと本書を生成。各CSVはUTF-8 BOM、C
 |img/monsters/sim.webp|動的参照を要確認|
 |img/monsters/slime.webp|動的参照を要確認|
 |img/monsters/wave.webp|動的参照を要確認|
+|img/axiomia/bg/classroom.webp|動的参照を要確認|
+|img/axiomia/chars/abs_wolf.webp|動的参照を要確認|
+|img/axiomia/chars/count_rabbit.webp|動的参照を要確認|
+|img/axiomia/chars/minus.webp|動的参照を要確認|
+|img/axiomia/chars/nul.webp|動的参照を要確認|
+|img/axiomia/chars/plus.webp|動的参照を要確認|
+|img/axiomia/chars/twin_fox.webp|動的参照を要確認|
+|img/axiomia/chars/zero_slime.webp|動的参照を要確認|

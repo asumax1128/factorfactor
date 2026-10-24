@@ -38,7 +38,14 @@ function tokenize(script, from, to) {
       line = i + 1;
     if (!s.trim() || /^---+\s*$/.test(s)) continue;
     let m;
-    if ((m = s.match(/^(#{1,6}) (.+?)\s*$/))) {
+    if (s.trim() === "\\[") {
+      // display mathematics (layers 3-9): a line of TeX between \[ and \]
+      let j = i + 1;
+      const tex = [];
+      for (; j < L.length && L[j].trim() !== "\\]"; j++) tex.push(L[j].trim());
+      out.push({ t: "math", text: tex.join(" "), line });
+      i = j;
+    } else if ((m = s.match(/^(#{1,6}) (.+?)\s*$/))) {
       out.push({ t: "h", level: m[1].length, text: m[2], line });
     } else if (/^<box\b/.test(s)) {
       const parts = [];
@@ -54,6 +61,8 @@ function tokenize(script, from, to) {
       i = j;
     } else if ((m = s.match(TAG))) {
       out.push({ t: "meta", tag: m[1], text: m[2], line });
+    } else if ((m = s.match(/^> \*\*(.+)\*\*\s*$/))) {
+      out.push({ t: "bold", text: m[1], line }); // a quoted, emphasised line (a saying / inscription)
     } else if ((m = s.match(DIALOGUE))) {
       out.push({ t: "dlg", who: m[1], text: m[2], line });
     } else if ((m = s.match(SPEAKER_ONLY))) {
@@ -63,7 +72,8 @@ function tokenize(script, from, to) {
       if (b) {
         out.push({ t: "dlg", who: m[1], text: b[1], line: j + 1 });
         i = j;
-      } else out.push({ t: "cue", text: m[1], line });
+      } else if (/^(戦闘開始|最終ボス戦開始)/.test(m[1])) out.push({ t: "cue", text: m[1], line });
+      else out.push({ t: "bold", text: m[1], line }); // an emphasised closing line such as "…へ続く。"
     } else if ((m = s.match(NARRATION))) {
       out.push({ t: "narr", text: m[1], line });
     } else if (script.plainIsNarration) {
@@ -254,6 +264,8 @@ function buildLines(script, id, tokens, ctx) {
       if (!who) throw Error(`${src}: unmapped speaker ${label}`);
       push(who, tok.text, who === "hero" ? null : { name: label }, src);
     } else if (tok.t === "narr") push("narr", tok.text, null, src);
+    else if (tok.t === "bold") push("narr", tok.text, { kind: "card", card: [{ s: "md", t: tok.text }] }, src);
+    else if (tok.t === "math") push("narr", tok.text, { kind: "math", tex: true }, src);
     else if (tok.t === "box") {
       const first = tok.parts.find((p) => p.tag === "title") || tok.parts[0];
       if ((NOTE_BOXES[id] || []).includes(first.text)) push("narr", first.text, { kind: "note", fx: "noteglow" }, src);
@@ -316,7 +328,7 @@ function buildPrologue() {
   const events = scenes.map((s, i) => {
     const n = i + 1,
       id = "AX1-L00-S" + n;
-    return event(script, id, "プロローグ " + s.h.text.replace("｜", " ｜ "), s.toks, { cardFx: n === 1 ? "fadein" : undefined }, s.h);
+    return event(script, id, "プロローグ ｜ " + s.h.text.split("｜")[1], s.toks, { cardFx: n === 1 ? "fadein" : undefined }, s.h);
   });
   return { script, events };
 }
@@ -356,6 +368,7 @@ function buildLayer(layer, file, names) {
   const special = (re, id, title, bg, lead) => {
     const s = sections.find((x) => re.test(x.h.text));
     if (!s) throw Error(`${file}: section ${re} not found`);
+    if (!lead) skip(script, s.h, "heading (the card below carries the same words)");
     const ev = event(script, id, title, s.toks, {}, lead ? s.h : null);
     ev.bg = ev.bg || bg;
     events.push(ev);
