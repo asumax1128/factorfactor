@@ -1798,3 +1798,53 @@ x^2+5x+6=(x+2)(x+3)
 
 ## 制作・実装への引き継ぎ事項
 
+### 最終ボスの二段階変化
+
+| 項目 | 脚本上の指定 |
+|---|---|
+| 開始形態 | 因数の王 |
+| 覚醒形態 | 真・因数の王 |
+| 推奨覚醒条件 | 残りHP50％以下になった最初の正解後 |
+| 戦闘方式 | 既存の因数分解ボス戦を継続 |
+| HP | 形態変化時に引き継ぐ |
+| 勝利後 | 王は第1形態へ戻り、和解する |
+| 結末 | 王自身が封印を解除する |
+
+HP50％という数値は、**脚本上の推奨値であり、ゲームバランス上の最終決定ではありません**。実装時に開発ディレクターが調整できます。
+
+### 重要な物語設定
+
+- 主人公は転生者ではなく、過去にもAXIOMIAを訪れた同一人物。
+- 精霊は主人公と王のかつての仲間。過去に身体を失い、本の中に意識を残していた。
+- 王は悪意からではなく、世界を守るために封印を選んだ。
+- 最初の異変の根本原因は、**第1部では未解明**のまま残す。
+- 精霊は封印解除後に身体を取り戻す。
+- 主人公は記憶を失わず現実世界へ帰還する。
+- 第1部として物語を完結させ、続編への余地だけを残す。
+
+## 最終承認の確認
+
+{@body const items = ["第10層・全5地点の詳細脚本","主人公・精霊・王の過去と三人の約束","因数の王から真・因数の王への二段階戦闘","王との和解・始原の環の復活","精霊の身体の復活と三人の再会","最後の一行・現実世界への帰還・第1部完"]}
+{@body const [checks,setChecks] = DIL.useState(items.map(()=>true))}
+{@body const [decision,setDecision] = DIL.useState("approve")}
+{@body const [notes,setNotes] = DIL.useState("")}
+<box border radius="xl" padding={3} gap={3}>
+  <text weight="medium">承認対象</text>
+  {#each items as item,i}
+    <checkbox key={i} checked={checks[i]} onChange={v=>setChecks(old=>old.map((x,j)=>j===i?v:x))} lineThrough={false}>{item}</checkbox>
+  {/each}
+  <divider color="subtle"/>
+  <radio-group direction="col" value={decision} onChange={setDecision}>
+    <radio value="approve">正式承認する</radio>
+    <radio value="revise">修正してから承認する</radio>
+  </radio-group>
+  {#if decision==="revise" || checks.some(v=>!v)}
+    <textarea rows={3} value={notes} onChange={setNotes} placeholder="修正したい箇所・希望する展開を入力してください"/>
+  {/if}
+  <button block disabled={decision==="approve"&&checks.some(v=>!v)} onClick={()=>GenUI.issueNewTurn(decision==="approve"?"AXIOMIA第10層の詳細脚本を正式承認します。第1部全ストーリーのGitHub保存工程に進んでください。保存先はasumax1128/factorfactorのみです。":`AXIOMIA第10層の詳細脚本は修正を希望します。${notes||"未チェック項目を見直してください。"} 対象：${items.filter((_,i)=>!checks[i]).join("、")}`)}>
+    {decision==="approve"?"詳細脚本を正式承認":"修正を依頼"}
+    <icon name="arrow-right" size="sm"/>
+  </button>
+</box>
+
+正式承認後は、ご指定どおり **`asumax1128/factorfactor`** のみを使用して、プロローグから第10層までのストーリーをGitHubへ保存する工程に進みます。旧 `factorfactor-dev` は参照も保存もしません。
