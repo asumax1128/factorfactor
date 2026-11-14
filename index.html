@@ -959,20 +959,6 @@ const PERIOD_CHAMPIONS = {
   ],
 };
 
-// 過去の期間優勝者(タイトル画面いちばん下にアーカイブとして表示)。
-// 新しい期間の優勝者が確定したら、現在のPERIOD_CHAMPIONSをここに追加し、
-// PERIOD_CHAMPIONSを新しい期間の内容に書き換える運用。
-const PAST_PERIOD_CHAMPIONS = [
-  {
-    label: '7月前期',
-    entries: [
-      { difficulty: 'hard',   name: 'てるい',           score: 3470, caught: 50 },
-      { difficulty: 'normal', name: 'お荷物プレイヤー', score: 1425, caught: 30 },
-      { difficulty: 'easy',   name: 'はーちゃん',       score: 511,  caught: 15 },
-    ],
-  },
-];
-
 /* ランキングの永続化 (localStorage) */
 const RANKING_STORAGE_KEY = 'factorxfactor_ranking_v1';
 // 起動時に「書いて読み戻せるか」を実際に試す。file://直開き+ブラウザの
@@ -2513,8 +2499,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
           <button className="v7-pill" onClick={()=>onMode?.('home')}>ホームへ</button>
           <div className="v7-logo"><img src={LOGO_DATA_URI} alt="FACTOR × FACTOR" /></div>
           <div className="v7-col">
-            {renderMenu && <button className="small-button v7-solo-back" data-snd="back" data-solo-back onClick={() => onMode?.('solo')}>← ソロへ戻る</button>}
-            {acct && !renderMenu && <AccountPanelV7 acct={acct} onLogout={onLogout} onProfile={()=>onMode?.('profile')} />}
+            <button className="small-button v7-solo-back" data-snd="back" data-solo-back onClick={() => onMode?.('solo')}>← ソロへ戻る</button>
             <div className="v7-panel">
               <div className="v7-cap"><span>ソロで遊ぶ</span><span className="flex items-center gap-2">{soloBest > 0 && <span>ベスト {soloBest.toLocaleString()}点</span>}<button className="v7-link" onClick={() => setMenuWin('lv')}>レベル表</button></span></div>
               {!isReal(acct) && <input
@@ -2568,22 +2553,9 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
             </div>
           </div>
           <div className="v7-col">
-            {!renderMenu && <button className="v7-sub-btn v7-cur" onClick={() => onBattle && onBattle()}><V7Icon name="vs" />{renderMenu ? 'オンライン対戦' : 'オンライン対戦（ロビー）'}</button>}
-            {!renderMenu && <div className="v7-tiles4">
-              {!renderMenu && <DailyTileV7 acct={acct} onOpen={() => onMode && onMode('daily')} />}
-              {!renderMenu && <WeeklyTileV7 acct={acct} onOpen={() => onMode && onMode('raidw')} />}
-              <MathTowerTile acct={acct} onOpen={() => onMode && onMode('tower')} />
-              <button className="v7-tile v7-cur" onClick={() => onMode && onMode('learn')}><div className="top"><span className="v7-ico"><V7Icon name="book" /></span></div><b>学びの部屋</b><span className="s">苦手分析・ドリル・図鑑</span></button>
-            </div>}
             <div className="v7-foot">
-              {!renderMenu && GAS_ENDPOINT_URL !== '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); loadNetRanking(); }}><V7Icon name="cup" />ランキング</button>}
-              {!renderMenu && GAS_ENDPOINT_URL === '' && <button className="v7-pill v7-cur" onClick={() => { setMenuWin('rank'); setRankTab('local'); }}><V7Icon name="cup" />ランキング</button>}
-              {!renderMenu && <button className="v7-pill v7-cur" onClick={() => { setTutorialStep(0); setScreen('tutorial'); }}><V7Icon name="help" />あそびかた</button>}
               <ConnCheck v7 />
               <button className="v7-pill v7-cur" data-snd="none" onClick={() => { const m = !uiMuted; setUiMute(m); setUiMuted(m); if (!m) setTimeout(() => uiSnd('ok'), 30); }} aria-label={uiMuted ? 'メニューの音：オフ' : 'メニューの音：オン'}><V7Icon name={uiMuted ? 'mute' : 'snd'} />{uiMuted ? 'メニュー音オフ' : 'メニュー音オン'}</button>
-              {!renderMenu && <button className="v7-pill v7-cur" data-snd="none" aria-label={muted ? 'ゲーム全体の音を出す' : 'ゲーム全体の音を消す'} onClick={() => setMuted(m => !m)}>{muted ? '全音オフ' : '全音オン'}</button>}
-              {acct && !renderMenu && <button className="v7-pill v7-cur" data-snd="back" onClick={onLogout}><V7Icon name="door" />{isReal(acct) ? 'ログアウト' : '登録・ログイン'}</button>}
-              {!renderMenu && <span className="v7-ver">{window.FactorVersion?.label || 'Ver.確認中'}</span>}
             </div>
           </div>
           <div className="v7-credit">© 2026 FACTOR × FACTOR | Created by Syusuke F.</div>
@@ -3732,50 +3704,6 @@ function Wardrobe({ acct, st, exp, onClose, appearance }) {
   return nextWardrobe ? ReactDOM.createPortal(<><link rel="stylesheet" href="ui-next/home.css"/>{content}</>,document.body) : content;
 }
 
-/* ---------- 自分のゴーストの活躍（だれかのすぐ遊ぶにゴーストとして出て、戦った結果） ----------
-   ghostlog/<自分>/<id> = { by, o（ゴーストから見た w/l/d）, mode, diff, at }。確認すると勝ち1回 +5 EXP、成績の ghostW/L/D に足す */
-const GHOST_WIN_EXP = 5;
-function GhostNews({ acct, st }) {
-  const fb = useFbReady();
-  const log = useFbValue(fb.ready && isReal(acct) ? `ghostlog/${acct.key}` : null);
-  const [busy, setBusy] = useState(false);
-  const shown = useRef(false);
-  const seen = (st && st.ghostSeen) || 0;
-  const rows = Object.entries(log || {}).map(([id, e]) => ({ id, ...e })).filter(e => e && e.at && e.at > seen).sort((a, b) => b.at - a.at);
-  const w = rows.filter(e => e.o === 'w').length, l = rows.filter(e => e.o === 'l').length, d = rows.length - w - l;
-  useEffect(() => {
-    if (!rows.length || shown.current) return; shown.current = true;
-    const e = rows[0];
-    setTimeout(() => { FX.band(`👻 あなたのゴーストが${e.by}と戦って${e.o === 'w' ? '勝った！' : e.o === 'l' ? '負けた…' : '引き分けた'}`, { color: '#5b3fd6', sub: rows.length > 1 ? `ほかにも ${rows.length - 1}試合` : 'すぐ遊ぶで、あなたの分身が戦っていました', ms: 2200 }); fxSound(e.o === 'w' ? 'fever' : 'badge'); }, 800);
-  }, [rows.length]);
-  if (!rows.length) return null;
-  const ok = async () => {
-    if (busy) return; setBusy(true);
-    const now = Math.max(...rows.map(e => e.at));
-    try {
-      let earned=0;const saved=await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(s => { earned=0;s = s || {};if(s.ghostLegacyBaseline==null)s.ghostLegacyBaseline=s.ghostSeen||0;s.ghostLegacyAwards ||= {};for(const e of rows){if(s.ghostLegacyAwards[e.id]||e.at<=s.ghostLegacyBaseline||!['w','l','d'].includes(e.o))continue;s.ghostLegacyAwards[e.id]=true;const field='ghost'+({w:'W',l:'L',d:'D'}[e.o]);s[field]=(s[field]||0)+1;if(e.o==='w')earned+=GHOST_WIN_EXP;}s.ghostSeen=Math.max(s.ghostSeen||0,now);s.exp=(s.exp||0)+earned; return s; });
-      if (!saved.committed) throw Error('SAVE_NOT_COMMITTED');
-      if (earned) { FX.text(window.innerWidth / 2, window.innerHeight / 2, `+${earned} EXP`, '#5b3fd6', 28); fxSound('levelup'); }
-      // 2週間より前の記録はかたづける
-      const old = Object.entries(log || {}).filter(([id, e]) => !e || !e.at || e.at < Date.now() - 14 * 86400000);
-      old.forEach(([id]) => FB.db.ref(`games/factor/ghostlog/${acct.key}/${id}`).remove().catch(() => {}));
-    } catch (e) {}
-    setBusy(false);
-  };
-  return (
-    <div className="v7-panel v7-open" style={{ borderLeft: '5px solid #7B61FF' }}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="font-black text-sm" style={{ color: '#5b3fd6', ...bFont }}>👻 あなたのゴーストが戦いました！ <span className="text-xs">{w}勝{l}敗{d ? `${d}分` : ''}</span></div>
-        <button onClick={ok} disabled={busy} className="v7-cur text-[11px] font-black rounded-full px-3 py-1 text-white shrink-0" style={{ background: '#7B61FF', boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.2)' }}>{w ? `確認（+${w * GHOST_WIN_EXP} EXP）` : '確認'}</button>
-      </div>
-      <div className="mt-1 flex flex-col gap-0.5">
-        {rows.slice(0, 5).map(e => <div key={e.id} className="text-[11px] font-bold" style={{ color: COLORS.ink }}>{e.o === 'w' ? '🏆' : e.o === 'l' ? '💦' : '🤝'} {e.by} と戦って <b style={{ color: e.o === 'w' ? '#2D6A4F' : e.o === 'l' ? COLORS.coral : COLORS.inkSoft }}>{e.o === 'w' ? '勝った！' : e.o === 'l' ? '負けた' : '引き分け'}</b> <span style={{ color: COLORS.inkSoft }}>（{e.mode && BATTLE_MODES[e.mode] ? BATTLE_MODES[e.mode].short : ''}{e.diff && DIFFICULTY_CONFIG[e.diff] ? '・' + DIFFICULTY_CONFIG[e.diff].label : ''}）</span></div>)}
-        {rows.length > 5 && <div className="text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>ほか {rows.length - 5}試合</div>}
-      </div>
-      <div className="text-[9px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>すぐ遊ぶで相手が見つからない人の前に、あなたの戦い方をコピーした分身が出ることがあります。ゴーストが勝つと +{GHOST_WIN_EXP} EXP</div>
-    </div>
-  );
-}
 
 /* =====================================================================
    学び（v5）：型の図鑑・苦手分析・苦手ドリル・デイリーチャレンジ・ゴースト
@@ -4067,27 +3995,6 @@ function RunReview({ problems, hist }) {
 /* =====================================================================
    デイリーチャレンジ（全員同じ10問・1日1回だけランキングに載る）
    ===================================================================== */
-const dailyDoneKey = (date, acct) => `fxf_daily_${date}_${isReal(acct) ? acct.key : 'guest'}`;
-function useDailyBoard(date) {
-  const fb = useFbReady();
-  const v = useFbValue(fb.ready ? `daily/${date}` : null);
-  return useMemo(() => Object.entries(v || {}).filter(([k, e]) => e && e.t != null).map(([k, e]) => ({ k, ...e })).sort((a, b) => a.t - b.t || (a.at || 0) - (b.at || 0)), [v]);
-}
-function DailyRanking({ rows, meKey, limit = 20 }) {
-  if (!rows.length) return <p className="text-xs text-center py-2" style={{ color: COLORS.inkSoft }}>まだだれも挑戦していません。一番乗りしよう！</p>;
-  return (
-    <div className="flex flex-col">
-      {rows.slice(0, limit).map((r, i) => (
-        <div key={r.k} className="flex items-center gap-2 text-sm py-1" style={{ borderBottom: `1px solid ${COLORS.paperDark}`, background: r.k === meKey ? `${COLORS.sky}18` : 'transparent' }}>
-          <span className="w-7 text-center font-black" style={{ color: COLORS.inkSoft }}>{i < 3 ? MEDALS[i] : i + 1}</span>
-          <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}>{r.nick ? <Nick id={r.nick} size={9} block /> : null}<span className="font-bold block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
-          <span className="font-mono font-black" style={{ color: COLORS.leafDeep }}>{fmtSec(r.t)}秒</span>
-          <span className="text-[10px] font-bold w-12 text-right" style={{ color: r.miss ? COLORS.coral : COLORS.inkSoft }}>ミス{r.miss || 0}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 /* =====================================================================
    デイリーミッション（v6）：デイリーチャレンジ＋3つのお題（1つは苦手枠）。毎日0時（日本時間）に変わる
    記録：accounts/<key>/mis = { d:日付, w:{k,id}苦手枠, p:{進み具合}, c:{受け取りずみ} }（ゲストはこの端末）
@@ -4267,94 +4174,6 @@ function MissionList({ acct, rows, onGo, onChallenge, compact }) {
   );
 }
 
-function LegacyDailyApp({ acct, onExit, onMode }) {
-  const date = jstDate();
-  const rows = useDailyBoard(date);
-  const problems = useMemo(() => dailyProblems(date), [date]);
-  const meKey = isReal(acct) ? acct.key : null;
-  const myFirst = meKey ? rows.find(r => r.k === meKey) : null;
-  const localDone = loadLS(dailyDoneKey(date, acct), null);
-  const played = !!(myFirst || localDone);
-  const [scr, setScr] = useState('intro');
-  useEffect(() => { presenceSet({ act: 'daily', detail: scr === 'play' ? 'チャレンジ中' : 'ミッション確認' }); }, [scr]);
-  const [res, setRes] = useState(null);
-  const [exp, setExp] = useState(null);
-  const [nick, setNick] = useState('');
-  const prof = useProf(acct, 0);
-  const mis = useMissions(acct, prof);
-  const goMission = r => {
-    if (!onMode) return;
-    if (r.go === 'drillpt') onMode('learn', { drill: { lv: r.lv, pid: r.pid } });
-    else if (r.go === 'drilllv') onMode('learn', { drill: { lv: r.lv } });
-    else onMode(r.go);
-  };
-  useEffect(() => { if (meKey && FB.db) FB.db.ref(`games/factor/accounts/${meKey}/stats/nick`).get().then(s => setNick(s.val() || '')).catch(() => {}); }, [meKey]);
-  const ghosts = useMemo(() => {
-    const g = rows.filter(r => r.k !== meKey && r.splits).slice(0, 3).map(r => ({ name: r.name, splits: toArrB(r.splits), t: r.t }));
-    const mine = myFirst || localDone;
-    if (mine && mine.splits) g.unshift({ name: '1回目の自分', splits: toArrB(mine.splits), t: mine.t });
-    return g.slice(0, 3);
-  }, [rows.length, scr]);
-  const onDone = async r => {
-    const first = !played;
-    setRes({ ...r, first });
-    setScr('done');
-    flushLearn(acct, r.hist.filter(h => !h.late), first ? { daily: 1 } : null);
-    if (first) {
-      saveLS(dailyDoneKey(date, acct), { t: r.t, miss: r.miss, splits: r.splits });
-      if (meKey && FB.db) FB.db.ref(`games/factor/daily/${date}/${meKey}`).set({ name: acct.name, nick: nick || '', t: Math.round(r.t), miss: r.miss, splits: r.splits.map(Math.round), at: TSV() }).catch(() => {});
-    }
-    const e = await addExp(acct, first ? 20 : 5);
-    setExp(e);
-    if (first) FX.confetti(60);
-  };
-  useResultBgm(scr === 'done', false);
-  if (scr === 'play') return <PracticeRunner kind="daily" title={`📅 デイリー ${date.slice(5).replace('-', '/')}${played ? '（練習）' : ''}`} problems={problems} ghosts={ghosts} myName={acct && acct.name} onDone={onDone} onQuit={() => setScr('intro')} />;
-  const myRank = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center py-6 px-4" style={{ background: `linear-gradient(180deg, ${COLORS.forest}, ${COLORS.forestDeep})`, fontFamily: "'Zen Kaku Gothic New', sans-serif" }}>
-      <FontImport />
-      <div className="w-full" style={{ maxWidth: '30rem' }}>
-        <button onClick={onExit} className="v7-pill v7-cur mb-2" data-snd="back">← タイトルにもどる</button>
-        <div className="text-center mb-3">
-          <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>デイリーミッション</div>
-          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{date.replace(/-/g, '/')} ・ 毎日4つのミッションで経験値ゲット</div>
-        </div>
-        <Card className="mb-3"><MissionList acct={acct} rows={mis.rows} onGo={goMission} onChallenge={() => setScr('play')} /></Card>
-        <div className="text-center text-sm font-black mb-1" style={{ color: COLORS.ink, ...bFont }}>⏱ デイリーチャレンジ（全員同じ10問のタイムアタック）</div>
-        {scr === 'done' && res && (
-          <Card className="mb-3 text-center">
-            <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>{res.first ? '今日の記録（ランキングに登録）' : '練習の記録（ランキングには載りません）'}</div>
-            <div className="font-black" style={{ fontSize: 'clamp(2.4rem,12vw,4rem)', color: COLORS.sky, ...bFont }}><CountUp from={0} to={res.t / 1000} ms={900} fmt={v => v.toFixed(2)} />秒</div>
-            <div className="text-sm font-bold" style={{ color: res.miss ? COLORS.coral : COLORS.leafDeep }}>ミス {res.miss}回{res.miss ? `（+${res.miss * DAILY_PENALTY / 1000}秒）` : '・ノーミス！'}</div>
-            {res.first && meKey && myRank > 0 && <div className="mt-1 text-lg font-black" style={{ color: COLORS.amber }}>今日の {myRank} 位！</div>}
-            {res.first && !meKey && <div className="mt-1 text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>ゲストはランキングに載りません（ログインすると載ります）</div>}
-            {!res.first && (myFirst || localDone) && <div className="mt-1 text-xs font-bold" style={{ color: COLORS.inkSoft }}>1回目の記録 {fmtSec((myFirst || localDone).t)}秒 との差 {res.t <= (myFirst || localDone).t ? '−' : '+'}{fmtSec(Math.abs(res.t - (myFirst || localDone).t))}秒</div>}
-            {exp && <div className="mt-2 text-left"><ExpGain before={exp.before} after={exp.after} label="デイリーの経験値" /></div>}
-          </Card>
-        )}
-        {scr === 'intro' && (
-          <Card className="mb-3">
-            <ul className="text-[12px] font-bold list-disc pl-5 mb-3" style={{ color: COLORS.inkSoft }}>
-              <li>今日の10問は全員同じ（Lv.1〜9が順番に出ます）</li>
-              <li>まちがえると +5秒。その問題を解けるまで次に進めません</li>
-              <li><b>ランキングに載るのは1日1回目だけ</b>。2回目からは練習（ゴーストと競えます）</li>
-              <li>上位の人と自分の1回目が「👻ゴースト」としていっしょに走ります</li>
-            </ul>
-            {played && <p className="text-xs font-black text-center mb-2" style={{ color: COLORS.leafDeep }}>今日はもう挑戦しました（{fmtSec((myFirst || localDone).t)}秒{myRank ? `・${myRank}位` : ''}）</p>}
-            <BigBtn color={played ? COLORS.sky : '#E76F51'} onClick={() => setScr('play')}>{played ? 'もう一度（練習）' : '挑戦する（1回目＝本番）'}</BigBtn>
-          </Card>
-        )}
-        {scr === 'done' && <div className="mb-3 flex flex-col gap-2"><BigBtn color={COLORS.sky} onClick={() => setScr('play')}>もう一度（練習）</BigBtn></div>}
-        <Card className="mb-3">
-          <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>🏆 今日のランキング（{rows.length}人）</div>
-          <DailyRanking rows={rows} meKey={meKey} />
-        </Card>
-        {scr === 'done' && res && <Card className="mb-3"><div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>📝 ふり返り</div><RunReview problems={problems} hist={res.hist} /></Card>}
-      </div>
-    </div>
-  );
-}
 
 /* =====================================================================
    学びの部屋：苦手分析・苦手ドリル・型の図鑑
@@ -6162,43 +5981,7 @@ function WeeklyRaidApp({ acct, onExit, renderMenu }) {
    ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。1階ごとにセーブ（突破した次の階から、いつでも続きができる）
    ・50階に「因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
 // Ver.6.12: the old tower screens (TowerApp / SuriBook / StoryView …) were removed as unreachable.
-// The world data below (floors, monsters, bosses, king parts) is kept as reference material for AXIOMIA.
-const TOWER_GOAL = 70, TOWER_SEC = 45000, TOWER_LS = 'fxf_tower_v1';   // 数理の塔：70階で第一部完（無限回廊はなし）
-const TOWER_KING_F = 50;   // 因数の王（第10章のボス。倒すと称号「塔を制覇」）
-const TOWER_KING = { id: 'king', name: '因数の王', icon: '👑', color: '#b8860b' };
-const TOWER_ORDER = ['slime', 'dragon', 'kraken', 'golem', 'robot', 'maou'];
-const TOWER_HP = { miss: 5, ctr: 12, timeout: 25, clear: 10, nomiss: 5, big: 20, cp: 30, mob: 3 };
-/* 1〜49階の雑魚（5の倍数以外）：名前とアイコンだけ。特殊能力なし、2〜3問で倒せる */
-const TOWER_MOBS = {
-  1: ['共通因数スライム', '🫠'], 2: ['公倍数バット', '🦇'], 3: ['分数モグラ', '🦫'], 4: ['マイナスコーピオン', '🦂'], 6: ['素数コウモリ', '🦇'], 7: ['展開ロボΩ', '🤖'], 8: ['根号スパイダー', '🕷️'], 9: ['余りスライム', '🟢'],
-  11: ['係数ゴーレム', '🧱'], 12: ['逆数ミミック', '📦'], 13: ['不等号ナイト', '⚔️'], 14: ['二項係数ビー', '🐝'], 16: ['放物線モス', '🦋'], 17: ['絶対値ウルフ', '🐺'], 18: ['三乗ゴブリン', '👺'], 19: ['判別式バット', '🦇'],
-  21: ['角度バジリスク', '🐍'], 22: ['円周率スライム', '🌀'], 23: ['接線タートル', '🐢'], 24: ['正弦バード', '🐦'], 26: ['対数バット', '🦇'], 27: ['指数キツネ', '🦊'], 28: ['漸化式ラット', '🐀'], 29: ['変域ハーピー', '🪽'],
-  31: ['極大スライム', '🔵'], 32: ['極小スライム', '🔴'], 33: ['二項係数ビー', '🐝'], 34: ['ベクトルゴーレム', '🗿'], 36: ['行列ゴーレム', '🧊'], 37: ['微分カマキリ', '🦗'], 38: ['積分スライム', '🫧'], 39: ['極限ドラゴン', '🐲'],
-  41: ['無理数ゴースト', '👻'], 42: ['余弦クラゲ', '🪼'], 43: ['複素数フクロウ', '🦉'], 44: ['接近ゴーレム', '🪨'], 46: ['数列フェニックス', '🔥'], 47: ['円錐ハンター', '🎯'], 48: ['確率ピエロ', '🃏'], 49: ['虚数ゴースト', '👻'],
-  // 51〜69階は仮（正式な名前が決まったら差しかえ）
-  51: ['集合フェアリー', '🧚'], 52: ['写像カメレオン', '🦎'], 53: ['命題パロット', '🦜'], 54: ['背理デーモン', '😈'],
-  56: ['等差スネイル', '🐌'], 57: ['等比バルーン', '🎈'], 58: ['漸化式ラビット', '🐇'], 59: ['ひまわりスピリット', '🌻'],
-  61: ['黄金長方形ゴーレム', '🟨'], 62: ['オウムガイシェル', '🐚'], 63: ['五芒星ウィスプ', '⭐'], 64: ['白銀比ミラージュ', '🌙'],
-  66: ['正多面体ダイス', '🎲'], 67: ['角すいゴーレム', '🔺'], 68: ['球面ワールドル', '🌐'], 69: ['三平方の番人', '📐'],
-};
-/* 5の倍数の階のボス（gim：しかけの種類） */
-const TOWER_BOSSES = {
-  5: { gim: 'abs', name: '絶対値ビースト', icon: '🐾', color: '#C2410C', tag: '境界型', desc: ['まちがえたときのダメージが2倍（−10）', '正解すると「−」が「＋」に変わり、制限時間が3秒のびる（最大+30秒）'] },
-  10: { gim: 'dragon', name: '因数ドラゴン', icon: '🐉', color: '#2a9d8f', tag: '攻撃型', desc: ['反撃「炎のブレス」を予告してから撃ってくる（しびれ＋おじゃまタイル）', '予告中に正解すればガードできる'] },
-  15: { gim: 'balance', name: '方程式バランサー', icon: '⚖️', color: '#457b9d', tag: '均衡型', desc: ['同じレベルの問題を2問続けて正解すると、ふつうのダメージ', 'それ以外の正解はダメージ半分（0にはならない）'] },
-  20: { gim: 'mod', name: '余りマスター', icon: '🧙‍♂️', color: '#7b2cbf', tag: '剰余型', desc: ['6枚のタイルのうち1枚は、答えに似せたニセの因数（あまりがずれている）', 'ニセのタイルでは正解の組は作れない（正解の組は必ず1つある）'] },
-  25: { gim: 'wave', name: '周期関数シード', icon: '🌱', color: '#3FA55F', tag: '波動型', desc: ['5秒ごとにタイルの並びが1つずつずれる', 'ドラッグしている間はずれない'] },
-  30: { gim: 'chimera', name: '多項式キマイラ', icon: '🦁', color: '#B7791F', tag: '合体型', desc: ['「二次式の頭」と「三次式の頭」が12秒ごとに入れかわる', '二次の頭のときはたすきがけ・2乗の差（Lv4〜6・8・9）が1.5倍、三次の頭のときは3乗の和・差（Lv7）が2倍', '弱点以外の正解もふつうに効く'] },
-  35: { gim: 'prime', name: '素数シャーク', icon: '🦈', color: '#0E86C6', tag: '孤高型', desc: ['奇数コンボ目の正解はダメージ2倍、偶数コンボ目は半分', 'コンボが切れたら1コンボ目（2倍）から'] },
-  40: { gim: 'sim', name: '連立パペット', icon: '🎭', color: '#b5487e', tag: '連携型', desc: ['式Ａと式Ｂが同時に出る。どちらから解いてもOK', 'ＡとＢを交互に解くと連携ゲージがたまり、4つで大ダメージ'] },
-  // 55・60・65・70階は仮（能力はこれまでのボスのしかけを使う。正式な案が来たら差しかえ）
-  55: { gim: 'mirror', id: 'gate', name: '無限の門番', icon: '♾️', color: '#2F6FD6', tag: '拡張型', provisional: true, desc: ['（仮）鏡写しの位置のタイルが引き寄せられる', '新しい数の世界への門を守っている'] },
-  60: { gim: 'sim', id: 'fib', name: 'フィボナッチ・グリフォン', icon: '🦅', color: '#d4a017', tag: '数列型', provisional: true, desc: ['（仮）式Ａと式Ｂが同時に出る。交互に解くと連携ゲージ', '前の2つを足して、次の力を生み出す'] },
-  65: { gim: 'balance', id: 'golden', name: '黄金比グリフォン', icon: '🦅', color: '#b8860b', tag: '黄金比型', provisional: true, desc: ['（仮）同じレベルを2問続けて正解すると全ダメージ', 'フィボナッチ・グリフォンが進化した姿'] },
-  70: { gim: 'king', id: 'guardian', name: '空間の守護者', icon: '🔷', color: '#1D4E89', tag: '最終決戦型', provisional: true, final: true, desc: ['（仮）体力が減るごとに絶対値→素数→周期の力を使う', '部位（Lv1〜3・4〜6・7〜9）をこわすと力を封じる', '弱点タイム2回・反撃4回・半分を切ると真の姿で回復'] },
-  45: { gim: 'mirror', name: '対称式ファントム', icon: '🪞', color: '#6b5bd6', tag: '鏡映型', desc: ['ドラッグ中、鏡写しの位置のタイルが少し引き寄せられる（見た目だけ）', '選んでいるタイルは金色で光る'] },
-};
-const KING_PARTS = [{ id: 'a', name: '王冠', lv: [1, 3], seal: '絶対値の力（ミス2倍）を封じた' }, { id: 'b', name: '杖', lv: [4, 6], seal: '素数の力の「半分」を封じた' }, { id: 'c', name: 'マント', lv: [7, 9], seal: '周期の力（タイルのずれ）を封じた' }];
+// Ver.6.23: the unused world data that was kept beside them (floors, monsters, bosses, king parts) is removed too; it remains in the git history (Ver.6.22 and earlier).
 /* ボスのしかけ（塔・今週のボス・クラス協力レイド・フレンドレイドで共通）
    o = { active, t0（出撃・階の開始時刻）, hpRatio（ボスの体力の割合）, broken（{a,b,c} こわれた部位）, onAbs（絶対値：正解で時間をのばす。のびたら true） } */
 const GIM_INIT = () => ({ balLv: null, simLast: null, simG: 0, simAcc: 0, absN: 0, nextWave: 5, fired: {} });
@@ -6327,44 +6110,6 @@ function MonsterPic({ id, src, icon, size = 64, sil, style }) {
 }
 
 /* ---------- ver.7 メニューの部品 ---------- */
-function AccountPanelV7({ acct, onLogout, onProfile }) {
-  const fb = useFbReady();
-  const st = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/stats` : null);
-  const [open, setOpen] = useState(false);
-  const [wd, setWd] = useState(false);
-  const [nameOf, setNameOf] = useState({});
-  const g = !isReal(acct) ? loadGuest() : null;
-  // 別の端末で選んだきせかえを、この端末にも反映
-  const synced = useRef('');
-  useEffect(() => { if (st && st.skin && synced.current !== acct.key) { synced.current = acct.key; SKIN = { ...st.skin }; saveLS(SKIN_LS, SKIN); SKINBUS.forEach(f => f()); } }, [st && !!st.skin]);
-  const exp = isReal(acct) ? (st && st.exp) || 0 : (g && g.exp) || 0;
-  const L = levelOf(exp);
-  const openProf = () => {
-    if(onProfile){onProfile();return;}
-    setOpen(true);
-    fref('accounts').get().then(s => { const nm = {}; Object.entries(s.val() || {}).forEach(([k, a]) => { if (a && a.name) nm[k] = a.name; }); setNameOf(nm); }).catch(() => {});
-  };
-  return (<>
-    <div className="v7-panel">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex-1" style={{ minWidth: '7rem' }}>
-          {isReal(acct) && st && st.nick && <Nick id={st.nick} size={11} block />}
-          <div className="v7-name truncate">{acct.name}{!isReal(acct) && <span className="text-[10px] ml-1 font-bold rounded-full px-2 align-middle" style={{ background: '#EFEAE0', color: 'var(--v7-sub)' }}>ゲスト</span>}</div>
-          {isReal(acct) && st && <div className="flex items-center gap-1 mt-0.5 flex-wrap">{st.games > 0 && <RankPill r={ratingOf(st)} size={10} />}{bountyOf(st) > 0 && <span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: '#b7791f' }}>賞金 {bountyOf(st)}</span>}<BadgeIcons st={st} max={4} /></div>}
-        </div>
-        {isReal(acct) && <button className="v7-pill v7-cur" onClick={openProf}><V7Icon name="stats" />成績</button>}
-        <button className="v7-pill v7-cur" onClick={() => setWd(true)}><V7Icon name="skin" />きせかえ</button>
-      </div>
-      <div className="flex items-center gap-2 mt-2 text-xs font-bold" style={{ color: 'var(--v7-sub)', fontFamily: 'var(--v7-f-ui)' }}>
-        <span style={{ color: 'var(--v7-ink)', fontWeight: 900 }}>Lv.{L.lv}</span>
-        <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${Math.round(L.cur / L.need * 100)}%`, background: 'var(--v7-accent)', transition: 'width 600ms ease' }} /></div>
-        <span>{L.cur}/{L.need}</span>
-      </div>
-      {wd && <Wardrobe acct={acct} st={isReal(acct) ? st : g} exp={exp} onClose={() => setWd(false)} />}
-    </div>
-    {isReal(acct) && st && <GhostNews acct={acct} st={st} />}
-  </>);
-}
 /* ソロ選択画面：デイリーミッションの達成状況（表示のみ。ミッション判定・報酬処理は useMissions のまま） */
 function DailyProgress({ acct }) {
   const prof = useProf(acct, 0);
@@ -6374,50 +6119,6 @@ function DailyProgress({ acct }) {
 }
 /* ソロ選択画面：全難易度のベストスコア（保存済みのソロ記録を読むだけ） */
 const soloBestOf = a => Math.max(0, ...Object.values(loadLS(`fxf_solo_ghost_v1_${(a && a.key) || 'guest'}`, {}) || {}).map(x => (x && x.score) || 0));
-function DailyTileV7({ acct, onOpen }) {
-  const date = jstDate();
-  const rows = useDailyBoard(date);
-  const prof = useProf(acct, 0);
-  const mis = useMissions(acct, prof);
-  const got = mis.rows.filter(r => r.got).length, ready = mis.rows.filter(r => r.done && !r.got).length;
-  const meKey = isReal(acct) ? acct.key : null;
-  const mine = (meKey && rows.find(r => r.k === meKey)) || loadLS(dailyDoneKey(date, acct), null);
-  const rk = meKey ? rows.findIndex(r => r.k === meKey) + 1 : 0;
-  const all = mis.rows.length && got === mis.rows.length;
-  return (
-    <button className="v7-tile v7-cur" onClick={onOpen}>
-      <div className="top"><span className="v7-ico"><V7Icon name="cal" /></span>
-        {ready > 0 ? <span className="v7-badge hot">受け取れる {ready}</span> : <span className="v7-badge">{all ? 'コンプリート' : `${got}/${mis.rows.length}`}</span>}</div>
-      <b>デイリーミッション</b>
-      <span className="s">{mine ? `チャレンジ ${fmtSec(mine.t)}秒${rk ? `・${rk}位` : ''}` : '3難易度・1日合計3回の挑戦'}</span>
-      <div className="flex gap-1 mt-1">{mis.rows.map(r => <div key={r.key} className="flex-1 rounded-full" style={{ height: 4, background: r.got ? '#d4a017' : r.done ? '#43C97B' : 'var(--v7-line)' }} />)}</div>
-    </button>
-  );
-}
-function WeeklyTileV7({ acct, onOpen }) {
-  const wk = weekKey();
-  const fb = useFbReady();
-  const v = useFbValue(fb.ready ? `raidw/${wk}/dmg` : null) || {};
-  const pv = useFbValue(fb.ready ? `raidw/${prevWeek(wk)}/dmg` : null);
-  const meta = useFbValue(fb.ready ? `raidw/${wk}/meta` : null);
-  const pmeta = useFbValue(fb.ready ? `raidw/${prevWeek(wk)}/meta` : null);
-  useEffect(() => { if (fb.ready) ensureWeekMeta(wk); }, [fb.ready]);
-  const meKey = isReal(acct) ? acct.key : null;
-  const st = useFbValue(fb.ready && meKey ? `accounts/${meKey}/stats` : null);
-  const info = weeklyInfo(wk, v, meta), boss = info.boss;
-  const r = Math.max(0, info.hp / info.hpMax);
-  const stK = meKey ? { ...(st || {}), __k: meKey } : null;   // 成績がまだない新しいアカウントも報酬を受け取れる
-  const pend = wkPending(stK, info, false) || wkPending(stK, pv ? weeklyInfo(prevWeek(wk), pv, pmeta) : null, true);
-  const first = meKey ? !(st && st.wk && st.wk.day === jstDate()) : loadLS('fxf_wk_day', '') !== jstDate();
-  return (
-    <button className="v7-tile v7-cur" onClick={onOpen}>
-      <div className="top"><span className="v7-ico"><MonsterPic id={boss.id} icon={boss.icon} size="1.7rem" /></span>{pend ? <span className="v7-badge hot">報酬あり</span> : <span className="v7-badge">{r <= 0 ? '撃破！' : first ? 'EXP2倍' : `のこり${Math.round(r * 100)}%`}</span>}</div>
-      <b>今週のボス</b>
-      <span className="s">{info.rage ? '😡怒りの' : ''}{boss.name}</span>
-      <div className="rounded-full overflow-hidden mt-1" style={{ height: 4, background: 'var(--v7-line)' }}><div className="h-full" style={{ width: `${r * 100}%`, background: boss.color }} /></div>
-    </button>
-  );
-}
 
 
 /* =====================================================================
@@ -10606,10 +10307,11 @@ async function completeDailySolo(acct,attempt,game){
 const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame,TournamentFinal:TournamentB2Final}).App : null;
 const NewDailyApp = window.DailyFactory && OnlineComponents ? window.DailyFactory({FB,DIFFICULTY_CONFIG,useGameMute,getJudgment,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,RatingDisplay,MathText,formatFactorTile,timingVisual,useBattleSound,Missions:DailyMissionsView,onCompleted:completeDailySolo,BattleView:OnlineComponents.BattleView}).App : null;
 function DailyApp(props){
- const fb=useFbReady(),[ready,setReady]=useState(null);
- useEffect(()=>{if(!fb.ready)return;let active=true;FB.db.ref('games/factor/dailyV2/ready').get().then(()=>active&&setReady(true)).catch(()=>active&&setReady(false));return()=>{active=false}},[fb.ready]);
+ const fb=useFbReady(),[ready,setReady]=useState(null),[retry,setRetry]=useState(0);
+ // Ver.6.23: 旧デイリー(10問タイムアタック)への切り替えは廃止。設定を読めなかったときは、読み込み失敗の案内と再読み込みを出す
+ useEffect(()=>{if(!fb.ready)return;let active=true;FB.db.ref('games/factor/dailyV2/ready').get().then(()=>active&&setReady(true)).catch(()=>active&&setReady(false));return()=>{active=false}},[fb.ready,retry]);
  if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
- return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<LegacyDailyApp {...props}/>;
+ return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<div className="or-app" data-daily-load-error><p role="alert">デイリーの読み込みに失敗しました。通信を確認して、もう一度お試しください。</p><button onClick={()=>{setReady(null);setRetry(x=>x+1)}}>もう一度読み込む</button><button onClick={props.onExit}>戻る</button></div>;
 }
 const { App: MathTowerApp, Tile: MathTowerTile, useAccess: towerUseAccess } = window.MathTowerFactory && window.MathTowerRules && window.MathTowerStore ? window.MathTowerFactory({ buildBoard, patternOf, multiply, polyEqual, BattleBoard, TargetCard, MathText, HpBar, FB, useFbReady, useBattleSound, useGameMute }) : { App: ({ onExit }) => <div className="mt-panel"><p>数学の塔を読み込めませんでした。</p><button onClick={onExit}>タイトルへ</button></div>, Tile: () => null, useAccess: () => false };
 /* 数学の塔の権限判定（AXIOMIAの入口用）。塔の画面部品が useAccess を持たない古い版でも、同じ Store.access の判定で動く */
@@ -10626,7 +10328,7 @@ const useTowerAccess = towerUseAccess || function useTowerAccessCompat(acct) {
   }, [fb.ready, acct && acct.key]);
   return allowed;
 };
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,useTowerAccess,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : props => <><p role="alert">新しいホームを読み込めませんでした。従来のメニューを表示します。</p><FactorHunt acct={props.acct} onLogout={props.onLogout} onBattle={()=>props.onGo('online')} onMode={props.onGo}/></>;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,useTowerAccess,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : null;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState(() => location.hash === '#math-tower' ? 'tower' : 'home');
@@ -10662,6 +10364,8 @@ function AppRoot() {
   const gcur = useMenuCursor();
   useEffect(() => { gcur(document.body); }, []);
   if (!acct) return <><FxLayer /><AccountGate onDone={setAcct} /></>;
+  // Ver.6.23: 新しいホームの部品(next-home-ui.js)を読み込めなかったとき。旧メニューへの切り替えは廃止し、読み込み直しを案内する
+  if (!NextHome) return <div className="lg-gate" data-home-load-error><main className="lg-wrap"><section className="lg-card"><h1>読み込みに失敗しました</h1><p className="lg-error" role="alert">ホーム画面を読み込めませんでした。通信を確認して、もう一度読み込んでください。</p><div className="lg-actions"><button className="lg-btn lg-primary" onClick={() => location.reload()}>もう一度読み込む</button></div></section></main></div>;
   return (<>
     <FxLayer />
     {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={navigateNext} />

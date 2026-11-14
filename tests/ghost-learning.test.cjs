@@ -178,31 +178,9 @@ test("guest migration takes the minimum, keeps old totals and clears only succes
   assert.equal(data.lv.L1.ms, 9000);
   assert(cleared);
 });
-test("legacy passive rewards use per-ID receipts and award XP atomically even after partial acknowledgments", () => {
-  const callback = source
-    .match(/transaction\(s => \{ earned=0;[\s\S]*?return s; \}\)/)[0]
-    .slice("transaction(".length, -1);
-  const rows = [
-    { id: "one", at: 100, o: "w" },
-    { id: "two", at: 200, o: "w" },
-  ];
-  function run(s, r) {
-    return vm.runInNewContext(callback, {
-      rows: r,
-      now: Math.max(...r.map((x) => x.at)),
-      GHOST_WIN_EXP: 5,
-      earned: 0,
-    })(s);
-  }
-  const s = run({ exp: 100 }, [rows[0]]);
-  run(s, rows);
-  run(s, rows);
-  assert.equal(s.exp, 110);
-  assert.equal(s.ghostW, 2);
-  const old = run({ exp: 300, ghostSeen: 150, ghostW: 10 }, rows);
-  assert.equal(old.exp, 305);
-  assert.equal(old.ghostW, 11);
-});
+// Ver.6.23: the "legacy passive rewards" case that stood here checked the EXP/record transaction inside GhostNews, the
+// ghost-news panel of the old home (AccountPanelV7). That panel had no entry since the new home and was removed with
+// owner approval (2026-11-14), so there is no transaction left to check. Ghost matching/learning below is unchanged.
 for (const mode of ["A", "B"])
   test(
     "slow ghost timeout during suspended-tab catch-up advances without stale-question failure " +
