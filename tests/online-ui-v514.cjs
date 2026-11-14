@@ -25,7 +25,6 @@ const fs = require("fs");
       `\n(function(){const original=window.OnlineRatedFactory;window.OnlineRatedFactory=H=>{window.__combatHelpers=H;return original(H);};})();`;
     const t = await context(browser, {
         tree,
-        captureTower: true,
         assetOverrides: { "/online-rated-ui.js": ui },
       }),
       p = t.page;

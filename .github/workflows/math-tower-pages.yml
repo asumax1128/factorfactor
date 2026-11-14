@@ -59,9 +59,8 @@ jobs:
         id: release
         run: node -e 'const fs=require("fs"),v=require("./version.json"),sha=require("child_process").execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();fs.appendFileSync(process.env.GITHUB_OUTPUT,"version="+v.major+"."+v.minor+"\nsha="+sha+"\n")'
       - name: Check committed generated UI
-        run: git diff --exit-code -- next-home-ui.js next-results-ui.js game-version.js math-tower-ui.js math-tower-release.js math-tower/axiomia-part1.json online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
+        run: git diff --exit-code -- next-home-ui.js next-results-ui.js game-version.js online-rated-ui.js online-spark.js daily-ui.js room-b2-ui.js achievements-audit.js reports/titles_inventory.csv reports/achievements_inventory.csv reports/cosmetics_inventory.csv reports/titles_achievements_cosmetics_audit.md server/online-rated/engine-source.js
       - run: npm run test:version
-      - run: npm run test:tower
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: site-dist
@@ -80,10 +79,7 @@ jobs:
           - shard: online-a
             scripts: test:online-improvements test:regression test:online test:online-rated test:online-entry test:online-menu test:ui-font test:online-presentation
           - shard: online-b
-            scripts: test:online-playability test:online-v524 test:online-latency test:bounty-profile test:rating-history test:rating-display test:rewards-audit test:accounts
-          - shard: tower
-            # Ver.6.24: the math tower (AXIOMIA) is no longer loaded by the page, so its browser suites are gone from this shard.
-            scripts: test:audio
+            scripts: test:online-playability test:online-v524 test:online-latency test:bounty-profile test:rating-history test:rating-display test:rewards-audit test:accounts test:audio
           - shard: emulator-artifact
             emulator: true
             scripts: test:chromebook test:ghost test:next-help test:login-ui test:solo-difficulty test:ghost-profile-ui
@@ -133,11 +129,12 @@ jobs:
           SCRIPTS: ${{ matrix.scripts }}
         run: |
           for s in $SCRIPTS; do echo "::group::npm run $s"; npm run "$s"; echo "::endgroup::"; done
-      - name: Actual emulator rules and compatibility
+      # Ver.6.25: the math tower (AXIOMIA) was removed, and with it the audit of the tower rules that ran in this step.
+      # The emulator CLI is still installed for the suites below. Production Firebase rules are not touched by this workflow.
+      - name: Install the Firebase emulator CLI
         if: matrix.emulator
         run: |
           npm install --prefix "$RUNNER_TEMP/firebase-cli" --no-audit --no-fund firebase-tools@14.27.0
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only database --project demo-factorfactor-tower --config firebase/emulator.json "npm run test:ci:rules"
       - name: Spark Auth, matching and ratings in demo emulators only
         if: matrix.emulator
         run: |
@@ -193,10 +190,10 @@ jobs:
         env:
           SHA: ${{ needs.build.outputs.sha }}
         run: |
-          for shard in online-a online-b tower emulator-artifact; do
+          for shard in online-a online-b emulator-artifact; do
             test "$(cat "shard-pass/$shard.txt")" = "$SHA" || { echo "shard not passed: $shard"; exit 1; }
           done
-          test "$(find shard-pass -type f | wc -l)" = 4
+          test "$(find shard-pass -type f | wc -l)" = 3
           echo "all test shards passed for $SHA"
           rm -r shard-pass
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-10-13

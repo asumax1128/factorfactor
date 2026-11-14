@@ -44,15 +44,12 @@ async function context(
     url = "http://localhost/",
     peers = [],
     onOperation = null,
-    towerContent = null,
-    captureTower = false,
     assetOverrides = null,
     blockedAssets = [],
     firebaseSource = null,
     emulatorNetwork = false,
     siteRoot = process.env.PW_SITE_ROOT ? path.resolve(process.env.PW_SITE_ROOT) : root,
     keepLogin = "observe",
-    axiomia = false, // Ver.6.17: the tower tests of the old chapter-one story keep running on chapter1.json; AXIOMIA part 1 tests pass true
     scale = undefined, // optional deviceScaleFactor (tools/capture-guide.cjs); tests leave it unset
     realMathFonts = false, // opt-in (tools/capture-guide.cjs): serve KaTeX_Main/KaTeX_Math like the CDN stylesheet does on a real device
   } = {},
@@ -122,10 +119,6 @@ async function context(
             : "application/javascript",
           body: assetOverrides[u.pathname],
         });
-      if (!axiomia && u.pathname === "/math-tower-release.js")
-        return route.fulfill({ contentType: "application/javascript", body: 'window.MathTowerContentUrl = "math-tower/chapter1.json";' });
-      if (towerContent && u.pathname === "/math-tower/chapter1.json")
-        return route.fulfill({ json: towerContent });
       const f = path.resolve(siteRoot, "." + u.pathname);
       if (
         f.startsWith(siteRoot + path.sep) &&
@@ -175,22 +168,6 @@ async function context(
       });
     return route.abort();
   });
-  if (captureTower)
-    await ctx.addInitScript(() => {
-      let factory;
-      Object.defineProperty(window, "MathTowerFactory", {
-        configurable: true,
-        get: () => factory,
-        set: (fn) => {
-          factory = (H) => {
-            window.__towerHelpers = H;
-            const components = fn(H);
-            window.__towerComponents = components;
-            return components;
-          };
-        },
-      });
-    });
   const page = await ctx.newPage();
 
   peers.push(page);
@@ -268,28 +245,6 @@ async function dismissCutin(page) {
       .getByRole("button", { name: "確認して再開", exact: true })
       .click();
 }
-async function newTower(page, d = "normal") {
-  await page.getByRole("button", { name: "はじめから", exact: true }).click();
-  await page
-    .getByRole("button", { name: new RegExp("^(" + ({easy:'イージー',normal:'ノーマル',hard:'ハード'})[d] + "|" + d.toUpperCase() + ")を選ぶ$"), exact: true })
-    .click();
-  if (await page.locator("[data-math-screen=replaceConfirm]").count())
-    await page
-      .getByRole("button", { name: "置き換えて開始", exact: true })
-      .click();
-  await page.locator("[data-math-screen=prepare]").waitFor();
-}
-async function continueTower(page, d = "normal") {
-  await page.getByRole("button", { name: "続きから", exact: true }).click();
-  const btn = page.getByRole("button", {
-    name: ({easy:'イージー',normal:'ノーマル',hard:'ハード'})[d] + "を選ぶ",
-    exact: true,
-  });
-  if (await btn.isDisabled()) {
-    await page.getByRole("button", { name: "戻る", exact: true }).click();
-    await newTower(page, d);
-  } else await btn.click();
-}
 // Shared navigation for the new UI (Ver.6.10). Each helper waits for the destination marker, so tests do not
 // depend on how the screens are laid out. Update these first when a route moves.
 async function goHome(page) {
@@ -337,8 +292,6 @@ module.exports = {
   openRankingHub,
   openProfileTab,
   pair,
-  newTower,
-  continueTower,
   dismissCutin,
   chromium,
   context,

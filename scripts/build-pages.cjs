@@ -7,17 +7,6 @@ const root = path.resolve(__dirname, ".."),
   out = path.join(root, "dist");
 if (fs.existsSync(out)) fs.rmSync(out, { recursive: true });
 fs.mkdirSync(out);
-const materialHash = crypto
-  .createHash("sha256")
-  .update(fs.readFileSync(path.join(root, "math-tower/axiomia-part1.json")))
-  .digest("hex")
-  .slice(0, 16);
-fs.writeFileSync(
-  path.join(root, "math-tower-release.js"),
-  '/* Public game material: chapter one approved 2026-10-13; AXIOMIA part 1 (prologue + layer 1) approved for the same Pages delivery 2026-10-24. */\nwindow.MathTowerContentUrl = "math-tower/axiomia-part1.json?v=' +
-    materialHash +
-    '";\n',
-);
 const allowed = [
   "index.html",
   "next-home-ui.js",
@@ -36,13 +25,6 @@ const allowed = [
   "fonts/katex/LICENSE-FONTS.txt",
   "manifest.webmanifest",
   "suri-data.js",
-  "math-tower-core.js",
-  "math-tower-store.js",
-  "math-tower-ui.js",
-  "math-tower-release.js",
-  "math-tower.css",
-  "math-tower/chapter1.json",
-  "math-tower/axiomia-part1.json",
 ];
 for (const name of allowed) {
   const target = path.join(out, name);
@@ -69,11 +51,6 @@ for (const file of [
   "fonts/katex/KaTeX_Math-Italic.woff2",
   "fonts/katex/LICENSE-MIT.txt",
   "fonts/katex/LICENSE-FONTS.txt",
-  "math-tower-core.js",
-  "math-tower-store.js",
-  "math-tower-ui.js",
-  "math-tower-release.js",
-  "math-tower.css",
 ]) {
   const hash = crypto
     .createHash("sha256")
@@ -109,41 +86,6 @@ for (const file of [
 }
 fs.writeFileSync(path.join(out, "index.html"), html);
 
-const c = JSON.parse(
-  fs.readFileSync(path.join(out, "math-tower/chapter1.json")),
-);
-assert.equal(c.chapter, 1);
-assert.equal(c.version, 1);
-assert.deepEqual(
-  c.policy,
-  require("../math-tower-policy.json"),
-  "Approved policy must be unchanged",
-);
-assert.deepEqual(Object.keys(c.floors).sort(), ["1", "2", "3", "4", "5"]);
-{
-  // Ver.6.12: the engine derives the floor count / boss floor from the scenario; chapter one stays 5 / 5.
-  const L = require("../math-tower-core.js").layout(c);
-  assert.equal(L.floorCount, 5);
-  assert.equal(L.bossFloor, 5);
-}
-{
-  // Ver.6.17: AXIOMIA part 1. Same approved battle policy; every layer lays out; every referenced picture is published.
-  const part = JSON.parse(
-    fs.readFileSync(path.join(out, "math-tower/axiomia-part1.json")),
-  );
-  assert.equal(part.part, 1);
-  assert.equal(part.version, 1);
-  assert.deepEqual(part.policy, require("../math-tower-policy.json"), "Approved policy must be unchanged");
-  const core = require("../math-tower-core.js");
-  for (const n of core.layerNumbers(part)) {
-    const v = core.view(part, n);
-    assert.equal(v.policy.floorCount, 5);
-    assert.equal(v.policy.bossFloor, 5);
-    for (const f of [1, 2, 3, 4, 5]) assert(v.flow.pre(f).length && v.flow.post(f).length, `layer ${n} floor ${f} has story`);
-  }
-  for (const x of [...Object.values(part.characters), ...Object.values(part.backgrounds)])
-    if (x.image) assert(fs.existsSync(path.join(out, x.image)), "published picture missing: " + x.image);
-}
 const files = [];
 function walk(dir) {
   for (const d of fs.readdirSync(dir, { withFileTypes: true })) {

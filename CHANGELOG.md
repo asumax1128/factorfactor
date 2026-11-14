@@ -1,5 +1,14 @@
 # 更新履歴
 
+## Ver. 6.25 — 2026-11-14
+
+- AXIOMIA（数学の塔）の本体・素材・テストを削除（AXIOMIA系削除の2本目）。塔のプログラム（math-tower-core / store / ui / release、math-tower.css、src/math-tower-ui.jsx）、ゲームデータ（math-tower/ の旧第1章とAXIOMIA第1部）、画像（img/axiomia、3階の背景、ソロ画面のAXIOMIAカードの絵）、塔専用のテスト19本・スクリプト・ローカル試遊の道具を削除。公開物は約35.4MBから約21.5MBになった
+- 公開CI：塔のシャードと塔のルール監査（test:ci:rules）を削除。同じシャードにあった音声の回帰テスト（test:audio）は online-b シャードへ移し、引き続き実行する。公開の条件は残り3シャードすべての合格
+- どこからも使われていなかった塔の戦闘用の見た目（.tw-land のCSS）を削除
+- 残したもの：エミュレータ用のルールファイル firebase/math-tower.emulator.rules.json（対戦など他のテストが共通で使っているため）、suri-data.js とボスの絵（今週のボスで使用中。次の版で整理）、旧塔の称号・きせかえの定義（別の版で削除）
+- Firebase の本番ルールと mathTowerV2 のデータには触れていない
+- 問題・判定・得点・レーティング・ランキング・EXP・今週のボス・保存データの変更なし。データ移行なし。ロールバック先は Ver.6.24 の公開コミット 64b42ac7f05d6a8cd9ec6f86a2baa0a4202f7fb7。
+
 ## Ver. 6.24 — 2026-11-14
 
 - AXIOMIA（数学の塔）の入口と読み込みを外した（企画者決定：AXIOMIA系は全て削除。その1本目）。ソロ画面の「AXIOMIA」カード、入口の権限確認画面、`#math-tower` で直接開く経路を削除し、塔のプログラムと見た目（math-tower-*.js・math-tower.css）をページから読み込まないようにした。先生アカウントを含め、誰も塔を開けなくなる

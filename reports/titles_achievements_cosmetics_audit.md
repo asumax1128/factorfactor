@@ -1,6 +1,6 @@
 # 称号・実績・きせかえ実装監査
 
-対象: Ver.6.24（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
+対象: Ver.6.25（基準4b1574b、5.24は未配信）。生成元: scripts/audit-rewards.cjs。ユーザーデータやFirebase本番は読み書きしていません。
 
 ## システムの区別
 
@@ -59,31 +59,22 @@ node scripts/audit-rewards.cjsで3CSVと本書を生成。各CSVはUTF-8 BOM、C
 |img/icon-180.png|動的参照を要確認|
 |img/icon-192.png|動的参照を要確認|
 |img/icon-512.png|動的参照を要確認|
-|img/math-tower-floor3-official-d81d75734c05.png|あり|
 |img/backgrounds/README.md|動的参照を要確認|
 |img/monsters/README.md|動的参照を要確認|
-|img/monsters/abs.webp|動的参照を要確認|
-|img/monsters/balance.webp|動的参照を要確認|
-|img/monsters/chimera.webp|動的参照を要確認|
-|img/monsters/dragon.webp|動的参照を要確認|
-|img/monsters/golem.webp|動的参照を要確認|
-|img/monsters/king.webp|動的参照を要確認|
-|img/monsters/king2.webp|動的参照を要確認|
-|img/monsters/kraken.webp|動的参照を要確認|
-|img/monsters/maou.webp|動的参照を要確認|
-|img/monsters/maou2.webp|動的参照を要確認|
-|img/monsters/mirror.webp|動的参照を要確認|
-|img/monsters/mod.webp|動的参照を要確認|
-|img/monsters/prime.webp|動的参照を要確認|
-|img/monsters/robot.webp|動的参照を要確認|
-|img/monsters/sim.webp|動的参照を要確認|
-|img/monsters/slime.webp|動的参照を要確認|
-|img/monsters/wave.webp|動的参照を要確認|
-|img/axiomia/bg/classroom.webp|動的参照を要確認|
-|img/axiomia/chars/abs_wolf.webp|動的参照を要確認|
-|img/axiomia/chars/count_rabbit.webp|動的参照を要確認|
-|img/axiomia/chars/minus.webp|動的参照を要確認|
-|img/axiomia/chars/nul.webp|動的参照を要確認|
-|img/axiomia/chars/plus.webp|動的参照を要確認|
-|img/axiomia/chars/twin_fox.webp|動的参照を要確認|
-|img/axiomia/chars/zero_slime.webp|動的参照を要確認|
+|img/monsters/abs.webp|あり|
+|img/monsters/balance.webp|あり|
+|img/monsters/chimera.webp|あり|
+|img/monsters/dragon.webp|あり|
+|img/monsters/golem.webp|あり|
+|img/monsters/king.webp|あり|
+|img/monsters/king2.webp|あり|
+|img/monsters/kraken.webp|あり|
+|img/monsters/maou.webp|あり|
+|img/monsters/maou2.webp|あり|
+|img/monsters/mirror.webp|あり|
+|img/monsters/mod.webp|あり|
+|img/monsters/prime.webp|あり|
+|img/monsters/robot.webp|あり|
+|img/monsters/sim.webp|あり|
+|img/monsters/slime.webp|あり|
+|img/monsters/wave.webp|あり|
