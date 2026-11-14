@@ -7010,6 +7010,10 @@ const NAME_LS = 'fxf_battle_name_v1';
 function acctKey(name) { return 'a' + Array.from(name.trim()).map(c => c.codePointAt(0).toString(36)).join('_'); }
 function loadLS(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function saveLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+/* Ver.6.20: ログイン・登録の失敗を原因で分けて表示する。サーバーに「権限なし」で断られたとき（＝合言葉がちがう／名前が登録ずみ）だけ
+   従来の文言を出し、それ以外の失敗（通信・書き込みの失敗）は通信の案内にする。認証の流れ・書き込み先と内容・戻り値の形は従来のまま */
+const ACCT_NET_MSG = '通信できませんでした。電波のよい場所でもう一度試してください';
+const acctDenied = e => /permission[_ ]denied/i.test(String((e && e.code) || '') + ' ' + String((e && e.message) || ''));
 async function acctLogin(name, pin, create) {
   name = name.trim().slice(0, 10);
   if (!name) return { ok: false, msg: '名前を入れてください' };
@@ -7017,16 +7021,16 @@ async function acctLogin(name, pin, create) {
   const k = acctKey(name);
   if (create) {
     let exists = null;
-    try { exists = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) { return { ok: false, msg: '接続できませんでした' }; }
+    try { exists = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) { return { ok: false, msg: ACCT_NET_MSG }; }
     if (exists) return { ok: false, msg: 'その名前はもう登録されています。「ログイン」から入ってね' };
-    try { await fref(`pins/${k}`).set(pin); } catch (e) { return { ok: false, msg: 'その名前はもう登録されています' }; }
+    try { await fref(`pins/${k}`).set(pin); } catch (e) { return { ok: false, msg: acctDenied(e) ? 'その名前はもう登録されています' : ACCT_NET_MSG }; }
     try { await fref(`accounts/${k}`).update({ name, createdAt: TSV() }); } catch (e) { /* すでにある場合は無視 */ }
   }
   try { await fref(`logins/${k}/${FB.uid}`).set(pin); }
-  catch (e) { return { ok: false, msg: create ? '登録に失敗しました' : '名前か合言葉がちがいます' }; }
-  let nm = null;
-  try { nm = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) {}
-  if (!nm) return { ok: false, msg: 'その名前は登録されていません' };
+  catch (e) { return { ok: false, msg: !acctDenied(e) ? ACCT_NET_MSG : create ? '登録に失敗しました' : '名前か合言葉がちがいます' }; }
+  let nm = null, readFailed = false;
+  try { nm = (await fref(`accounts/${k}/name`).get()).val(); } catch (e) { readFailed = !acctDenied(e); }
+  if (!nm) return { ok: false, msg: readFailed ? ACCT_NET_MSG : 'その名前は登録されていません' };
   return { ok: true, acct: { key: k, name: nm } };
 }
 const winRate = st => { const g = (st && st.games) || 0; return g ? (st.w || 0) / g : 0; };
