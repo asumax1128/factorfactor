@@ -63,29 +63,21 @@ const accounts = { ateacher: { name: 'Teacher', stats: { rating: 1700 } } };
       await t.ctx.close();
     }
     console.log('PASS startMatch refuses C before clearing room records (flag-on control proves the click reaches it)');
-    // 4. Random match switch OFF through the legacy lobby (new home bundle unavailable): disabled, explained, nothing written.
+    // 4. Ver.6.23: the legacy menu/lobby is no longer shown when the new home bundle is unavailable (that fallback was removed).
+    //    The page shows a load error with a reload button instead, so the legacy random-match (qm) entry cannot be reached
+    //    from there at all: nothing is written, whatever the switch says. (Before Ver.6.23 this case drove the legacy lobby.)
     for (const enabled of [false, true]) {
       const t = await context(b, { blockedAssets: ['/next-home-ui.js'], tree: { games: { factor: { accounts, ...cfg(enabled) } } } }), p = t.page;
-      await p.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).click();
-      const quick = p.getByRole('button', { name: 'すぐ遊ぶ（ランダム対戦）', exact: true });
-      await quick.waitFor();
-      if (!enabled) {
-        await p.getByText('レーティング対戦は現在利用できません。ルーム対戦・CPU練習を利用できます。').first().waitFor();
-        assert.equal(await quick.isDisabled(), true);
-        await quick.evaluate((el) => el.click());
-        await p.waitForTimeout(500);
-        assert.equal(t.writes.filter((x) => /games\/factor\/(qm|rooms)\//.test(x.path)).length, 0, 'legacy qm must not start');
-        console.log('PASS legacy lobby with switch OFF: disabled, explained, no qm/rooms writes');
-      } else {
-        await p.waitForFunction(() => [...document.querySelectorAll('button')].some((x) => x.textContent.includes('すぐ遊ぶ（ランダム対戦）') && !x.disabled));
-        await quick.click();
-        await p.getByRole('button', { name: 'イージーで相手を探す', exact: true }).waitFor();
-        assert.equal(t.writes.filter((x) => /games\/factor\/qm\//.test(x.path)).length, 0);
-        console.log('PASS legacy lobby with switch ON: rated random match opens normally');
-      }
+      await p.locator('[data-home-load-error]').waitFor();
+      await p.getByRole('alert').getByText('ホーム画面を読み込めませんでした。通信を確認して、もう一度読み込んでください。', { exact: true }).waitFor();
+      assert.equal(await p.getByRole('button', { name: 'オンライン対戦（ロビー）', exact: true }).count(), 0, 'no legacy lobby entry');
+      assert.equal(await p.getByRole('button', { name: 'すぐ遊ぶ（ランダム対戦）', exact: true }).count(), 0, 'no legacy random match button');
+      await p.waitForTimeout(500);
+      assert.equal(t.writes.filter((x) => /games\/factor\/(qm|rooms)\//.test(x.path)).length, 0, 'legacy qm must not start');
       assert.deepEqual(t.errors, []);
       await t.ctx.close();
     }
+    console.log('PASS new home bundle unavailable: load error shown, no legacy lobby, no qm/rooms writes (switch OFF and ON)');
   } finally {
     await b.close();
   }

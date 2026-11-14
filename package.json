@@ -56,7 +56,7 @@
     "test:title-next": "node --test tests/title-compat-next.test.cjs && node tests/title-next-browser.cjs",
     "test:next-help": "node tests/next-help-browser.cjs",
     "test:login-ui": "node tests/login-ui-browser.cjs",
-    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs && node tests/solo-board-input-browser.cjs",
+    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs && node tests/solo-board-input-browser.cjs && node tests/cleanup-routes-browser.cjs",
     "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs",
     "test:tower:axiomia": "node tests/math-tower-axiomia-browser.cjs"
   },
