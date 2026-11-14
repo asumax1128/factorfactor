@@ -14,7 +14,8 @@ const nospWin = (s) => { s.noSpWins = (s.noSpWins || 0) + 1; };
 const lastHit = (s) => { s.wk = s.wk || {}; s.wk.lastHit = (s.wk.lastHit || 0) + 1; s.wk.kills = (s.wk.kills || 0) + 1; };
 
 test("the retired list is exactly the owner's seven, none in the 101 catalog", () => {
-  assert.deepEqual([...api.RETIRED_TITLES].sort(), ["nosp", "tw10", "tw100", "tw30", "tw50", "tw70", "wklast"]);
+  assert.deepEqual([...api.RETIRED_TITLES].sort(), ["nosp", "wklast"]); // Ver.6.26: the five old-tower titles were removed outright (not merely retired)
+  for (const id of ["tw10", "tw30", "tw50", "tw70", "tw100"]) assert.equal(api.BADGES.filter((b) => b.id === id).length, 0, "old-tower title definition removed: " + id);
   for (const id of api.RETIRED_TITLES) { assert.equal(Labels.of(id), null); assert.equal(api.BADGES.filter((b) => b.id === id).length, 1, "legacy definition kept"); }
 });
 test("a player who has NOT earned nosp / wklast cannot earn them any more", () => {
@@ -45,11 +46,11 @@ test("a held record is never lowered or removed, whatever the update", () => {
   const out = clone(held); api.holdRetiredCounters(before, out);
   assert.deepEqual(out, held);
 });
-test("tower counters are real progress and are not rewritten; tower titles are never announced", () => {
+test("old tower counters in the stats are left as they are and earn no title any more", () => {
   const { before, after } = tx({}, (s) => { s.tower = { best: 12 }; });
   assert.equal(after.tower.best, 12);
-  assert(api.badgesOf(after).some((x) => x.id === "tw10"));
-  assert(!api.announceableBadges(before, after).some((x) => x.id === "tw10"));
+  assert(!api.badgesOf(after).some((x) => /^tw\d+$/.test(x.id)));
+  assert(!api.announceableBadges(before, after).some((x) => /^tw\d+$/.test(x.id)));
 });
 test("reveals use the official catalog name; icon and description stay as before", () => {
   const cases = [["revenge", { revenges: 1 }], ["calm", { calmWins: 1 }], ["flawless", { flawlessWins: 1 }], ["bounty1", { bountyWins: 1 }]];

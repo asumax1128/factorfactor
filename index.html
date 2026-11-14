@@ -1140,7 +1140,6 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'weekly', title: '今週のボス', body: '全員のダメージを合わせて、1週間でボスを倒す。弱点タイムは2倍、反撃は直前に正解していればガード。倒せば参加者全員に討伐報酬！ 逃がすと翌週、怒って居座るよ。' },
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
-  { ch: 'team', v: 'tower', title: '数理の塔', body: '数学の法則が失われた世界で、塔を登る物語。会話のあとに因数分解の「数理試練」。階を突破すると「数理の書」に学習記録が増え、5階ごとのボスに勝つと「法則の断片」が手に入る。1階ごとにセーブされるので、いつでも続きから遊べる！' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（3難易度のチャレンジ＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
@@ -1170,7 +1169,6 @@ function TutVisual({ v }) {
   if (v === 'weekly' || v === 'raid') { const b = BOSSES[v === 'weekly' ? 5 : 0]; return navy(<><div className="w-full"><BossPanel boss={b} hp={v === 'weekly' ? 18000 : 6200} max={v === 'weekly' ? 30000 : 10000} /></div><div className="flex gap-1.5 flex-wrap justify-center">{v === 'weekly' ? <>{chip('🎯 弱点タイム ×2', '#ff7b00')}{chip('🛡 ガード', '#457b9d')}{chip('🏆 討伐報酬', '#d4a017')}</> : <>{chip('🐉 攻撃型', '#2a9d8f')}{chip('🗿 防御型', '#8d6e63')}{chip('👿 変身型', '#b5487e')}</>}</div></>); }
   if (v === 'modeC') return navy(<><div className="grid items-center gap-2 w-full" style={{ gridTemplateColumns: '1fr auto 1fr' }}>{[0, 1].map(t => <div key={t} className="flex flex-col gap-1" style={{ order: t ? 3 : 1 }}>{[1, 2].map(i => <div key={i} className="v7-wnd px-2 py-1 text-[11px] font-black" style={{ borderLeft: `5px solid ${TEAM_INFO_C[t].color}`, color: '#fff' }}>{TEAM_INFO_C[t].name.slice(0, 1)}{i}</div>)}</div>)}<div style={{ order: 2, fontFamily: 'var(--v7-f-fx)', fontSize: 26, color: 'var(--v7-gold)' }}>VS</div></div><div className="w-full"><HpBar v7 hp={72} height={16} /></div><div className="flex gap-1.5">{chip('🤝 カバー', '#2F6FD6')}{chip('⚡ 合体攻撃', '#7b2cbf')}</div></>);
   if (v === 'fraid') return <div className="grid grid-cols-4 gap-1.5 w-full" style={{ maxWidth: 340 }}>{ROLE_IDS.map(id => <div key={id} className="rounded-xl py-1.5 text-center" style={{ background: '#fff', border: `1.5px solid ${ROLES[id].color}` }}><div className="text-xl leading-none">{ROLES[id].icon}</div><div className="text-[9px] font-black" style={{ color: ROLES[id].color }}>{ROLES[id].name}</div></div>)}</div>;
-  if (v === 'tower') return navy(<><div className="flex items-end gap-1.5">{[1, 2, 3, 4, 5].map(i => <div key={i} className="rounded-md text-center font-black text-white" style={{ width: 44, height: 22 + i * 12, background: i === 5 ? '#E4572E' : '#2B3A7A', fontSize: 10, paddingTop: 2, ...bFont }}>{i * 10}F</div>)}<div style={{ fontSize: 34 }}>👑</div></div><div className="w-full"><HpBar v7 hp={64} height={16} /></div></>);
   if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
   if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📅', 'デイリー', '毎日4つ', '#E4572E')}{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
   if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}{chip('💰 懸賞金 10', '#b7791f')}</div></div>;
@@ -3482,7 +3480,6 @@ const SKIN_TILES = [
   { id: 'scale', name: 'ドラゴンの鱗', bg: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', bc: '#0e4d44', color: '#ffffff', glow: '0 0 8px #2a9d8f88', need: { boss: 'dragon' } },
   { id: 'inkt', name: 'クラーケンの墨', bg: 'radial-gradient(circle at 30% 30%,#5b4bb7,#1d1640 70%)', bc: '#b9a8ff', color: '#ffffff', glow: '0 0 8px #7B61FF88', need: { boss: 'kraken' } },
   { id: 'treasure', name: '宝箱の金貨', bg: 'radial-gradient(circle at 30% 25%,#fff6c8,#f7c948 45%,#c08a10)', bc: '#7a5200', color: '#3a2600', glow: '0 0 10px #ffd54aaa', need: { shards: 5 } },
-  { id: 'towert', name: '塔の頂', bg: 'linear-gradient(135deg,#fff8dc,#f0c75e 45%,#b8860b)', bc: '#6b4e00', color: '#3a2600', glow: '0 0 10px #f0c75eaa', need: { tower: 50 } },
   { id: 'rock', name: 'ゴーレムの岩', bg: 'linear-gradient(135deg,#a1887f,#6d4c41)', bc: '#3e2723', color: '#fff8e1', need: { boss: 'golem' } },
 ];
 const SKIN_BGS = [
@@ -3498,7 +3495,6 @@ const SKIN_BGS = [
   // 今週のボスの討伐記念
   { id: 'castle', name: '魔王城', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #5b2a86, #1a0a2a 70%)', need: { boss: 'maou' } },
   { id: 'jelly', name: 'スライムの森', bg: 'radial-gradient(circle at 20% 80%, #b8f5c4 0 12%, transparent 13%), radial-gradient(circle at 75% 30%, #d6ffdd 0 9%, transparent 10%), linear-gradient(180deg,#e9ffe9,#9be7a8)', need: { boss: 'slime' } },
-  { id: 'summit', name: '天空の塔', bg: 'radial-gradient(ellipse 80% 40% at 50% 0%, #fff6c8 0, transparent 60%), linear-gradient(180deg,#3b5aa8,#1a2350 60%,#0d1230)', need: { tower: 50 } },
   { id: 'circuit', name: '電脳回路', bg: 'repeating-linear-gradient(90deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), repeating-linear-gradient(0deg, transparent 0 30px, rgba(69,123,157,.35) 30px 32px), linear-gradient(180deg,#0b2a3a,#08202d)', need: { boss: 'robot' } },
 ];
 const SKIN_FX = [
@@ -3533,10 +3529,9 @@ function skinOpen(need, info) {
   if (need.bounty) return info.bounty >= need.bounty;
   if (need.boss) return !!(info.boss && info.boss[need.boss]);
   if (need.shards) return (info.shards || 0) >= need.shards;
-  if (need.tower) return (info.tower || 0) >= need.tower;
   return false;
 }
-const skinNeedText = need => !need ? '' : need.tower ? `数理の塔の${need.tower}階を突破すると解放` : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.mis ? `ミッションを${need.mis}日コンプリートで解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
 // Read-only history: no current-rating/default-1500 substitution and no migration.
 // HARD can be added explicitly to difficulties when its independent history exists.
 const RatingHistory = (() => {
@@ -3615,7 +3610,7 @@ function useDailyTitles(account){
 }
 function skinInfo(st, exp) {
   st = st || {};
-  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0, tower: (st.tower && st.tower.best) || 0 };
+  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, mis: st.misDays || 0, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0 };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose, appearance }) {
@@ -5944,13 +5939,6 @@ function WeeklyRaidApp({ acct, onExit, renderMenu }) {
     </div>)
   );
 }
-/* ---------- 数理の塔（ひとりで1階ずつ登る） ----------
-   ・1階＝ボス1体を45秒で倒す。時間切れはボスの猛攻（HP−25）で15秒延長
-   ・自分のHPは階をまたいで持ち越し。ミス −5、反撃を受ける −12（大ボス×1.5）。階を突破すると少し回復
-   ・5の倍数の階は大ボス（体力1.5倍・反撃が多い）。1階ごとにセーブ（突破した次の階から、いつでも続きができる）
-   ・50階に「因数の王」→ 称号「塔を制覇」・きせかえ。70階で第一部完（無限回廊は廃止。旧：最高到達階ランキング） */
-// Ver.6.12: the old tower screens (TowerApp / SuriBook / StoryView …) were removed as unreachable.
-// Ver.6.23: the unused world data that was kept beside them (floors, monsters, bosses, king parts) is removed too; it remains in the git history (Ver.6.22 and earlier).
 /* ボスのしかけ（塔・今週のボス・クラス協力レイド・フレンドレイドで共通）
    o = { active, t0（出撃・階の開始時刻）, hpRatio（ボスの体力の割合）, broken（{a,b,c} こわれた部位）, onAbs（絶対値：正解で時間をのばす。のびたら true） } */
 const GIM_INIT = () => ({ balLv: null, simLast: null, simG: 0, simAcc: 0, absN: 0, nextWave: 5, fired: {} });
@@ -6413,11 +6401,6 @@ const BADGES = [
   { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
   { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
   { id: 'wksup100', g: 'wksup', r: 4, icon: '🎺', label: '名サポーター', desc: '応援ポイントを通算100', test: st => ((st.wk || {}).sup || 0) >= 100 },
-  { id: 'tw10', g: 'tower', r: 2, icon: '🗼', label: '塔の挑戦者', desc: '数理の塔で10階を突破', test: st => ((st.tower || {}).best || 0) >= 10 },
-  { id: 'tw30', g: 'tower', r: 3, icon: '🏯', label: '塔の熟練者', desc: '数理の塔で30階を突破', test: st => ((st.tower || {}).best || 0) >= 30 },
-  { id: 'tw50', g: 'tower', r: 5, icon: '👑', label: '塔を制覇', desc: '数理の塔の50階で因数の王を倒す', test: st => ((st.tower || {}).best || 0) >= 50 },
-  { id: 'tw70', g: 'tower', r: 5, icon: '📖', label: '数理の書の継承者', desc: '数理の塔の第一部をクリア', test: st => ((st.tower || {}).best || 0) >= 70 },
-  { id: 'tw100', g: 'tower', r: 5, icon: '🌌', label: '終わりなき探究者', desc: '数理の塔の第一部を3回クリア', test: st => ((st.tower || {}).endN || 0) >= 3 || ((st.tower || {}).best || 0) >= 100 },
   { id:'hyper_slayer',g:'hyper_slayer',r:5,icon:'🌌',label:'超影の征服者',desc:'乱入ハイパーゴーストに初勝利（永久）',test:st=>st.ghostTitles?.hyper_slayer===true },
   { id:'ghost_up1',g:'ghost_up1',r:3,icon:'⚔️',label:'格上の影を破る者',desc:'1ランク上の乱入ゴーストに初勝利（永久）',test:st=>st.ghostTitles?.ghost_up1===true },
   { id:'ghost_up2',g:'ghost_up2',r:4,icon:'🌠',label:'二階級の影を超える者',desc:'2ランク上の乱入ゴーストに初勝利（永久）',test:st=>st.ghostTitles?.ghost_up2===true },
@@ -6440,7 +6423,7 @@ const keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undef
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
 /* Ver.6.0 廃止称号（所有者承認）：新規取得だけを止める。取得状態は統計カウンタそのもの（1以上で取得・減らない）なので、
    既得（カウンタ1以上）・装備(stats/nick)・過去の戦績は一切変えず、0→1になる更新だけを取り消す。 */
-const RETIRED_TITLES = ['nosp', 'wklast', 'tw10', 'tw30', 'tw50', 'tw70', 'tw100'];
+const RETIRED_TITLES = ['nosp', 'wklast'];   // Ver.6.26: 旧「数理の塔」の称号(tw10〜tw100)は定義ごと削除
 const isRetiredTitle = id => RETIRED_TITLES.includes(id);
 function holdRetiredCounters(before, s) {
   const b = before || {}, bw = b.wk || {};
@@ -6485,7 +6468,7 @@ async function keepFreezeOnLogin(acct) {
   } catch (e) { KEEP_DIAG.note('exception', e && e.name); return null; }
 }
 // Presentation metadata never participates in award, equipment or Firebase writes.
-const achievementStatus = id => (window.AchievementAudit || []).find(x => x.id === id)?.status || (BADGES.find(x=>x.id===id)?.g==='tower'?'hidden':'active');
+const achievementStatus = id => (window.AchievementAudit || []).find(x => x.id === id)?.status || 'active';
 const activeAchievements = () => BADGES.filter(b => achievementStatus(b.id) === 'active');
 function AchievementAuditPanel() {
   const states = {active:'有効',hidden:'一時非表示',retired:'廃止'};
@@ -8298,7 +8281,6 @@ const ACT_INFO = {
   daily: { icon: '📅', label: 'デイリー', color: '#f4a261' },
   learn: { icon: '📚', label: '学びの部屋', color: '#7B61FF' },
   raidw: { icon: '🗓', label: '今週のボス', color: '#7b2cbf' },
-  tower: { icon: '🗼', label: '数理の塔', color: '#E4572E' },
   dash: { icon: '👩‍🏫', label: 'ダッシュボード', color: '#2a9d8f' },
 };
 function presenceSet(patch) {
