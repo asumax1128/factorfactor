@@ -62,23 +62,23 @@ window.NextHomeFactory = H => {
   const nav=[['home','ホーム','ホーム'],['online','オンライン対戦','対戦'],['solo','ソロモード','ソロ'],['rank','ランキング','順位'],['account','プロフィール','プロフィール']];
   const navButton=(key,label)=><button key={key} className={'nav-item '+(key===navigation.active(page)?'selected':'')} aria-current={key===navigation.active(page)?'page':undefined} onClick={()=>go(key==='account'?'profile':key)}><Icon name={key}/><span>{label}</span><i aria-hidden="true"/></button>;
   const ver=window.FactorVersion&&window.FactorVersion.number?'Ver.'+window.FactorVersion.number:'';
-  const brand=<><img src="ui-next/logo-official.png" alt="FACTOR × FACTOR" width="1774" height="887"/>{ver&&<span className="brand-ver" data-home-version>{ver}</span>}</>;
+  const brand=<><img src="ui-next/logo-official.webp" alt="FACTOR × FACTOR" width="660" height="330" loading="lazy" decoding="async"/>{ver&&<span className="brand-ver" data-home-version>{ver}</span>}</>;
   const hp=boss.info?Math.max(0,boss.info.hp):null,max=boss.info?.hpMax,pct=max?Math.min(100,hp/max*100):0;
   const statusText={loading:'HP情報を読み込み中…',preparing:'次のボスを準備中',error:'HP情報を取得できません',denied:'HP情報を取得できません（権限不足）'}[boss.status];
 
 const soloHub=()=>{
    const bossArt=boss.boss&&suriImg(boss.boss.id),best=soloBestOf?soloBestOf(acct):0;
    const cards=[
-    ['play','通常プレイ','難易度を選んでスコアに挑戦','blue','ui-next/solo/solo.png','CROSS FACTOR',null],
-    ['cpu','CPU練習','CPUを相手に腕試し','green','ui-next/solo/cpu.png','SPARRING MOTION',null],
-    ['daily','デイリーミッション','今日のミッションと報酬','gold','ui-next/solo/dairymission.png','暁光の報酬宝箱',DailyProgress?<DailyProgress acct={acct}/>:null],
+    ['play','通常プレイ','難易度を選んでスコアに挑戦','blue','ui-next/solo/solo.webp','CROSS FACTOR',null],
+    ['cpu','CPU練習','CPUを相手に腕試し','green','ui-next/solo/cpu.webp','SPARRING MOTION',null],
+    ['daily','デイリーミッション','今日のミッションと報酬','gold','ui-next/solo/dairymission.webp','暁光の報酬宝箱',DailyProgress?<DailyProgress acct={acct}/>:null],
     ['boss','今週のボス','みんなで挑む週替わりの強敵','purple',bossArt,boss.boss?.name||'今週のボス',null],
-    ['learn','学びの部屋','苦手分析・ドリル・図鑑','lime','ui-next/solo/learning.png','学びの部屋',null],
-    ['axiomia','AXIOMIA',<AxiomiaText acct={acct} kind="desc"/>,'indigo','ui-next/solo/axiomia.png','AXIOMIA',<AxiomiaText acct={acct} kind="badge"/>]];
+    ['learn','学びの部屋','苦手分析・ドリル・図鑑','lime','ui-next/solo/learning.webp','学びの部屋',null],
+    ['axiomia','AXIOMIA',<AxiomiaText acct={acct} kind="desc"/>,'indigo','ui-next/solo/axiomia.webp','AXIOMIA',<AxiomiaText acct={acct} kind="badge"/>]];
    const route={play:'solo-play',cpu:'cpu',daily:'daily',boss:'boss',learn:'learn',axiomia:'axiomia'};
    return <main className="solo-hub" data-solo-hub>
     <ul className="solo-modes">{cards.map(([k,name,desc,tone,art,alt,badge])=><li key={k}><button type="button" className="solo-card" data-solo-mode={k} data-tone={tone} onClick={()=>go(route[k])}>
-     <span className="solo-art" aria-hidden={art?undefined:'true'}>{art&&<img src={art} alt={alt} width="1254" height="1254" decoding="async" onError={e=>{e.currentTarget.hidden=true}}/>}</span>
+     <span className="solo-art" aria-hidden={art?undefined:'true'}>{art&&<img src={art} alt={alt} width="640" height="640" loading="lazy" decoding="async" onError={e=>{e.currentTarget.hidden=true}}/>}</span>
      <strong>{name}</strong><small>{desc}</small>{badge&&<span className="solo-badge">{badge}</span>}
     </button></li>)}</ul>
     <button type="button" className="solo-profile" data-solo-profile onClick={()=>go('profile')}>
