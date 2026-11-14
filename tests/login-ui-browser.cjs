@@ -94,6 +94,34 @@ async function layout(p, width) {
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log("PASS login failure message shown, nobody logged in");
     }
+    // Ver.6.20: the failure message tells a refused write (wrong passphrase / name taken) from a failed one (network).
+    {
+      const NET = "通信できませんでした。電波のよい場所でもう一度試してください";
+      const denied = () => { throw Error("PERMISSION_DENIED: Permission denied"); }, broken = () => { throw Error("Network Error"); };
+      const cases = [
+        ["ログイン", /\/logins\//, denied, "名前か合言葉がちがいます"],
+        ["ログイン", /\/logins\//, broken, NET],
+        ["新しく登録", /\/pins\//, denied, "その名前はもう登録されています"],
+        ["新しく登録", /\/pins\//, broken, NET],
+        ["新しく登録", /\/logins\//, denied, "登録に失敗しました"],
+        ["新しく登録", /\/logins\//, broken, NET],
+      ];
+      for (const [button, path, fail, expected] of cases) {
+        const seen = [];
+        const t = await context(b, { account: null, tree: { games: { factor: { accounts: {} } } }, onOperation: (op) => { seen.push(op.kind + " " + op.path); if (path.test("/" + op.path)) fail(); } }), p = t.page;
+        await p.getByPlaceholder("名前（10文字まで）").fill("えらー"); await p.getByPlaceholder("合言葉（4桁の数字）").fill("2468");
+        await p.getByRole("button", { name: button, exact: true }).click(); await p.getByRole("alert").waitFor();
+        assert.equal(await p.getByRole("alert").innerText(), expected, button + " " + path + " " + fail.name);
+        assert.equal(await p.evaluate(() => localStorage.getItem("fxf_battle_account_v1")), null, "nobody logged in");
+        // The writes attempted are the audited ones, in the audited order: (pins → accounts →) logins, nothing else.
+        const key = "a" + Array.from("えらー").map((c) => c.codePointAt(0).toString(36)).join("_");
+        const full = button === "ログイン" ? ["set games/factor/logins/" + key + "/"] : ["set games/factor/pins/" + key, "update games/factor/accounts/" + key, "set games/factor/logins/" + key + "/"];
+        assert(seen.length >= 1 && seen.length <= full.length, "writes: " + seen.join(", "));
+        seen.forEach((w, i) => assert(w.startsWith(full[i]), "write " + i + ": " + w));
+        await t.ctx.close();
+      }
+      console.log("PASS login/registration failures: refused write keeps the old wording, failed write shows the connection message; same writes as before");
+    }
     await sleep(0);
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

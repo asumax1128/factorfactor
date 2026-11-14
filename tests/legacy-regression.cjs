@@ -60,11 +60,21 @@ assert.equal(new Set(names).size, names.length, "protected list has duplicates")
   const mutated = functions(nowJsx.replace(/function getJudgment\(([^)]*)\)\s*\{/, (m) => m + " void 0;"));
   assert.notEqual(mutated.getJudgment, after.getJudgment, "self-test: the audit must detect a changed protected function");
 }
+// Owner-approved re-pins (2026-11-13): a protected function whose reviewed new version replaces the Ver.6.11 baseline. It stays
+// pinned EXACTLY (sha256 of the same comment/position-free AST), so any further change still fails here.
+//  - acctLogin (Ver.6.20): only the failure kind → message mapping changed (network / write failure vs. wrong name or passphrase).
+//    The auth flow, the database paths and values written, and the return shape are the audited ones.
+const REPINNED = { acctLogin: "e8ad9483db79f1ff74eddf0963d7d049a6400d8631cfa2dacae87ce662b9a14e" };
+const astHash = (s) => require("node:crypto").createHash("sha256").update(s).digest("hex");
 for (const name of names) {
   assert.ok(before[name], "Protected function missing from the pin baseline: " + name);
   assert.ok(after[name], "Protected function removed: " + name);
-  assert.equal(after[name], before[name], "Protected function changed: " + name + " (review it, then move PIN_BASE deliberately)");
+  if (REPINNED[name]) {
+    assert.notEqual(after[name], before[name], "Re-pin is stale (function equals the old baseline again): " + name);
+    assert.equal(astHash(after[name]), REPINNED[name], "Re-pinned protected function changed: " + name + " (needs a new owner approval)");
+  } else assert.equal(after[name], before[name], "Protected function changed: " + name + " (review it, then move PIN_BASE deliberately)");
 }
+for (const name of Object.keys(REPINNED)) assert.ok(names.includes(name), "re-pin names a protected function: " + name);
 {
   const b0 = logicOnly(baseJsx), a0 = logicOnly(nowJsx);
   for (const name of LOGIC_ONLY) { assert.ok(b0[name] && a0[name], name + " found"); assert.equal(a0[name], b0[name], "Login logic changed: " + name + " (state / handlers / limits must stay as audited)"); }
