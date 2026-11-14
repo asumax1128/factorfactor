@@ -2425,7 +2425,11 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
         });
       }
     };
+    // Ver.6.21: 共有盤面(BattleBoard)と同じ取りこぼし防止。1回のドラッグの終わりは1度だけ処理する
+    // (pointerup と touchend の両方が届いても二重に判定しない)。
+    let done = false;
     const onUp = (e) => {
+      if (done) return; done = true;
       const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
       const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
       const el = document.elementFromPoint(clientX, clientY);
@@ -2439,12 +2443,18 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       }
       cancelSelection();
     };
+    // ブラウザやOSがドラッグを打ち切ったとき(通知・システムのジェスチャーなど)は、判定せずに選択と線を消す。
+    const onCancel = () => { done = true; cancelSelection(); };
+    window.addEventListener('pointercancel', onCancel);
+    window.addEventListener('touchcancel', onCancel);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('touchmove', onMove, { passive: false });
     window.addEventListener('touchend', onUp);
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('touchcancel', onCancel);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('touchmove', onMove);
