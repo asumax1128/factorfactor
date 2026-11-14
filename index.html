@@ -331,32 +331,6 @@
   @media (max-height: 450px) and (max-width: 599px) {
     .compat-play .v7-play { min-height: 650px; }
   }
-  /* 数理の塔の戦闘（.tw-land は塔の戦闘画面にだけ付く）：画面の切りかえは通常モードと同じ（スマホ縦＝スマホ版、タブレット・PCの横＝タブレット版）。
-     スマホを横にして遊んだときだけの予備として、横向きなら2列にする（通常モードには付かない） */
-  @media (orientation: landscape) {
-    .tw-land .v7-play { display: grid; grid-template-columns: minmax(250px, 34%) 1fr; gap: 12px; max-width: 1280px; }
-    .tw-land .v7-zone { height: 100%; min-height: 0; overflow: hidden; }
-    .tw-land .v7-fxbox { display: flex; flex: 1; min-height: 0; position: relative; border-radius: 10px; border: 2px dashed rgba(230,236,255,.18); align-items: center; justify-content: center; overflow: hidden; }
-    .tw-land .v7-judge-ph { display: none; }
-    .tw-land .v7-judge-tb { display: block; top: 40%; font-size: 64px; -webkit-text-stroke: 3px #fff; }
-    .tw-land .v7-fxcombo { display: flex; }
-  }
-  /* スマホの横向き（高さが小さい）：カード・ボタンがはみ出さないように詰める */
-  @media (orientation: landscape) and (max-height: 560px) {
-    .tw-land { padding-top: 6px !important; padding-bottom: 6px !important; }
-    .tw-land .v7-play { grid-template-columns: minmax(230px, 36%) 1fr; gap: 8px; }
-    .tw-land .v7-zone, .tw-land .v7-main { gap: 5px; }
-    .tw-land .v7-st { padding: 1px 4px; }
-    .tw-land .v7-st small { font-size: 8px; letter-spacing: .06em; }
-    .tw-land .v7-st b { font-size: 17px; }
-    .tw-land .v7-hpb { height: 16px; }
-    .tw-land .v7-target { padding: 5px 8px 4px; }
-    .tw-land .v7-poly { font-size: clamp(1.15rem, 8.5vh, 2.2rem); }
-    .tw-land .v7-hint { display: none; }
-    .tw-land .v7-judge-tb { font-size: 40px; }
-    .tw-land .v7-fxcombo b { font-size: 64px; }
-    .tw-land .v7-fxcombo small { font-size: 14px; }
-  }
   .v7-result { width: 100%; max-width: 30rem; padding: 18px 16px; text-align: center; }
   .v7-result .big { font-family: var(--v7-f-fx); font-size: 56px; color: var(--v7-gold); line-height: 1.1; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
   .v7-result .row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; padding: 5px 2px; border-bottom: 1px solid rgba(230,236,255,.15); font-family: var(--v7-f-ui); }

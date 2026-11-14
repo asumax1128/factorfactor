@@ -15,6 +15,27 @@ const src = fs.readFileSync("index.html", "utf8");
   for (const name of ["AccountPanelV7", "DailyTileV7", "WeeklyTileV7", "GhostNews", "LegacyDailyApp", "TOWER_BOSSES", "TOWER_MOBS", "KING_PARTS", "PAST_PERIOD_CHAMPIONS", "従来のメニューを表示します"])
     assert(!src.includes(name), "removed: " + name);
   console.log("PASS removed code is absent from index.html");
+  // Ver.6.25: the math tower (AXIOMIA) files are gone from the repository, the build and the publish workflow;
+  // the audio regression that shared the tower's CI shard still runs (in another shard).
+  {
+    const gone = ["math-tower-core.js", "math-tower-store.js", "math-tower-ui.js", "math-tower-release.js", "math-tower.css", "math-tower-policy.json", "math-tower", "img/axiomia", "img/math-tower-floor3-official-d81d75734c05.png", "ui-next/solo/axiomia.png", "ui-next/solo/axiomia.webp", "src/math-tower-ui.jsx", "tests/tower-nav-helper.cjs", "scripts/build-math-tower.cjs", "scripts/ci-emulator-checks.cjs"];
+    for (const f of gone) assert(!fs.existsSync(f), "removed from the repository: " + f);
+    assert.deepEqual(fs.readdirSync("tests").filter((f) => /^math-tower-/.test(f)), [], "no tower test files");
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")).scripts, wf = fs.readFileSync(".github/workflows/math-tower-pages.yml", "utf8"), build = fs.readFileSync("scripts/build-pages.cjs", "utf8");
+    assert.deepEqual(Object.keys(pkg).filter((k) => /tower|ci:rules/.test(k)), [], "no tower scripts in package.json");
+    assert(!/math-tower|axiomia/i.test(build), "the page build does not stage tower files");
+    assert(!/test:tower|shard: tower|test:ci:rules/.test(wf), "no tower shard / tower suites / tower rule audit in the publish workflow");
+    const shards = [...wf.matchAll(/- shard: (\S+)\n(?:\s+emulator: true\n)?\s+scripts: (.*)/g)].map((m) => [m[1], m[2].trim().split(/\s+/)]);
+    assert.deepEqual(shards.map((x) => x[0]), ["online-a", "online-b", "emulator-artifact"]);
+    assert.equal(shards.filter((x) => x[1].includes("test:audio")).length, 1, "the audio regression still runs in exactly one shard");
+    assert(pkg["test:audio"], "test:audio script exists");
+    assert(/for shard in online-a online-b emulator-artifact; do/.test(wf) && /wc -l\)" = 3/.test(wf), "release requires exactly the three remaining shards");
+    if (fs.existsSync("dist/release-manifest.json")) {
+      const published = JSON.parse(fs.readFileSync("dist/release-manifest.json", "utf8")).files.map((f) => f.path);
+      assert.deepEqual(published.filter((f) => /math-tower|axiomia/i.test(f)), [], "no tower / AXIOMIA file in the public artifact");
+    }
+    console.log("PASS tower files removed from repository, build and publish workflow; audio regression still scheduled");
+  }
   const b = await chromium.launch({ executablePath: exe });
   try {
     for (const width of [390, 1440]) {
