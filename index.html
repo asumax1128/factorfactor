@@ -23,8 +23,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- 数理の塔のデータ（会話・図鑑・断片・画像）。読めなくてもゲームは動く -->
-<script src="suri-data.js?v=7"></script>
+<!-- ボスの絵とキャラクターの定義（今週のボス・レイド・図鑑・ホーム）。読めなくてもゲームは動く（ボスは絵文字になる） -->
+<script src="suri-data.js?v=8"></script>
 <script src="online-spark.js"></script>
 <script src="next-results-ui.js"></script>
 <link rel="stylesheet" href="ui-next/results.css" />
@@ -6045,7 +6045,7 @@ function towerSimProb(lv, seen) {
   return { level: lv, ...buildBoard(lv, seen, 6) };
 }
 /* =====================================================================
-   数理の塔：データ（suri-data.js）・画像・会話・数理の書
+   ボスの絵とキャラクターの定義（suri-data.js）
    ===================================================================== */
 const SURI = () => window.SURI_DATA || {};
 // 画像：suri-data.js の images に登録したものだけ使う（未登録は絵文字）
