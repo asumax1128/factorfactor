@@ -2282,12 +2282,8 @@
   var icons2 = require_next_home_icons();
   window.NextHomeFactory = (H) => {
     const { useState, useEffect, useRef } = React;
-    const { DailyProgress, soloBestOf, useTowerAccess, FB, useFbReady, weekKey, now, weeklyInfo, bossForm, suriImg, useRatingHistoryProfile, RatingDisplay, levelOf, isReal, loadGuest, nickOf, Wardrobe, useFbValue, useGameMute, LoginBonus, syncSkin } = H;
+    const { DailyProgress, soloBestOf, FB, useFbReady, weekKey, now, weeklyInfo, bossForm, suriImg, useRatingHistoryProfile, RatingDisplay, levelOf, isReal, loadGuest, nickOf, Wardrobe, useFbValue, useGameMute, LoginBonus, syncSkin } = H;
     const Profile = createProfile(H);
-    const AxiomiaText = ({ acct, kind }) => {
-      const ok = useTowerAccess ? useTowerAccess(acct) === true : false;
-      return kind === "badge" ? ok ? "\u30D7\u30EC\u30A4\u53EF\u80FD" : "\u6E96\u5099\u4E2D" : ok ? "\u6570\u7406\u306E\u5854\u3092\u5192\u967A\u3057\u3088\u3046" : "\u6E96\u5099\u4E2D\uFF08\u5148\u751F\u9650\u5B9A\uFF09";
-    };
     const Icon2 = ({ name }) => /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: icons2[name] || icons2.home }));
     function useBoss(enabled) {
       const fb = useFbReady(), [tick, setTick] = useState(0), [retry, setRetry] = useState(0), [data, setData] = useState(null);
@@ -2388,10 +2384,9 @@
           ["cpu", "CPU\u7DF4\u7FD2", "CPU\u3092\u76F8\u624B\u306B\u8155\u8A66\u3057", "green", "ui-next/solo/cpu.webp", "SPARRING MOTION", null],
           ["daily", "\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3", "\u4ECA\u65E5\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u3068\u5831\u916C", "gold", "ui-next/solo/dairymission.webp", "\u6681\u5149\u306E\u5831\u916C\u5B9D\u7BB1", DailyProgress ? /* @__PURE__ */ React.createElement(DailyProgress, { acct }) : null],
           ["boss", "\u4ECA\u9031\u306E\u30DC\u30B9", "\u307F\u3093\u306A\u3067\u6311\u3080\u9031\u66FF\u308F\u308A\u306E\u5F37\u6575", "purple", bossArt, ((_a2 = boss.boss) == null ? void 0 : _a2.name) || "\u4ECA\u9031\u306E\u30DC\u30B9", null],
-          ["learn", "\u5B66\u3073\u306E\u90E8\u5C4B", "\u82E6\u624B\u5206\u6790\u30FB\u30C9\u30EA\u30EB\u30FB\u56F3\u9451", "lime", "ui-next/solo/learning.webp", "\u5B66\u3073\u306E\u90E8\u5C4B", null],
-          ["axiomia", "AXIOMIA", /* @__PURE__ */ React.createElement(AxiomiaText, { acct, kind: "desc" }), "indigo", "ui-next/solo/axiomia.webp", "AXIOMIA", /* @__PURE__ */ React.createElement(AxiomiaText, { acct, kind: "badge" })]
+          ["learn", "\u5B66\u3073\u306E\u90E8\u5C4B", "\u82E6\u624B\u5206\u6790\u30FB\u30C9\u30EA\u30EB\u30FB\u56F3\u9451", "lime", "ui-next/solo/learning.webp", "\u5B66\u3073\u306E\u90E8\u5C4B", null]
         ];
-        const route = { play: "solo-play", cpu: "cpu", daily: "daily", boss: "boss", learn: "learn", axiomia: "axiomia" };
+        const route = { play: "solo-play", cpu: "cpu", daily: "daily", boss: "boss", learn: "learn" };
         return /* @__PURE__ */ React.createElement("main", { className: "solo-hub", "data-solo-hub": true }, /* @__PURE__ */ React.createElement("ul", { className: "solo-modes" }, cards.map(([k, name, desc, tone, art, alt, badge]) => /* @__PURE__ */ React.createElement("li", { key: k }, /* @__PURE__ */ React.createElement("button", { type: "button", className: "solo-card", "data-solo-mode": k, "data-tone": tone, onClick: () => go(route[k]) }, /* @__PURE__ */ React.createElement("span", { className: "solo-art", "aria-hidden": art ? void 0 : "true" }, art && /* @__PURE__ */ React.createElement("img", { src: art, alt, width: "640", height: "640", loading: "lazy", decoding: "async", onError: (e) => {
           e.currentTarget.hidden = true;
         } })), /* @__PURE__ */ React.createElement("strong", null, name), /* @__PURE__ */ React.createElement("small", null, desc), badge && /* @__PURE__ */ React.createElement("span", { className: "solo-badge" }, badge))))), /* @__PURE__ */ React.createElement("button", { type: "button", className: "solo-profile", "data-solo-profile": true, onClick: () => go("profile") }, /* @__PURE__ */ React.createElement("span", { className: "avatar" }, /* @__PURE__ */ React.createElement(Icon2, { name: "account" })), /* @__PURE__ */ React.createElement("span", { className: "solo-profile-main" }, /* @__PURE__ */ React.createElement("strong", null, acct.name), /* @__PURE__ */ React.createElement("span", { className: "level" }, "Lv. ", /* @__PURE__ */ React.createElement("b", null, L.lv), /* @__PURE__ */ React.createElement("span", { className: "xp" }, /* @__PURE__ */ React.createElement("i", { style: { width: `${L.cur / L.need * 100}%` } })), /* @__PURE__ */ React.createElement("small", null, L.cur, "/", L.need, " EXP"))), /* @__PURE__ */ React.createElement("span", { className: "solo-best" }, /* @__PURE__ */ React.createElement("small", null, "\u30D9\u30B9\u30C8\u30B9\u30B3\u30A2"), /* @__PURE__ */ React.createElement("b", null, best > 0 ? best.toLocaleString("ja-JP") + "\u70B9" : "\u2015")), /* @__PURE__ */ React.createElement("span", { className: "solo-profile-link" }, "\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB ", /* @__PURE__ */ React.createElement(Icon2, { name: "chevron" }))));

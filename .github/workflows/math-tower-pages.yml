@@ -82,12 +82,13 @@ jobs:
           - shard: online-b
             scripts: test:online-playability test:online-v524 test:online-latency test:bounty-profile test:rating-history test:rating-display test:rewards-audit test:accounts
           - shard: tower
-            scripts: test:tower:browser test:tower:rpg test:tower:polish test:tower:flow test:audio test:tower:background test:tower:recovery test:tower:axiomia
+            # Ver.6.24: the math tower (AXIOMIA) is no longer loaded by the page, so its browser suites are gone from this shard.
+            scripts: test:audio
           - shard: emulator-artifact
             emulator: true
             scripts: test:chromebook test:ghost test:next-help test:login-ui test:solo-difficulty test:ghost-profile-ui
             # The published payload is precompiled (no Babel); these suites run against that exact artifact.
-            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook test:next-help test:login-ui test:ghost-profile-ui test:tower:axiomia
+            artifact_scripts: test:regression test:online test:online-entry test:online-menu test:rating-display test:bounty-profile test:ghost test:chromebook test:next-help test:login-ui test:ghost-profile-ui
     name: test (${{ matrix.shard }})
     env:
       # Failure evidence: tests/browser-harness.cjs saves screenshots + visible text of pages still open when a browser test fails (mock data only).
