@@ -96,7 +96,9 @@ assert.deepEqual(
           l: 0,
           d: 3, // Keep the production invariant games === w + l + d.
           maxRating: 1580,
-          season: "2026-10",
+          // The current JST season (same rule as core.cjs): a past month would trigger the monthly rollover
+          // (1580 → 1540) and drop this fixture below the rank the assertions below expect.
+          season: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7),
           seasonMax: 1580,
         },
       ),
