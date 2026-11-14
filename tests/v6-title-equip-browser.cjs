@@ -131,19 +131,24 @@ const untouched = (tree, t0) => {
       assert.match(await p.locator(".account-main").innerText(), /初級の覇王/, "Nick shows a catalog-only title");
       await t.ctx.close();
     }
-    // legacy-only ids (not in the 100): kept, displayed, never initialised, and clearable
-    {
-      const tree = mkTree({ nick: "tw10" });
+    // legacy-only ids (not in the 100): kept, displayed, never initialised, and clearable.
+    // Ver.6.26: the old-tower titles (tw10..tw100) were removed from the game. An account that still has one equipped must keep
+    // working: the profile and the title list open, the saved slot is not rewritten, the slot reads 表示できない称号 and can be cleared.
+    for (const [id, current, equipped] of [["nosp", /現在の装備：〈.+〉（従来の称号）/, /装備中称号：\s*必殺技いらず/], ["tw10", /現在の装備：〈表示できない称号〉/, null], ["tw50", /現在の装備：〈表示できない称号〉/, null], ["tw100", /現在の装備：〈表示できない称号〉/, null]]) {
+      const tree = mkTree({ nick: id });
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
-      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "tw10", "opening the profile does not touch an equipped legacy-only title");
+      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, id, "opening the profile does not touch the equipped id: " + id);
       await closeDlg(p);
-      assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈.+〉（従来の称号）/);
-      assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*塔の挑戦者/);
+      assert.match(await p.locator("[data-equip-current]").innerText(), current, id);
+      if (equipped) assert.match(await p.locator(".next-equipped").first().innerText(), equipped);
+      else assert(!/塔の|数理の書|終わりなき/.test(await p.locator("[data-next-profile], .next-profile, body").first().innerText()), "no old-tower title name shown: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 100, "the title list is shown: " + id);
       await closeDlg(p);
       await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
       await p.locator('.next-title-equip-current [data-equip-status="saved"]').waitFor();
-      assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "legacy-only id cleared as an explicit unequip");
+      assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "cleared as an explicit unequip: " + id);
+      assert.deepEqual(t.errors, [], "no page error: " + id);
       await t.ctx.close();
     }
     // other device changes the slot: this screen follows it
