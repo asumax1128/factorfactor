@@ -1471,6 +1471,31 @@ async function decodeDataUriToAudioBuffer(dataUri) {
 /* ============================================================
    メインコンポーネント
    ============================================================ */
+/* Ver.6.22: ソロ盤面で、ドラッグ中の点(画面座標)が「どのタイルで成立するか」を決める。判定ルールではなく入力の受け止め方だけ。
+   - タイルの上なら、そのタイル(従来どおり)。
+   - タイルの外でも盤面の中なら、各タイルを「タイル間のすき間の半分」だけ外へ広げた範囲に入っているタイル。
+     広げた範囲はとなり同士でちょうど境目を接するだけで重ならないので、すき間のどちら側かで必ず近いほうのタイルに決まり、
+     となりのタイルへ誤って入ることはない。盤面の外・どの範囲にも入らない点は従来どおり不成立(null)。
+   selectedId(つかんでいるタイル)自身は成立先にしない：つかんだタイルの範囲に入っている点は不成立。 */
+function soloDropTarget(grid, clientX, clientY, selectedId) {
+  if (!grid) return null;
+  const hit = document.elementFromPoint(clientX, clientY);
+  const direct = hit && hit.closest ? hit.closest('[data-tile-id]') : null;
+  if (direct && grid.contains(direct)) { const id = direct.getAttribute('data-tile-id'); return id && id !== selectedId ? id : null; }
+  const g = grid.getBoundingClientRect();
+  if (clientX < g.left || clientX > g.right || clientY < g.top || clientY > g.bottom) return null;
+  const cs = getComputedStyle(grid), gx = (parseFloat(cs.columnGap) || 0) / 2, gy = (parseFloat(cs.rowGap) || 0) / 2;
+  let best = null, bestD = Infinity;
+  grid.querySelectorAll('[data-tile-id]').forEach(el => {
+    // 置いてある位置で測る。つかんでいるタイルだけは見た目が持ち上がって少し大きい(translateY(-3px) scale(1.04))ので元の位置に戻して測る
+    const r = el.getBoundingClientRect(), held = el.getAttribute('data-tile-id') === selectedId;
+    const w = held ? r.width / 1.04 : r.width, h = held ? r.height / 1.04 : r.height;
+    const left = r.left + (r.width - w) / 2, top = r.top + (r.height - h) / 2 + (held ? 3 : 0);
+    const d = Math.hypot(clientX - (left + w / 2), clientY - (top + h / 2));   // 境目ちょうどは中心が近いほう
+    if (d < bestD) { bestD = d; best = el.getAttribute('data-tile-id'); }
+  });
+  return best && best !== selectedId ? best : null;
+}
 function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly = false, onRankExit, renderMenu }) {
   useEffect(()=>()=>CombatFX.cancel(),[]);
   const [screen, setScreen] = useState(initialMenu === 'help' ? 'tutorial' : 'menu'); // menu | playing | gameover
@@ -1491,6 +1516,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
   const [selectedId, setSelectedId] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [dropId, setDropId] = useState(null); // Ver.6.22: いま指を離したら成立するタイル(ドラッグ中の予告表示用)
   const [flashMap, setFlashMap] = useState({});
   const [resolving, setResolving] = useState(false);
   const [lastGain, setLastGain] = useState(null);
@@ -2210,6 +2236,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
   const cancelSelection = () => {
     setSelectedId(null);
     setDragging(false);
+    setDropId(null);
   };
 
   const attemptMatch = (id1, id2) => {
@@ -2406,7 +2433,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     // pointermoveは高リフレッシュレート端末で毎秒120回以上発火し、そのたびに
     // 全体が再レンダーされてカクつく原因になる。rAFで1フレーム1回に間引く。
     let rafId = null;
-    let pendingPos = null;
+    let pendingPos = null, pendingPoint = null;
     const onMove = (e) => {
       // ドラッグ中は必ずデフォルト動作(ページのスクロール/引っ張って更新)を止める。
       // これを呼ばないと、上→下スワイプがブラウザの pull-to-refresh と解釈され
@@ -2418,10 +2445,12 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       pendingPos = { x: clientX - g.left, y: clientY - g.top };
+      pendingPoint = { x: clientX, y: clientY };
       if (rafId === null) {
         rafId = requestAnimationFrame(() => {
           rafId = null;
           if (pendingPos) setDragPos(pendingPos);
+          if (pendingPoint) { const id = soloDropTarget(gridRef.current, pendingPoint.x, pendingPoint.y, selectedId); setDropId(prev => (prev === id ? prev : id)); }
         });
       }
     };
@@ -2432,14 +2461,12 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
       if (done) return; done = true;
       const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
       const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-      const el = document.elementFromPoint(clientX, clientY);
-      const tileEl = el && el.closest ? el.closest('[data-tile-id]') : null;
-      if (tileEl) {
-        const targetId = tileEl.getAttribute('data-tile-id');
-        if (targetId && targetId !== selectedId) {
-          attemptMatch(selectedId, targetId);
-          return;
-        }
+      // Ver.6.22: 離した点がタイルの上でなくても、すき間の近いほうのタイルで成立させる(soloDropTarget)。
+      const targetId = soloDropTarget(gridRef.current, clientX, clientY, selectedId);
+      setDropId(null);
+      if (targetId) {
+        attemptMatch(selectedId, targetId);
+        return;
       }
       cancelSelection();
     };
@@ -3082,6 +3109,9 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                 if (flash === 'correct') { bg = '#7FD8FF'; borderColor = '#fff'; tc = '#14204A'; }
                 if (flash === 'wrong') { bg = '#FF8A75'; borderColor = '#fff'; tc = '#14204A'; }
                 if (isSelected && !flash) { borderColor = '#FFC94D'; shadow = '0 0 0 3px rgba(255,201,77,.6), 0 4px 0 #0A1230'; }
+                // Ver.6.22: いま離すと成立するタイルを光らせて予告する
+                const isDrop = dragging && !flash && !isSelected && dropId === tile.id;
+                if (isDrop) { borderColor = '#7FE8FF'; shadow = '0 0 0 3px rgba(127,232,255,.85), 0 0 16px rgba(127,232,255,.7), 0 4px 0 #0A1230'; }
                 const fontSize = tile.factor.type === 'const'
                   ? 'clamp(1.4rem, 7.6vmin, 3.2rem)'
                   : tile.factor.type === 'quadratic'
@@ -3091,6 +3121,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                   <div
                     key={tile.id}
                     data-tile-id={tile.id}
+                    data-drop-target={isDrop ? '' : undefined}
                     ref={el => { tileRefs.current[tile.id] = el; }}
                     onPointerDown={(e) => onTilePointerDown(e, tile.id)}
                     className="rounded-xl flex items-center justify-center font-bold select-none cursor-pointer"
