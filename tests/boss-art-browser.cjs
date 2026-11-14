@@ -12,16 +12,17 @@ const BOSS_IDS = ["dragon", "kraken", "golem", "maou", "slime", "robot", "abs", 
   const sandbox = { window: {} };
   require("node:vm").runInNewContext(fs.readFileSync("suri-data.js", "utf8"), sandbox);
   const data = sandbox.window.SURI_DATA;
-  assert.deepEqual(Object.keys(data).sort(), ["characters", "images", "version"], "only images and characters (and the version) remain");
+  assert.deepEqual(Object.keys(data).sort(), ["images", "version"], "only images (and the version) remain"); // Ver.6.28: characters removed too
   assert.deepEqual(JSON.parse(JSON.stringify(data.images)), BEFORE, "the 17 pictures are registered exactly as before");
   for (const f of Object.values(BEFORE)) assert(fs.statSync(f).size > 10000, "picture file exists: " + f);
-  assert.deepEqual(Object.keys(data.characters).sort(), ["abs_wolf", "count_rabbit", "minus", "nul", "plus", "twin_fox", "voice", "zero_slime"], "characters kept");
+  assert(!("characters" in data), "characters (AXIOMIA cast, never matched a boss id) removed");
+  for (const name of ["count_rabbit", "zero_slime", "twin_fox", "abs_wolf", "カウント・ラビット", "ヌル"]) assert(!fs.readFileSync("suri-data.js", "utf8").includes(name), "no AXIOMIA character left in suri-data.js: " + name);
   assert(fs.statSync("suri-data.js").size < 6000, "the file is small now");
-  for (const gone of ["chapters", "events", "fragments", "monsters", "notes", "floors", "backgrounds"]) assert(!(gone in data), "old tower data removed: " + gone);
+  for (const gone of ["chapters", "events", "fragments", "monsters", "notes", "floors", "backgrounds", "characters"]) assert(!(gone in data), "old tower data removed: " + gone);
   const html = fs.readFileSync("index.html", "utf8");
   const bossBlock = html.slice(html.indexOf("const BOSSES = ["), html.indexOf("const TEACHER_BOSS"));
   assert.deepEqual([...bossBlock.matchAll(/\bid: '([a-z0-9]+)'/g)].map((m) => m[1]), BOSS_IDS, "the game's boss list is these 15");
-  console.log("PASS suri-data.js: only images + characters; 17 pictures registered as before and present on disk; boss list = 15");
+  console.log("PASS suri-data.js: only images; 17 pictures registered as before and present on disk; boss list = 15");
 
   const exposed = html.replace("const root = ReactDOM.createRoot(rootEl);", "window.__bossArt={MonsterPic,BOSSES,bossForm,suriImg};\nconst root = ReactDOM.createRoot(rootEl);");
   assert(exposed.includes("window.__bossArt"), "test hook inserted");
