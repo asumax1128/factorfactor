@@ -47,6 +47,28 @@ const src = fs.readFileSync("index.html", "utf8");
       assert.deepEqual(t2.errors, []); await t2.ctx.close();
       console.log(`PASS ${width}px: home → solo → play (correct answer accepted), online lobby, ranking hub → solo ranking → hub`);
     }
+    // Ver.6.24: AXIOMIA (math tower) has no entry and is not loaded, even for a teacher who holds the trial grant.
+    {
+      const html = fs.readFileSync("index.html", "utf8");
+      for (const name of ["math-tower.css", "math-tower-core.js", "math-tower-store.js", "math-tower-release.js", "math-tower-ui.js", "AxiomiaGate", "MathTowerFactory", "useTowerAccess", "#math-tower"])
+        assert(!html.includes(name), "not referenced by the page: " + name);
+      const grant = tree();
+      Object.assign(grant.games.factor, { teachers: { ateacher: { name: "Teacher" } }, logins: { ateacher: { "teacher-uid": "1234" } }, mathTowerV2: { access: { ateacher: { enabled: true, role: "teacher" } } } });
+      const requests = [];
+      const t = await context(b, { tree: grant, uid: "teacher-uid" }), p = t.page;
+      p.on("request", (r) => { if (/math-tower|axiomia/i.test(new URL(r.url()).pathname)) requests.push(r.url()); });
+      await p.goto(p.url().split("#")[0] + "#math-tower"); await p.reload();
+      await p.locator("[data-next-home] .home-content").waitFor();          // the old direct link opens the home, not the tower
+      assert.equal(await p.evaluate(() => typeof window.MathTowerFactory + typeof window.MathTowerStore + typeof window.MathTowerRules), "undefinedundefinedundefined", "tower code not loaded");
+      await p.locator(".action-card.solo").click(); await p.locator("[data-solo-hub]").waitFor();
+      assert.deepEqual(await p.locator("[data-solo-mode]").evaluateAll((es) => es.map((e) => e.dataset.soloMode)), ["play", "cpu", "daily", "boss", "learn"], "five solo cards, no AXIOMIA");
+      assert.equal(await p.getByText("AXIOMIA").count(), 0, "no AXIOMIA wording on the solo screen");
+      await p.waitForTimeout(300);
+      assert.deepEqual(requests, [], "no tower / AXIOMIA file requested");
+      assert.equal(t.writes.filter((x) => /mathTowerV2/.test(x.path)).length, 0, "nothing written to mathTowerV2");
+      assert.deepEqual(t.errors, []); await t.ctx.close();
+      console.log("PASS AXIOMIA: no card, no direct link, no tower code or files loaded, no mathTowerV2 writes (teacher with the grant)");
+    }
     // daily: settings readable → the current daily opens; read fails → load error (no legacy 10-question daily), retry works
     {
       const t = await context(b, { tree: tree(), firebaseSource: failingMock }), p = t.page;
