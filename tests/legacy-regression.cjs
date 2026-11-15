@@ -68,18 +68,38 @@ assert.equal(new Set(names).size, names.length, "protected list has duplicates")
 //      flushLearn        the call  missionEvent(acct, ev)                      (nothing else)
 //      flushOnlineLearn  the call  await missionEvent(acct, ev, matchId, ...)  (nothing else)
 //      b2Confirm         the check of the mission mark mis.s['room:' + gid]    (the stats.roomSeen and prof.onlineLearnSeen checks stay)
-//    ONE_STATEMENT_REMOVED below proves it mechanically: removing that one statement from the Ver.6.11 baseline gives exactly the
-//    function that is in the page now.
+//  - Ver.6.37 (owner-approved 2026-11-15, removal of the bounty system): only the bounty lines are removed.
+//      fetchRatings  the bty parameter and the bounty read  const b = bountyOf(st); if (bty && b) bty[u] = b;
+//      BattleGame    bty / bountyGot / bountyLost, the add.bountyWins / bountyExp record, "+ bountyGot" in the EXP sum, the two
+//                    fields bountyGot / bountyLost of the result record, the bounty band, and bty={...} handed to VsCutIn
+//    LINES_REMOVED below proves it mechanically: removing exactly those pieces (each occurring once in the function) from the
+//    Ver.6.11 baseline gives exactly the function that is in the page now, and touches no other protected function.
 const REPINNED = {
   acctLogin: "e8ad9483db79f1ff74eddf0963d7d049a6400d8631cfa2dacae87ce662b9a14e",
   flushLearn: "1e4ab5aab5e790deb40d369fb31e6fbc22a0503ba078c6bdbfa2f716be4d8e62",
   flushOnlineLearn: "541c120704bafd2d8a65dcdee8e6dfcfd99fdbca525c0728c32e1ad1929f7603",
   b2Confirm: "b72af1ae642dab45835e9568a62c5bd08d4d78b4d819c38806351b0160c88a68",
+  fetchRatings: "aadbfddb096eb24edcd97d11a806512744ece2655760ffaedf5416e09c34ab92",
+  BattleGame: "6acc46513d299886d3ae68e49d958dcf9c50c40766f1add32bc48ce7970cb509",
 };
-const ONE_STATEMENT_REMOVED = {
-  flushLearn: ["    if (ev.ok || extra) missionEvent(acct, ev);\n", ""],
-  flushOnlineLearn: ["    await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}", "    }"],
-  b2Confirm: ["  if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }\n", ""],
+const LINES_REMOVED = {
+  flushLearn: [["    if (ev.ok || extra) missionEvent(acct, ev);\n", ""]],
+  flushOnlineLearn: [["    await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}", "    }"]],
+  b2Confirm: [["  if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }\n", ""]],
+  fetchRatings: [
+    ["async function fetchRatings(accts, bty) {", "async function fetchRatings(accts) {"],
+    [" const b = bountyOf(st); if (bty && b) bty[u] = b;", ""],
+  ],
+  BattleGame: [
+    ["    const bty = state.bty || {};\n", ""],
+    ["    const bountyGot = practice ? 0 : others.filter(u => rel(u) === 'w' && bty[u]).reduce((a, u) => a + bty[u], 0);\n", ""],
+    ["    if (bountyGot) { add.bountyWins = 1; add.bountyExp = bountyGot; }\n", ""],
+    ["    const bountyLost = !practice && bty[me] && outcome === 'l' ? bty[me] : 0;\n", ""],
+    [" + Math.min(10, perfects) + bountyGot;", " + Math.min(10, perfects);"],
+    ["badges: [], exp: null, bountyGot, bountyLost });", "badges: [], exp: null });"],
+    ["    if (bountyGot) setTimeout(() => { FX.band(`💰 懸賞金ゲット！ +${bountyGot} EXP`, { color: '#d4a017', sub: '連勝ストップ！', ms: 2200 }); fxSound('fever'); }, 900);\n", ""],
+    [" bty={state.bty || {}}", ""],
+  ],
 };
 const astHash = (s) => require("node:crypto").createHash("sha256").update(s).digest("hex");
 for (const name of names) {
@@ -91,13 +111,25 @@ for (const name of names) {
   } else assert.equal(after[name], before[name], "Protected function changed: " + name + " (review it, then move PIN_BASE deliberately)");
 }
 for (const name of Object.keys(REPINNED)) assert.ok(names.includes(name), "re-pin names a protected function: " + name);
-for (const [name, [from, to]] of Object.entries(ONE_STATEMENT_REMOVED)) {
-  assert.equal(baseJsx.split(from).length, 2, "the removed statement occurs exactly once in the baseline: " + name);
-  const edited = functions(baseJsx.replace(from, to));
-  assert.equal(edited[name], after[name], "the only change to " + name + " is the one removed statement");
-  for (const other of names) if (other !== name && before[other]) assert.equal(edited[other], before[other], "removing it touches no other protected function: " + other);
+// Where a protected function sits in a source text (character offsets of the whole declaration).
+const spanOf = (jsx, name) => {
+  const n = Babel.transform(jsx, { presets: ["react"], ast: true, code: false }).ast.program.body.find((x) => x.type === "FunctionDeclaration" && x.id.name === name);
+  assert.ok(n, "function found in the baseline: " + name);
+  return [n.start, n.end];
+};
+for (const [name, pieces] of Object.entries(LINES_REMOVED)) {
+  assert.ok(REPINNED[name], "a function with removed lines is re-pinned: " + name);
+  const [a, b] = spanOf(baseJsx, name);
+  let body = baseJsx.slice(a, b);
+  for (const [from, to] of pieces) {
+    assert.equal(body.split(from).length, 2, "each removed piece occurs exactly once in the baseline " + name + ": " + from.trim().slice(0, 60));
+    body = body.replace(from, to);
+  }
+  const edited = functions(baseJsx.slice(0, a) + body + baseJsx.slice(b));
+  assert.equal(edited[name], after[name], "the only change to " + name + " is the listed removed lines");
+  for (const other of names) if (other !== name && before[other]) assert.equal(edited[other], before[other], "removing them touches no other protected function: " + other);
 }
-console.log("PASS re-pinned for the mission removal: flushLearn, flushOnlineLearn, b2Confirm differ from Ver.6.11 by exactly one removed statement each");
+console.log("PASS re-pinned: flushLearn, flushOnlineLearn, b2Confirm (one mission statement each), fetchRatings and BattleGame (bounty lines only) differ from Ver.6.11 by exactly the listed removed lines");
 {
   const b0 = logicOnly(baseJsx), a0 = logicOnly(nowJsx);
   for (const name of LOGIC_ONLY) { assert.ok(b0[name] && a0[name], name + " found"); assert.equal(a0[name], b0[name], "Login logic changed: " + name + " (state / handlers / limits must stay as audited)"); }
