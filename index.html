@@ -7297,18 +7297,16 @@ function CpuBots({ code, state, bank, N, viewRef, claims, onClear }) {
    対戦モード全体（トップ → ロビー → 対戦 → 結果）
    ===================================================================== */
 const shuffleArr = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
-/* 試合を始めるときに、参加者のレートと懸賞金を読む（bty に懸賞金を入れる） */
-async function fetchRatings(accts, bty) {
+/* 試合を始めるときに、参加者のレートを読む（Ver.6.37：懸賞金の読み取りは賞金首とともに削除） */
+async function fetchRatings(accts) {
   const rt = {};
   const keys = Object.entries(accts).filter(([u, k]) => k);
   if (!keys.length || DBX) return rt;
   await Promise.all(keys.map(async ([u, k]) => {
-    try { const st = (await FB.db.ref(`games/factor/accounts/${k}/stats`).get()).val(); rt[u] = ratingOf(st); const b = bountyOf(st); if (bty && b) bty[u] = b; } catch (e) {}
+    try { const st = (await FB.db.ref(`games/factor/accounts/${k}/stats`).get()).val(); rt[u] = ratingOf(st); } catch (e) {}
   }));
   return rt;
 }
-/* 懸賞金：3連勝から。1連勝ふえるごとに +10（最大100）。倒した人は経験値ボーナス */
-const bountyOf = st => { const k = (st && st.streak) || 0; return k >= 3 ? Math.min(100, (k - 2) * 10) : 0; };
 function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNavigate, onProfile, cpuOnly = false }) {
   const fb = useFbReady();
   // The rollout config belongs to Firebase, never to the CPU practice DBX.
@@ -8876,18 +8874,12 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     if (foesR.some(u => accts[u] && rel(u) === 'w' && rt[u] != null && rt[u] - (rt[me] != null ? rt[me] : RATING_INIT) >= 250)) add.giant250Wins = 1; // Ver.6.0 B：対戦開始時に250以上高い登録プレイヤーに勝利
     // Ver.6.0 A4：逆境無双＝自分が★★★ハンデを背負って勝つ。旧カウンタ handiWins（相手側のハンデ）は既得保護のため残し、ここからは増やさない
     if (win && (hc[me] || 0) >= 3) add.handiSelf = 1;
-    // 懸賞金：懸賞金がかかった相手に勝ったら、その分の経験値ボーナス
-    const bty = state.bty || {};
-    const bountyGot = practice ? 0 : others.filter(u => rel(u) === 'w' && bty[u]).reduce((a, u) => a + bty[u], 0);
-    if (bountyGot) { add.bountyWins = 1; add.bountyExp = bountyGot; }
-    const bountyLost = !practice && bty[me] && outcome === 'l' ? bty[me] : 0;
     if (lvMask) orr.lvP = lvMask;
     // Ver.6.0 A6：ダークホースの新規付与は停止（大会の出場者だけではクラス全体の順位を保証できない）。既得は keptTitle で保護。教師指定の名簿方式は別途（src/title-keep-next.cjs の DARKHORSE_ROSTER_NOTE 参照）
     // 経験値：勝ち30・引き分け20・負け15（Perfect 1回ごとに+1、最大+10）。CPU練習は 勝ち8・それ以外5
-    const exp = practice ? (win ? 8 : 5) : (win ? 30 : outcome === 'd' ? 20 : 15) + Math.min(10, perfects) + bountyGot;
+    const exp = practice ? (win ? 8 : 5) : (win ? 30 : outcome === 'd' ? 20 : 15) + Math.min(10, perfects);
     const info = { ...(state.rules==='b2'?{id:gid}:{}), ...(state.ghostKey ? {} : { sk: { id: `r-${code}-${gid}`, t: fbNow(), o: outcome, s: 'r' } }), outcome, mode, vs, perfects, comeback: outcome === 'w' && behind, dr, tourWin: !!state.final && outcome === 'w', add, max: mx, min: mn, or: orr, exp, bot: !!state.bot };
-    setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [], exp: null, bountyGot, bountyLost });
-    if (bountyGot) setTimeout(() => { FX.band(`💰 懸賞金ゲット！ +${bountyGot} EXP`, { color: '#d4a017', sub: '連勝ストップ！', ms: 2200 }); fxSound('fever'); }, 900);
+    setRec({ outcome, myRank, dr: acct && !practice ? dr : null, before: rt[me], perfects, comeback: info.comeback, badges: [], exp: null });
     if (win) setTimeout(() => FX.confetti(70), 300);
     // ゴースト戦：本人に知らせる（ゴースト側から見た勝ち負け）
     if (state.ghostKey && FB.db) { try { FB.db.ref(`games/factor/ghostlog/${state.ghostKey}`).push({ by: ((who && who.name) || 'ゲスト').slice(0, 10), o: outcome === 'w' ? 'l' : outcome === 'l' ? 'w' : 'd', mode, diff, at: TSV() }).catch(() => {}); } catch (e) {} }
@@ -8953,7 +8945,7 @@ function BattleGame({ code, state, players, isHost, acct, who, practice, sound, 
     mine={mine.current} isHost={isHost} acct={acct} practice={practice} players={players} code={code} onRematch={onRematch} onLobby={onLobby} onLeave={onLeave} onBack={onBack} />, false, !!(window.NextResults && window.NextResults.BattleSummary && (mode === 'A' || (mode === 'B' && state.b2Final))));
   if (counting) return wrap(<>
     {header(null)}
-    <VsCutIn tm={mode === 'C' ? state.tm : null} ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} bty={state.bty || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
+    <VsCutIn tm={mode === 'C' ? state.tm : null} ids={ids} me={me} names={names} nicks={state.nicks || {}} rt={state.rt || {}} hc={hc} final={state.final} label={`${state.roundLabel ? `🏆 ${state.roundLabel} ・ ` : ''}${state.voteNote ? `🗳 ${state.voteNote} ` : ''}${BATTLE_MODES[mode].label}`} color={BATTLE_MODES[mode].color} />
     <div className="flex flex-col items-center justify-center" style={{ flex: '1 1 auto' }}>
       <div key={cd} className="leading-none" style={{ color: cd > 3 ? 'var(--v7-gold)' : '#fff', fontSize: cd > 3 ? 'clamp(3rem, 16vw, 7rem)' : 'clamp(4rem, 24vw, 10rem)', fontFamily: 'var(--v7-f-fx)', WebkitTextStroke: '3px #0B1430', textShadow: '0 6px 0 rgba(0,0,0,0.35)', animation: 'fxVsPop 450ms ease both' }}>{cd > 3 ? 'READY' : Math.max(1, cd)}</div>
       <div className="text-sm font-bold mt-8 text-center" style={{ color: '#AAB6E0', fontFamily: 'var(--v7-f-ui)' }}>{mode === 'A' ? `先に正解した人だけ得点！ まちがえると${handiLockMs(hc[me]) / 1000}秒お手つき・最後の${A_LASTSPURT}問は得点2倍` : mode === 'C' ? `${TEAM_INFO_C[(state.tm || {})[me] || 0].name}：体力は2人で共有！ 仲間の予告もカバー、息をあわせて合体攻撃` : `コンボで攻撃（${others.length > 1 ? '1位の人をねらう' : '相手へ'}）！ ゲージがたまったら必殺技`}</div>

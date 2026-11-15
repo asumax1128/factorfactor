@@ -4,7 +4,7 @@
   "scripts": {
     "test:regression": "node tests/legacy-regression.cjs && node --test tests/learn-record-missions-removed.test.cjs",
     "build:pages": "node scripts/build-version.cjs && npm run build:online-rated && node scripts/build-pages.cjs",
-    "test:online": "node tests/online-regression.cjs",
+    "test:online": "node tests/online-regression.cjs && node tests/battle-exp-rate-browser.cjs",
     "test:accounts": "node tests/account-ranking-regression.cjs",
     "test:audio": "node --test tests/game-audio.test.cjs && node tests/audio-regression.cjs",
     "build:online-rated": "node scripts/build-online-rated.cjs",
