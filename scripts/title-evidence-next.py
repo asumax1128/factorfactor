@@ -11,7 +11,7 @@ assert sum(t['stars']==5 for t in c['titles'])==26
 online=set('dual dual50 shutout online_first first wins100_ab games100 games300 lose50 rival20 wide10 wide30 perfect50 perfect100 perfect300 perfect500 perfect1000 flash flash3 combo20 combo30 nomiss nomiss10 accuracy10 lv9 alllv sp3 sp50 ojama100 ojama500'.split())
 rating=set('rgold master1600 master1700 rmaster master1900 easy_adept easy_master normal_adept normal_master dual_master'.split())
 weekly=set('wk1 wk_runs20 wkk1 wkk5 wkk10 wkace wkace5 wkone wkone2 wkst3 wkst5 wkst10 wksup1 wkchest1 wkchest10 wksup100 wksup500 wkrage'.split())
-dry=set('daily_easy_king daily_normal_king daily_hard_king daily_king lb7 lb_cards7 lb30 lb100 cancel500 cancel2000'.split())
+dry=set('daily_easy_king daily_normal_king daily_hard_king daily_king cancel500 cancel2000'.split())
 assert (online|rating|weekly|dry)<=set(t['id'] for t in c['titles'])
 source=(root/'server/next-authority/titles.cjs').read_text().splitlines()
 planner=(root/'src/title-awards-next.cjs').read_text().splitlines()

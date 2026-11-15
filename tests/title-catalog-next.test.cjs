@@ -7,19 +7,19 @@ const { validateCatalog, validateRevealPlan, assertReady } = require('../src/tit
 const copy = x => JSON.parse(JSON.stringify(x));
 // Ver.6.33: the daily mode was removed and five titles went with it (No.1-4 the daily winners, No.89 mis7). The remaining 95 keep
 // their display numbers, old numbers and ids exactly (no renumbering).
-const REMOVED_NUMBERS = [1, 2, 3, 4, 37, 38, 89];   // Ver.6.36: No.37-38 bounty1 / bounty10
-test('owner supplied normal catalog: 1..100 minus the removed daily and bounty titles, distinct old numbers and stable IDs', () => {
-  assert.equal(catalog.titles.length, 93);
+const REMOVED_NUMBERS = [1, 2, 3, 4, 37, 38, 89, 97, 98, 99, 100];   // Ver.6.36: No.37-38 bounty1 / bounty10; Ver.6.39: No.97-100 login titles
+test('owner supplied normal catalog: 1..100 minus the removed daily, bounty and login titles, distinct old numbers and stable IDs', () => {
+  assert.equal(catalog.titles.length, 89);
   assert.deepEqual(catalog.titles.map(t => t.number), Array.from({ length: 100 }, (_, i) => i + 1).filter(n => !REMOVED_NUMBERS.includes(n)));
-  assert.equal(new Set(catalog.titles.map(t => t.legacyNumber)).size, 93);
-  assert.equal(new Set(catalog.titles.map(t => t.id)).size, 93);
-  for (const id of ['daily_easy_king', 'daily_normal_king', 'daily_hard_king', 'daily_king', 'mis7', 'bounty1', 'bounty10']) assert.equal(catalog.titles.some(t => t.id === id), false, id);
+  assert.equal(new Set(catalog.titles.map(t => t.legacyNumber)).size, 89);
+  assert.equal(new Set(catalog.titles.map(t => t.id)).size, 89);
+  for (const id of ['daily_easy_king', 'daily_normal_king', 'daily_hard_king', 'daily_king', 'mis7', 'bounty1', 'bounty10', 'lb7', 'lb30', 'lb100', 'lb_cards7']) assert.equal(catalog.titles.some(t => t.id === id), false, id);
   const inventory = fs.readFileSync('reports/titles_inventory.csv', 'utf8');
   for (const t of catalog.titles.filter(t => t.legacyId)) {
     assert.equal(t.id, t.legacyId);
     assert(inventory.includes(`"${t.legacyId}"`), t.id);
   }
-  assert.equal(catalog.titles.filter(t => t.legacyId).length, 83);
+  assert.equal(catalog.titles.filter(t => t.legacyId).length, 80);
   // Ver.6.36: wanted (No.39) stays, renamed for a plain 7-win streak; its id and condition (maxStreak >= 7) are unchanged.
   assert.deepEqual((({ number, name, condition, stars, id, legacyId }) => ({ number, name, condition, stars, id, legacyId }))(catalog.titles.find(t => t.id === 'wanted')), { number: 39, name: '快進撃', condition: '7連勝', stars: 3, id: 'wanted', legacyId: 'wanted' });
   assert(!catalog.titles.some(t => /^tw\d+$/.test(t.id)));
