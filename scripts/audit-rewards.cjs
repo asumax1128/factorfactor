@@ -17,7 +17,7 @@ for(const e of entries){
  const b=badges.find(x=>x.id===e.id), keys=[...new Set([...e.condition.matchAll(/st\.(\w+)/g)].map(x=>x[1]))];
  const occurrences=[];html.split('\n').forEach((text,i)=>{if(i<400||text.length>10000)return;if(i+1>=badgeStart&&i+1<=badgeEnd)return;if(keys.some(k=>new RegExp('(?:s|st|add|mx|mn|orr)\\.'+k+'\\s*(?:=|\\+=)').test(text)))occurrences.push('index.html:'+(i+1));});
  if(e.category==='今週のボス')occurrences.push(ref('index.html','async function settleWeek'),ref('index.html','async function statsTx'));
- if(e.category==='ログイン')occurrences.push(ref('index.html','async function claimLogin'));
+ if(e.category==='ログイン')e.judge+='; ログインボーナス削除（Ver.6.38）により新規付与なし';
  if(e.category==='数学の塔')occurrences.push('旧TowerApp（Ver.6.12で到達不能のため削除。新規書き込みなし、保存済みst.towerは保持）');
  if(e.category==='ゴースト'){e.judge+='; '+ref('src/ghost-model.cjs','function titles');occurrences.push(ref('src/online-spark-client.cjs','ghostTitles'));}
  if(e.category==='対戦')occurrences.push(ref('index.html','async function recordMatch'));
