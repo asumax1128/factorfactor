@@ -1,4 +1,4 @@
-// Reference: factorfactor-dev 0dd2f14 tests/mockfb2.js. Test double only; emulator verifies actual rules.
+// Test double only; emulator verifies actual rules.
 // テスト専用：Firebase compat API の最小限の偽物。データ本体は Node 側（__fbOp / __fbGet）にある。
 (function () {
   const TSV = { ".sv": "timestamp" };
