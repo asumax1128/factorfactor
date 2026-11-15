@@ -2746,7 +2746,7 @@
         async function saveGhostResult(m) {
           var _a, _b;
           if (((_a = m.opponent) == null ? void 0 : _a.key) === key) return;
-          const result = m.receipt.result, won = ((_b = m.members.find((u) => u.uid === result.winner)) == null ? void 0 : _b.key) === key, draw = !!result.draw, outcome = draw ? "d" : won ? "w" : "l", exp = m.origin === "bounty" ? won ? 8 : 0 : won ? 8 : 0;
+          const result = m.receipt.result, won = ((_b = m.members.find((u) => u.uid === result.winner)) == null ? void 0 : _b.key) === key, draw = !!result.draw, outcome = draw ? "d" : won ? "w" : "l", exp = won ? 8 : 0;
           await tx(db.ref(`games/factor/accounts/${key}/stats`), (s) => {
             s || (s = {});
             s.ghostAwards || (s.ghostAwards = {});
@@ -2780,13 +2780,6 @@
             u || (u = {});
             u.events || (u.events = {});
             (_a2 = u.events)[_b2 = m.id] || (_a2[_b2] = event);
-            if (m.origin === "bounty" && won) {
-              u.bountyCooldowns || (u.bountyCooldowns = {});
-              u.bountyCooldowns[m.opponent.key] = Math.max(
-                u.bountyCooldowns[m.opponent.key] || 0,
-                m.receipt.at + 7 * 864e5
-              );
-            }
             return u;
           });
           if (m.opponent.key)
@@ -2957,7 +2950,7 @@
           return response(m.phase === "cancelled" ? null : m);
         }
         async function request(command) {
-          var _a, _b, _c, _d, _e, _f;
+          var _a, _b, _c, _d, _e;
           if (closed) throw Error("\u753B\u9762\u304C\u9589\u3058\u3089\u308C\u307E\u3057\u305F");
           if (command.protocol !== void 0 && command.protocol !== 2)
             throw Error("UPDATE_REQUIRED");
@@ -2973,7 +2966,7 @@
             return beginGhost(command.difficulty, opponent, "profile");
           }
           if (command.type === "directGhost") {
-            if (!["easy", "normal"].includes(command.difficulty) || !["bounty", "profile"].includes(command.origin))
+            if (!["easy", "normal"].includes(command.difficulty) || command.origin !== "profile")
               throw Error("INVALID_GHOST_REQUEST");
             const active = await find();
             if (active) {
@@ -2985,14 +2978,9 @@
             }
             if (!ghostReady) throw Error("\u30B4\u30FC\u30B9\u30C8\u6A5F\u80FD\u306E\u6E96\u5099\u4E2D\u3067\u3059");
             const a = (await db.ref(`games/factor/accounts/${command.target}`).get()).val();
-            if (command.origin === "bounty" && (((_b = a == null ? void 0 : a.stats) == null ? void 0 : _b.streak) || 0) < 3)
-              throw Error("\u73FE\u5728\u3053\u306E\u30D7\u30EC\u30A4\u30E4\u30FC\u306B\u306F\u8CDE\u91D1\u304C\u3042\u308A\u307E\u305B\u3093");
             if (command.target === key && command.origin !== "profile" || !G.eligible(a))
               throw Error("20\u554F\u4EE5\u4E0A\u306E\u5B66\u7FD2\u8A18\u9332\u304C\u5FC5\u8981\u3067\u3059");
-            const cooldown = (await db.ref(`${ghostRoot}/bountyCooldowns/${command.target}`).get()).val();
-            if (command.origin === "bounty" && (cooldown || 0) > now())
-              throw Error("\u3053\u306E\u8CDE\u91D1\u9996\u306F7\u65E5\u9593\u4F11\u606F\u4E2D\u3067\u3059");
-            const d = command.difficulty, p = (await profileRef.get()).val(), target = (await db.ref(`${ROOT}/profiles/${command.target}`).get()).val(), rt = (target == null ? void 0 : target[d]) ? C.ratingView(target[d], now()).rating : d === "easy" ? (_d = (_c = a.stats) == null ? void 0 : _c.rating) != null ? _d : 1500 : 1500;
+            const d = command.difficulty, p = (await profileRef.get()).val(), target = (await db.ref(`${ROOT}/profiles/${command.target}`).get()).val(), rt = (target == null ? void 0 : target[d]) ? C.ratingView(target[d], now()).rating : d === "easy" ? (_c = (_b = a.stats) == null ? void 0 : _b.rating) != null ? _c : 1500 : 1500;
             return beginGhost(
               d,
               {
@@ -3079,10 +3067,10 @@
           if (!m.members.some((x) => x.uid === uid && x.key === key) && !["settled", "cancelled"].includes(m.phase))
             throw Error("\u3053\u306E\u8A66\u5408\u3092\u5225\u306E\u30ED\u30B0\u30A4\u30F3\u72B6\u614B\u3067\u9032\u884C\u4E2D\u3067\u3059");
           if (["settled", "cancelled"].includes(m.phase)) return response(m);
-          if (((_e = m.game) == null ? void 0 : _e.rules) === "b2" && command.type === "heartbeat" && m.members[0].uid !== uid && now() - (m.clock || m.game.startAt) < 1400) return response(m);
+          if (((_d = m.game) == null ? void 0 : _d.rules) === "b2" && command.type === "heartbeat" && m.members[0].uid !== uid && now() - (m.clock || m.game.startAt) < 1400) return response(m);
           let serverClock = null;
           const matchRef = db.ref(`${ROOT}/matches/${m.id}`);
-          if (((_f = m.game) == null ? void 0 : _f.rules) === "b2") {
+          if (((_e = m.game) == null ? void 0 : _e.rules) === "b2") {
             if (["answer", "leave"].includes(command.type)) {
               const inputId = command.type === "answer" ? `a${command.seq}` : "leave";
               const intentRef = matchRef.child(`inputs/${uid}/${inputId}`);
@@ -3095,7 +3083,7 @@
             serverClock = (await matchRef.child("clock").get()).val();
           }
           m = await tx(db.ref(`${ROOT}/matches/${m.id}`), (raw) => {
-            var _a2, _b2, _c2, _d2, _e2, _f2, _g;
+            var _a2, _b2, _c2, _d2, _e2, _f, _g;
             if (!raw) throw Error("MATCH_NOT_FOUND");
             if (command.type === "abortInitialization") {
               if (raw.receipt || Object.values(((_a2 = raw.game) == null ? void 0 : _a2.seq) || {}).some((n) => n > 0) || ((_c2 = (_b2 = raw.game) == null ? void 0 : _b2.claims) == null ? void 0 : _c2.length))
@@ -3131,7 +3119,7 @@
               { mode: Math.random() < 0.5 ? "A" : "B" }
             ).state.matches[raw.id];
             const rec = aRecord(raw.game, uid, command, ts);
-            if (rec && ((_f2 = next.game.seq) == null ? void 0 : _f2[uid]) === command.seq) {
+            if (rec && ((_f = next.game.seq) == null ? void 0 : _f[uid]) === command.seq) {
               next.learning || (next.learning = {});
               (_g = next.learning)[uid] || (_g[uid] = []);
               next.learning[uid].push(rec);

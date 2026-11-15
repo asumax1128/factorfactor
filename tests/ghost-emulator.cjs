@@ -202,18 +202,23 @@ assert.deepEqual(
       "PASS 5-second atomic intrusion, A engine settlement, one-third rating, human count unchanged, XP/history once, peer private access denied, result acknowledged",
     );
     clock = Date.now();
+    // Ver.6.35: the bounty system was removed. A bounty ghost match can no longer be started; one that a device started BEFORE the
+    // removal (stored with origin "bounty") still settles exactly as before: 8 EXP once, rating and human counts unchanged. The
+    // seven-day bounty rest is no longer written.
+    await assert.rejects(c.client.request({ type: "directGhost", target: "ab", difficulty: "easy", origin: "bounty" }), /INVALID_GHOST_REQUEST/);
+    assert.equal((await c.db.ref("games/factor/ghostV1/users/ac/activeMatch").get()).val(), null, "nothing was started");
     let directed = await c.client.request({
       type: "directGhost",
       target: "ab",
       difficulty: "easy",
-      origin: "bounty",
+      origin: "profile",
     });
     const bid = directed.match.id;
     const repeated = await c.client.request({
       type: "directGhost",
       target: "ab",
       difficulty: "easy",
-      origin: "bounty",
+      origin: "profile",
     });
     assert.equal(
       repeated.match.id,
@@ -253,6 +258,8 @@ assert.deepEqual(
       );
     }
     await br.set(bm);
+    // as if this match had been started from the bounty list before Ver.6.35 (the client may not change the origin itself)
+    await env.withSecurityRulesDisabled((ctx) => set(ref(ctx.database(), `games/factor/ghostV1/users/ac/matches/${bid}/origin`), "bounty"));
     c.client.close();
     c.client = Spark.create({
       db: c.db,
@@ -269,27 +276,20 @@ assert.deepEqual(
       (await c.db.ref("games/factor/accounts/ac/stats/exp").get()).val(),
       108,
     );
-    const until = (
-      await c.db.ref("games/factor/ghostV1/users/ac/bountyCooldowns/ab").get()
-    ).val();
-    assert.equal(until, directed.match.receipt.at + 7 * 86400e3);
-    await c.client.request({ type: "ackReceipt", matchId: bid });
-    await assert.rejects(
-      c.client.request({
-        type: "directGhost",
-        target: "ab",
-        difficulty: "normal",
-        origin: "bounty",
-      }),
-      /7日間/,
+    assert.equal(
+      (await c.db.ref("games/factor/ghostV1/users/ac/bountyCooldowns").get()).val(),
+      null,
+      "no bounty rest is written any more",
     );
+    assert.equal((await c.db.ref(`games/factor/ghostV1/users/ac/events/${bid}`).get()).val().origin, "bounty", "the history keeps the original origin");
+    await c.client.request({ type: "ackReceipt", matchId: bid });
     assert.equal(
       (await b.db.ref(`games/factor/ghostV1/inbox/ab/${bid}`).get()).val()
         .byKey,
       "ac",
     );
     console.log(
-      "PASS bounty exact 8EXP once, shared seven-day cross-difficulty cooldown, direct unrated/human counts unchanged, passive recipient history",
+      "PASS bounty start refused; a bounty match from before the removal settles as before (8 EXP once, unrated, human counts unchanged), no rest written; passive recipient history",
     );
     clock = Date.now();
     let before = await c.client.request({
