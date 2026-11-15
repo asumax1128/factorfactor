@@ -1141,7 +1141,7 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'weekly2', title: '出撃のくふう', body: 'アタッカーかサポーターを選んで出撃。サポーターの応援でみんなのダメージが上がる。まれに出る宝箱は、次の問題に正解すると開くよ。毎日の初出撃は経験値2倍、週ごとに「気まぐれルール」も変わる。' },
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
-  { ch: 'team', v: 'daily', title: 'デイリーと学びの部屋', body: '毎日変わる「デイリーミッション」（3難易度のチャレンジ＋3つのお題）で経験値ゲット。「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
+  { ch: 'team', v: 'daily', title: '学びの部屋', body: '「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
   { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
   { ch: 'grow', v: 'badge', title: '称号ときせかえ', body: '条件を満たすと称号がもらえて、「二つ名」として名前の上に飾れる。レベル・ランク・ボス討伐などで「きせかえ」（タイル・背景・エフェクト）も増えていくよ。' },
 ];
@@ -1170,7 +1170,7 @@ function TutVisual({ v }) {
   if (v === 'modeC') return navy(<><div className="grid items-center gap-2 w-full" style={{ gridTemplateColumns: '1fr auto 1fr' }}>{[0, 1].map(t => <div key={t} className="flex flex-col gap-1" style={{ order: t ? 3 : 1 }}>{[1, 2].map(i => <div key={i} className="v7-wnd px-2 py-1 text-[11px] font-black" style={{ borderLeft: `5px solid ${TEAM_INFO_C[t].color}`, color: '#fff' }}>{TEAM_INFO_C[t].name.slice(0, 1)}{i}</div>)}</div>)}<div style={{ order: 2, fontFamily: 'var(--v7-f-fx)', fontSize: 26, color: 'var(--v7-gold)' }}>VS</div></div><div className="w-full"><HpBar v7 hp={72} height={16} /></div><div className="flex gap-1.5">{chip('🤝 カバー', '#2F6FD6')}{chip('⚡ 合体攻撃', '#7b2cbf')}</div></>);
   if (v === 'fraid') return <div className="grid grid-cols-4 gap-1.5 w-full" style={{ maxWidth: 340 }}>{ROLE_IDS.map(id => <div key={id} className="rounded-xl py-1.5 text-center" style={{ background: '#fff', border: `1.5px solid ${ROLES[id].color}` }}><div className="text-xl leading-none">{ROLES[id].icon}</div><div className="text-[9px] font-black" style={{ color: ROLES[id].color }}>{ROLES[id].name}</div></div>)}</div>;
   if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
-  if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📅', 'デイリー', '毎日4つ', '#E4572E')}{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
+  if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
   if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}{chip('💰 懸賞金 10', '#b7791f')}</div></div>;
   if (v === 'badge') return <div className="flex gap-2 items-center flex-wrap justify-center"><div className="v7-panel text-center" style={{ padding: '8px 14px' }}><div className="text-[11px] font-black" style={{ color: '#b7791f' }}>〈🥋必殺技いらず〉</div><div className="v7-name" style={{ fontSize: 16 }}>しゅう</div></div>{tile('(x+3)', { background: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', color: '#fff', borderColor: '#0e4d44' })}</div>;
   return null;
@@ -4170,7 +4170,7 @@ function LearnApp({ acct, onExit, init, renderMenu }) {
         <button onClick={onExit} className={renderMenu ? 'small-button ld-back mb-2' : 'v7-pill v7-cur mb-2'} data-snd="back">{renderMenu ? '← 戻る' : '← タイトルにもどる'}</button>
         <div className="text-center mb-3">
           <div className="text-2xl font-black" style={{ color: COLORS.ink, ...bFont }}>学びの部屋</div>
-          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ソロ・対戦・デイリー・ドリルで解いた問題が、ここにたまっていきます{isReal(acct) ? '' : '（ゲスト：この端末に保存）'}</div>
+          <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>ソロ・対戦・ドリルで解いた問題が、ここにたまっていきます{isReal(acct) ? '' : '（ゲスト：この端末に保存）'}</div>
         </div>
         <div className="mb-3"><Seg items={[['weak', '苦手分析'], ['drill', '苦手ドリル'], ['zukan', `型の図鑑 ${got}/${PATTERNS.length}`]]} cur={tab} onPick={v => { setTab(v); setDrillRes(null); setDrill(null); }} /></div>
         {drillRes && (
@@ -4204,7 +4204,7 @@ function LearnApp({ acct, onExit, init, renderMenu }) {
           </Card>
           <Card className="mb-3">
             <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>苦手な型 ワースト3（2回以上出た型から）</div>
-            {weakPts.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだデータが少ないか、苦手な型がありません。ソロやデイリーで遊ぶと分析できます</p>
+            {weakPts.length === 0 ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>まだデータが少ないか、苦手な型がありません。ソロや対戦で遊ぶと分析できます</p>
               : weakPts.map((r, i) => (
                 <div key={r.id} className="py-1.5" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
                   <div className="flex items-center justify-between text-sm"><span className="font-black" style={{ color: COLORS.ink, ...bFont }}>{i + 1}. {r.name} <span className="text-[10px]" style={{ color: COLORS.inkSoft }}>Lv.{r.lv}</span></span><span className="font-black" style={{ color: COLORS.coral }}>{Math.round(r.st.ok / r.st.n * 100)}%（{r.st.ok}/{r.st.n}）</span></div>
@@ -10251,7 +10251,7 @@ function DailyApp(props){
  if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
  return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<div className="or-app" data-daily-load-error><p role="alert">デイリーの読み込みに失敗しました。通信を確認して、もう一度お試しください。</p><button onClick={()=>{setReady(null);setRetry(x=>x+1)}}>もう一度読み込む</button><button onClick={props.onExit}>戻る</button></div>;
 }
-const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,DailyProgress,soloBestOf,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : null;
+const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,soloBestOf,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : null;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
   const [mode, setMode] = useState('home');

@@ -62,7 +62,7 @@ async function openSolo(t, p) {
       assert(!await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'no horizontal overflow ' + width);
       await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).click();
       await p.locator('.ranking-grid').waitFor();
-      assert.equal(await p.locator('.ranking-entry').count(), 3);
+      assert.equal(await p.locator('.ranking-entry').count(), 2);
       assert.deepEqual(t.errors, []);
       await t.ctx.close();
       console.log(`PASS solo ranking ${width}x${height}: difficulty tabs, TOP20, self row, total/local tabs, one back button, 44px targets`);
@@ -82,55 +82,19 @@ async function openSolo(t, p) {
       await t.ctx.close();
       console.log('PASS solo ranking states: error with retry, then empty');
     }
-    // ---- daily ----
-    for (const [width, height] of [[375, 844], [1440, 900], [683, 325]]) {
-      const season = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 7);
-      const day = Math.floor((Date.now() + 9 * 3600000) / 86400000);
-      const r = (key, name, score, cleared, elapsed, correct, sortKey) => ({ key, name, score, cleared, elapsed, correct, sortKey, day });
-      const tree = { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: { rating: 1600 } } }, dailyV2: { ready: true, boards: {
-        [day]: { easy: { records: { f1: r('f1', 'Fixture1', 500, true, 45000, 15, 'a'), ateacher: r('ateacher', 'Teacher', 450, false, 0, 12, 'b'), f3: r('f3', 'Fixture3', 300, true, 61000, 15, 'c') } } },
-        [day - 1]: { easy: { records: { y1: r('y1', 'Yesterday1', 480, true, 50000, 15, 'a') } } }
-      } } } } };
-      const t = await context(b, { tree }), p = t.page;
-      await p.setViewportSize({ width, height });
+    // ---- daily: Ver.6.30 removed the daily ranking entry (past daily records are no longer shown). The saved boards are not touched. ----
+    {
+      const day = Number(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, ''));
+      const boards = { [day]: { easy: { records: { f1: { name: 'Fixture1', score: 500 } } } } }, saved = JSON.stringify(boards);
+      const t = await context(b, { tree: { games: { factor: { accounts: { ateacher: { name: 'Teacher', stats: { exp: 100 } } }, dailyV2: { boards } } } } }), p = t.page;
       await openRankingHub(p);
-      await p.locator('.ranking-entry').filter({ hasText: 'デイリーランキング' }).click();
-      const view = p.locator('[data-ranking="daily"]');
-      await view.locator('.rk-row').first().waitFor();
-      assert.equal(await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).count(), 1, 'single back button');
-      assert.equal(await view.getByRole('button', { name: 'ランキング総合へ' }).count(), 0);
-      const today = await view.locator('.rk-row').evaluateAll((es) => es.map((e) => [Number(e.dataset.rank), e.querySelector('.rk-name').textContent, e.querySelector('.rk-val b').textContent, e.classList.contains('rk-self'), e.querySelector('small').textContent]));
-      assert.deepEqual(today.map((x) => x.slice(0, 4)), [[1, 'Fixture1', '500', false], [2, 'Teacher', '450', true], [3, 'Fixture3', '300', false]]);
-      assert.match(today[0][4], /クリアタイム 45\.00秒・15問正解/);
-      assert.match(today[1][4], /未クリア・12問正解/);
-      assert.equal(await view.getByRole('button', { name: '今日', exact: true }).getAttribute('aria-pressed'), 'true');
-      assert.equal(await view.getByRole('button', { name: 'イージー', exact: true }).getAttribute('aria-pressed'), 'true');
-      assert.equal(await view.locator('.rk-top').count(), 3);
-      await view.getByRole('button', { name: '昨日', exact: true }).click();
-      await view.getByText(/Yesterday1/).waitFor();
-      assert.match(await view.locator('.rk-row').first().innerText(), /🏆 優勝/);
-      assert.equal(await view.getByRole('button', { name: '昨日', exact: true }).getAttribute('aria-pressed'), 'true');
-      await view.getByRole('button', { name: '今日', exact: true }).click();
-      await view.getByRole('button', { name: 'ノーマル', exact: true }).click();
-      await view.getByText('まだ記録がありません', { exact: true }).waitFor();
-      await view.getByText('ノーマル TOP10', { exact: true }).waitFor();
-      assert.match(await view.innerText(), /得点→クリア→タイム／正解数→確定時刻の順/);
-      for (const btn of await view.getByRole('button').all()) { const box = await btn.boundingBox(); if (box) assert(box.height >= 43.5, 'tap target >=44px ' + box.height); }
-      assert(!await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'daily overflow ' + width);
-      assert.equal(t.writes.filter((x) => /\/dailyV2\/(?:attempts|boards)\//.test(x.path)).length, 0, 'viewing starts no challenge and changes no board (the server clock stamp is existing behaviour)');
-      await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).click();
-      await p.locator('.ranking-grid').waitFor();
+      assert.deepEqual(await p.locator('.ranking-entry strong').allInnerTexts(), ['ソロランキング', 'レーティングランキング']);
+      assert.equal(await p.getByText(/デイリー/).count(), 0, 'no daily ranking entry');
+      assert.equal(JSON.stringify(t.tree.games.factor.dailyV2.boards), saved, 'saved daily boards are left as they are');
+      assert.equal(t.writes.filter((x) => /\/dailyV2\/(?:attempts|boards)\//.test(x.path)).length, 0);
       assert.deepEqual(t.errors, []);
       await t.ctx.close();
-      console.log(`PASS daily ranking ${width}x${height}: today/yesterday + difficulty tabs, rows/self/winner, empty, one back button, 44px targets`);
-    }
-    {
-      const g = await context(b, { account: { guest: true, name: 'Guest' } }), p = g.page;
-      await openRankingHub(p);
-      await p.locator('.ranking-entry').filter({ hasText: 'デイリーランキング' }).click();
-      await p.locator('[data-ranking="daily"]').getByText(/登録アカウントでログインしてください/).waitFor();
-      await g.ctx.close();
-      console.log('PASS daily ranking: guest sees the login notice');
+      console.log('PASS daily ranking: the entry is gone; saved daily boards untouched');
     }
     // ---- rating ----
     for (const [width, height] of [[375, 844], [1440, 900], [683, 325]]) {
@@ -169,7 +133,7 @@ async function openSolo(t, p) {
       assert.equal(JSON.stringify(tree.games.factor.onlineSparkV1.profiles.ap2), JSON.stringify(pr('Rival', 1750, 10, 1620, 8)), 'ratings untouched');
       await p.getByRole('button', { name: 'ランキング総合へ戻る', exact: true }).click();
       await p.locator('.ranking-grid').waitFor();
-      assert.equal(await p.locator('.ranking-entry').count(), 3);
+      assert.equal(await p.locator('.ranking-entry').count(), 2);
       assert.deepEqual(t.errors, []);
       await t.ctx.close();
       console.log(`PASS rating ranking ${width}x${height}: easy/normal tabs, listing rule, self rank, player card, titles kept, one back button`);

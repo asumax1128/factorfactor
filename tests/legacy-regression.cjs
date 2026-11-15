@@ -117,10 +117,10 @@ console.log("PASS " + names.length + " protected functions unchanged (AST, exact
     await p.locator("[data-btile]").first().waitFor();
     console.log("PASS weekly raid");
     await p.reload();
-    await p.getByRole("button", { name: /デイリーミッション/ }).click();
-    await sleep(500);
-    assert.ok((await p.locator("body").innerText()).includes("デイリー"));
-    console.log("PASS daily");
+    // Ver.6.30: the daily entries were removed (home tile, solo card, ranking hub). The home must not offer them.
+    await p.locator("[data-next-home] .home-content").waitFor();
+    assert.equal(await p.getByRole("button", { name: /デイリー/ }).count(), 0);
+    console.log("PASS no daily entry on the home");
     assert.deepEqual(t.errors, []);
     await t.ctx.close();
   } finally {

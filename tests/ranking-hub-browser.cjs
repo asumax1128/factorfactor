@@ -11,11 +11,10 @@ const assert=require('node:assert/strict');const {chromium,context}=require('./b
  const t=await context(b,{tree}),p=t.page;await p.setViewportSize({width,height:844});
  await p.locator('[data-next-home]').waitFor();await harnessNav.openRankingHub(p);
  const nav=p.getByRole('navigation',{name:width>900?'PCメインメニュー':'スマホメインメニュー'});
- await p.locator('.ranking-grid').waitFor();assert.equal(await p.locator('.ranking-entry').count(),3);assert.equal(await nav.locator('[aria-current=page]').innerText(),width>900?'ランキング':'順位');
- for(const name of ['ソロランキング','デイリーランキング','レーティングランキング']){
+ await p.locator('.ranking-grid').waitFor();assert.equal(await p.locator('.ranking-entry').count(),2);assert.equal(await p.getByText('デイリーランキング').count(),0,'Ver.6.30: no daily ranking entry');assert.equal(await nav.locator('[aria-current=page]').innerText(),width>900?'ランキング':'順位');
+ for(const name of ['ソロランキング','レーティングランキング']){
   await p.locator('.ranking-entry').filter({hasText:name}).click();const view=p.getByRole('region',{name:'ランキング表示'});
   if(name==='ソロランキング'){await view.getByRole('button',{name:'この端末 TOP3',exact:true}).waitFor();await view.getByRole('button',{name:'この端末 TOP3',exact:true}).click();}
-  if(name==='デイリーランキング'){await view.getByText(/DailyFixture/).waitFor();assert.match(await view.innerText(),/321\s*点/);await view.getByRole('button',{name:'昨日',exact:true}).click();await view.getByText('まだ記録がありません',{exact:true}).waitFor();await view.getByRole('button',{name:'今日',exact:true}).click();await view.getByText(/DailyFixture/).waitFor();await view.getByRole('button',{name:'ノーマル',exact:true}).click();await view.getByText('ノーマル TOP10',{exact:true}).waitFor();}
   if(name==='レーティングランキング'){await view.locator('.or-rating').getByText('1666',{exact:true}).waitFor();await view.getByRole('button',{name:'ノーマル',exact:true}).click();await view.locator('.or-rating').getByText('1550',{exact:true}).waitFor();}
   assert(!await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),name+' overflow '+width);
   await p.getByRole('button',{name:'ランキング総合へ戻る',exact:true}).click();await p.locator('.ranking-grid').waitFor();
@@ -26,6 +25,6 @@ const assert=require('node:assert/strict');const {chromium,context}=require('./b
  await nav.getByRole('button',{name:'ホーム',exact:true}).click();await p.locator('.home-content').waitFor();
  assert.deepEqual(t.errors,[]);assert.equal(tree.games.factor.onlineSparkV1.profiles.ateacher.easy.rating,1665.6);assert.equal(tree.games.factor.dailyV2.boards[day].easy.records.fixture.score,321);
  assert.equal(t.writes.filter(x=>/\/dailyV2\/(?:attempts|boards)\/|\/raidw\//.test(x.path)).length,0,'ranking browsing must not start challenges, change boards or initialize boss');
- console.log(`PASS ${width}: three existing rankings, sample score/rating, tabs, back/hub/home, selected navigation, no horizontal overflow`);await t.ctx.close();
+ console.log(`PASS ${width}: two rankings (daily ranking entry removed), sample score/rating, tabs, back/hub/home, selected navigation, no horizontal overflow`);await t.ctx.close();
  }
 }finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});
