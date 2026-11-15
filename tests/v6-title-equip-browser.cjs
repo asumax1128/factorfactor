@@ -131,23 +131,54 @@ const untouched = (tree, t0) => {
       assert.match(await p.locator(".account-main").innerText(), /初級の覇王/, "Nick shows a catalog-only title");
       await t.ctx.close();
     }
-    // legacy-only ids (not in the 100): kept, displayed, never initialised, and clearable.
-    // Ver.6.26: the old-tower titles (tw10..tw100) were removed from the game. An account that still has one equipped must keep
-    // working: the profile and the title list open, the saved slot is not rewritten, the slot reads 表示できない称号 and can be cleared.
-    for (const [id, current, equipped] of [["nosp", /現在の装備：〈.+〉（従来の称号）/, /装備中称号：\s*必殺技いらず/], ["tw10", /現在の装備：〈表示できない称号〉/, null], ["tw50", /現在の装備：〈表示できない称号〉/, null], ["tw100", /現在の装備：〈表示できない称号〉/, null]]) {
-      const tree = mkTree({ nick: id });
+    // legacy-only id that still exists (not in the 100): kept, displayed, never initialised, and clearable.
+    {
+      const id = "nosp", tree = mkTree({ nick: id });
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
       assert.equal(tree.games.factor.accounts.ateacher.stats.nick, id, "opening the profile does not touch the equipped id: " + id);
       await closeDlg(p);
-      assert.match(await p.locator("[data-equip-current]").innerText(), current, id);
-      if (equipped) assert.match(await p.locator(".next-equipped").first().innerText(), equipped);
-      else assert(!/塔の|数理の書|終わりなき/.test(await p.locator("[data-next-profile], .next-profile, body").first().innerText()), "no old-tower title name shown: " + id);
+      assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈.+〉（従来の称号）/, id);
+      assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*必殺技いらず/);
       assert(await p.locator("[data-title-id]").count() >= 100, "the title list is shown: " + id);
-      await closeDlg(p);
       await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
       await p.locator('.next-title-equip-current [data-equip-status="saved"]').waitFor();
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "cleared as an explicit unequip: " + id);
+      assert.deepEqual(t.errors, [], "no page error: " + id);
+      await t.ctx.close();
+    }
+    // Ver.6.29: an equipped id whose title was removed from the game (old-tower titles, or any id with no definition) is treated
+    // as "no title equipped" on every screen. Nothing is written by opening the screens; another title can be equipped as usual,
+    // and that changes only stats/nick.
+    for (const id of ["tw10", "tw50", "tw100", "some_title_removed_later"]) {
+      const tree = mkTree({ nick: id });
+      const t = await context(b, { tree }), p = t.page;
+      await p.setViewportSize({ width: 390, height: 844 });
+      await p.locator(".account-main").waitFor();
+      assert.match(await p.locator(".account-main").innerText(), /装備中の称号なし/, "home: not equipped: " + id);
+      await open(p, 390, 844);
+      await closeDlg(p);
+      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, id, "opening home / profile / title list does not rewrite the slot: " + id);
+      assert.deepEqual(t.writes.map((w) => w.path).filter((x) => /\/accounts\//.test(x)), [], "opening the screens writes nothing to the account: " + id);
+      assert.equal(await p.locator("[data-equip-current]").count(), 0, "no current-equip row for a removed title: " + id);
+      assert.equal(await p.getByText("表示できない称号").count(), 0, "the old wording is gone: " + id);
+      assert.equal(await p.locator('[data-title-id][data-equipped="true"]').count(), 0, "no title marked as equipped: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 100, "the title list is shown: " + id);
+      assert(!/塔の|数理の書|終わりなき/.test(await p.locator("body").innerText()), "no old-tower title name shown: " + id);
+      await p.getByRole("tab", { name: "概要" }).click();
+      assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*未設定/, "profile overview: 未設定: " + id);
+      await p.getByRole("tab", { name: "称号・実績" }).click();
+      await p.locator("[data-title-inventory]").waitFor();
+      // another title can be equipped; only stats/nick changes
+      const savedData = () => { const f = tree.games.factor, c = JSON.parse(JSON.stringify({ accounts: f.accounts, onlineSparkV1: f.onlineSparkV1, awards: f.titleNextV1 && f.titleNextV1.awards, dailyTitles: f.dailyV2.titles })); c.accounts.ateacher.stats.nick = null; return c; };
+      const before = savedData();
+      await equip(p, tree, "easy_master");
+      await closeDlg(p);
+      assert.equal(await p.locator('[data-title-id="easy_master"]').getAttribute("data-equipped"), "true");
+      assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈初級の覇王〉/);
+      assert.deepEqual(t.writes.map((w) => w.path).filter((x) => /\/accounts\/|\/onlineSparkV1\/|\/titleNextV1\/awards\//.test(x)), ["games/factor/accounts/ateacher/stats/nick"], "the only saved-data write is the equip slot: " + id);
+      const after = savedData();
+      assert.deepEqual(after, before, "no saved data other than the equipped title changed: " + id);
       assert.deepEqual(t.errors, [], "no page error: " + id);
       await t.ctx.close();
     }
