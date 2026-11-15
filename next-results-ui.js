@@ -491,7 +491,7 @@
         schemaVersion: 1,
         source: "\u6240\u6709\u8005\u63D0\u4F9B \u5168100\u79F0\u53F7 2026-10-15",
         status: "roster-confirmed-reveal-pending",
-        expectedNormalCount: 95,
+        expectedNormalCount: 93,
         expectedFiveStarCount: 22,
         excludedAwardModes: [
           "cpu",
@@ -825,30 +825,10 @@
             category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
           },
           {
-            number: 37,
-            legacyNumber: 56,
-            name: "\u30D0\u30A6\u30F3\u30C6\u30A3\u30CF\u30F3\u30BF\u30FC",
-            condition: "\u8CDE\u91D1\u9996\u3092\u521D\u3081\u3066\u6483\u7834",
-            stars: 2,
-            id: "bounty1",
-            legacyId: "bounty1",
-            category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
-          },
-          {
-            number: 38,
-            legacyNumber: 57,
-            name: "\u4F1D\u8AAC\u306E\u30CF\u30F3\u30BF\u30FC",
-            condition: "\u8CDE\u91D1\u9996\u309210\u56DE\u6483\u7834",
-            stars: 4,
-            id: "bounty10",
-            legacyId: "bounty10",
-            category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
-          },
-          {
             number: 39,
             legacyNumber: 58,
-            name: "\u6307\u540D\u624B\u914D",
-            condition: "\u81EA\u5206\u306B50\u4EE5\u4E0A\u306E\u8CDE\u91D1\u304C\u61F8\u304B\u308B\uFF087\u9023\u52DD\uFF09",
+            name: "\u5FEB\u9032\u6483",
+            condition: "7\u9023\u52DD",
             stars: 3,
             id: "wanted",
             legacyId: "wanted",

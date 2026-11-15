@@ -1,4 +1,4 @@
-// New profile: one equip slot (stats/nick) for all catalog titles (95 since Ver.6.33) + the hidden title (mock Firebase).
+// New profile: one equip slot (stats/nick) for all catalog titles (93 since Ver.6.36) + the hidden title (mock Firebase).
 // Reuses the existing save (equipNick, shared with the old modal). Never writes profile.title or snapshots.equipped.
 const assert = require("node:assert/strict");
 const { chromium, context, sleep, openRankingHub } = require("./browser-harness.cjs"); // Ver.6.13: ranking = 順位 tab
@@ -80,8 +80,8 @@ const untouched = (tree, t0) => {
       await equip(p, tree, "tour1");
       // Ver.6.33: the four daily winner titles and mis7 were removed with the daily mode. Even with the old records saved
       // (dailyV2/titles in the fixture), they are not listed, not earned and cannot be equipped.
-      for (const id of ["daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7"]) assert.equal(await p.locator(`[data-title-id="${id}"]`).count(), 0, `${id} is not in the list`);
-      assert.equal(await p.locator("[data-title-id]").count(), catalog.titles.length + 1, "95 titles + the earned hidden title");
+      for (const id of ["daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7", "bounty1", "bounty10"]) assert.equal(await p.locator(`[data-title-id="${id}"]`).count(), 0, `${id} is not in the list`);
+      assert.equal(await p.locator("[data-title-id]").count(), catalog.titles.length + 1, "catalog titles + the earned hidden title");
       // the titles that have no BADGES entry (display + equip through the catalog labels)
       for (const id of NOT_IN_BADGES) {
         await equip(p, tree, id);
@@ -137,7 +137,7 @@ const untouched = (tree, t0) => {
       await closeDlg(p);
       assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈.+〉（従来の称号）/, id);
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*必殺技いらず/);
-      assert(await p.locator("[data-title-id]").count() >= 95, "the title list is shown: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 93, "the title list is shown: " + id);
       await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
       await p.locator('.next-title-equip-current [data-equip-status="saved"]').waitFor();
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "cleared as an explicit unequip: " + id);
@@ -147,7 +147,7 @@ const untouched = (tree, t0) => {
     // Ver.6.29: an equipped id whose title was removed from the game (old-tower titles, or any id with no definition) is treated
     // as "no title equipped" on every screen. Nothing is written by opening the screens; another title can be equipped as usual,
     // and that changes only stats/nick.
-    for (const id of ["tw10", "tw50", "tw100", "daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7", "some_title_removed_later"]) {
+    for (const id of ["tw10", "tw50", "tw100", "daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7", "bounty1", "bounty10", "some_title_removed_later"]) {
       const tree = mkTree({ nick: id });
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width: 390, height: 844 });
@@ -160,7 +160,7 @@ const untouched = (tree, t0) => {
       assert.equal(await p.locator("[data-equip-current]").count(), 0, "no current-equip row for a removed title: " + id);
       assert.equal(await p.getByText("表示できない称号").count(), 0, "the old wording is gone: " + id);
       assert.equal(await p.locator('[data-title-id][data-equipped="true"]').count(), 0, "no title marked as equipped: " + id);
-      assert(await p.locator("[data-title-id]").count() >= 95, "the title list is shown: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 93, "the title list is shown: " + id);
       assert(!/塔の|数理の書|終わりなき/.test(await p.locator("body").innerText()), "no old-tower title name shown: " + id);
       await p.getByRole("tab", { name: "概要" }).click();
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*未設定/, "profile overview: 未設定: " + id);

@@ -12,11 +12,14 @@ const src = fs.readFileSync("index.html", "utf8");
 const CASES = [
   { label: "removed tower title + skins + old progress", stats: () => ({ exp: 900, games: 4, w: 2, l: 2, rating: 1550, tower: { best: 100, endN: 3 }, nick: "tw50", skin: { tile: "towert", bg: "summit", fx: "std" } }), goneSkins: ["towert", "summit"] },
   { label: "removed daily title + 皆勤スタンプ selected + old mission counters", stats: () => ({ exp: 900, games: 4, w: 2, l: 2, rating: 1550, misDays: 9, misRun: { best: 7, n: 2, last: "2026-11-01" }, dailyRewards: { 20261101: { a: 20 } }, nick: "daily_king", skin: { tile: "mission", bg: "sky", fx: "std" } }), goneSkins: ["mission"], extra: { dailyV2: { titles: { ateacher: { daily_king: true, daily_easy_king: { day: 1 } } } } } },
+  // Ver.6.36: the bounty titles bounty1 / bounty10 and the background 賞金稼ぎの荒野 (hunter) were removed with the bounty system.
+  { label: "removed bounty title + 賞金稼ぎの荒野 selected + old bounty counters", stats: () => ({ exp: 900, games: 4, w: 2, l: 2, rating: 1550, bountyWins: 11, bountyExp: 420, streak: 2, maxStreak: 7, nick: "bounty10", skin: { tile: "std", bg: "hunter", fx: "std" } }), goneSkins: ["hunter"] },
   { label: "ミッション皆勤 equipped + 皆勤スタンプ selected", stats: () => ({ exp: 900, games: 4, w: 2, l: 2, rating: 1550, misDays: 7, nick: "mis7", skin: { tile: "mission", bg: "starry", fx: "std" } }), goneSkins: ["mission"] },
 ];
 (async () => {
   for (const gone of ["id: 'tw10'", "id: 'tw30'", "id: 'tw50'", "id: 'tw70'", "id: 'tw100'", "id: 'towert'", "id: 'summit'", "need.tower", "label: '数理の塔'", "塔の頂", "天空の塔",
-    "daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "id: 'mis7'", "ミッション皆勤", "id: 'mission'", "皆勤スタンプ", "need.mis", "useDailyTitles", "dailyTitles", "dailyV2"])
+    "daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "id: 'mis7'", "ミッション皆勤", "id: 'mission'", "皆勤スタンプ", "need.mis", "useDailyTitles", "dailyTitles", "dailyV2",
+    "id: 'bounty1'", "id: 'bounty10'", "id: 'hunter'", "賞金稼ぎの荒野", "need.bounty", "label: 'お尋ね者'", "懸賞金50以上"])
     assert(!src.includes(gone), "definition removed: " + gone);
   console.log("PASS old-tower and daily title, skin and label definitions are absent from index.html (and nothing reads dailyV2)");
   const b = await chromium.launch({ executablePath: exe });
@@ -34,11 +37,11 @@ const CASES = [
       // profile: overview and the title list open
       await openProfile(p);
       const prof = p.locator("[data-next-profile]");
-      assert(!/塔の|数理の書の継承者|終わりなき探究者|暁の覇者|蒼穹の覇者|深淵の覇王|天下統一|任務完遂|ミッション皆勤|キング/.test(await prof.innerText()), "no removed title name in the profile");
+      assert(!/塔の|数理の書の継承者|終わりなき探究者|暁の覇者|蒼穹の覇者|深淵の覇王|天下統一|任務完遂|ミッション皆勤|キング|ハンター|賞金/.test(await prof.innerText()), "no removed title name in the profile");
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*未設定/, "profile: the removed title counts as not equipped");
       await prof.getByRole("tab", { name: /称号/ }).click();
       await p.locator("[data-title-id]").first().waitFor();
-      assert(await p.locator("[data-title-id]").count() >= 95, "title list shown");
+      assert(await p.locator("[data-title-id]").count() >= 93, "title list shown");
       assert.equal(await p.locator("[data-equip-current]").count(), 0, "a removed title is treated as not equipped (Ver.6.29)");
       assert.equal(await p.getByText("表示できない称号").count(), 0);
       // wardrobe: opens, the removed skins are not offered, a remaining one can be picked
@@ -49,7 +52,7 @@ const CASES = [
       const tiles = await p.locator("[data-skin-item]").evaluateAll((es) => es.map((e) => e.dataset.skinItem));
       assert(tiles.length >= 10 && !C.goneSkins.some((x) => tiles.includes(x)), "removed skins not offered: " + tiles.join());
       assert.equal(await p.getByText("皆勤スタンプ").count(), 0);
-      assert.equal(await p.locator('[data-skin-item][aria-pressed="true"]').count(), 0, "nothing shown as selected for the removed tile");
+      assert.equal(await p.locator('[data-skin-item][aria-pressed="true"]').count(), C.goneSkins.includes(start.skin.tile) ? 0 : 1, "nothing shown as selected for a removed tile; a tile that still exists stays selected");
       await p.getByRole("button", { name: "背景", exact: true }).click();
       const bgs = await p.locator("[data-skin-item]").evaluateAll((es) => es.map((e) => e.dataset.skinItem));
       assert(bgs.length >= 5 && !C.goneSkins.some((x) => bgs.includes(x)), "removed background not offered");
@@ -64,7 +67,7 @@ const CASES = [
       assert.equal(look.bg, "rgb(244, 247, 255)", "standard tile colour used for the removed skin");
       assert(look.w > 40);
       { const now = tree.games.factor.accounts.ateacher.stats;
-        for (const k of ["tower", "misDays", "misRun", "dailyRewards", "tk"]) assert.deepEqual(now[k], start[k], "old progress / counters kept: " + k);
+        for (const k of ["tower", "misDays", "misRun", "dailyRewards", "tk", "bountyWins", "bountyExp", "streak", "maxStreak"]) assert.deepEqual(now[k], start[k], "old progress / counters kept: " + k);
         assert.equal(now.nick, start.nick, "equipped id not rewritten");
         assert.deepEqual(now.skin, start.skin, "saved skin not rewritten");
         assert.equal(JSON.stringify(Object.fromEntries(Object.keys(C.extra || {}).map((k) => [k, tree.games.factor[k]]))), savedExtra, "saved daily records untouched");

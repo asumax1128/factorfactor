@@ -53,7 +53,7 @@ test("old tower counters in the stats are left as they are and earn no title any
   assert(!api.announceableBadges(before, after).some((x) => /^tw\d+$/.test(x.id)));
 });
 test("reveals use the official catalog name; icon and description stay as before", () => {
-  const cases = [["revenge", { revenges: 1 }], ["calm", { calmWins: 1 }], ["flawless", { flawlessWins: 1 }], ["bounty1", { bountyWins: 1 }]];
+  const cases = [["revenge", { revenges: 1 }], ["calm", { calmWins: 1 }], ["flawless", { flawlessWins: 1 }]];   // Ver.6.36: bounty1 was removed (the case was skipped for ids not in the catalog anyway)
   let checked = 0;
   for (const [id, st] of cases) {
     const t = catalog.titles.find((x) => x.id === id), legacy = api.BADGES.find((x) => x.id === id);
