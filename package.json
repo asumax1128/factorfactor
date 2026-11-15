@@ -46,7 +46,8 @@
     "test:next-help": "node tests/next-help-browser.cjs",
     "test:login-ui": "node tests/login-ui-browser.cjs",
     "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs && node tests/solo-board-input-browser.cjs && node tests/cleanup-routes-browser.cjs && node tests/solo-runlog-browser.cjs",
-    "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs"
+    "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs",
+    "test:iroyomi-rules": "firebase emulators:exec --only database --project demo-factorfactor-tower --config firebase.spark.emulator.json \"node tests/iroyomi-rules-emulator.cjs\""
   },
   "devDependencies": {
     "esbuild": "0.23.1",
