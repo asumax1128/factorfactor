@@ -163,5 +163,14 @@ const src = fs.readFileSync("index.html", "utf8");
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log("PASS missions removed: no mission code or wording; the teacher's class table has six columns; saved mission records untouched");
     }
+    // Ver.6.34 (bounty removal 1/4): no way into the bounty list, no bounty effects, and a match no longer carries bounties.
+    {
+      for (const name of ["賞金首リスト", "賞金首あらわる", "あなたは賞金首", "懸賞金 {rec.bountyGot}", "rec.bountyLost", "3連勝すると懸賞金", "💰 懸賞金 10", "bountyCooldowns", "bountyRows", "onBounty", "await fetchRatings(accts, bty)"])
+        assert(!src.includes(name), "removed from the page: " + name);
+      assert(!/\.\.\.\(opt\.voteNote[^\n]*\bbty,/.test(src), "the room state no longer carries bty");
+      assert(!fs.readFileSync("src/next-lobby-ui.jsx", "utf8").includes("賞金首"), "no bounty button in the new lobby");
+      assert(!fs.existsSync("tests/bounty-profile-browser.cjs"), "the bounty list test went with the feature");
+      console.log("PASS bounty entrances and effects removed; matches no longer carry bounties");
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

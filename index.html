@@ -1141,7 +1141,7 @@ const TUTORIAL_STEPS = [
   { ch: 'team', v: 'fraid', title: 'フレンドレイド', body: 'オンライン対戦の画面から、友だち1〜4人でボスに挑める。アタッカー・サポーター・ガード・ブレイカー・ティーチャー・タイムキーパー・ギャンブラーから役割を自由に選ぼう（同じ役割でもOK）。' },
   { ch: 'team', v: 'raid', title: 'クラス協力レイド', body: '授業で先生が開くレイド。プロジェクターの巨大ボスにクラス全員で挑む。ボスごとに個性（攻撃型・防御型・変身型…）があって、作戦が変わるよ。' },
   { ch: 'team', v: 'daily', title: '学びの部屋', body: '「学びの部屋」では苦手分析と苦手ドリル、型の図鑑。' },
-  { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！ 3連勝すると懸賞金がかかり、倒した人にボーナス。' },
+  { ch: 'grow', v: 'rank', title: 'レート・ランク', body: 'ログインして対戦すると、勝ち負けでレートが上下してランク帯（ブロンズ〜マスター）が決まる。毎月1日に新シーズン！' },
   { ch: 'grow', v: 'badge', title: '称号ときせかえ', body: '条件を満たすと称号がもらえて、「二つ名」として名前の上に飾れる。レベル・ランク・ボス討伐などで「きせかえ」（タイル・背景・エフェクト）も増えていくよ。' },
 ];
 
@@ -1170,7 +1170,7 @@ function TutVisual({ v }) {
   if (v === 'fraid') return <div className="grid grid-cols-4 gap-1.5 w-full" style={{ maxWidth: 340 }}>{ROLE_IDS.map(id => <div key={id} className="rounded-xl py-1.5 text-center" style={{ background: '#fff', border: `1.5px solid ${ROLES[id].color}` }}><div className="text-xl leading-none">{ROLES[id].icon}</div><div className="text-[9px] font-black" style={{ color: ROLES[id].color }}>{ROLES[id].name}</div></div>)}</div>;
   if (v === 'weekly2') return <div className="flex gap-2 flex-wrap justify-center">{panel('⚔', 'アタッカー', 'ダメージ担当', '#E4572E')}{panel('📣', 'サポーター', 'みんなを強化', '#2a9d8f')}{panel('🎁', '宝箱', '正解で開く', '#d4a017')}</div>;
   if (v === 'daily') return <div className="flex gap-2 flex-wrap justify-center">{panel('📚', '学びの部屋', '苦手ドリル', '#7B61FF')}</div>;
-  if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}{chip('💰 懸賞金 10', '#b7791f')}</div></div>;
+  if (v === 'rank') return <div className="flex flex-col items-center gap-2"><div className="flex gap-2 items-center flex-wrap justify-center"><RankPill r={1532} size={13} />{chip('レート 1500 → 1532 ▲', '#3FA55F')}</div></div>;
   if (v === 'badge') return <div className="flex gap-2 items-center flex-wrap justify-center"><div className="v7-panel text-center" style={{ padding: '8px 14px' }}><div className="text-[11px] font-black" style={{ color: '#b7791f' }}>〈🥋必殺技いらず〉</div><div className="v7-name" style={{ fontSize: 16 }}>しゅう</div></div>{tile('(x+3)', { background: 'linear-gradient(135deg,#1f7a6e,#2a9d8f 55%,#7fd1c4)', color: '#fff', borderColor: '#0e4d44' })}</div>;
   return null;
 }
@@ -7760,7 +7760,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     if (ids.length < 2) return;
     const names = {}, accts = {}, handi = {}, cpu = {}, nicks = {};
     ids.forEach(k => { names[k] = pl[k].name; accts[k] = pl[k].acct || ''; nicks[k] = pl[k].nick || ''; handi[k] = ((st.handi || {})[k]) || 0; if (pl[k].cpu) cpu[k] = pl[k].cpu; });
-    let rt; const bty = {};
+    let rt;
     if (st.bot) {
       // 代役の相手：レートは部屋を作ったときに決めたもの。自分のレートは毎回サーバーから読み直す
       rt = {};
@@ -7768,7 +7768,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       let myRt = st.myRt;
       if (acct && FB.db) { try { myRt = ratingOf((await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).get()).val()); } catch (e) {} }
       if (myRt != null) ids.forEach(k => { if (!pl[k].cpu) rt[k] = myRt; });
-    } else rt = await fetchRatings(accts, bty);
+    } else rt = await fetchRatings(accts);
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko', 'thp'].map(p => fref(`rooms/${c}/${p}`).remove().catch(() => {})));
     const modeN = opt.mode || (st.qm ? (Math.random() < 0.5 ? 'A' : 'B') : (st.mode || 'B'));
     if (modeN === 'C' && ids.length !== 4) return;
@@ -7782,7 +7782,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       ...(modeN === 'C' ? { tm: teamsOf(ids, st.tm) } : {}),
       // すぐ遊ぶの部屋：方式は投票の結果（なければランダム）、難易度はランダム
       phase: 'play', mode: modeN, diff: opt.diff || (st.qm ? 'easy' : (st.diff || 'easy')), qm: !!st.qm,
-      ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), bty, ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}), ...(st.gp ? { gp: st.gp, ghost: st.ghost || '', ghostKey: st.ghostKey || '' } : {}),
+      ...(opt.voteNote ? { voteNote: opt.voteNote } : {}), ...(st.bot ? { bot: true, botRt: st.botRt || RATING_INIT } : {}), ...(st.gp ? { gp: st.gp, ghost: st.ghost || '', ghostKey: st.ghostKey || '' } : {}),
       gid: nextGid, seed: nextSeed,
       startAt: synchronizedStart, players: ids, names, accts, handi, rt, cpu, nicks,
     });
@@ -7812,8 +7812,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     if (ids.length < 2) return;
     const names = {}, accts = {}, nicks = {};
     ids.forEach(k => { names[k] = players[k].name; accts[k] = players[k].acct || ''; nicks[k] = players[k].nick || ''; });
-    const bty = {};
-    const rt = await fetchRatings(accts, bty);
+    const rt = await fetchRatings(accts);
     if (st.fmt === 'swiss') {
       // スイスドロー：1回戦は抽選、2回戦からは点数の近い人どうし
       const swissRounds = swissEst(ids.length);   // 見込み（実際は全勝が1人になるまで）
@@ -8281,8 +8280,6 @@ function BattleHome({ cpuOnly=false, nextUI=false, onNavigate, onProfile, onGhos
   const [nameOf, setNameOf] = useState({});
   const [showVs, setShowVs] = useState(false);
   const [allAcc, setAllAcc] = useState(null);     // 登録している全員の成績（だれでも見られる）
-  const [bountyCooldowns,setBountyCooldowns]=useState({});
-  useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/ghostV1/users/${acct.key}/bountyCooldowns`),f=s=>setBountyCooldowns(s.val()||{});r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
   const [q, setQ] = useState('');
   const [sortBy, setSortBy] = useState('games');
   const [pc, setPc] = useState(() => noHiddenMode(loadLS('fxf_cpu_cfg_v1', { mode: 'B', diff: 'easy', lv: 'normal', n: 1 })));
@@ -8319,9 +8316,8 @@ function BattleHome({ cpuOnly=false, nextUI=false, onNavigate, onProfile, onGhos
       [html.style.overflow, body.style.overflow, body.style.overscrollBehavior] = previous;
     };
   }, [modalOpen]);
-  const bountyRows = allAcc ? allAcc.filter(r => bountyOf(r.st) && r.k!==acct?.key && (bountyCooldowns[r.k]||0)<=fbNow()).sort((a, b) => bountyOf(b.st) - bountyOf(a.st)).slice(0, 8) : [];
   return (<>
-    {nextUI?<NextHome.Lobby cpuOnly={cpuOnly} onRatedStats={onRatedStats} currentRatings={ratedEnabled&&acct?<CurrentRatings profile={currentProfile} legacy={stats}/>:null} fb={fb} acct={acct} who={who} err={err} onQuick={onQuick} quickPending={quickPending} quickMessage={quickMessage} quickError={quickError} onConfigRetry={onConfigRetry} ratedEnabled={ratedEnabled} onCreate={onCreate} onJoin={onJoin} onPractice={onPractice} onGhost={onGhost} onNavigate={onNavigate} onExit={onExit} code={codeIn} setCode={setCodeIn} pc={pc} setPc={setPcv} onPlayers={()=>setWin('all')} onBounty={()=>setWin('bounty')} bountyCount={bountyRows.length} onVs={stats?.vs?()=>setWin('vs'):null} teacherArea={<><StudentHostArea fb={fb} acct={acct} onCreate={onCreate}/><TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash}/></>}/>:(<div className="v7-bhome">
+    {nextUI?<NextHome.Lobby cpuOnly={cpuOnly} onRatedStats={onRatedStats} currentRatings={ratedEnabled&&acct?<CurrentRatings profile={currentProfile} legacy={stats}/>:null} fb={fb} acct={acct} who={who} err={err} onQuick={onQuick} quickPending={quickPending} quickMessage={quickMessage} quickError={quickError} onConfigRetry={onConfigRetry} ratedEnabled={ratedEnabled} onCreate={onCreate} onJoin={onJoin} onPractice={onPractice} onGhost={onGhost} onNavigate={onNavigate} onExit={onExit} code={codeIn} setCode={setCodeIn} pc={pc} setPc={setPcv} onPlayers={()=>setWin('all')}   onVs={stats?.vs?()=>setWin('vs'):null} teacherArea={<><StudentHostArea fb={fb} acct={acct} onCreate={onCreate}/><TeacherArea fb={fb} acct={acct} onCreate={onCreate} onDash={onDash}/></>}/>:(<div className="v7-bhome">
       <div className="v7-bhome-head">
         <button onClick={onExit} className="v7-pill v7-cur" data-snd="back">← タイトルへ</button>
         <div className="text-center">
@@ -8393,23 +8389,12 @@ function BattleHome({ cpuOnly=false, nextUI=false, onNavigate, onProfile, onGhos
         <div className="v7-foot">
           <button className="v7-pill v7-cur" onClick={() => onRatedStats ? onRatedStats() : setErr('オンラインレーティングは新制度の設定確認後に利用できます')}><V7Icon name="cup" />オンラインレーティング</button>
           {ratedEnabled && <button className="v7-pill v7-cur" onClick={onGhosts}>👻 ゴースト対戦</button>}
-          {bountyRows.length > 0 && <button className="v7-pill v7-cur" onClick={() => setWin('bounty')}><V7Icon name="star" />賞金首リスト<span className="v7-badge">{bountyRows.length}</span></button>}
           <button className="v7-pill v7-cur" onClick={() => setWin('all')}><V7Icon name="list" />みんなの成績</button>
         </div>
       </div>
     </div>)}
 
     {win === 'vs' && stats && <V7Modal title="相手ごとの成績" onClose={() => setWin(null)}><VsTable vs={stats.vs} nameOf={nameOf} /></V7Modal>}
-    {win === 'bounty' && <V7Modal title="賞金首リスト" onClose={() => setWin(null)}>
-      <div className="text-xs font-black mb-1" style={{ color: '#9a6a12' }}>3連勝から懸賞金。倒すと経験値ボーナス</div>
-      {bountyRows.map(r => (
-        <div key={r.k} onClick={() => openProfile(r.k, 'bounty')} className="flex items-center gap-2 text-sm py-1.5 cursor-pointer" style={{ borderBottom: '1px dashed #e0c070' }}>
-          <span className="text-lg">📜</span>
-          <span className="flex-1 min-w-0" style={{ color: COLORS.ink, ...bFont }}><Nick id={r.st.nick} size={9} block /><span className="font-black block" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.25 }}>{r.name}</span></span>
-          <span className="text-[11px] font-bold" style={{ color: COLORS.coral }}>{r.st.streak}連勝中</span>
-          <span className="font-black rounded-full px-2 text-white text-xs" style={{ background: 'linear-gradient(90deg,#d4a017,#b7791f)' }}>💰{bountyOf(r.st)}</span>
-        </div>))}
-    </V7Modal>}
     {win === 'all' && <V7Modal title="みんなの成績" onClose={() => setWin(null)}>
       <div className="text-xs font-black mb-2" style={{ color: 'var(--v7-sub)' }}>名前をタップすると、くわしい成績・称号・相手ごとの成績が見られます</div>
       {allAcc == null ? <p className="text-xs" style={{ color: COLORS.inkSoft }}>{fb.ready ? '読み込み中…' : '接続待ち'}</p> : (<>
@@ -8501,7 +8486,7 @@ function AResultDetails({ report, me, names = {} }) {
 // 二つ名(称号)の保存。旧モーダルと新プロフィールで同じ処理を使う（保存先 accounts/<key>/stats/nick・形式は従来どおり）。
 // id が文字列なら（""＝明示的な装備解除 を含め）そのまま保存、それ以外は消去。
 const equipNick = (acctKey, id) => FB.db.ref(`games/factor/accounts/${acctKey}/stats/nick`).set(typeof id === 'string' ? id : null);
-// 他のプレイヤー(ランキング・賞金首リストなど)の読み取り専用プロフィール。称号は新しい「称号・実績」の読み取り専用表示。自分の称号の装備・解除は新プロフィールだけで行う
+// 他のプレイヤー(ランキング・みんなの成績など)の読み取り専用プロフィール。称号は新しい「称号・実績」の読み取り専用表示。自分の称号の装備・解除は新プロフィールだけで行う
 
 /* ---------- ゴースト対戦（自分のゴースト／ハイパーゴースト）：対戦の入口だけを出す簡素な画面 ---------- */
 function GhostBattlePanel({ acctKey, onClose }) {
@@ -9327,20 +9312,15 @@ function BadgeReveal({ badges }) {
   );
 }
 /* 対戦前の VS カットイン */
-function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, bty, tm }) {
-  bty = bty || {};
+function VsCutIn({ ids, me, names, nicks, rt, hc, final, label, color, tm }) {
   useEffect(() => {
     if (final) FX.band('FINAL', { color: '#d4a017', sub: '決勝戦', ms: 1600 });
-    const wanted = ids.filter(u => u !== me && bty[u]);
-    if (wanted.length) setTimeout(() => { FX.band(`💰 賞金首あらわる！`, { color: '#b7791f', sub: wanted.map(u => `${names[u]}（懸賞金${bty[u]}）`).join('・') + ' を倒すとボーナス！', ms: 2000 }); fxSound('roar'); }, 500);
-    else if (bty[me]) setTimeout(() => FX.band(`💰 あなたは賞金首！`, { color: '#b7791f', sub: `懸賞金${bty[me]}。負けると相手に取られる！`, ms: 1800 }), 500);
   }, []);
   const card = (u, i, side) => (
     <div key={u} className="v7-wnd px-3 py-2" style={{ borderLeft: `6px solid ${tm ? TEAM_INFO_C[tm[u]].color : PCOLORS[i]}`, animation: `${side === 'L' ? 'fxSlideL' : 'fxSlideR'} 420ms ${i * 90}ms cubic-bezier(.2,.9,.3,1.2) both`, minWidth: 0, textAlign: side === 'R' && ids.length === 2 ? 'right' : 'left' }}>
       {nicks[u] && <div style={{ filter: 'brightness(1.6)' }}><Nick id={nicks[u]} size={10} block /></div>}
       <div className="font-black text-lg truncate" style={{ color: u === me ? 'var(--v7-gold)' : '#fff', ...bFont }}>{names[u]}{u === me ? <span className="text-[10px]">（あなた）</span> : ''}</div>
       <div className="text-[11px] font-bold" style={{ color: '#AAB6E0' }}>{rt[u] != null && <RankPill r={rt[u]} size={10} />}{rt[u] != null ? ` レート ${Math.round(rt[u])}` : ''}{hc[u] ? ` ハンデ${HANDI_LABEL[hc[u]]}` : ''}</div>
-      {bty[u] > 0 && <div className="text-[11px] font-black mt-0.5 rounded-full px-2 inline-block text-white" style={{ background: 'linear-gradient(90deg,#d4a017,#b7791f)' }}>💰 懸賞金 {bty[u]}</div>}
     </div>
   );
   return (
@@ -9455,8 +9435,6 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
   </>);
   const notesBlock = (<>
         {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
-        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
-        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
         {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
         {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
   </>);
@@ -9518,8 +9496,6 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
         {TCr && rec && mine.eng && <div className="text-xs font-black mt-0.5" style={{ color: '#B9A8FF' }}>🤝 合体攻撃 {mine.eng.s.unites}回 ・ カバー {mine.eng.s.covers}</div>}
         {state.ghost && <div className="mt-1 text-xs font-black" style={{ color: '#B9A8FF' }}>👻 {state.ghost} の戦い方をコピーしたゴーストとの対戦{outcome === 'w' ? ' ・ 本人にも勝てるかも！' : ''}</div>}
         {rec && rec.comeback && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>🔄 逆転勝ち！</div>}
-        {rec && rec.bountyGot > 0 && <div className="mt-1 text-sm font-black" style={{ color: '#FFC94D' }}>💰 懸賞金 {rec.bountyGot} をゲット！（経験値に加算）</div>}
-        {rec && rec.bountyLost > 0 && <div className="mt-1 text-xs font-black" style={{ color: '#AAB6E0' }}>💸 あなたにかかっていた懸賞金 {rec.bountyLost} を取られた…</div>}
         {tourNote && <div className="mt-1 text-sm font-black" style={{ color: '#FFB59C' }}>{tourNote}</div>}
         {state.final && outcome === 'w' && <div className="mt-1 text-lg font-black" style={{ color: 'var(--v7-gold)' }}>🏆 大会優勝！</div>}
       </div>
