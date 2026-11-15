@@ -491,7 +491,7 @@
         schemaVersion: 1,
         source: "\u6240\u6709\u8005\u63D0\u4F9B \u5168100\u79F0\u53F7 2026-10-15",
         status: "roster-confirmed-reveal-pending",
-        expectedNormalCount: 93,
+        expectedNormalCount: 89,
         expectedFiveStarCount: 22,
         excludedAwardModes: [
           "cpu",
@@ -1393,46 +1393,6 @@
             id: "wkrage",
             legacyId: "wkrage",
             category: "\u30DC\u30B9\u30FB\u652F\u63F4"
-          },
-          {
-            number: 97,
-            legacyNumber: 74,
-            name: "\u4E03\u3064\u306E\u8A3C",
-            condition: "\u30ED\u30B0\u30A4\u30F3\u30DC\u30FC\u30CA\u30B9\u30AB\u30FC\u30C9\u30921\u679A\u5B8C\u6210",
-            stars: 1,
-            id: "lb7",
-            legacyId: "lb7",
-            category: "\u30ED\u30B0\u30A4\u30F3"
-          },
-          {
-            number: 98,
-            legacyNumber: 100,
-            name: "\u4E03\u3064\u306E\u5B9D\u5370",
-            condition: "\u30ED\u30B0\u30A4\u30F3\u30DC\u30FC\u30CA\u30B9\u30AB\u30FC\u30C9\u3092\u901A\u7B977\u679A\u5B8C\u6210",
-            stars: 3,
-            id: "lb_cards7",
-            legacyId: null,
-            category: "\u30ED\u30B0\u30A4\u30F3"
-          },
-          {
-            number: 99,
-            legacyNumber: 75,
-            name: "\u99B4\u67D3\u307F\u306E\u5192\u967A\u8005",
-            condition: "\u901A\u7B9730\u65E5\u30ED\u30B0\u30A4\u30F3",
-            stars: 2,
-            id: "lb30",
-            legacyId: "lb30",
-            category: "\u30ED\u30B0\u30A4\u30F3"
-          },
-          {
-            number: 100,
-            legacyNumber: 76,
-            name: "\u6C38\u9060\u306E\u5192\u967A\u8005",
-            condition: "\u901A\u7B97100\u65E5\u30ED\u30B0\u30A4\u30F3",
-            stars: 3,
-            id: "lb100",
-            legacyId: "lb100",
-            category: "\u30ED\u30B0\u30A4\u30F3"
           }
         ],
         ownerClarifications: {

@@ -3,7 +3,7 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const { html, world, acct, ids } = require("./a-batch-harness.cjs");
 const cat = JSON.parse(fs.readFileSync("src/title-catalog-next.json", "utf8")), list = Array.isArray(cat) ? cat : cat.titles;
 const W = world(null), has = (st, id) => ids(W.api, st).includes(id);
-const NEW = ["online_first", "wins100_ab", "dual50", "giant250", "flash3", "accuracy10", "wksup500", "wk_runs20", "lb_cards7"];
+const NEW = ["online_first", "wins100_ab", "dual50", "giant250", "flash3", "accuracy10", "wksup500", "wk_runs20"];   // Ver.6.39: lb_cards7 was removed with the login bonus
 
 test("ID, official name, star rating and condition text come from the catalog and match BADGES", () => {
   for (const id of NEW) {
@@ -63,10 +63,10 @@ test("accuracy10: 10+ correct, no wrong answer, no timeout, win or lose; A metho
   assert.equal(a(0, 10).accuracy10, 1); assert.equal(a(0, 9).accuracy10, undefined); assert.equal(a(1, 12).accuracy10, undefined); assert.equal(a(0, 12, false).accuracy10, undefined);
   assert.equal(has({ accuracy10: 1 }, "accuracy10"), true);
 });
-test("weekly and login titles: 500 support points, 20 completed sorties, 7 completed cards", () => {
+test("weekly titles: 500 support points, 20 completed sorties (Ver.6.39: the login title lb_cards7 was removed)", () => {
   assert.equal(has({ wk: { sup: 499 } }, "wksup500"), false); assert.equal(has({ wk: { sup: 500 } }, "wksup500"), true);
   assert.equal(has({ wk: { runs: 19 } }, "wk_runs20"), false); assert.equal(has({ wk: { runs: 20 } }, "wk_runs20"), true);
-  assert.equal(has({ login: { cards: 6 } }, "lb_cards7"), false); assert.equal(has({ login: { cards: 7 } }, "lb_cards7"), true);
+  assert.equal(has({ login: { cards: 7, n: 100 } }, "lb_cards7") || has({ login: { cards: 7, n: 100 } }, "lb100"), false, "a saved login record grants nothing");
   assert.equal(has({ wk: { weeks: 30, supRuns: 30 } }, "wk_runs20"), false, "other weekly counters never stand in for completed sorties");
   assert.match(html, /if \(a2Completed\) W\.runs = \(W\.runs \|\| 0\) \+ 1;/);
   assert.match(html, /\n    W\.runs=\(W\.runs\|\|0\)\+1;\n/);

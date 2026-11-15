@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": "所有者提供 全100称号 2026-10-15",
   "status": "roster-confirmed-reveal-pending",
-  "expectedNormalCount": 93,
+  "expectedNormalCount": 89,
   "expectedFiveStarCount": 22,
   "excludedAwardModes": [
     "cpu",
@@ -904,46 +904,6 @@
       "id": "wkrage",
       "legacyId": "wkrage",
       "category": "ボス・支援"
-    },
-    {
-      "number": 97,
-      "legacyNumber": 74,
-      "name": "七つの証",
-      "condition": "ログインボーナスカードを1枚完成",
-      "stars": 1,
-      "id": "lb7",
-      "legacyId": "lb7",
-      "category": "ログイン"
-    },
-    {
-      "number": 98,
-      "legacyNumber": 100,
-      "name": "七つの宝印",
-      "condition": "ログインボーナスカードを通算7枚完成",
-      "stars": 3,
-      "id": "lb_cards7",
-      "legacyId": null,
-      "category": "ログイン"
-    },
-    {
-      "number": 99,
-      "legacyNumber": 75,
-      "name": "馴染みの冒険者",
-      "condition": "通算30日ログイン",
-      "stars": 2,
-      "id": "lb30",
-      "legacyId": "lb30",
-      "category": "ログイン"
-    },
-    {
-      "number": 100,
-      "legacyNumber": 76,
-      "name": "永遠の冒険者",
-      "condition": "通算100日ログイン",
-      "stars": 3,
-      "id": "lb100",
-      "legacyId": "lb100",
-      "category": "ログイン"
     }
   ],
   "ownerClarifications": {

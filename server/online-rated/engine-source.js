@@ -421,9 +421,6 @@ let BADGES = [
   { id: 'wkone2', g: 'wkone', r: 4, icon: '☄️', label: '会心の出撃', desc: '今週のボスに1回の出撃で1200ダメージ', test: st => ((st.wk || {}).best || 0) >= 1200 },
   { id: 'wkdex3', g: 'wkdex', r: 3, icon: '📖', label: 'ボス図鑑', desc: '3種類のボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 3 },
   { id: 'wkdex6', g: 'wkdex', r: 5, icon: '🐲', label: 'ボスハンター', desc: '6種類すべてのボスの討伐に参加', test: st => Object.keys((st.wk || {}).boss || {}).length >= 6 },
-  { id: 'lb7', g: 'lb', r: 2, icon: '🎫', label: 'スタンプコンプリート', desc: 'ログインボーナスのカードを1枚完成させる（7日）', test: st => ((st.login || {}).cards || 0) >= 1 },
-  { id: 'lb30', g: 'lb', r: 3, icon: '🏫', label: 'いつもの顔', desc: '通算30日ログイン', test: st => ((st.login || {}).n || 0) >= 30 },
-  { id: 'lb100', g: 'lb', r: 5, icon: '🌸', label: '常連さん', desc: '通算100日ログイン', test: st => ((st.login || {}).n || 0) >= 100 },
   { id: 'wkchest1', g: 'wkchest', r: 2, icon: '🎁', label: '宝探し', desc: '今週のボスの出撃中に宝箱を開ける', test: st => ((st.wk || {}).chests || 0) >= 1 },
   { id: 'wkchest10', g: 'wkchest', r: 4, icon: '🏴‍☠️', label: 'トレジャーハンター', desc: '宝箱を通算10個開ける', test: st => ((st.wk || {}).chests || 0) >= 10 },
   { id: 'wksup1', g: 'wksup', r: 2, icon: '📣', label: '縁の下の力持ち', desc: '今週のボスにサポーターで出撃', test: st => ((st.wk || {}).supRuns || 0) >= 1 },
@@ -443,7 +440,6 @@ let BADGES = [
   { id: 'accuracy10', g: 'accuracy', r: 4, icon: '🎯', label: '百発百中', desc: '1試合10問以上正解、誤答0・時間切れ0（勝敗不問）', test: st => (st.accuracy10 || 0) >= 1 },
   { id: 'wksup500', g: 'wksup', r: 5, icon: '🛡️', label: '影の守護神', desc: '応援ポイント通算500獲得', test: st => ((st.wk || {}).sup || 0) >= 500 },
   { id: 'wk_runs20', g: 'wkruns', r: 3, icon: '🤝', label: '戦友の絆', desc: '今週のボスへの出撃を通算20回完了', test: st => ((st.wk || {}).runs || 0) >= 20 },
-  { id: 'lb_cards7', g: 'lb', r: 5, icon: '🔖', label: '七つの宝印', desc: 'ログインボーナスカードを通算7枚完成', test: st => ((st.login || {}).cards || 0) >= 7 },
 ];
 let keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undefined' && window.TitleKeepNext; if (K && K.isFrozen(st)) return K.keptIds(st).includes(id); } catch (e) {} return legacy(st); };
 function hashSeed(s) {

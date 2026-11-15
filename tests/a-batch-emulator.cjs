@@ -87,9 +87,9 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     v = await get('b1');
     for (const id of ['flash3', 'accuracy10', 'giant250']) assert.equal(has(v, id), true, id);
     assert.equal(rb.badges.map((b) => b.id).filter((id) => ['flash3', 'accuracy10', 'giant250'].includes(id)).sort().join(), 'accuracy10,flash3,giant250');
-    await api.statsTx({ key: 'b1' }, (s) => { s.wk = s.wk || {}; s.wk.runs = (s.wk.runs || 0) + 1; s.wk.sup = (s.wk.sup || 0) + 20; s.login = s.login || {}; s.login.cards = (s.login.cards || 0) + 1; });
-    v = await get('b1'); assert.equal(has(v, 'wk_runs20') && has(v, 'wksup500') && has(v, 'lb_cards7'), true);
-    console.log('PASS B (real RTDB): flash3 / accuracy10 / giant250 and the weekly / login titles are granted and revealed once');
+    await api.statsTx({ key: 'b1' }, (s) => { s.wk = s.wk || {}; s.wk.runs = (s.wk.runs || 0) + 1; s.wk.sup = (s.wk.sup || 0) + 20; s.login = s.login || {}; s.login.cards = (s.login.cards || 0) + 1; });   // Ver.6.39: the login title is gone; the saved login record stays as it is
+    v = await get('b1'); assert.equal(has(v, 'wk_runs20') && has(v, 'wksup500'), true); assert.equal(has(v, 'lb_cards7'), false); assert.equal(v.login.cards, 7);
+    console.log('PASS B (real RTDB): flash3 / accuracy10 / giant250 and the weekly titles are granted and revealed once (login titles removed)');
     // C: the hidden-title record stats.ff is created once under the current rules and never rewritten
     const mk = () => db.ref(path('f1') + '/ff').transaction((old) => old || { v: 1, at: { '.sv': 'timestamp' } });
     const [ra, rb2] = await Promise.all([mk(), mk()]);

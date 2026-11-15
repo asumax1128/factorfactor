@@ -8,7 +8,7 @@ const collections=[['タイル','SKIN_TILES','const SKIN_BGS'],['背景','SKIN_B
 const source=(file)=>fs.readFileSync(path.join(root,file),'utf8');
 const ref=(file,needle)=>{const s=source(file),p=s.indexOf(needle);return p<0?'判定処理未確認':`${file}:${line(s,p)}`;};
 const def=(id)=>{const p=html.indexOf("id: '"+id+"'",html.indexOf('const BADGES'));const q=p<0?html.indexOf("id:'"+id+"'",html.indexOf('const BADGES')):p;return `index.html:${line(html,q<0?html.indexOf('const BADGES'):q)}`;};
-const category=b=>b.g==='tower'?'数学の塔':b.id.startsWith('wk')?'今週のボス':b.id.startsWith('lb')?'ログイン':b.id.startsWith('ghost_')||b.id==='hyper_slayer'?'ゴースト':'対戦';
+const category=b=>b.g==='tower'?'数学の塔':b.id.startsWith('wk')?'今週のボス':b.id.startsWith('ghost_')||b.id==='hyper_slayer'?'ゴースト':'対戦';
 const mode=b=>category(b)==='対戦'?(/[AB]/.test(b.desc)?b.desc.match(/[ABC]/g).join('／')+'（戦績保存対象の従来ルーム・大会。CPU練習の恒久戦績は対象外）':'従来ルーム・大会（recordMatch）。新レート戦は別保存'):category(b);
 const entries=badges.map(b=>{const test=b.test.toString(),tower=b.g==='tower';return {id:b.id,name:b.label,category:category(b),description:b.desc,condition:test,numbers:(test.match(/\b\d+\b/g)||[]).join('／'),mode:mode(b),status:tower?'hidden':'active',reason:tower?'数学の塔公開まで一時非表示。旧塔の達成履歴は保持。':'',secret:true,tower,definition:def(b.id),judge:def(b.id),availability:tower?'要確認':'取得可能',consistency:b.id==='tw100'?'説明は第一部3回。実装はendN >= 3 OR best >= 100。':b.id==='tw50'?'説明はボス撃破。判定はbest >= 50のみ。':'定義のtestをそのまま掲載。書込経路のモード差は報告書参照。'};});
 const extra=[['easy_adept','イージーの達人','easy >= 1730'],['easy_master','イージーマスター','easy >= 1820'],['normal_adept','ノーマルの達人','normal >= 1730'],['normal_master','ノーマルマスター','normal >= 1820'],['dual_master','双璧のマスター','easy >= 1820 AND normal >= 1820']].map(([id,name,condition])=>({id,name,category:'難易度別レート',description:condition,condition,numbers:(condition.match(/\d+/g)||[]).join('／'),mode:'オンライン・イージー／ノーマル',status:'active',reason:'',secret:false,tower:false,definition:ref('src/online-rated-ui.jsx','const titles ='),judge:ref('server/online-rated/core.cjs','function badges'),availability:'取得可能',consistency:'永久フラグをhadから保持。判定値は内部レート（丸めなし）。'}));
@@ -17,7 +17,6 @@ for(const e of entries){
  const b=badges.find(x=>x.id===e.id), keys=[...new Set([...e.condition.matchAll(/st\.(\w+)/g)].map(x=>x[1]))];
  const occurrences=[];html.split('\n').forEach((text,i)=>{if(i<400||text.length>10000)return;if(i+1>=badgeStart&&i+1<=badgeEnd)return;if(keys.some(k=>new RegExp('(?:s|st|add|mx|mn|orr)\\.'+k+'\\s*(?:=|\\+=)').test(text)))occurrences.push('index.html:'+(i+1));});
  if(e.category==='今週のボス')occurrences.push(ref('index.html','async function settleWeek'),ref('index.html','async function statsTx'));
- if(e.category==='ログイン')e.judge+='; ログインボーナス削除（Ver.6.38）により新規付与なし';
  if(e.category==='数学の塔')occurrences.push('旧TowerApp（Ver.6.12で到達不能のため削除。新規書き込みなし、保存済みst.towerは保持）');
  if(e.category==='ゴースト'){e.judge+='; '+ref('src/ghost-model.cjs','function titles');occurrences.push(ref('src/online-spark-client.cjs','ghostTitles'));}
  if(e.category==='対戦')occurrences.push(ref('index.html','async function recordMatch'));
