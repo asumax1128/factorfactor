@@ -1,14 +1,11 @@
 // Ver.6.23 (removal of unreachable code): the main routes still work exactly as before, and the two places that used to fall
 // back to removed legacy screens now say that loading failed.
-//   home → solo → 通常プレイ → スタート → a correct answer; online lobby; ranking hub → solo ranking; daily (normal and failed read).
+//   home → solo → 通常プレイ → スタート → a correct answer; online lobby; ranking hub → solo ranking; no daily entry (Ver.6.30).
 const assert = require("node:assert/strict"), fs = require("node:fs");
 const { chromium, context, openSoloMode, openOnlineLobby, goHome } = require("./browser-harness.cjs");
 const { soloDrag } = require("./solo-test-helper.cjs");
 const exe = process.env.CHROMIUM_PATH || "/usr/bin/chromium";
 const tree = () => ({ games: { factor: { accounts: { ateacher: { name: "Teacher", stats: { exp: 100, rating: 1600 } } }, onlineSparkV1: { config: { enabled: true, protocol: "spark-v1" } } } } });
-// test-only mock: the daily settings read can be made to fail (as a lost connection would)
-const failingMock = fs.readFileSync("tests/firebase-mock.js", "utf8").replace("      get() {\n        return authorized(path)", "      get() {\n        if (window.__dailyFail && path === 'games/factor/dailyV2/ready') return Promise.reject(Error('Network Error'));\n        return authorized(path)");
-assert(failingMock.includes("__dailyFail"), "mock hook inserted");
 const src = fs.readFileSync("index.html", "utf8");
 (async () => {
   // the removed pieces are really gone from the page source
@@ -60,7 +57,7 @@ const src = fs.readFileSync("index.html", "utf8");
       await goHome(q);
       await q.locator(width > 900 ? ".sidebar .nav-item" : ".bottom-nav .nav-item").filter({ hasText: width > 900 ? "ランキング" : "順位" }).click();
       await q.locator(".ranking-grid .ranking-entry").first().waitFor();
-      assert.equal(await q.locator(".ranking-grid .ranking-entry").count(), 3);
+      assert.equal(await q.locator(".ranking-grid .ranking-entry").count(), 2);
       await q.locator(".ranking-entry", { hasText: "ソロランキング" }).click();
       await q.locator(".next-solo-ranking").waitFor();
       await q.getByRole("button", { name: "ランキング総合へ戻る", exact: true }).click();
@@ -82,7 +79,7 @@ const src = fs.readFileSync("index.html", "utf8");
       await p.locator("[data-next-home] .home-content").waitFor();          // the old direct link opens the home, not the tower
       assert.equal(await p.evaluate(() => typeof window.MathTowerFactory + typeof window.MathTowerStore + typeof window.MathTowerRules), "undefinedundefinedundefined", "tower code not loaded");
       await p.locator(".action-card.solo").click(); await p.locator("[data-solo-hub]").waitFor();
-      assert.deepEqual(await p.locator("[data-solo-mode]").evaluateAll((es) => es.map((e) => e.dataset.soloMode)), ["play", "cpu", "daily", "boss", "learn"], "five solo cards, no AXIOMIA");
+      assert.deepEqual(await p.locator("[data-solo-mode]").evaluateAll((es) => es.map((e) => e.dataset.soloMode)), ["play", "cpu", "boss", "learn"], "four solo cards, no AXIOMIA");
       assert.equal(await p.getByText("AXIOMIA").count(), 0, "no AXIOMIA wording on the solo screen");
       await p.waitForTimeout(300);
       assert.deepEqual(requests, [], "no tower / AXIOMIA file requested");
@@ -90,26 +87,24 @@ const src = fs.readFileSync("index.html", "utf8");
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log("PASS AXIOMIA: no card, no direct link, no tower code or files loaded, no mathTowerV2 writes (teacher with the grant)");
     }
-    // daily: settings readable → the current daily opens; read fails → load error (no legacy 10-question daily), retry works
+    // Ver.6.30: the daily entries are removed everywhere (home tile, solo card, ranking hub); あそびかた no longer mentions the daily.
     {
-      const t = await context(b, { tree: tree(), firebaseSource: failingMock }), p = t.page;
-      await p.evaluate(() => { window.__dailyFail = true; });
-      await p.locator("[data-home-tile=daily]").click();
-      await p.locator("[data-daily-load-error]").waitFor();
-      await p.getByRole("alert").getByText("デイリーの読み込みに失敗しました。通信を確認して、もう一度お試しください。", { exact: true }).waitFor();
-      assert.equal(await p.getByText("まちがえると +5秒").count(), 0, "the old 10-question daily is not shown");
-      assert.equal(t.writes.filter((x) => /games\/factor\/daily\//.test(x.path)).length, 0, "nothing written to the old daily");
-      await p.evaluate(() => { window.__dailyFail = false; });
-      await p.getByRole("button", { name: "もう一度読み込む", exact: true }).click();
-      await p.locator("[data-daily-load-error]").waitFor({ state: "detached" });
-      await p.getByText("デイリー", { exact: false }).first().waitFor();
-      // and 戻る leaves the error screen
-      await goHome(p); await p.evaluate(() => { window.__dailyFail = true; });
-      await p.locator("[data-home-tile=daily]").click(); await p.locator("[data-daily-load-error]").waitFor();
-      await p.getByRole("button", { name: "戻る", exact: true }).click();
+      const t = await context(b, { tree: tree() }), p = t.page;
       await p.locator("[data-next-home] .home-content").waitFor();
+      assert.deepEqual(await p.locator("[data-home-tile]").evaluateAll((es) => es.map((e) => e.dataset.homeTile)), ["help"]);
+      assert.equal(await p.getByText(/デイリー/).count(), 0, "home: no daily wording");
+      await p.locator(".action-card.solo").click(); await p.locator("[data-solo-hub]").waitFor();
+      assert.equal(await p.getByText(/デイリー/).count(), 0, "solo hub: no daily wording");
+      assert.equal(await p.locator("[data-solo-mode=daily]").count(), 0);
+      await goHome(p);
+      await p.locator(".sidebar .nav-item, .bottom-nav .nav-item").filter({ hasText: /ランキング|順位/ }).locator("visible=true").first().click();
+      await p.locator(".ranking-grid .ranking-entry").first().waitFor();
+      assert.equal(await p.getByText(/デイリー/).count(), 0, "ranking hub: no daily wording");
+      await goHome(p);
+      await p.locator("[data-home-tile=help]").click(); await p.locator("[data-next-help]").waitFor();
+      assert.equal(await p.locator("[data-next-help]").getByText(/デイリー/).count(), 0, "あそびかた: no daily wording");
       assert.deepEqual(t.errors, []); await t.ctx.close();
-      console.log("PASS daily: a failed settings read shows the load error (old daily gone); retry opens the daily; 戻る returns home");
+      console.log("PASS daily: no entry on the home, the solo hub or the ranking hub; あそびかた does not mention it");
     }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

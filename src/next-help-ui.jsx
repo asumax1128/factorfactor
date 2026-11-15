@@ -70,7 +70,6 @@ export function Help({tiers,difficulties,missPenalty,timeoutExtra,questionMs,aLo
     <div className="hg-card"><Art name="art-solo"/><h3>通常プレイ</h3><p>難易度を選んで、スコアとクリアを目指そう。ランキングにも挑戦できます。</p><Play onClick={onPlay}/></div>
     <div className="hg-card"><Art name="art-cpu"/><h3>CPU練習</h3><p>CPUを相手にA方式・新B方式の練習。難易度・CPUの強さ・人数を選べます。<strong>公式レーティング・対人戦績には反映されません。</strong></p><Play onClick={()=>go('cpu')}/></div>
    </div>
-   <div className="hg-sub"><h3>デイリーミッション</h3><p>毎日変わるミッションと、1日合計3回のデイリーチャレンジ（日本時間0時に更新）。開始後の退出や再読み込みでも回数は戻りません。デイリーはホームから開けます。</p></div>
   </Step>
 
   <Step id="online" n={5} title="オンライン対戦" lead="同じ問題で友だちや全国のプレイヤーと勝負。">
@@ -110,7 +109,7 @@ export function Help({tiers,difficulties,missPenalty,timeoutExtra,questionMs,aLo
 
   <Step id="growth" n={8} title="成長とやりこみ" lead="遊ぶほど記録が増えて、レベルと称号が育つ。">
    <div className="hg-two"><Shot name="s8-profile" note="プロフィール"/>
-    <ul className="hg-bullets"><li><strong>レーティング</strong>：イージー・ノーマル別。対戦の勝敗で上下し、ランク帯が決まります。毎月新しいシーズン。</li><li><strong>EXPとレベル</strong>：ソロ・対戦・ミッションなどで経験値がたまり、レベルが上がります。</li><li><strong>称号</strong>：条件を満たすと取得し、名前の上に飾れます（未公開の条件は？？？）。</li><li><strong>きせかえ</strong>：タイル・背景・エフェクトを着せかえ。レベルやランク、ボス討伐などで解放。</li><li><strong>ランキング</strong>：「順位」タブからソロ・デイリー・レーティング。</li></ul></div>
+    <ul className="hg-bullets"><li><strong>レーティング</strong>：イージー・ノーマル別。対戦の勝敗で上下し、ランク帯が決まります。毎月新しいシーズン。</li><li><strong>EXPとレベル</strong>：ソロ・対戦・ミッションなどで経験値がたまり、レベルが上がります。</li><li><strong>称号</strong>：条件を満たすと取得し、名前の上に飾れます（未公開の条件は？？？）。</li><li><strong>きせかえ</strong>：タイル・背景・エフェクトを着せかえ。レベルやランク、ボス討伐などで解放。</li><li><strong>ランキング</strong>：「順位」タブからソロ・レーティング。</li></ul></div>
    <Shot name="s8-ranking" note="ランキング（順位タブ）"/>
    <div className="hg-actions"><Play onClick={()=>go('profile')}>プロフィールへ</Play><Play onClick={()=>go('rankings')}>ランキングへ</Play></div>
   </Step>

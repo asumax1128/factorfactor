@@ -106,7 +106,7 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
     console.log(
       "PASS real Web Audio RMS, active-sound mute, independent menu mute and no duplicate restart",
     );
-    for (const mode of ["cpu", "weekly", "daily"]) {
+    for (const mode of ["cpu", "weekly"]) {   // Ver.6.30: the daily entry was removed
       await p.reload();
       if (mode === "cpu") {
         await p.locator('.action-card.solo').click(); await p.locator('[data-solo-mode=cpu]').click();
@@ -120,16 +120,12 @@ const { chromium, context, sleep } = require("./browser-harness.cjs");
         await p.getByRole("button", { name: /出撃する/ }).click();
         await p.locator("[data-btile]").first().waitFor();
       }
-      if (mode === "daily") {
-        await p.getByRole("button", { name: /デイリーミッション/ }).click();
-        await sleep(300);
-      }
       assert.equal(await p.evaluate(() => GameAudio.isMuted()), true);
       assert.equal(await p.evaluate(() => Tone.getDestination().mute), true);
     }
     assert.deepEqual(t.errors, []);
     console.log(
-      "PASS OFF preserved across CPU, weekly raid and daily mode transitions",
+      "PASS OFF preserved across CPU and weekly raid mode transitions",
     );
     await t.ctx.close();
   } finally {
