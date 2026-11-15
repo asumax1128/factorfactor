@@ -13,6 +13,7 @@
         var _a;
         return ((_a = H.DIFFICULTY_CONFIG[d]) == null ? void 0 : _a.label) || d;
       };
+      const nominated = (origin) => origin === "profile" || origin === "bounty";
       const formatRating = H.RatingDisplay.format;
       const titleValid = (id) => {
         var _a, _b;
@@ -245,7 +246,7 @@
           /* @__PURE__ */ React.createElement("p", { className: "or-result-sub" }, won ? "VICTORY\uFF01" : m.outcome === "draw" ? "DRAW" : "\u307E\u305F\u6311\u6226\u3057\u3088\u3046"),
           /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", Math.round((_c = r == null ? void 0 : r.delta) != null ? _c : 0) > 0 ? "+" : "", formatRating((_d = r == null ? void 0 : r.delta) != null ? _d : 0)),
           /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)),
-          /* @__PURE__ */ React.createElement("p", null, m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
+          /* @__PURE__ */ React.createElement("p", null, m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : nominated(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`),
           m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0)),
           m.rules === "b2" && root.NextResults && /* @__PURE__ */ React.createElement(root.NextResults.BDetails, { report: m.bResult, me: m.selfUid, names: Object.fromEntries((m.members || []).map((u) => {
             var _a2;
@@ -256,7 +257,7 @@
             return [u.uid, u.uid === "_ghost" ? (_a2 = m.opponent) == null ? void 0 : _a2.name : u.name];
           })) }),
           badges.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "or-new-title", "data-new-title": "1" }, "\u2728 \u65B0\u3057\u3044\u79F0\u53F7\uFF01", badges.map((k) => /* @__PURE__ */ React.createElement("p", { key: k }, titles2[k]))),
-          /* @__PURE__ */ React.createElement("button", { disabled: busy, className: "or-primary", onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B")
+          /* @__PURE__ */ React.createElement("button", { disabled: busy, className: "or-primary", onClick: onExit }, nominated(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B")
         );
       }
       function Result(props) {
@@ -291,7 +292,7 @@
             return null;
           }
         }, [m.id, m.outcome]);
-        const note = m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : ["bounty", "profile"].includes(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`;
+        const note = m.selfPractice ? "\u81EA\u5206\u306E\u30B4\u30FC\u30B9\u30C8\u3068\u306E\u7DF4\u7FD2\uFF1A\u30EC\u30FC\u30C8\u30FB\u52DD\u6557\u30FBEXP\u30FB\u79F0\u53F7\u30FB\u5B66\u7FD2\u8A18\u9332\u306F\u66F4\u65B0\u3057\u307E\u305B\u3093" : nominated(m.origin) ? "\u6307\u540D\u6226\uFF1A\u516C\u5F0F\u30EC\u30FC\u30C8\u30FB\u5BFE\u6226\u6570\u306F\u5909\u66F4\u3057\u307E\u305B\u3093" : `${label(m.difficulty)}\u306E\u307F\u66F4\u65B0${m.opponent ? "\uFF08\u5909\u52D5\u306F\u4EBA\u9593\u6226\u306E1/3\uFF09" : ""}`;
         const reveal = /* @__PURE__ */ React.createElement(
           NR.TitleReveal,
           {
@@ -312,7 +313,7 @@
         const growth = /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "rs-rate" }, /* @__PURE__ */ React.createElement("strong", { className: "or-delta" }, "\u30EC\u30FC\u30C8 ", Math.round((_c = r == null ? void 0 : r.delta) != null ? _c : 0) > 0 ? "+" : "", formatRating((_d = r == null ? void 0 : r.delta) != null ? _d : 0)), /* @__PURE__ */ React.createElement("p", null, formatRating(r == null ? void 0 : r.before), " \u2192 ", formatRating(r == null ? void 0 : r.after)), m.opponent && /* @__PURE__ */ React.createElement("div", { className: "or-exp" }, "\u7372\u5F97EXP ", /* @__PURE__ */ React.createElement("b", null, "+", m.exp || 0))), reveal);
         const notes = /* @__PURE__ */ React.createElement("p", { className: "rs-origin" }, note);
         const outcome = { win: "w", draw: "d", lose: "l" }[m.outcome] || "l";
-        return /* @__PURE__ */ React.createElement("section", { className: `or-result rs-rated ${won ? "or-victory" : "or-defeat"}`, "data-result-kind": m.outcome }, won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(NR.ResultShell, { kind: "R", outcome: m.outcome, busy }, model ? /* @__PURE__ */ React.createElement(NR.BattleSummary, { model, notes, growth }) : /* @__PURE__ */ React.createElement(NR.MinimalSummary, { outcome: m.outcome, methodLabel: m.mode === "A" ? "A\u65B9\u5F0F" : m.mode === "B" ? "B\u65B9\u5F0F" : "\u30E9\u30F3\u30C0\u30E0\u5BFE\u6226", notes, growth }), m.rules === "b2" && /* @__PURE__ */ React.createElement(NR.BDetails, { report: m.bResult, me: m.selfUid, names }), m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names }), /* @__PURE__ */ React.createElement(NR.ResultActions, { busy }, /* @__PURE__ */ React.createElement(NR.ResultButton, { tone: "primary", disabled: busy, onClick: onExit }, ["bounty", "profile"].includes(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))));
+        return /* @__PURE__ */ React.createElement("section", { className: `or-result rs-rated ${won ? "or-victory" : "or-defeat"}`, "data-result-kind": m.outcome }, won && /* @__PURE__ */ React.createElement("div", { className: "or-victory-rays", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(NR.ResultShell, { kind: "R", outcome: m.outcome, busy }, model ? /* @__PURE__ */ React.createElement(NR.BattleSummary, { model, notes, growth }) : /* @__PURE__ */ React.createElement(NR.MinimalSummary, { outcome: m.outcome, methodLabel: m.mode === "A" ? "A\u65B9\u5F0F" : m.mode === "B" ? "B\u65B9\u5F0F" : "\u30E9\u30F3\u30C0\u30E0\u5BFE\u6226", notes, growth }), m.rules === "b2" && /* @__PURE__ */ React.createElement(NR.BDetails, { report: m.bResult, me: m.selfUid, names }), m.mode === "A" && /* @__PURE__ */ React.createElement(H2.AResultDetails, { report: m.aResult, me: m.selfUid, names }), /* @__PURE__ */ React.createElement(NR.ResultActions, { busy }, /* @__PURE__ */ React.createElement(NR.ResultButton, { tone: "primary", disabled: busy, onClick: onExit }, nominated(m.origin) ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u30E1\u30CB\u30E5\u30FC\u3078\u623B\u308B"))));
       }
       function App({ acct, onExit, view = "match", initialGhost = null, rankingMode = false, startHyper = false, autoGhost = null }) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o;
@@ -605,7 +606,7 @@
               disabled: busy || backLocked
             },
             initialGhost ? "\u4E00\u89A7\u3078\u623B\u308B" : "\u30AA\u30F3\u30E9\u30A4\u30F3\u3078\u623B\u308B"
-          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : view === "ghosts" ? "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : initialGhost || ["bounty", "profile"].includes(m == null ? void 0 : m.origin) ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_c = root.FactorVersion) == null ? void 0 : _c.label), /* @__PURE__ */ React.createElement(
+          ), /* @__PURE__ */ React.createElement("h2", null, view === "ratings" ? "\u30AA\u30F3\u30E9\u30A4\u30F3\u30EC\u30FC\u30C6\u30A3\u30F3\u30B0" : view === "ghosts" ? "\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : initialGhost || nominated(m == null ? void 0 : m.origin) ? "\u6307\u540D\u30B4\u30FC\u30B9\u30C8\u5BFE\u6226" : "\u3059\u3050\u904A\u3076"), /* @__PURE__ */ React.createElement("small", { className: "or-version" }, (_c = root.FactorVersion) == null ? void 0 : _c.label), /* @__PURE__ */ React.createElement(
             "button",
             {
               "aria-label": muted ? "\u97F3\u3092\u51FA\u3059" : "\u6D88\u97F3",

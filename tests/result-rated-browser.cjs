@@ -43,6 +43,13 @@ async function render(p, m, extra = {}) {
     await render(p, { ...base, outcome: 'win', origin: 'profile', opponent: { name: 'X' } });
     assert.match(await p.locator('#rr').innerText(), /指名戦：公式レート・対戦数は変更しません/);
     await p.getByRole('button', { name: '一覧へ戻る', exact: true }).waitFor();
+    // Ver.6.35: the bounty system was removed. A ghost match recorded with origin "bounty" before that is shown exactly like a
+    // match chosen from a profile (same texts, same button), with no bounty wording.
+    { const prof = await p.locator('#rr').innerText();
+      await render(p, { ...base, outcome: 'win', origin: 'bounty', opponent: { name: 'X' } });
+      assert.equal(await p.locator('#rr').innerText(), prof, 'an old bounty match reads exactly like a profile match');
+      assert.doesNotMatch(prof, /賞金|懸賞/);
+      await p.getByRole('button', { name: '一覧へ戻る', exact: true }).waitFor(); }
     await render(p, { ...base, outcome: 'win', selfPractice: true, opponent: { name: 'Me' } });
     assert.match(await p.locator('#rr').innerText(), /自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません/);
     // 2. comparison + highlights only from existing records

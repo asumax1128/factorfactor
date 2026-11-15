@@ -718,7 +718,7 @@ function create({
       won = m.members.find((u) => u.uid === result.winner)?.key === key,
       draw = !!result.draw,
       outcome = draw ? "d" : won ? "w" : "l",
-      exp = m.origin === "bounty" ? (won ? 8 : 0) : won ? 8 : 0;
+      exp = won ? 8 : 0;   // Ver.6.35: the bounty variant gave the same 8 EXP; a match started as "bounty" before the removal settles the same way
     // XP and its receipt are one own-account transaction. History retries never award twice.
     await tx(db.ref(`games/factor/accounts/${key}/stats`), (s) => {
       s ||= {};
@@ -752,13 +752,6 @@ function create({
       u ||= {};
       u.events ||= {};
       u.events[m.id] ||= event;
-      if (m.origin === "bounty" && won) {
-        u.bountyCooldowns ||= {};
-        u.bountyCooldowns[m.opponent.key] = Math.max(
-          u.bountyCooldowns[m.opponent.key] || 0,
-          m.receipt.at + 7 * 86400e3,
-        );
-      }
       return u;
     });
     if (m.opponent.key)
@@ -971,7 +964,7 @@ function create({
     if (command.type === "directGhost") {
       if (
         !["easy", "normal"].includes(command.difficulty) ||
-        !["bounty", "profile"].includes(command.origin)
+        command.origin !== "profile"   // Ver.6.35: bounty ghost matches can no longer be started
       )
         throw Error("INVALID_GHOST_REQUEST");
       const active = await find();
@@ -990,15 +983,8 @@ function create({
       const a = (
         await db.ref(`games/factor/accounts/${command.target}`).get()
       ).val();
-      if (command.origin === "bounty" && (a?.stats?.streak || 0) < 3)
-        throw Error("現在このプレイヤーには賞金がありません");
       if ((command.target === key && command.origin !== "profile") || !G.eligible(a))
         throw Error("20問以上の学習記録が必要です");
-      const cooldown = (
-        await db.ref(`${ghostRoot}/bountyCooldowns/${command.target}`).get()
-      ).val();
-      if (command.origin === "bounty" && (cooldown || 0) > now())
-        throw Error("この賞金首は7日間休息中です");
       const d = command.difficulty,
         p = (await profileRef.get()).val(),
         target = (

@@ -172,5 +172,14 @@ const src = fs.readFileSync("index.html", "utf8");
       assert(!fs.existsSync("tests/bounty-profile-browser.cjs"), "the bounty list test went with the feature");
       console.log("PASS bounty entrances and effects removed; matches no longer carry bounties");
     }
+    // Ver.6.35 (bounty removal 2/4): the ghost side no longer starts bounty matches or writes the seven-day rest; old records still read.
+    {
+      const spark = fs.readFileSync("src/online-spark-client.cjs", "utf8"), rated = fs.readFileSync("src/online-rated-ui.jsx", "utf8");
+      for (const name of ["bountyCooldowns", "賞金", "7日間休息"]) assert(!spark.includes(name), "removed from the ghost client: " + name);
+      assert(!/origin === "bounty"/.test(spark), "no bounty-only rule in the ghost client");
+      assert(/const nominated = \(origin\) => origin === "profile" \|\| origin === "bounty";/.test(rated), "old bounty records are shown like profile matches");
+      assert(!src.includes("賞金首のゴースト"), "no bounty ghost text on the profile");
+      console.log("PASS ghost-side bounty removed; old bounty records are read as profile matches");
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

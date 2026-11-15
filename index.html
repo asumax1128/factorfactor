@@ -8558,7 +8558,7 @@ function PlayerView({ name, st, nameOf, me, acctKey, onClose, hideLegacyRating =
           <button onClick={onClose} className="v7-pill v7-cur" data-snd="back">とじる</button>
         </div>
         {acctKey && isReal(self) && <div className="my-3">
-          <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{me ? (ghostEligible?'自分のゴーストと練習：レート・勝敗・EXP・称号・学習記録は更新しません':'自分のゴーストの記録がありません（20問以上の学習記録が必要です）') : ghostEligible ? (ghostOrigin==='bounty'?'賞金首のゴースト：勝利8 EXP・7日間休息':'学習記録から作ったゴースト（公式レートは変わりません）'):'ゴースト対戦には20問以上の学習記録が必要です'}</p>
+          <p className="text-xs font-bold" style={{color:COLORS.inkSoft}}>{me ? (ghostEligible?'自分のゴーストと練習：レート・勝敗・EXP・称号・学習記録は更新しません':'自分のゴーストの記録がありません（20問以上の学習記録が必要です）') : ghostEligible ? '学習記録から作ったゴースト（公式レートは変わりません）':'ゴースト対戦には20問以上の学習記録が必要です'}</p>
           <div className="flex flex-col gap-2">{['easy','normal'].map(d=><BigBtn key={d} small disabled={!ghostEligible} onClick={()=>setGhostFight(d)}>{DIFFICULTY_CONFIG[d].label}で{me?'自分の':''}ゴースト対戦</BigBtn>)}</div>
         </div>}
         <CurrentRatings profile={historicalProfile} legacy={st} />

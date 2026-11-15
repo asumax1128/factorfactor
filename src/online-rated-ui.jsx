@@ -5,6 +5,9 @@
     const trace = (kind, detail) =>
       root.OnlineSpark?.performance?.mark(kind, detail);
     const label = (d) => H.DIFFICULTY_CONFIG[d]?.label || d;
+    // A ghost match the player chose from a profile ("指名戦"). Ver.6.35: the bounty system was removed; matches recorded with
+    // origin "bounty" before that (history, or a match still open on a device) are shown exactly like profile matches.
+    const nominated = (origin) => origin === "profile" || origin === "bounty";
     const formatRating = H.RatingDisplay.format;
     // Ver.6.0 display rule (stats.nick > "" means cleared > legacy profile.title only when nick is absent).
     const titleValid = (id) => !!(H.nickOf?.(id) || root.TitleLabelsNext?.of(id));
@@ -322,7 +325,7 @@
             {formatRating(r?.before)} → {formatRating(r?.after)}
           </p>
           <p>
-            {m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : ["bounty", "profile"].includes(m.origin)
+            {m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : nominated(m.origin)
               ? "指名戦：公式レート・対戦数は変更しません"
               : `${label(m.difficulty)}のみ更新${m.opponent ? "（変動は人間戦の1/3）" : ""}`}
           </p>
@@ -342,7 +345,7 @@
             </div>
           )}
           <button disabled={busy} className="or-primary" onClick={onExit}>
-            {["bounty", "profile"].includes(m.origin)
+            {nominated(m.origin)
               ? "一覧へ戻る"
               : "オンラインメニューへ戻る"}
           </button>
@@ -375,7 +378,7 @@
           });
         } catch (e) { return null; }
       }, [m.id, m.outcome]);
-      const note = m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : ["bounty", "profile"].includes(m.origin)
+      const note = m.selfPractice ? "自分のゴーストとの練習：レート・勝敗・EXP・称号・学習記録は更新しません" : nominated(m.origin)
         ? "指名戦：公式レート・対戦数は変更しません"
         : `${label(m.difficulty)}のみ更新${m.opponent ? "（変動は人間戦の1/3）" : ""}`;
       const reveal = (
@@ -419,7 +422,7 @@
             {m.mode === "A" && <H.AResultDetails report={m.aResult} me={m.selfUid} names={names} />}
             <NR.ResultActions busy={busy}>
               <NR.ResultButton tone="primary" disabled={busy} onClick={onExit}>
-                {["bounty", "profile"].includes(m.origin) ? "一覧へ戻る" : "オンラインメニューへ戻る"}
+                {nominated(m.origin) ? "一覧へ戻る" : "オンラインメニューへ戻る"}
               </NR.ResultButton>
             </NR.ResultActions>
           </NR.ResultShell>
@@ -777,7 +780,7 @@
                 {view === "ratings"
                   ? "オンラインレーティング"
                   : view === 'ghosts' ? 'ゴースト対戦'
-                  : initialGhost || ["bounty", "profile"].includes(m?.origin)
+                  : initialGhost || nominated(m?.origin)
                     ? "指名ゴースト対戦"
                     : "すぐ遊ぶ"}
               </h2>
