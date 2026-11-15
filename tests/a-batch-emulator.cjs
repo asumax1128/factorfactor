@@ -17,7 +17,7 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     const { user } = await app.auth().signInAnonymously(); const db = app.database();
     const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), fbNow: () => Date.now(), SEASON0: '2026-10', seasonKey: () => '2026-10', seasonReset: (r) => r, FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} }, prevWeek: () => '', FB: { db } };
     vm.createContext(sandbox);
-    vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { badgesOf, statsTx, recordMatch, misRunStep };', sandbox);
+    vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\nthis.api = { badgesOf, statsTx, recordMatch };', sandbox);
     const api = sandbox.api, path = (k) => `games/factor/accounts/${k}/stats`;
     const accts = { m1: {}, m2: { misDays: 9, games: 4, nick: 'mis7' }, h1: { games: 3 }, h2: { handiWins: 1, games: 8, nick: 'handi' }, s1: { games: 2 }, s2: { maxStreak: 31, games: 40, nick: 'streak30' }, s3: { games: 2 }, c1: { games: 3, cancelFull: 499 }, c2: { games: 9, cancelTotal: 2600, nick: 'cancel2000' }, n1: { games: 95, A: { w: 10 }, B: { w: 4 }, maxRating: 1500 }, b1: { games: 4, wk: { runs: 19, sup: 480 }, login: { cards: 6 } }, f1: { games: 4, nick: 'tour1' } };
     await env.withSecurityRulesDisabled((c) => set(ref(c.database(), 'games/factor'), {
@@ -26,16 +26,9 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     }));
     const get = async (k) => (await db.ref(path(k)).get()).val();
     const has = (st, id) => [...api.badgesOf(st).map((b) => b.id)].includes(id);
-    // A5: seven consecutive days -> mis7; a gap restarts; the old holder keeps it
-    for (const d of ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05', '2026-10-06']) await api.statsTx({ key: 'm1' }, (s) => { s.misDays = (s.misDays || 0) + 1; api.misRunStep(s, d); });
-    assert.equal(has(await get('m1'), 'mis7'), false);
-    const r7 = await api.statsTx({ key: 'm1' }, (s) => { s.misDays = (s.misDays || 0) + 1; api.misRunStep(s, '2026-10-07'); });
-    assert.equal(r7.got.some((b) => b.id === 'mis7'), true);
-    let v = await get('m1'); assert.equal(v.misRun.best, 7); assert.equal(v.tk.v, 1);
-    await Promise.all([1, 2].map(() => api.statsTx({ key: 'm1' }, (s) => { api.misRunStep(s, '2026-10-08'); })));
-    v = await get('m1'); assert.equal(v.misRun.n, 8, 'the same day twice from two devices counts once');
-    console.log('PASS A5 (real RTDB): 7 consecutive days acquire mis7; the same day twice counts once');
-    await api.statsTx({ key: 'm2' }, (s) => { s.misDays = (s.misDays || 0) + 1; api.misRunStep(s, '2026-10-01'); });
+    // A5 (Ver.6.32): the daily missions were removed, so the 7-consecutive-days acquisition is gone; an old holder keeps the title
+    let v;
+    await api.statsTx({ key: 'm2' }, (s) => { s.games = (s.games || 0) + 1; });
     v = await get('m2'); assert.equal(has(v, 'mis7'), true); assert.equal(v.tk.ids.mis7, 1); assert.equal(v.nick, 'mis7');
     console.log('PASS A5 (real RTDB): an old holder keeps mis7 and the equipped title');
     // A4: self ★★★ win grants; handiWins never moves; a holder is untouched

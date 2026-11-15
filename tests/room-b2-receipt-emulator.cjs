@@ -29,7 +29,7 @@ const jst = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10), DAY = 86
     const mk = (db, flaky) => {
       const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: jst, fbNow: () => Date.now(), SEASON0: '2026-10', seasonKey: () => '2026-10', seasonReset: (r) => r, FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f) => f(), console: { warn() {} }, prevWeek: () => '', B2_RCPT: { at: { [gid]: matchAt }, failed: {} }, FB: { db: flaky ? { ref: () => ({ transaction: async () => { throw new Error('NETWORK'); } }) } : db } };
       vm.createContext(sandbox);
-      vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\nthis.api = { recordMatch };', sandbox);
+      vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\nthis.api = { recordMatch };', sandbox);
       return sandbox;
     };
     const info = () => ({ id: gid, outcome: 'w', mode: 'B', dr: 5, exp: 30, perfects: 0, vs: [], add: {}, max: {}, min: {}, or: {}, sk: { id: `r-${code}-${gid}`, t: Date.now(), o: 'w', s: 'r' } });

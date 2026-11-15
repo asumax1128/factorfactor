@@ -1477,7 +1477,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
   const [playerName, setPlayerName] = useState(() => (acct && acct.name) || '');
   const [soloExp, setSoloExp] = useState(null); // このプレイでもらった経験値 {before, after}
   const learnRef = useRef([]);   // 苦手分析・図鑑用の記録（このプレイ分）
-  const soloMaxCombo = useRef(0); // デイリーミッション用：1回のプレイの最大コンボ
+  const soloMaxCombo = useRef(0); // 1回のプレイの最大コンボ（結果表示用）
   const runLogRef = useRef([]); // 結果画面の表示専用：全問題（通常＋展開ボーナス・時間切れ含む）の結果。学習記録(learnRef)とは別
   const [runSummary, setRunSummary] = useState(null); // 表示専用スナップショット（終了処理の直前に取得）
   const splitsRef = useRef([]);  // ゴースト用：何秒の時点で何問解いたか
@@ -3741,10 +3741,9 @@ function applyLearn(p, rec) {
 }
 async function flushLearn(acct, rec, extra) {
   rec = (rec || []).filter(Boolean);
-  { // デイリーミッションの進み具合（正解数・Perfect・型・レベル ＋ extra：遊んだ回数など）
+  { // Ver.6.32：ここで集計した値はデイリーミッションに渡していたが、ミッションは削除した（承認済みの変更は呼び出しの削除だけなので、集計は残っている。どこにも使われない）
     const ev = { ok: 0, pf: 0, pt: {}, lv: {}, ...(extra || {}) };
     rec.forEach(r => { if (!r.ok) return; ev.ok++; if (r.j === 'Perfect') ev.pf++; if (r.pid) ev.pt[r.pid] = (ev.pt[r.pid] || 0) + 1; if (r.lv) ev.lv['L' + r.lv] = (ev.lv['L' + r.lv] || 0) + 1; });
-    if (ev.ok || extra) missionEvent(acct, ev);
   }
   if (!rec.length) return;
   if (isReal(acct) && FB.db) { try { await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p => applyLearn(p, rec)); } catch (e) {} return; }
@@ -3954,193 +3953,13 @@ function RunReview({ problems, hist }) {
    デイリーチャレンジ（全員同じ10問・1日1回だけランキングに載る）
    ===================================================================== */
 /* =====================================================================
-   デイリーミッション（v6）：デイリーチャレンジ＋3つのお題（1つは苦手枠）。毎日0時（日本時間）に変わる
-   記録：accounts/<key>/mis = { d:日付, w:{k,id}苦手枠, p:{進み具合}, c:{受け取りずみ} }（ゲストはこの端末）
-   ===================================================================== */
-const MIS_LS = 'fxf_guest_mis_v1';
-const MIS_EXP = 30, MIS_ALL_EXP = 50;
-const MIS_POOL = [
-  { id: 'ok', icon: '✏️', ts: [30, 40, 50], text: n => `問題を合計${n}問正解しよう`, go: 'solo', cur: p => p.ok || 0 },
-  { id: 'pf', icon: '✨', ts: [8, 12, 16], text: n => `Perfectを合計${n}回出そう`, go: 'solo', cur: p => p.pf || 0 },
-  { id: 'combo', icon: '🔥', ts: [8, 10, 12], text: n => `1回のプレイで${n}コンボを達成しよう`, go: 'solo', cur: p => p.combo || 0 },
-  { id: 'battle', icon: '⚔️', ts: [2, 3], text: n => `オンライン対戦を${n}回遊ぼう`, go: 'battle', cur: p => p.battle || 0 },
-  { id: 'win', icon: '🏆', ts: [1, 2], text: n => `オンライン対戦で${n}勝しよう`, go: 'battle', cur: p => p.win || 0 },
-  { id: 'solo', icon: '🎮', ts: [2, 3], text: n => `ソロモードを${n}回遊ぼう`, go: 'solo', cur: p => p.solo || 0 },
-  { id: 'clear', icon: '🏁', ts: [1], text: () => 'ソロモードを1回クリアしよう（難易度は自由）', go: 'solo', cur: p => p.clear || 0 },
-  { id: 'lv', icon: '📗', ts: [6, 8], lvs: [3, 4, 5, 6, 7, 8], text: (n, x) => `Lv.${x}（${LEVEL_INFO[x].name}）を${n}問正解しよう`, go: 'drilllv', cur: (p, x) => (p.lv || {})['L' + x] || 0 },
-  { id: 'raid', icon: '🐉', ts: [1], text: () => 'レイド（今週のボスなど）に1回出撃しよう', go: 'raidw', cur: p => p.raid || 0 },
-  { id: 'drill', icon: '🎯', ts: [1], text: () => '学びの部屋でドリルを1回やろう', go: 'learn', cur: p => p.drill || 0 },
-];
-const MISBUS = new Set();
-/* 苦手枠：苦手な型 → なければ、まだ図鑑にない型 */
-function pickWeakTarget(prof, rnd) {
-  const pts = PATTERNS.map(p => ({ p, st: prof && prof.pt && prof.pt[p.id] })).filter(x => x.st && x.st.n >= 2 && x.st.ok / x.st.n < 0.95)
-    .sort((a, b) => a.st.ok / a.st.n - b.st.ok / b.st.n);
-  if (pts.length) return { k: 'pt', id: pts[Math.floor(rnd() * Math.min(3, pts.length))].p.id };
-  const unseen = PATTERNS.filter(p => !(prof && prof.pt && prof.pt[p.id] && prof.pt[p.id].ok) && p.lv <= 6);
-  if (unseen.length) return { k: 'new', id: unseen[Math.floor(rnd() * unseen.length)].id };
-  return { k: 'pt', id: PATTERNS[Math.floor(rnd() * PATTERNS.length)].id };
-}
-function missionsFor(date, acct, w) {
-  const rnd = mulberry32(hashSeed(`mis:${date}:${isReal(acct) ? acct.key : 'guest'}`));
-  const pool = MIS_POOL.slice(), out = [{ key: 'ch', icon: '📅', text: 'デイリーチャレンジに挑戦しよう', n: 1, cur: p => p.daily || 0, go: 'daily' }];
-  while (out.length < 3) {
-    const m = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
-    const n = m.ts[Math.floor(rnd() * m.ts.length)], x = m.lvs ? m.lvs[Math.floor(rnd() * m.lvs.length)] : null;
-    out.push({ key: 'm' + out.length, icon: m.icon, text: m.text(n, x), n, cur: p => m.cur(p, x), go: m.go, lv: x });
-  }
-  const P = w && PATTERN_BY_ID[w.id];
-  if (P) out.push({ key: 'w', weak: true, icon: w.k === 'new' ? '🆕' : '💪', n: w.k === 'new' ? 3 : 5,
-    text: w.k === 'new' ? `新しい型「${P.name}」（Lv.${P.lv}）を3問正解しよう` : `苦手な型「${P.name}」（Lv.${P.lv}）を5問正解しよう`,
-    cur: p => (p.pt || {})[w.id] || 0, go: 'drillpt', pid: w.id, lv: P.lv });
-  else out.push({ key: 'w', weak: true, icon: '💪', n: 5, text: '苦手な型を5問正解しよう（読み込み中…）', cur: () => 0, go: 'learn' });
-  return out;
-}
-function applyMis(m, ev, date) {
-  if (!m || m.d !== date) m = { d: date, p: {}, c: {} };
-  const p = m.p = m.p || {};
-  Object.entries(ev || {}).forEach(([k, v]) => {
-    if (k === 'pt' || k === 'lv') { p[k] = p[k] || {}; Object.entries(v).forEach(([a, b]) => { p[k][a] = (p[k][a] || 0) + b; }); }
-    else if (k === 'combo') { if (v) p.combo = Math.max(p.combo || 0, v); }
-    else if (v) p[k] = (p[k] || 0) + v;
-  });
-  return m;
-}
-const misRef = acct => FB.db.ref(`games/factor/accounts/${acct.key}/mis`);
-/* 遊んだ記録をミッションに足す。新しく達成したお題があれば知らせる */
-async function missionEvent(acct, ev, matchId, matchDay) {
-  if (!acct) return;
-  const date = jstDate();
-  // 試合ID付き（B2のオンライン対戦）：進捗と冪等印 mis.s[試合ID] を同じトランザクションで確定する。ミッションは「その日の記録」なので、
-  // 試合日が今日でない受領・時刻不明の受領は今日のミッションに加算しない（'skipped'。受領の確認では対象外＝完了扱い）
-  if (matchId && matchDay && matchDay !== date) return 'skipped';
-  let before = null, after = null, seen = false;
-  if (isReal(acct)) {
-    if (!FB.db) return false;
-    try {
-      const res = await misRef(acct).transaction(m => {
-        seen = false; before = null; after = null;
-        if (matchId && m && m.d === date && m.s && m.s[matchId]) { seen = true; return m; }
-        before = m && m.d === date ? JSON.parse(JSON.stringify(m)) : { p: {} };
-        after = applyMis(m, ev, date);
-        if (matchId) { after.s = after.s || {}; after.s[matchId] = 1; }
-        return after;
-      });
-      if (!res || !res.committed) return false;
-    } catch (e) { return false; }
-  } else {
-    const m = loadLS(MIS_LS, null); before = m && m.d === date ? JSON.parse(JSON.stringify(m)) : { p: {} };
-    after = applyMis(m, ev, date); saveLS(MIS_LS, after);
-  }
-  if (seen) return true;
-  MISBUS.forEach(f => f());
-  if (!after) return true;
-  const defs = missionsFor(date, acct, after.w);
-  const newly = defs.filter(d => d.cur(before.p || {}) < d.n && d.cur(after.p || {}) >= d.n && !(after.c || {})[d.key]);
-  newly.forEach((d, i) => setTimeout(() => { FX.band('✅ ミッション達成！', { color: '#2a9d8f', sub: d.text + '（デイリーミッションで受け取ろう）', ms: 2000 }); fxSound('badge'); }, 600 + i * 2200));
-  return true;
-}
-/* 今日のミッションの記録（苦手枠が決まっていなければ決める） */
-function useMissions(acct, prof) {
-  const date = jstDate();
-  const fb = useFbReady();
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const f = () => setTick(t => t + 1); MISBUS.add(f); return () => MISBUS.delete(f); }, []);
-  const remote = useFbValue(fb.ready && isReal(acct) ? `accounts/${acct.key}/mis` : null);
-  const raw = isReal(acct) ? remote : loadLS(MIS_LS, null);
-  const m = raw && raw.d === date ? raw : { d: date, p: {}, c: {} };
-  useEffect(() => {
-    if (!prof || (m && m.w)) return;
-    const w = pickWeakTarget(prof, mulberry32(hashSeed(`misw:${date}:${isReal(acct) ? acct.key : 'guest'}`)));
-    if (isReal(acct)) { if (FB.db) misRef(acct).transaction(x => { x = x && x.d === date ? x : { d: date, p: {}, c: {} }; if (!x.w) x.w = w; return x; }).catch(() => {}); }
-    else { const x = applyMis(loadLS(MIS_LS, null), {}, date); if (!x.w) { x.w = w; saveLS(MIS_LS, x); setTick(t => t + 1); } }
-  }, [!!prof, !!(m && m.w), date, tick]);
-  const defs = useMemo(() => missionsFor(date, acct, m.w), [date, acct && acct.key, m.w && m.w.id]);
-  const rows = defs.map(d => { const cur = Math.min(d.n, d.cur(m.p || {})); return { ...d, cur, done: cur >= d.n, got: !!(m.c || {})[d.key] }; });
-  return { date, m, rows };
-}
-/* Ver.6.0 A5：ミッション皆勤の連続日数。ミッションの日付(JST)ごとに1回だけ数え、前日なら+1、途切れたら1から。保存済みの最後の日より前の日付(端末時計の巻き戻り)は数えない */
-const prevDate = d => new Date(Date.parse(d + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
-function misRunStep(s, date) {
-  const R = s.misRun && typeof s.misRun === 'object' ? s.misRun : (s.misRun = {});
-  if (typeof R.last === 'string' && R.last >= date) return false;
-  R.n = R.last === prevDate(date) ? (R.n || 0) + 1 : 1;
-  R.last = date; R.best = Math.max(R.best || 0, R.n);
-  return true;
-}
-async function claimMission(acct, row, rows) {
-  const date = jstDate();
-  let ok = false, all = false;
-  const fn = x => {
-    ok = false; all = false;
-    if (!x) return null;
-    if (x.d !== date) return x;
-    x.c = x.c || {};
-    if (x.c[row.key] || row.cur < row.n) return x;
-    x.c[row.key] = 1; ok = true;
-    if (!x.c.all && rows.every(r => r.key === row.key || x.c[r.key])) { x.c.all = 1; all = true; }
-    return x;
-  };
-  if (isReal(acct)) { if (!FB.db) return null; try { await misRef(acct).transaction(fn); } catch (e) { return null; } }
-  else { const x = fn(loadLS(MIS_LS, null)); if (x) saveLS(MIS_LS, x); }
-  MISBUS.forEach(f => f());
-  if (!ok) return null;
-  if (all && isReal(acct) && FB.db) statsTx(acct, st => { st.misDays = (st.misDays || 0) + 1; misRunStep(st, date); });
-  const e = await addExp(acct, MIS_EXP + (all ? MIS_ALL_EXP : 0));
-  return { exp: e, all };
-}
-function MissionList({ acct, rows, onGo, onChallenge, compact }) {
-  const [busy, setBusy] = useState('');
-  const [gain, setGain] = useState(null);
-  const doneN = rows.filter(r => r.got).length;
-  const claim = async (r, ev) => {
-    if (busy) return; setBusy(r.key);
-    const c = rectC(ev.currentTarget);
-    const res = await claimMission(acct, r, rows);
-    setBusy('');
-    if (!res) return;
-    if (c) { FX.burst(c.x, c.y, { color: '#FFD54A', n: 24, r: 90 }); FX.text(c.x, c.y - 20, `+${MIS_EXP + (res.all ? MIS_ALL_EXP : 0)} EXP`, '#2a9d8f', 26); }
-    fxSound(res.all ? 'levelup' : 'badge');
-    if (res.all) { FX.band('🎉 デイリーミッション コンプリート！', { color: '#d4a017', sub: `ボーナス +${MIS_ALL_EXP} EXP`, ms: 2200 }); FX.confetti(70); }
-    if (res.exp) setGain(res.exp);
-  };
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <div className="text-xs font-black" style={{ color: COLORS.inkSoft }}>🎯 今日のミッション（毎日0時に変わります）</div>
-        <div className="text-xs font-black" style={{ color: doneN === rows.length ? '#d4a017' : COLORS.sky }}>{doneN}/{rows.length}</div>
-      </div>
-      {rows.map(r => (
-        <div key={r.key} className="flex items-center gap-2 py-1.5" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
-          <span className="text-xl w-7 text-center shrink-0">{r.got ? '✅' : r.icon}</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-[12px] font-black leading-tight" style={{ color: r.got ? COLORS.inkSoft : COLORS.ink }}>
-              {r.weak && <span className="text-[9px] font-black rounded-full px-1.5 mr-1 text-white" style={{ background: '#e63946' }}>苦手枠</span>}{r.text}</div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: COLORS.paperDark }}><div className="h-full" style={{ width: `${r.cur / r.n * 100}%`, background: r.done ? '#43C97B' : COLORS.sky, transition: 'width 400ms' }} /></div>
-              <span className="text-[10px] font-black w-10 text-right" style={{ color: COLORS.inkSoft }}>{r.cur}/{r.n}</span>
-            </div>
-          </div>
-          {r.got ? <span className="text-[10px] font-black shrink-0" style={{ color: COLORS.leafDeep }}>受取ずみ</span>
-            : r.done ? <button onClick={e => claim(r, e)} disabled={!!busy} className="text-[11px] font-black rounded-full px-2.5 py-1.5 shrink-0 text-white shadow" style={{ background: '#2a9d8f', animation: 'fxPulseGold 1.2s ease-in-out infinite' }}>受け取る<br />+{MIS_EXP}</button>
-            : !compact && <button onClick={() => r.go === 'daily' ? onChallenge && onChallenge() : onGo && onGo(r)} className="text-[11px] font-black rounded-full px-2.5 py-1 shrink-0" style={{ background: `${COLORS.sky}22`, color: COLORS.sky }}>やる ▶</button>}
-        </div>
-      ))}
-      <div className="text-[10px] font-bold mt-1" style={{ color: COLORS.inkSoft }}>1つ達成ごとに +{MIS_EXP} EXP、ぜんぶ受け取るとボーナス +{MIS_ALL_EXP} EXP</div>
-      {gain && <div className="mt-2"><ExpGain before={gain.before} after={gain.after} label="ミッションの経験値" /></div>}
-    </div>
-  );
-}
-
-
-/* =====================================================================
    学びの部屋：苦手分析・苦手ドリル・型の図鑑
    ===================================================================== */
 function LearnApp({ acct, onExit, init, renderMenu }) {
   const [tab, setTab] = useState('weak');
   const [tick, setTick] = useState(0);
   const prof = useProf(acct, tick);
-  const [drill, setDrill] = useState(() => {   // {problems, title}（デイリーミッションの「やる」から来たときは、すぐドリル）
+  const [drill, setDrill] = useState(() => {   // {problems, title}（行き先にドリルの指定があるときは、すぐドリル）
     const t = init && init.drill;
     if (!t) return null;
     return { problems: drillProblems([t], 10), title: t.pid ? `🎯 ${PATTERN_BY_ID[t.pid].name}` : `🎯 Lv.${t.lv} ドリル`, targets: [t] };
@@ -6061,13 +5880,6 @@ function MonsterPic({ id, src, icon, size = 64, sil, style }) {
 }
 
 /* ---------- ver.7 メニューの部品 ---------- */
-/* ソロ選択画面：デイリーミッションの達成状況（表示のみ。ミッション判定・報酬処理は useMissions のまま） */
-function DailyProgress({ acct }) {
-  const prof = useProf(acct, 0);
-  const mis = useMissions(acct, prof);
-  const got = mis.rows.filter(r => r.got).length, ready = mis.rows.filter(r => r.done && !r.got).length;
-  return ready > 0 ? <>受け取れる {ready}</> : <>達成 {got}/{mis.rows.length}</>;
-}
 /* ソロ選択画面：全難易度のベストスコア（保存済みのソロ記録を読むだけ） */
 const soloBestOf = a => Math.max(0, ...Object.values(loadLS(`fxf_solo_ghost_v1_${(a && a.key) || 'guest'}`, {}) || {}).map(x => (x && x.score) || 0));
 
@@ -6771,7 +6583,6 @@ async function b2Confirm(acct, gid, matchDay) {
   if (!st || !st.roomSeen || !st.roomSeen[gid]) return { ok: false, why: 'stats' };
   const pr = await ck('prof');
   if (!pr || !pr.onlineLearnSeen || !pr.onlineLearnSeen['room:' + gid]) return { ok: false, why: 'prof' };
-  if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }
   return { ok: true };
 }
 /* Ver.6.3：試合の開始を「試合ログ(stats.ml)」へ open として保存する。サーバーが確定した順番がこの試合の位置になり、結果は後から同じ位置へ入る（src/match-log-next.cjs）。
@@ -8330,8 +8141,7 @@ function TeacherDash({ acct, onBack, onWatch }) {
       const last = Math.max(st.last || 0, pf.at || 0);
       let n = 0, ok = 0; Object.values(pf.lv || {}).forEach(L => { n += L.n || 0; ok += L.ok || 0; });
       const weak = Object.entries(pf.pt || {}).filter(([id, P]) => P.n >= 2 && PATTERN_BY_ID[id]).map(([id, P]) => ({ id, acc: P.ok / P.n, n: P.n })).sort((x, y) => x.acc - y.acc)[0];
-      const mis = a.mis && a.mis.d === today ? Object.keys(a.mis.c || {}).filter(x => x !== 'all').length : 0;
-      return { k, name: a.name, st, pf, last, n, ok, weak: weak && weak.acc < 0.95 ? weak : null, mis, lv: levelOf(st.exp || 0).lv, online: onlineKeys.has(k) };
+      return { k, name: a.name, st, pf, last, n, ok, weak: weak && weak.acc < 0.95 ? weak : null, lv: levelOf(st.exp || 0).lv, online: onlineKeys.has(k) };
     }).filter(x => grp === 'all' ? true : grp === 'online' ? x.online : grp === 'today' ? x.last && jstDate(x.last) === today : x.last && now - x.last < 7 * 86400000);
     const pt = {}, lv = {};
     list.forEach(x => {
@@ -8401,19 +8211,18 @@ function TeacherDash({ acct, onBack, onWatch }) {
             </div>
             <Card>
               <div className="text-xs font-black mb-1" style={{ color: COLORS.inkSoft }}>ひとりずつ（正答率の低い順・タップでレベル別）</div>
-              <div className="grid text-[10px] font-black py-1" style={{ gridTemplateColumns: '1.6fr .6fr .9fr .8fr .8fr 1.8fr .8fr', color: COLORS.inkSoft, borderBottom: `2px solid ${COLORS.paperDark}` }}>
-                <span>名前</span><span>Lv</span><span>ランク</span><span>正答率</span><span>解いた数</span><span>いちばん苦手な型</span><span>今日のﾐｯｼｮﾝ</span>
+              <div className="grid text-[10px] font-black py-1" style={{ gridTemplateColumns: '1.6fr .6fr .9fr .8fr .8fr 1.8fr', color: COLORS.inkSoft, borderBottom: `2px solid ${COLORS.paperDark}` }}>
+                <span>名前</span><span>Lv</span><span>ランク</span><span>正答率</span><span>解いた数</span><span>いちばん苦手な型</span>
               </div>
               <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                 {cls.list.map(x => (<React.Fragment key={x.k}>
-                  <div onClick={() => setOpenK(openK === x.k ? null : x.k)} className="grid text-xs py-1 cursor-pointer items-center" style={{ gridTemplateColumns: '1.6fr .6fr .9fr .8fr .8fr 1.8fr .8fr', borderBottom: `1px solid ${COLORS.paperDark}` }}>
+                  <div onClick={() => setOpenK(openK === x.k ? null : x.k)} className="grid text-xs py-1 cursor-pointer items-center" style={{ gridTemplateColumns: '1.6fr .6fr .9fr .8fr .8fr 1.8fr', borderBottom: `1px solid ${COLORS.paperDark}` }}>
                     <span className="font-black truncate" style={{ color: COLORS.ink, ...bFont }}>{x.online && '🟢'}{x.name}</span>
                     <span className="font-bold">{x.lv}</span>
                     <span>{x.st.games ? <RankPill r={ratingOf(x.st)} size={9} /> : '−'}</span>
                     <span className="font-black" style={{ color: accColor(x.n ? x.ok / x.n : null) }}>{x.n ? `${Math.round(x.ok / x.n * 100)}%` : '−'}</span>
                     <span className="font-bold" style={{ color: COLORS.inkSoft }}>{x.ok}/{x.n}</span>
                     <span className="truncate" style={{ color: x.weak ? '#d62828' : COLORS.inkSoft }}>{x.weak ? `${PATTERN_BY_ID[x.weak.id].name}（${Math.round(x.weak.acc * 100)}%）` : '−'}</span>
-                    <span className="font-bold" style={{ color: x.mis >= 4 ? '#d4a017' : COLORS.inkSoft }}>{x.mis}/4</span>
                   </div>
                   {openK === x.k && <div className="py-1 px-2 flex flex-wrap gap-1" style={{ background: COLORS.paperDark }}>
                     {LEVEL_IDS.map(lv => { const L = (x.pf.lv || {})['L' + lv]; const a = L && L.n ? L.ok / L.n : null; return <span key={lv} className="text-[10px] font-black rounded px-1.5" style={{ background: '#fff', color: accColor(a) }}>Lv{lv} {a == null ? '−' : `${Math.round(a * 100)}%`}</span>; })}
@@ -10217,10 +10026,10 @@ async function flushOnlineLearn(acct,matchId,rows,extra) {
   let fresh=false;
   const result=await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.onlineLearnSeen ||= {};fresh=!p.onlineLearnSeen[matchId];if(!fresh)return p;applyLearn(p,rows);p.onlineLearnSeen[matchId]=true;return p;});
   if(!result.committed)throw Error('学習記録を保存できませんでした。再試行してください');
-  // ミッションは学習記録の印とは独立に、毎回その試合IDの印(mis.s)で冪等に実行する（印だけ残って更新が失われる状態を作らない）
+  // Ver.6.32：ここで集計した値はデイリーミッションに渡していたが、ミッションは削除した（承認済みの変更は呼び出しの削除だけなので、集計は残っている。どこにも使われない）
   if(extra){const ev={ok:0,pf:0,pt:{},lv:{},...extra};rows.forEach(r=>{if(!r.ok)return;ev.ok++;if(r.j==='Perfect')ev.pf++;if(r.pid)ev.pt[r.pid]=(ev.pt[r.pid]||0)+1;if(r.lv)ev.lv['L'+r.lv]=(ev.lv['L'+r.lv]||0)+1;});
     const rc=typeof B2_RCPT!=='undefined'?B2_RCPT:null,gid=String(matchId).startsWith('room:')?String(matchId).slice(5):null,late=!!(rc&&gid&&gid in rc.at);
-    await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}
+    }
 }
 /* ソロとオンライン対戦の切り替え */
 const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerView, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;

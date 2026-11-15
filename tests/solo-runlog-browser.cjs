@@ -51,11 +51,11 @@ const same=(r,rec,tag)=>{assert.equal(r.tiles['正解数'],String(rec.caught),ta
   const{t,p,tr}=await begin(b,'イージー'),rec=mk();for(let i=0;i<14;i++)await right(p,rec);
   if(!finalPerfect)await p.waitForTimeout(2400);        // the final question stays open > 2s: judged Great, never Perfect
   await soloDrag(p,true);await p.locator('[data-battle-summary]').waitFor();await p.waitForTimeout(900);
-  const r=await read(p),pf=tr.games.factor.accounts.ateacher.mis.p.pf,expected=rec.perfect+(finalPerfect?1:0);
+  /* Ver.6.32: the daily missions were removed, so the game no longer keeps its own Perfect count (mis.p.pf) to compare with. The game's own learning record is used to confirm the 15 correct answers; the displayed Perfect count is still compared with the exact expectation. */const r=await read(p),lv=Object.values((tr.games.factor.accounts.ateacher.prof||{}).lv||{}),learned=[lv.reduce((a,L)=>a+(L.n||0),0),lv.reduce((a,L)=>a+(L.ok||0),0)],expected=rec.perfect+(finalPerfect?1:0);assert.equal(tr.games.factor.accounts.ateacher.mis,undefined,'nothing is written under mis');
   assert.equal(r.word,'CLEAR!');assert.equal(r.tiles['正解数'],'15');assert.equal(r.tiles['最大コンボ'],'15');assert.equal(r.tiles['ミス'],'0');
-  assert.equal(pf,expected,'oracle: the game itself counted exactly this many Perfects ('+(finalPerfect?'final fast':'final slow')+')');
+  assert.deepEqual(learned,[15,15],'the game\'s own learning record holds the 15 correct answers ('+(finalPerfect?'final fast':'final slow')+')');
   assert.equal(+r.tiles['Perfect'],expected,'displayed Perfect equals the exact expectation, no tolerance');assert.deepEqual(t.errors,[]);await t.ctx.close()}
- console.log('PASS CLEAR: final answer Perfect and not-Perfect both give the exact Perfect count (checked against the game\'s own record)');
+ console.log('PASS CLEAR: final answer Perfect and not-Perfect both give the exact Perfect count; the learning record holds the 15 answers');
  // ===== 4. missing / inconsistent log => no inaccurate numbers =====
  {const{t,p}=await begin(b,'ハード');await p.evaluate(()=>{const M=NextResults.SoloResultModel,f=M.build;M.build=i=>f({...i,snapshot:{...i.snapshot,log:(i.snapshot.log||[]).slice(1)}})});
   const rec=mk();await right(p,rec).catch(()=>{});await dieByWrong(p,rec);const r=await p.evaluate(()=>({tiles:[...document.querySelectorAll('.nbr-tile small:first-child')].map(e=>e.textContent),learn:!!document.querySelector('[data-learn]'),hl:[...document.querySelectorAll('.nbr-card h4')].map(e=>e.textContent)}));

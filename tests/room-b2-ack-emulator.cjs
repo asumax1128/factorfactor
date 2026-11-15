@@ -1,5 +1,7 @@
 // Emulator-only (demo project), REAL Firebase SDK: the late-receipt save acknowledgement (Ver.6.3 stage 1).
-// The REAL recordMatch / flushOnlineLearn / missionEvent / b2Confirm from index.html run against the RTDB emulator.
+// The REAL recordMatch / flushOnlineLearn / b2Confirm from index.html run against the RTDB emulator.
+// Ver.6.32: the daily missions were removed. b2Confirm no longer asks for the mission mark (mis.s['room:' + gid]); a receipt is
+// complete when the stats mark (roomSeen) and the learning mark (onlineLearnSeen) are confirmed. Nothing is written under mis.
 // A receipt is complete only when server-confirmed no-op transactions show the idempotency marks (never the local cache).
 const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:assert/strict'), firebase = require('firebase/compat/app');
 require('firebase/compat/auth'); require('firebase/compat/database');
@@ -29,19 +31,19 @@ const pending = (p, ms = 700) => Promise.race([p.then(() => false, () => false),
     const bind = (db, wrap) => {
       const real = db, d = wrap ? { ref: (p) => wrap(p, real.ref(p)) } : real;
       const sandbox = { window: { TitleKeepNext: Keep, StreakNext: Streak }, titleLabelOf: (id) => Labels.resolve(id, null), isReal: () => true, DBX: null, RATING_INIT: 1500, jstDate: (t = Date.now()) => jst(t), fbNow: () => Date.now(), SEASON0: '2026-10', seasonKey: () => jst(Date.now()).slice(0, 7), seasonReset: (r) => r, FX: { band() {}, confetti() {} }, fxSound() {}, setTimeout: (f, ms) => (ms ? setTimeout(f, ms) : f()), console: { warn() {} }, prevWeek: () => '',
-        B2_RCPT: { at: {}, failed: {} }, MISBUS: new Set(), MIS_LS: 'mis', loadLS: () => null, saveLS() {}, missionsFor: () => [], FB: { db: d } };
+        B2_RCPT: { at: {}, failed: {} }, loadLS: () => null, saveLS() {}, FB: { db: d } };
       vm.createContext(sandbox);
-      vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + fn('async function b2Confirm') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + cut('const prevDate = d =>', 'async function claimMission(acct, row, rows)') + '\n' + fn('function applyLearn') + '\n' + fn('function applyMis') + '\nconst misRef = acct => FB.db.ref(`games/factor/accounts/${acct.key}/mis`);\n' + fn('async function missionEvent') + '\n' + fn('async function flushOnlineLearn') + '\nthis.api = { recordMatch, flushOnlineLearn, b2Confirm, missionEvent };', sandbox);
+      vm.runInContext(cut('const BADGES = [', 'function AchievementAuditPanel') + '\n' + cut('async function statsTx(acct, fn)', 'const wkOf = s =>') + '\n' + fn('async function b2Confirm') + '\n' + cut('async function recordMatch(acct, info)', '/* ---------- 効果音') + '\n' + fn('function applyLearn') + '\n' + fn('async function flushOnlineLearn') + '\nthis.api = { recordMatch, flushOnlineLearn, b2Confirm };', sandbox);
       return sandbox;
     };
     const info = (gid) => ({ id: gid, outcome: 'w', mode: 'B', dr: 5, exp: 30, perfects: 0, vs: [], add: {}, max: {}, min: {}, or: {}, sk: { id: 'r-C-' + gid, t: Date.now(), o: 'w', s: 'r' } });
     const rows = [{ lv: 1, ok: true, ms: 900, j: 'Perfect', pid: 'p1' }, { lv: 2, ok: false, ms: 1200, pid: 'p2' }];
-    // one receipt attempt = what the receipt screen's BattleGame does (record + learning/mission) ...
+    // one receipt attempt = what the receipt screen's BattleGame does (record + learning) ...
     const attempt = (sb, key, gid) => Promise.all([sb.api.recordMatch({ key }, info(gid)), sb.api.flushOnlineLearn({ key }, 'room:' + gid, rows, { battle: 1, win: 1, combo: 1 })]);
     const attemptS = (sb, key, gid) => Promise.allSettled([sb.api.recordMatch({ key }, info(gid)), sb.api.flushOnlineLearn({ key }, 'room:' + gid, rows, { battle: 1, win: 1, combo: 1 })]);
     const read = async (a, key, p) => (await a.db.ref(`games/factor/accounts/${key}/${p}`).get()).val();
     const day = jst(now);
-    // the receipt screen re-confirms every second for up to 15 s (the mission step is queued only after the learning save commits)
+    // the receipt screen re-confirms every second for up to 15 s 
     const loop = async (sb, key, gid, d) => { let r; for (let i = 0; i < 40; i++) { r = await sb.api.b2Confirm({ key }, gid, d); if (r.ok) return r; await sleep(300); } return r; };
     // ---- T1: an un-acknowledged local change is readable through get(); it is NOT a server save and must not complete the receipt
     {
@@ -54,7 +56,7 @@ const pending = (p, ms = 700) => Promise.race([p.then(() => false, () => false),
       const server = await read(b, key, 'stats'); assert(!server.roomSeen, 'an independent client sees no mark: nothing is saved on the server');
       assert.equal(await pending(confirm, 600), true, 'the confirmation does not complete while offline, although get() shows the mark');
       a.db.goOnline(); await work; const first = await confirm; const ok = first.ok ? first : await loop(sb, key, gid, day); assert.equal(ok.ok, true, JSON.stringify(ok));
-      const s2 = await read(b, key, 'stats'); assert(s2.roomSeen[gid]); assert.equal(s2.games, 2); assert.equal((await read(b, key, 'mis')).s['room:' + gid], 1);
+      const s2 = await read(b, key, 'stats'); assert(s2.roomSeen[gid]); assert.equal(s2.games, 2); assert.equal(await read(b, key, 'mis'), null, 'nothing is written under mis');
       keep.off(); console.log('PASS T1: un-ACKed local changes are visible to get() but the confirmation waits for the server');
     }
     // ---- T2: the browser is killed before the ACK; nothing is on the server; the next receipt completes it exactly once
@@ -78,16 +80,25 @@ const pending = (p, ms = 700) => Promise.race([p.then(() => false, () => false),
       s = await read(a, key, 'stats'); assert.equal(s.games, 2, 'no double count'); assert.equal(s.exp, exp1); const p = await read(a, key, 'prof'); assert(p.onlineLearnSeen['room:' + gid]); assert.equal(p.lv.L1.n, 1, 'learning applied once');
       console.log('PASS T3: partial failure (learning) then retry: only the missing part is saved');
     }
-    // ---- T4: learning committed, the mission fails -> the retry applies the mission once; progress and the mark are one record
+    // ---- T4 (Ver.6.32): a room match received late ON THE MATCH DAY (the case that used to wait for the mission mark): the
+    //      confirmation succeeds with the stats and learning marks alone, also when a stale mission record of today exists
+    //      without this match's mark; nothing under mis is written or changed; a second receipt changes nothing.
     {
-      const a = seedUsers[3], key = 't4', gid = 'T4';
-      const bad = bind(a.db, (p, r) => /\/mis$/.test(p) ? { transaction: async () => { throw new Error('NETWORK'); } } : r);
-      const good = bind(a.db); await attempt(bad, key, gid); const miss = await good.api.b2Confirm({ key }, gid, day); assert.deepEqual([miss.ok, miss.why], [false, 'mis']);
-      assert((await read(a, key, 'prof')).onlineLearnSeen['room:' + gid], 'the learning mark exists, the mission was lost: the old design could not recover here');
-      await attempt(good, key, gid); await attempt(good, key, gid);
-      const ok = await loop(good, key, gid, day); assert.equal(ok.ok, true, JSON.stringify(ok));
-      const m = await read(a, key, 'mis'); assert.equal(m.s['room:' + gid], 1); assert.equal(m.p.battle, 1, 'progress added once even after repeated retries'); assert.equal(m.d, day);
-      console.log('PASS T4: mission failure after the learning save: retried once; progress + mark in one record');
+      const a = seedUsers[3], b = seedUsers[6], key = 't4', gid = 'T4'; const sb = bind(a.db);
+      const stale = { d: day, p: { battle: 1 }, s: { 'room:OTHER': 1 } };
+      await env.withSecurityRulesDisabled((c) => set(ref(c.database(), `games/factor/accounts/${key}/mis`), stale));
+      const before = await sb.api.b2Confirm({ key }, gid, day); assert.deepEqual([before.ok, before.why], [false, 'stats'], 'not saved yet: not confirmed');
+      sb.B2_RCPT.at[gid] = now;                                    // received late, the match was played today
+      await attempt(sb, key, gid);
+      const ok = await loop(sb, key, gid, day); assert.equal(ok.ok, true, JSON.stringify(ok));
+      const s1 = await read(b, key, 'stats'), p1 = await read(b, key, 'prof');
+      assert(s1.roomSeen[gid]); assert.equal(s1.games, 2); assert.equal(s1.exp, 130);
+      assert(p1.onlineLearnSeen['room:' + gid]); assert.equal(p1.lv.L1.n, 1); assert.equal(p1.lv.L1.ok, 1); assert.equal(p1.lv.L2.n, 1); assert.equal(p1.lv.L2.ok || 0, 0); assert.deepEqual([p1.pt.p1.n, p1.pt.p1.ok, p1.pt.p2.n], [1, 1, 1]);
+      assert.deepEqual(await read(b, key, 'mis'), stale, 'the saved mission record is left exactly as it was');
+      await attempt(sb, key, gid); const again = await sb.api.b2Confirm({ key }, gid, day); assert.equal(again.ok, true);
+      const s2 = await read(b, key, 'stats'), p2 = await read(b, key, 'prof');
+      assert.equal(s2.games, 2); assert.equal(s2.exp, 130); assert.equal(p2.lv.L1.n, 1, 'learning counted once');
+      console.log('PASS T4: same-day late receipt is confirmed without the mission mark; learning saved once; mis untouched');
     }
     // ---- T5: two independent SDK clients receive the same match at the same time
     {
@@ -95,18 +106,18 @@ const pending = (p, ms = 700) => Promise.race([p.then(() => false, () => false),
       await Promise.all([attempt(sa, key, gid), attempt(sb, key, gid), attempt(sa, key, gid)]);
       const [ca, cb] = await Promise.all([loop(sa, key, gid, day), loop(sb, key, gid, day)]); assert(ca.ok && cb.ok);
       const s = await read(a, key, 'stats'), p = await read(a, key, 'prof'), m = await read(a, key, 'mis');
-      assert.equal(s.games, 2); assert.equal(s.exp, 130); assert.equal(p.lv.L1.n, 1); assert.equal(m.p.battle, 1);
-      console.log('PASS T5: two independent clients: stats, EXP, learning and mission counted once');
+      assert.equal(s.games, 2); assert.equal(s.exp, 130); assert.equal(p.lv.L1.n, 1); assert.equal(m, null, 'nothing under mis');
+      console.log('PASS T5: two independent clients: stats, EXP and learning counted once');
     }
-    // ---- T6: a match from another day / unknown time never adds to today's mission; the confirmation treats it as not applicable
+    // ---- T6: a match from another day / unknown time is confirmed the same way; nothing under mis
     {
       const a = seedUsers[6], key = 't6'; const sb = bind(a.db);
       for (const [gid, at] of [['T6old', now - 2 * DAY], ['T6unk', null]]) {
         sb.B2_RCPT.at[gid] = at; await attempt(sb, key, gid);
         const ok = await loop(sb, key, gid, at == null ? null : jst(at)); assert.equal(ok.ok, true, gid);
       }
-      const m = await read(a, key, 'mis'); assert(!m || !m.s, 'no mission progress or mark was written for them');
-      console.log('PASS T6: other-day / unknown-time matches are not added to today\'s mission');
+      const m = await read(a, key, 'mis'); assert.equal(m, null, 'nothing under mis');
+      console.log('PASS T6: other-day / unknown-time matches are confirmed; nothing under mis');
     }
   } finally { await env.cleanup(); for (const a of apps) await a.app.delete().catch(() => {}); }
 })().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
