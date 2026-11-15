@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "source": "所有者提供 全100称号 2026-10-15",
   "status": "roster-confirmed-reveal-pending",
-  "expectedNormalCount": 95,
+  "expectedNormalCount": 93,
   "expectedFiveStarCount": 22,
   "excludedAwardModes": [
     "cpu",
@@ -336,30 +336,10 @@
       "category": "オンライン"
     },
     {
-      "number": 37,
-      "legacyNumber": 56,
-      "name": "バウンティハンター",
-      "condition": "賞金首を初めて撃破",
-      "stars": 2,
-      "id": "bounty1",
-      "legacyId": "bounty1",
-      "category": "オンライン"
-    },
-    {
-      "number": 38,
-      "legacyNumber": 57,
-      "name": "伝説のハンター",
-      "condition": "賞金首を10回撃破",
-      "stars": 4,
-      "id": "bounty10",
-      "legacyId": "bounty10",
-      "category": "オンライン"
-    },
-    {
       "number": 39,
       "legacyNumber": 58,
-      "name": "指名手配",
-      "condition": "自分に50以上の賞金が懸かる（7連勝）",
+      "name": "快進撃",
+      "condition": "7連勝",
       "stars": 3,
       "id": "wanted",
       "legacyId": "wanted",

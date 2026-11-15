@@ -405,9 +405,7 @@ let BADGES = [
   { id: 'nosp', g: 'nosp', r: 3, icon: '🥋', label: '必殺技いらず', desc: 'B方式で必殺技を一度も使わずに勝つ', test: st => (st.noSpWins || 0) >= 1 },
   { id: 'rgold', g: 'rank', r: 2, icon: '🥇', label: 'ゴールドの風格', desc: 'ランク帯ゴールド（レート1580）に到達', test: st => keptTitle(st, 'rgold', s => (s.maxRating || 0) >= 1580) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
   { id: 'rmaster', g: 'rank', r: 4, icon: '👑', label: '頂点に立つ者', desc: 'ランク帯マスター（レート1820）に到達', test: st => keptTitle(st, 'rmaster', s => (s.maxRating || 0) >= 1820) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
-  { id: 'bounty1', g: 'bounty', r: 2, icon: '💰', label: '賞金稼ぎ', desc: '懸賞金がかかった相手に勝つ', test: st => (st.bountyWins || 0) >= 1 },
-  { id: 'bounty10', g: 'bounty', r: 4, icon: '🤠', label: '伝説のハンター', desc: '懸賞金がかかった相手に通算10回勝つ', test: st => (st.bountyWins || 0) >= 10 },
-  { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
+  { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: '7連勝', desc: '7連勝する', test: st => (st.maxStreak || 0) >= 7 },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   // 今週のボス
   { id: 'wk1', g: 'wk', r: 1, icon: '🗓️', label: '初陣', desc: '今週のボスに初めて出撃する', test: st => ((st.wk || {}).weeks || 0) >= 1 },

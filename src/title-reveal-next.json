@@ -177,17 +177,6 @@
     "earnedAlwaysVisible": true
   },
   {
-    "id": "bounty10",
-    "requires": [
-      "bounty1"
-    ],
-    "relation": "AND",
-    "activity": null,
-    "activityDescription": null,
-    "status": "proposal",
-    "earnedAlwaysVisible": true
-  },
-  {
     "id": "hyper_slayer",
     "requires": [],
     "relation": "AND",

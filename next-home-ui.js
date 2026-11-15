@@ -37,7 +37,7 @@
         schemaVersion: 1,
         source: "\u6240\u6709\u8005\u63D0\u4F9B \u5168100\u79F0\u53F7 2026-10-15",
         status: "roster-confirmed-reveal-pending",
-        expectedNormalCount: 95,
+        expectedNormalCount: 93,
         expectedFiveStarCount: 22,
         excludedAwardModes: [
           "cpu",
@@ -371,30 +371,10 @@
             category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
           },
           {
-            number: 37,
-            legacyNumber: 56,
-            name: "\u30D0\u30A6\u30F3\u30C6\u30A3\u30CF\u30F3\u30BF\u30FC",
-            condition: "\u8CDE\u91D1\u9996\u3092\u521D\u3081\u3066\u6483\u7834",
-            stars: 2,
-            id: "bounty1",
-            legacyId: "bounty1",
-            category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
-          },
-          {
-            number: 38,
-            legacyNumber: 57,
-            name: "\u4F1D\u8AAC\u306E\u30CF\u30F3\u30BF\u30FC",
-            condition: "\u8CDE\u91D1\u9996\u309210\u56DE\u6483\u7834",
-            stars: 4,
-            id: "bounty10",
-            legacyId: "bounty10",
-            category: "\u30AA\u30F3\u30E9\u30A4\u30F3"
-          },
-          {
             number: 39,
             legacyNumber: 58,
-            name: "\u6307\u540D\u624B\u914D",
-            condition: "\u81EA\u5206\u306B50\u4EE5\u4E0A\u306E\u8CDE\u91D1\u304C\u61F8\u304B\u308B\uFF087\u9023\u52DD\uFF09",
+            name: "\u5FEB\u9032\u6483",
+            condition: "7\u9023\u52DD",
             stars: 3,
             id: "wanted",
             legacyId: "wanted",
@@ -1200,7 +1180,7 @@
       catalog = require_title_catalog_next();
       compat = require_title_compat_next();
       RARITY = ["", "\u3075\u3064\u3046", "\u307E\u3042\u307E\u3042", "\u3081\u305A\u3089\u3057\u3044", "\u30EC\u30A2", "\u3068\u304F\u3079\u3064"];
-      TITLE_PREREQ = { streak30: ["streak10"], streak50: ["streak30"], giant250: ["giant"], master1700: ["master1600"], master1900: ["master1700"], easy_master: ["easy_adept"], normal_master: ["normal_adept"], dual_master: ["easy_master", "normal_master"], perfect300: ["perfect100"], perfect500: ["perfect300"], perfect1000: ["perfect500"], combo30: ["combo20"], miracle: ["clutch"], alllv: ["lv9"], tour3: ["tour1"], tour10: ["tour3"], wkace5: ["wkace"], wkone2: ["wkone"], wkst10: ["wkst5"], wkk10: ["wkk5"], wkdex6: ["wkdex3"], cancel2000: ["cancel500"], dual50: ["dual"], nomiss10: ["nomiss"], bounty10: ["bounty1"], daily30: ["daily7"], ghost_up2: ["ghost_up1"] };
+      TITLE_PREREQ = { streak30: ["streak10"], streak50: ["streak30"], giant250: ["giant"], master1700: ["master1600"], master1900: ["master1700"], easy_master: ["easy_adept"], normal_master: ["normal_adept"], dual_master: ["easy_master", "normal_master"], perfect300: ["perfect100"], perfect500: ["perfect300"], perfect1000: ["perfect500"], combo30: ["combo20"], miracle: ["clutch"], alllv: ["lv9"], tour3: ["tour1"], tour10: ["tour3"], wkace5: ["wkace"], wkone2: ["wkone"], wkst10: ["wkst5"], wkk10: ["wkk5"], wkdex6: ["wkdex3"], cancel2000: ["cancel500"], dual50: ["dual"], nomiss10: ["nomiss"], daily30: ["daily7"], ghost_up2: ["ghost_up1"] };
       condVisible = (t, earnedMap) => t.stars <= 3 || !!earnedMap[t.id] || (TITLE_PREREQ[t.id] || []).every((x) => !!earnedMap[x]) && !!TITLE_PREREQ[t.id];
     }
   });

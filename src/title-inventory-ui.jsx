@@ -36,7 +36,7 @@ export function TitleEquipCurrent({equip}){
 // 未取得は固有の絵文字を出さず 🔒。名称・★は常に見せ、条件は★1〜3と取得済みだけ（★4〜5の未取得は「？？？」）。隠し称号は取得するまで存在も見せない。
 const RARITY=['','ふつう','まあまあ','めずらしい','レア','とくべつ'];
 // ★4・★5の条件公開：前段階（同じ指標でしきい値が上がる称号）を取得すると次の条件を公開する。ここに無い★4・★5は独立型（取得まで？？？）。
-export const TITLE_PREREQ={streak30:['streak10'],streak50:['streak30'],giant250:['giant'],master1700:['master1600'],master1900:['master1700'],easy_master:['easy_adept'],normal_master:['normal_adept'],dual_master:['easy_master','normal_master'],perfect300:['perfect100'],perfect500:['perfect300'],perfect1000:['perfect500'],combo30:['combo20'],miracle:['clutch'],alllv:['lv9'],tour3:['tour1'],tour10:['tour3'],wkace5:['wkace'],wkone2:['wkone'],wkst10:['wkst5'],wkk10:['wkk5'],wkdex6:['wkdex3'],cancel2000:['cancel500'],dual50:['dual'],nomiss10:['nomiss'],bounty10:['bounty1'],daily30:['daily7'],ghost_up2:['ghost_up1']};
+export const TITLE_PREREQ={streak30:['streak10'],streak50:['streak30'],giant250:['giant'],master1700:['master1600'],master1900:['master1700'],easy_master:['easy_adept'],normal_master:['normal_adept'],dual_master:['easy_master','normal_master'],perfect300:['perfect100'],perfect500:['perfect300'],perfect1000:['perfect500'],combo30:['combo20'],miracle:['clutch'],alllv:['lv9'],tour3:['tour1'],tour10:['tour3'],wkace5:['wkace'],wkone2:['wkone'],wkst10:['wkst5'],wkk10:['wkk5'],wkdex6:['wkdex3'],cancel2000:['cancel500'],dual50:['dual'],nomiss10:['nomiss'],daily30:['daily7'],ghost_up2:['ghost_up1']};
 const condVisible=(t,earnedMap)=>t.stars<=3||!!earnedMap[t.id]||(TITLE_PREREQ[t.id]||[]).every(x=>!!earnedMap[x])&&!!TITLE_PREREQ[t.id];
 function TitleDetail({t,earnedMap={},earned,equipped,iconOf,equip,readOnly,onClose,onScene,hidden}){
  const ref=React.useRef(null);

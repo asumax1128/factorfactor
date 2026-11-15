@@ -3488,7 +3488,6 @@ const SKIN_BGS = [
   { id: 'lavender', name: 'ラベンダー', bg: 'linear-gradient(180deg,#F3EEFF,#C9B8F5)', need: { lv: 14 } },
   { id: 'starry', name: '星空', bg: 'radial-gradient(circle at 15% 20%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 10%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 40% 60%,#fff 0 1px,transparent 2px),radial-gradient(circle at 85% 75%,#fff 0 1.2px,transparent 2px),linear-gradient(180deg,#DCD8FF,#9C94E8)', need: { lv: 20 } },
   { id: 'goldbg', name: '金屏風', bg: 'linear-gradient(135deg,#FFF6D5,#F3D27A 60%,#E8B84A)', need: { rank: 3 } },
-  { id: 'hunter', name: '賞金稼ぎの荒野', bg: 'linear-gradient(180deg,#FFF1D6,#E9B97A)', need: { bounty: 1 } },
   { id: 'aurora', name: 'オーロラ', bg: 'linear-gradient(160deg,#E0FFF6,#B8F0FF 40%,#E6C8FF 75%,#FFD6EC)', need: { badges: 30 } },
   // 今週のボスの討伐記念
   { id: 'castle', name: '魔王城', bg: 'radial-gradient(ellipse 120% 70% at 50% 0%, #5b2a86, #1a0a2a 70%)', need: { boss: 'maou' } },
@@ -3523,12 +3522,11 @@ function skinOpen(need, info) {
   if (need.lv) return info.lv >= need.lv;
   if (need.rank) return info.rank >= need.rank;
   if (need.badges) return info.badges >= need.badges;
-  if (need.bounty) return info.bounty >= need.bounty;
   if (need.boss) return !!(info.boss && info.boss[need.boss]);
   if (need.shards) return (info.shards || 0) >= need.shards;
   return false;
 }
-const skinNeedText = need => !need ? '' : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : need.bounty ? '懸賞金がかかった相手に勝つと解放' : '';
+const skinNeedText = need => !need ? '' : need.shards ? `宝箱のきせかえのかけらを${need.shards}個集めると解放` : need.boss ? `今週のボス「${(BOSSES.find(b => b.id === need.boss) || {}).name}」の討伐に参加で解放` : need.lv ? `Lv.${need.lv}で解放` : need.rank ? `ランク帯${RANKS[need.rank].icon}${RANKS[need.rank].name}到達で解放` : need.badges ? `称号${need.badges}個で解放` : '';
 // Read-only history: no current-rating/default-1500 substitution and no migration.
 // HARD can be added explicitly to difficulties when its independent history exists.
 const RatingHistory = (() => {
@@ -3603,7 +3601,7 @@ function useRatingHistoryProfile(account) {
 }
 function skinInfo(st, exp) {
   st = st || {};
-  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, bounty: st.bountyWins || 0, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0 };
+  return { lv: levelOf(exp != null ? exp : st.exp || 0).lv, rank: rankOf(Math.max(st.maxRating || RATING_INIT, st.seasonMax || 0)).i, badges: badgesOf(st).length, boss: (st.wk && st.wk.boss) || {}, shards: (st.wk && st.wk.shards) || 0 };
 }
 function useSkin() { const [, set] = useState(0); useEffect(() => { const f = () => set(x => x + 1); SKINBUS.add(f); return () => SKINBUS.delete(f); }, []); return SKIN; }
 function Wardrobe({ acct, st, exp, onClose, appearance }) {
@@ -6172,9 +6170,7 @@ const BADGES = [
   { id: 'nosp', g: 'nosp', r: 3, icon: '🥋', label: '必殺技いらず', desc: 'B方式で必殺技を一度も使わずに勝つ', test: st => (st.noSpWins || 0) >= 1 },
   { id: 'rgold', g: 'rank', r: 2, icon: '🥇', label: 'ゴールドの風格', desc: 'ランク帯ゴールド（レート1580）に到達', test: st => keptTitle(st, 'rgold', s => (s.maxRating || 0) >= 1580) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
   { id: 'rmaster', g: 'rank', r: 4, icon: '👑', label: '頂点に立つ者', desc: 'ランク帯マスター（レート1820）に到達', test: st => keptTitle(st, 'rmaster', s => (s.maxRating || 0) >= 1820) }, /* Ver.6.0 公開調整：11月のレート制度再設計まで新規取得を保留（既得はtkで保護） */
-  { id: 'bounty1', g: 'bounty', r: 2, icon: '💰', label: '賞金稼ぎ', desc: '懸賞金がかかった相手に勝つ', test: st => (st.bountyWins || 0) >= 1 },
-  { id: 'bounty10', g: 'bounty', r: 4, icon: '🤠', label: '伝説のハンター', desc: '懸賞金がかかった相手に通算10回勝つ', test: st => (st.bountyWins || 0) >= 10 },
-  { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
+  { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: '7連勝', desc: '7連勝する', test: st => (st.maxStreak || 0) >= 7 },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   // 今週のボス
   { id: 'wk1', g: 'wk', r: 1, icon: '🗓️', label: '初陣', desc: '今週のボスに初めて出撃する', test: st => ((st.wk || {}).weeks || 0) >= 1 },
@@ -6219,7 +6215,7 @@ const keptTitle = (st, id, legacy) => { try { const K = typeof window !== 'undef
 const badgesOf = st => BADGES.filter(b => st && b.test(st));
 /* Ver.6.0 廃止称号（所有者承認）：新規取得だけを止める。取得状態は統計カウンタそのもの（1以上で取得・減らない）なので、
    既得（カウンタ1以上）・装備(stats/nick)・過去の戦績は一切変えず、0→1になる更新だけを取り消す。 */
-const RETIRED_TITLES = ['nosp', 'wklast'];   // Ver.6.26: 旧「数理の塔」の称号(tw10〜tw100)は定義ごと削除。Ver.6.33: デイリー優勝の4称号と mis7 も定義ごと削除
+const RETIRED_TITLES = ['nosp', 'wklast'];   // Ver.6.26: 旧「数理の塔」の称号(tw10〜tw100)は定義ごと削除。Ver.6.33: デイリー優勝の4称号と mis7 も定義ごと削除。Ver.6.36: bounty1・bounty10 も定義ごと削除
 const isRetiredTitle = id => RETIRED_TITLES.includes(id);
 function holdRetiredCounters(before, s) {
   const b = before || {}, bw = b.wk || {};
