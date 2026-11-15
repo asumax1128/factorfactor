@@ -3,8 +3,8 @@ const test = require("node:test"), assert = require("node:assert/strict"), fs = 
 const Compat = require("../src/title-compat-next.cjs"), Equip = require("../src/title-equip-next.cjs");
 const cat = JSON.parse(fs.readFileSync("src/title-catalog-next.json", "utf8"));
 const five = cat.titles.filter((t) => t.stars === 5).map((t) => t.id), normal = cat.titles.filter((t) => t.stars !== 5).map((t) => t.id);
-test("catalog facts: 26 five-star titles, hidden needs 15, invisible before it is earned", () => {
-  assert.equal(five.length, 26); assert.equal(cat.hidden.requiredDistinctFiveStar, 15); assert.equal(cat.hidden.visibleBeforeEarned, false);
+test("catalog facts: 22 five-star titles, hidden needs 15, invisible before it is earned", () => {
+  assert.equal(five.length, 22); assert.equal(cat.hidden.requiredDistinctFiveStar, 15); assert.equal(cat.hidden.visibleBeforeEarned, false);
 });
 test("14 -> not owned; 15 -> owned; the reader without deriveHidden never implies an award", () => {
   assert.equal(Compat.read({ legacyEarned: five.slice(0, 14), deriveHidden: true }).hiddenOwned, false);

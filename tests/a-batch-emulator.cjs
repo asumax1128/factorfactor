@@ -26,11 +26,12 @@ const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); asser
     }));
     const get = async (k) => (await db.ref(path(k)).get()).val();
     const has = (st, id) => [...api.badgesOf(st).map((b) => b.id)].includes(id);
-    // A5 (Ver.6.32): the daily missions were removed, so the 7-consecutive-days acquisition is gone; an old holder keeps the title
+    // A5 (Ver.6.33): the title mis7 was removed with the daily mode. An old holder's saved data is left as it is (counter, equipped id);
+    // the id is simply not a title any more (the screens show it as not equipped) and is not added to the freeze record.
     let v;
     await api.statsTx({ key: 'm2' }, (s) => { s.games = (s.games || 0) + 1; });
-    v = await get('m2'); assert.equal(has(v, 'mis7'), true); assert.equal(v.tk.ids.mis7, 1); assert.equal(v.nick, 'mis7');
-    console.log('PASS A5 (real RTDB): an old holder keeps mis7 and the equipped title');
+    v = await get('m2'); assert.equal(has(v, 'mis7'), false); assert.equal((v.tk.ids || {}).mis7, undefined); assert.equal(v.nick, 'mis7'); assert.equal(v.misDays, 9); assert.equal(v.games, 5);
+    console.log('PASS A5 (real RTDB): mis7 is removed; the counter and equipped id of an old holder are left untouched');
     // A4: self ★★★ win grants; handiWins never moves; a holder is untouched
     const info = (add, o = {}) => ({ outcome: 'w', mode: 'B', dr: 8, exp: 30, perfects: 0, vs: [], add, max: {}, min: {}, or: {}, ...o });
     const rr = await api.recordMatch({ key: 'h1' }, info({ handiSelf: 1 }));

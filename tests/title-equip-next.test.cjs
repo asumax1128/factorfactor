@@ -1,7 +1,7 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const Equip = require("../src/title-equip-next.cjs"), Labels = require("../src/title-labels-next.cjs"), catalog = require("../src/title-catalog-next.json");
-test("all 100 catalog titles and the hidden title have a label; unknown ids do not", () => {
-  assert.equal(Labels.equippableIds().length, 101);
+test("all 95 catalog titles and the hidden title have a label; unknown ids do not", () => {
+  assert.equal(Labels.equippableIds().length, 96);
   for (const t of catalog.titles) { const l = Labels.of(t.id); assert.equal(l.label, t.name); assert.equal(l.icon, Labels.COMMON_ICON); }
   assert.equal(Labels.of("factor_factor").label, "FACTOR×FACTOR");
   assert.equal(Labels.of("nosp"), null);

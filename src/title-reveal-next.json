@@ -1,45 +1,5 @@
 [
   {
-    "id": "daily_easy_king",
-    "requires": [],
-    "relation": "AND",
-    "activity": "daily.easy.completed",
-    "activityDescription": "対象デイリーイージーを1回完走",
-    "status": "proposal",
-    "earnedAlwaysVisible": true
-  },
-  {
-    "id": "daily_normal_king",
-    "requires": [],
-    "relation": "AND",
-    "activity": "daily.normal.completed",
-    "activityDescription": "対象デイリーノーマルを1回完走",
-    "status": "proposal",
-    "earnedAlwaysVisible": true
-  },
-  {
-    "id": "daily_hard_king",
-    "requires": [],
-    "relation": "AND",
-    "activity": "daily.hard.completed",
-    "activityDescription": "対象デイリーハードを1回完走",
-    "status": "proposal",
-    "earnedAlwaysVisible": true
-  },
-  {
-    "id": "daily_king",
-    "requires": [
-      "daily_easy_king",
-      "daily_normal_king",
-      "daily_hard_king"
-    ],
-    "relation": "AND",
-    "activity": null,
-    "activityDescription": null,
-    "status": "proposal",
-    "earnedAlwaysVisible": true
-  },
-  {
     "id": "dual50",
     "requires": [
       "dual"

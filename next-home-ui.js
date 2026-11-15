@@ -37,8 +37,8 @@
         schemaVersion: 1,
         source: "\u6240\u6709\u8005\u63D0\u4F9B \u5168100\u79F0\u53F7 2026-10-15",
         status: "roster-confirmed-reveal-pending",
-        expectedNormalCount: 100,
-        expectedFiveStarCount: 26,
+        expectedNormalCount: 95,
+        expectedFiveStarCount: 22,
         excludedAwardModes: [
           "cpu",
           "selfGhost"
@@ -50,46 +50,6 @@
           visibleBeforeEarned: false
         },
         titles: [
-          {
-            number: 1,
-            legacyNumber: 1,
-            name: "\u6681\u306E\u8987\u8005",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30A4\u30FC\u30B8\u30FC\u512A\u52DD",
-            stars: 5,
-            id: "daily_easy_king",
-            legacyId: "daily_easy_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 2,
-            legacyNumber: 2,
-            name: "\u84BC\u7A79\u306E\u8987\u8005",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30CE\u30FC\u30DE\u30EB\u512A\u52DD",
-            stars: 5,
-            id: "daily_normal_king",
-            legacyId: "daily_normal_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 3,
-            legacyNumber: 3,
-            name: "\u6DF1\u6DF5\u306E\u8987\u738B",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30CF\u30FC\u30C9\u512A\u52DD",
-            stars: 5,
-            id: "daily_hard_king",
-            legacyId: "daily_hard_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 4,
-            legacyNumber: 4,
-            name: "\u5929\u4E0B\u7D71\u4E00",
-            condition: "\u540C\u3058\u65E5\u306B\u30C7\u30A4\u30EA\u30FC\u51683\u90E8\u9580\u512A\u52DD",
-            stars: 5,
-            id: "daily_king",
-            legacyId: "daily_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
           {
             number: 5,
             legacyNumber: 92,
@@ -931,16 +891,6 @@
             category: "\u30DC\u30B9\u30FB\u652F\u63F4"
           },
           {
-            number: 89,
-            legacyNumber: 59,
-            name: "\u4EFB\u52D9\u5B8C\u9042",
-            condition: "7\u65E5\u9023\u7D9A\u3067\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3\u3092\u3059\u3079\u3066\u9054\u6210",
-            stars: 3,
-            id: "mis7",
-            legacyId: "mis7",
-            category: "\u30DC\u30B9\u30FB\u652F\u63F4"
-          },
-          {
             number: 90,
             legacyNumber: 77,
             name: "\u5B9D\u63A2\u3057",
@@ -1232,7 +1182,7 @@
       } catch (e) {
       }
     };
-    const total = 100 + (state.hiddenOwned ? 1 : 0), got = state.normal.length + (state.hiddenOwned ? 1 : 0), pct = Math.round(got * 100 / total);
+    const total = catalog.titles.length + (state.hiddenOwned ? 1 : 0), got = state.normal.length + (state.hiddenOwned ? 1 : 0), pct = Math.round(got * 100 / total);
     const shown = catalog.titles.filter((t) => filter === "all" || filter === "earned" === !!state.earned[t.id]);
     const openT = open === "__hidden" ? null : catalog.titles.find((t) => t.id === open);
     const card = (t, earned, hidden) => {
@@ -1375,9 +1325,9 @@
         if (!key) return { status: "skipped", reason: "guest", added: [], awards: {} };
         const g = (p2) => db.ref(`games/factor/${p2}`).get().then((s) => s.val());
         const sRef = db.ref(`${ROOT}/snapshots/${key}`), aRef = db.ref(`${ROOT}/awards/${key}`);
-        let stats, daily, sparkProfile, snap0, awards0, acctName, connected;
+        let stats, sparkProfile, snap0, awards0, acctName, connected;
         try {
-          [stats, daily, sparkProfile, snap0, awards0, acctName] = await Promise.all([g(`accounts/${key}/stats`), g(`dailyV2/titles/${key}`), g(`onlineSparkV1/profiles/${key}`), sRef.get().then((s) => s.val()), aRef.get().then((s) => s.val()), g(`accounts/${key}/name`)]);
+          [stats, sparkProfile, snap0, awards0, acctName] = await Promise.all([g(`accounts/${key}/stats`), g(`onlineSparkV1/profiles/${key}`), sRef.get().then((s) => s.val()), aRef.get().then((s) => s.val()), g(`accounts/${key}/name`)]);
         } catch (e) {
           return { status: "failed", error: "READ_FAILED", added: [], awards: {} };
         }
@@ -1397,7 +1347,7 @@
             freezeDeferred = "STATS_EMPTY";
           }
         }
-        const legacy = legacyIds({ badgeIds: computeBadgeIds(stats || {}), flags: [daily, stats == null ? void 0 : stats.ghostTitles, sparkProfile == null ? void 0 : sparkProfile.badges] });
+        const legacy = legacyIds({ badgeIds: computeBadgeIds(stats || {}), flags: [stats == null ? void 0 : stats.ghostTitles, sparkProfile == null ? void 0 : sparkProfile.badges] });
         const p = plan({ account: key, snapshot, awards, legacy, equipped: (stats == null ? void 0 : stats.nick) || null, facts: { sparkProfile }, canFreeze });
         let snapshotError = null;
         if (p.snapshot) {
@@ -1537,7 +1487,6 @@
         streak10: (st) => (st.maxStreak || 0) >= 10,
         streak30: (st) => (st.maxStreak || 0) >= 30,
         streak50: (st) => (st.maxStreak || 0) >= 50,
-        mis7: (st) => (st.misDays || 0) >= 7,
         cancel500: (st) => (st.cancelTotal || 0) >= 500,
         cancel2000: (st) => (st.cancelTotal || 0) >= 2e3,
         darkhorse: (st) => (st.darkHorse || 0) >= 1,
@@ -2076,7 +2025,7 @@
   var TitleEquip = require_title_equip_next();
   var TitleCompat = require_title_compat_next();
   function createProfile(H) {
-    const { RatingDisplay, RatingHistory, levelOf, isReal, useDailyTitles, useFbValue, useFbReady, weekKey, now, nickOf, badgesOf, activeAchievements, skinCatalog, GhostHistory, PlayerView, GhostBattlePanel } = H;
+    const { RatingDisplay, RatingHistory, levelOf, isReal, useFbValue, useFbReady, weekKey, now, nickOf, badgesOf, activeAchievements, skinCatalog, GhostHistory, PlayerView, GhostBattlePanel } = H;
     const integer = (n) => n === null || n === void 0 ? "\u672A\u8A18\u9332" : n.toLocaleString("ja-JP");
     function Record({ label, value }) {
       return /* @__PURE__ */ React.createElement(Panel, { title: label }, /* @__PURE__ */ React.createElement(MetricGrid, null, /* @__PURE__ */ React.createElement(Stat, { label: "\u5BFE\u6226\u6570", value: integer(value.games) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u52DD\u5229", value: integer(value.w) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u6557\u5317", value: integer(value.l) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u5F15\u304D\u5206\u3051", value: integer(value.d) }), /* @__PURE__ */ React.createElement(Stat, { label: "\u52DD\u7387", value: value.winRate === null ? "\u672A\u8A18\u9332" : value.winRate.toFixed(1) + "%" })));
@@ -2084,7 +2033,7 @@
     return function Profile({ acct, stats, profile, onBack, onWardrobe }) {
       var _a, _b, _c, _d, _e, _f, _g;
       const [muted] = H.useGameMute();
-      const fb = useFbReady(), real = isReal(acct), daily = useDailyTitles(real ? acct.key : null);
+      const fb = useFbReady(), real = isReal(acct);
       const mine = useFbValue(fb.ready && real ? `raidw/${weekKey(now())}/dmg/${acct.key}` : null);
       const authority = fb.ready && real && ((_a = window.NextAuthority) == null ? void 0 : _a.enabled(H.FB.db, window.location)), authorityAwards = useFbValue(authority ? `titleNextV1/awards/${acct.key}` : null), authoritySnapshot = useFbValue(authority ? `titleNextV1/snapshots/${acct.key}` : null);
       const data = model.read(stats, profile), L = data.exp === null ? null : levelOf(data.exp);
@@ -2113,8 +2062,8 @@
       }, [real, acct.key, fb.ready]);
       const earned = /* @__PURE__ */ new Map();
       const visible = new Set(activeAchievements().map((b) => b.id));
-      for (const b of badgesOf({ ...stats || {}, dailyTitles: daily })) if (visible.has(b.id)) earned.set(b.id, b.label);
-      for (const flags of [profile == null ? void 0 : profile.badges, daily]) for (const [id, value] of Object.entries(flags || {})) if (value === true) earned.set(id, ((_d = titles.titles.find((t) => t.id === id)) == null ? void 0 : _d.name) || ((_e = nickOf(id)) == null ? void 0 : _e.label) || id);
+      for (const b of badgesOf(stats || {})) if (visible.has(b.id)) earned.set(b.id, b.label);
+      for (const flags of [profile == null ? void 0 : profile.badges]) for (const [id, value] of Object.entries(flags || {})) if (value === true) earned.set(id, ((_d = titles.titles.find((t) => t.id === id)) == null ? void 0 : _d.name) || ((_e = nickOf(id)) == null ? void 0 : _e.label) || id);
       for (const [id] of earned) {
         const t = titles.titles.find((t2) => t2.id === id);
         if (t) earned.set(id, t.name);
@@ -2149,19 +2098,19 @@
             return { ok: false };
           }
         };
-        const [st, dl, pb, aw, sn] = await Promise.all([read("accounts/" + acct.key + "/stats"), read("dailyV2/titles/" + acct.key), read("onlineSparkV1/profiles/" + acct.key + "/badges"), read("titleNextV1/awards/" + acct.key), read("titleNextV1/snapshots/" + acct.key + "/earned")]);
+        const [st, pb, aw, sn] = await Promise.all([read("accounts/" + acct.key + "/stats"), read("onlineSparkV1/profiles/" + acct.key + "/badges"), read("titleNextV1/awards/" + acct.key), read("titleNextV1/snapshots/" + acct.key + "/earned")]);
         const ids = /* @__PURE__ */ new Set();
         if (st.ok) {
-          for (const b of badgesOf({ ...st.value || {}, dailyTitles: dl.ok ? dl.value || {} : {} })) if (visible.has(b.id)) ids.add(b.id);
+          for (const b of badgesOf(st.value || {})) if (visible.has(b.id)) ids.add(b.id);
         }
-        for (const r of [dl, pb]) if (r.ok) {
+        for (const r of [pb]) if (r.ok) {
           for (const [id, v] of Object.entries(r.value || {})) if (v === true || (v == null ? void 0 : v.earned) === true) ids.add(id);
         }
         if (aw.ok) {
           for (const [id, v] of Object.entries(aw.value || {})) if ((v == null ? void 0 : v.earned) === true) ids.add(id);
         }
         if (sn.ok) for (const id of Object.keys(sn.value || {})) ids.add(id);
-        return { fresh: ids, complete: st.ok && dl.ok && pb.ok && aw.ok && sn.ok };
+        return { fresh: ids, complete: st.ok && pb.ok && aw.ok && sn.ok };
       };
       const doEquip = async (id, clear) => {
         if (!canEquip || eqBusy.current || !clear && !memRef.current.has(id)) return;

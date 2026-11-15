@@ -6,12 +6,12 @@ const TitleClient=require('./title-client-next.cjs');
 const TitleEquip=require('./title-equip-next.cjs');
 const TitleCompat=require('./title-compat-next.cjs');
 export function createProfile(H){
- const {RatingDisplay,RatingHistory,levelOf,isReal,useDailyTitles,useFbValue,useFbReady,weekKey,now,nickOf,badgesOf,activeAchievements,skinCatalog,GhostHistory,PlayerView,GhostBattlePanel}=H;
+ const {RatingDisplay,RatingHistory,levelOf,isReal,useFbValue,useFbReady,weekKey,now,nickOf,badgesOf,activeAchievements,skinCatalog,GhostHistory,PlayerView,GhostBattlePanel}=H;
  const integer=n=>n===null||n===undefined?'未記録':n.toLocaleString('ja-JP');
  function Record({label,value}){return <Panel title={label}><MetricGrid><Stat label="対戦数" value={integer(value.games)}/><Stat label="勝利" value={integer(value.w)}/><Stat label="敗北" value={integer(value.l)}/><Stat label="引き分け" value={integer(value.d)}/><Stat label="勝率" value={value.winRate===null?'未記録':value.winRate.toFixed(1)+'%'}/></MetricGrid></Panel>}
  return function Profile({acct,stats,profile,onBack,onWardrobe}){
   const [muted]=H.useGameMute();
-  const fb=useFbReady(),real=isReal(acct),daily=useDailyTitles(real?acct.key:null);
+  const fb=useFbReady(),real=isReal(acct);
   const mine=useFbValue(fb.ready&&real?`raidw/${weekKey(now())}/dmg/${acct.key}`:null);
   const authority=fb.ready&&real&&window.NextAuthority?.enabled(H.FB.db,window.location),authorityAwards=useFbValue(authority?`titleNextV1/awards/${acct.key}`:null),authoritySnapshot=useFbValue(authority?`titleNextV1/snapshots/${acct.key}`:null);
   const data=model.read(stats,profile),L=data.exp===null?null:levelOf(data.exp);
@@ -30,9 +30,8 @@ export function createProfile(H){
   const presentationStore=React.useMemo(()=>real&&window.TitlePresentationNext?.enabled(H.FB.db,window.location)?window.TitlePresentationNext.create({db:H.FB.db,account:acct}):null,[real,acct.key,fb.ready]);
   const earned=new Map();
   const visible=new Set(activeAchievements().map(b=>b.id));
-  // Same evaluation as the old modal: the daily-king achievements read st.dailyTitles (dailyV2/titles), so pass it in.
-  for(const b of badgesOf({...(stats||{}),dailyTitles:daily}))if(visible.has(b.id))earned.set(b.id,b.label);
-  for(const flags of [profile?.badges,daily])for(const [id,value]of Object.entries(flags||{}))if(value===true)earned.set(id,titles.titles.find(t=>t.id===id)?.name||nickOf(id)?.label||id);
+  for(const b of badgesOf(stats||{}))if(visible.has(b.id))earned.set(b.id,b.label);
+  for(const flags of [profile?.badges])for(const [id,value]of Object.entries(flags||{}))if(value===true)earned.set(id,titles.titles.find(t=>t.id===id)?.name||nickOf(id)?.label||id);
   for(const [id]of earned){const t=titles.titles.find(t=>t.id===id);if(t)earned.set(id,t.name)}
   // Single equip slot (stats/nick). The inventory receives exactly these inputs, so "earned" here = what the list shows as 取得済み.
   const invIds=authority?[]:[...earned.keys()],invFlags=authority?[Object.fromEntries(Object.entries(authoritySnapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),authorityAwards]:[profile?.badges,...(clientTitles?[Object.fromEntries(Object.entries(clientTitles.snapshot?.earned||{}).map(([id,r])=>[id,{earned:true,at:r.at}])),clientTitles.awards]:[])];
@@ -57,13 +56,13 @@ export function createProfile(H){
   // Fresh read of every earned-proof source right before saving (same sources as the list).
   const freshEarned=async()=>{
    const db=H.FB.db,base='games/factor/',read=async path=>{try{return {ok:true,value:(await db.ref(base+path).get()).val()}}catch(e){return {ok:false}}};
-   const [st,dl,pb,aw,sn]=await Promise.all([read('accounts/'+acct.key+'/stats'),read('dailyV2/titles/'+acct.key),read('onlineSparkV1/profiles/'+acct.key+'/badges'),read('titleNextV1/awards/'+acct.key),read('titleNextV1/snapshots/'+acct.key+'/earned')]);
+   const [st,pb,aw,sn]=await Promise.all([read('accounts/'+acct.key+'/stats'),read('onlineSparkV1/profiles/'+acct.key+'/badges'),read('titleNextV1/awards/'+acct.key),read('titleNextV1/snapshots/'+acct.key+'/earned')]);
    const ids=new Set();
-   if(st.ok)for(const b of badgesOf({...(st.value||{}),dailyTitles:dl.ok?dl.value||{}:{}}))if(visible.has(b.id))ids.add(b.id);
-   for(const r of [dl,pb])if(r.ok)for(const [id,v]of Object.entries(r.value||{}))if(v===true||v?.earned===true)ids.add(id);
+   if(st.ok)for(const b of badgesOf(st.value||{}))if(visible.has(b.id))ids.add(b.id);
+   for(const r of [pb])if(r.ok)for(const [id,v]of Object.entries(r.value||{}))if(v===true||v?.earned===true)ids.add(id);
    if(aw.ok)for(const [id,v]of Object.entries(aw.value||{}))if(v?.earned===true)ids.add(id);
    if(sn.ok)for(const id of Object.keys(sn.value||{}))ids.add(id);
-   return {fresh:ids,complete:st.ok&&dl.ok&&pb.ok&&aw.ok&&sn.ok};
+   return {fresh:ids,complete:st.ok&&pb.ok&&aw.ok&&sn.ok};
   };
   const doEquip=async(id,clear)=>{
    if(!canEquip||eqBusy.current||(!clear&&!memRef.current.has(id)))return;

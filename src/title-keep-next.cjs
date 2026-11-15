@@ -19,7 +19,6 @@ const LEGACY_TESTS = Object.freeze({
   streak10: (st) => (st.maxStreak || 0) >= 10,
   streak30: (st) => (st.maxStreak || 0) >= 30,
   streak50: (st) => (st.maxStreak || 0) >= 50,
-  mis7: (st) => (st.misDays || 0) >= 7,
   cancel500: (st) => (st.cancelTotal || 0) >= 500,
   cancel2000: (st) => (st.cancelTotal || 0) >= 2000,
   darkhorse: (st) => (st.darkHorse || 0) >= 1,

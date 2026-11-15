@@ -81,8 +81,8 @@ test('sync: legacy flags are never re-awarded while the snapshot is still pendin
  f.tree.games.factor.accounts.ap.stats={nick:'first',w:2};
  const r2=await T.sync({db:f.db,account:{key:'ap'},computeBadgeIds:legacy});
  assert.equal(r2.status,'ok');assert.equal(r2.frozen,true);
- assert.deepEqual(Object.keys(f.tree.games.factor.titleNextV1.snapshots.ap.earned).sort(),['daily_easy_king','easy_adept','first']);
- const v=T.view({snapshot:r2.snapshot,awards:r2.awards});assert(v.earned.first&&v.earned.easy_adept&&v.earned.daily_easy_king);
+ /* Ver.6.33: the daily winner titles were removed and dailyV2/titles is no longer read, so a stored daily flag is not frozen as a title; the stored record itself is left alone */assert.deepEqual(Object.keys(f.tree.games.factor.titleNextV1.snapshots.ap.earned).sort(),['easy_adept','first']);assert.deepEqual(f.tree.games.factor.dailyV2,{titles:{ap:{daily_easy_king:true}}});
+ const v=T.view({snapshot:r2.snapshot,awards:r2.awards});assert(v.earned.first&&v.earned.easy_adept&&!v.earned.daily_easy_king);
 });
 test('sync: titles awarded before the freeze survive it, nothing is awarded twice, stats/nick untouched',async()=>{
  const seed=base();seed.games.factor.accounts.ap.stats={};const f=fakeDb(seed,{once:/titleNextV1\/(snapshots|awards)\//});

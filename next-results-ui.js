@@ -491,8 +491,8 @@
         schemaVersion: 1,
         source: "\u6240\u6709\u8005\u63D0\u4F9B \u5168100\u79F0\u53F7 2026-10-15",
         status: "roster-confirmed-reveal-pending",
-        expectedNormalCount: 100,
-        expectedFiveStarCount: 26,
+        expectedNormalCount: 95,
+        expectedFiveStarCount: 22,
         excludedAwardModes: [
           "cpu",
           "selfGhost"
@@ -504,46 +504,6 @@
           visibleBeforeEarned: false
         },
         titles: [
-          {
-            number: 1,
-            legacyNumber: 1,
-            name: "\u6681\u306E\u8987\u8005",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30A4\u30FC\u30B8\u30FC\u512A\u52DD",
-            stars: 5,
-            id: "daily_easy_king",
-            legacyId: "daily_easy_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 2,
-            legacyNumber: 2,
-            name: "\u84BC\u7A79\u306E\u8987\u8005",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30CE\u30FC\u30DE\u30EB\u512A\u52DD",
-            stars: 5,
-            id: "daily_normal_king",
-            legacyId: "daily_normal_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 3,
-            legacyNumber: 3,
-            name: "\u6DF1\u6DF5\u306E\u8987\u738B",
-            condition: "\u30C7\u30A4\u30EA\u30FC\u30CF\u30FC\u30C9\u512A\u52DD",
-            stars: 5,
-            id: "daily_hard_king",
-            legacyId: "daily_hard_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
-          {
-            number: 4,
-            legacyNumber: 4,
-            name: "\u5929\u4E0B\u7D71\u4E00",
-            condition: "\u540C\u3058\u65E5\u306B\u30C7\u30A4\u30EA\u30FC\u51683\u90E8\u9580\u512A\u52DD",
-            stars: 5,
-            id: "daily_king",
-            legacyId: "daily_king",
-            category: "\u30C7\u30A4\u30EA\u30FC"
-          },
           {
             number: 5,
             legacyNumber: 92,
@@ -1382,16 +1342,6 @@
             stars: 3,
             id: "sp50",
             legacyId: "sp50",
-            category: "\u30DC\u30B9\u30FB\u652F\u63F4"
-          },
-          {
-            number: 89,
-            legacyNumber: 59,
-            name: "\u4EFB\u52D9\u5B8C\u9042",
-            condition: "7\u65E5\u9023\u7D9A\u3067\u30C7\u30A4\u30EA\u30FC\u30DF\u30C3\u30B7\u30E7\u30F3\u3092\u3059\u3079\u3066\u9054\u6210",
-            stars: 3,
-            id: "mis7",
-            legacyId: "mis7",
             category: "\u30DC\u30B9\u30FB\u652F\u63F4"
           },
           {
