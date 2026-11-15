@@ -2,7 +2,7 @@
 // Build/review only. This module neither grants awards nor connects to Firebase.
 function validateCatalog(catalog) {
   const errors = [], rows = catalog.titles || [], ids = new Set(), numbers = new Set(), old = new Set();
-  if (rows.length !== 100) errors.push('NORMAL_COUNT');
+  if (rows.length !== 95) errors.push('NORMAL_COUNT');   // Ver.6.33: 100 - 5 (four daily winners and mis7 were removed with the daily mode)
   for (const t of rows) {
     if (!Number.isInteger(t.number) || t.number < 1 || t.number > 100 || numbers.has(t.number)) errors.push('DISPLAY_NUMBER');
     if (!Number.isInteger(t.legacyNumber) || old.has(t.legacyNumber)) errors.push('LEGACY_NUMBER');
@@ -12,7 +12,7 @@ function validateCatalog(catalog) {
     ids.add(t.id); numbers.add(t.number); old.add(t.legacyNumber);
   }
   const fiveStar = rows.filter(t => t.stars === 5).map(t => t.id);
-  if (fiveStar.length !== 26) errors.push('FIVE_STAR_COUNT');
+  if (fiveStar.length !== 22) errors.push('FIVE_STAR_COUNT');   // Ver.6.33: 26 - 4 daily winners
   if (catalog.hidden?.requiredDistinctFiveStar !== 15 || catalog.hidden?.visibleBeforeEarned !== false || ids.has(catalog.hidden?.id)) errors.push('HIDDEN_RULE');
   return { valid: errors.length === 0, errors: [...new Set(errors)], normalCount: rows.length, fiveStarCount: fiveStar.length, fiveStarIds: fiveStar };
 }

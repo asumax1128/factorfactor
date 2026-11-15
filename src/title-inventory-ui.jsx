@@ -67,7 +67,7 @@ export function TitleInventory({earnedIds=[],flags=[],equipped,accountKey,muted=
   return()=>{active=false};
  },[readOnly,state.hiddenOwned,presentationKey,presentationStore]);
  const closeScene=()=>{setScene(false);if(presentationStore){presentationStore.acknowledge().then(()=>setPresentationError('')).catch(()=>setPresentationError('閲覧状況を保存できませんでした。再視聴後に再試行します。'));return;}if(presentationKey)try{localStorage.setItem(presentationKey,'seen')}catch(e){}};
- const total=100+(state.hiddenOwned?1:0),got=state.normal.length+(state.hiddenOwned?1:0),pct=Math.round(got*100/total);
+ const total=catalog.titles.length+(state.hiddenOwned?1:0),got=state.normal.length+(state.hiddenOwned?1:0),pct=Math.round(got*100/total);
  const shown=catalog.titles.filter(t=>filter==='all'||(filter==='earned')===!!state.earned[t.id]);
  const openT=open==='__hidden'?null:catalog.titles.find(t=>t.id===open);
  const card=(t,earned,hidden)=>{const id=hidden?catalog.hidden.id:t.id,name=hidden?catalog.hidden.name:t.name,stars=hidden?5:t.stars;

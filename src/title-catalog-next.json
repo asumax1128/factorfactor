@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "source": "所有者提供 全100称号 2026-10-15",
   "status": "roster-confirmed-reveal-pending",
-  "expectedNormalCount": 100,
-  "expectedFiveStarCount": 26,
+  "expectedNormalCount": 95,
+  "expectedFiveStarCount": 22,
   "excludedAwardModes": [
     "cpu",
     "selfGhost"
@@ -15,46 +15,6 @@
     "visibleBeforeEarned": false
   },
   "titles": [
-    {
-      "number": 1,
-      "legacyNumber": 1,
-      "name": "暁の覇者",
-      "condition": "デイリーイージー優勝",
-      "stars": 5,
-      "id": "daily_easy_king",
-      "legacyId": "daily_easy_king",
-      "category": "デイリー"
-    },
-    {
-      "number": 2,
-      "legacyNumber": 2,
-      "name": "蒼穹の覇者",
-      "condition": "デイリーノーマル優勝",
-      "stars": 5,
-      "id": "daily_normal_king",
-      "legacyId": "daily_normal_king",
-      "category": "デイリー"
-    },
-    {
-      "number": 3,
-      "legacyNumber": 3,
-      "name": "深淵の覇王",
-      "condition": "デイリーハード優勝",
-      "stars": 5,
-      "id": "daily_hard_king",
-      "legacyId": "daily_hard_king",
-      "category": "デイリー"
-    },
-    {
-      "number": 4,
-      "legacyNumber": 4,
-      "name": "天下統一",
-      "condition": "同じ日にデイリー全3部門優勝",
-      "stars": 5,
-      "id": "daily_king",
-      "legacyId": "daily_king",
-      "category": "デイリー"
-    },
     {
       "number": 5,
       "legacyNumber": 92,
@@ -893,16 +853,6 @@
       "stars": 3,
       "id": "sp50",
       "legacyId": "sp50",
-      "category": "ボス・支援"
-    },
-    {
-      "number": 89,
-      "legacyNumber": 59,
-      "name": "任務完遂",
-      "condition": "7日連続でデイリーミッションをすべて達成",
-      "stars": 3,
-      "id": "mis7",
-      "legacyId": "mis7",
       "category": "ボス・支援"
     },
     {

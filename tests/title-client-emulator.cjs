@@ -27,14 +27,14 @@ const T=require('../src/title-client-next.cjs');
   const r1=await T.sync({db:d1.db,account:acct,computeBadgeIds:legacyOf});
   assert.equal(r1.frozen,true);assert.deepEqual(r1.added.sort(),['easy_adept','easy_master'],'peak titles are judged; daily/legacy ones are frozen, not re-awarded');
   const snap=(await d1.db.ref('games/factor/titleNextV1/snapshots/ap').get()).val();
-  assert.deepEqual(Object.keys(snap.earned).sort(),['daily_easy_king','first','streak10']);assert(Number.isSafeInteger(snap.capturedAt));assert.equal(snap.equipped,'first');
+  /* Ver.6.33: the daily winner titles were removed; dailyV2/titles is no longer read */assert.deepEqual(Object.keys(snap.earned).sort(),['first','streak10']);assert(Number.isSafeInteger(snap.capturedAt));assert.equal(snap.equipped,'first');
   const a1=(await d1.db.ref('games/factor/titleNextV1/awards/ap').get()).val();assert.equal(a1.easy_master.earned,true);assert(Number.isSafeInteger(a1.easy_master.at));
   console.log('PASS freeze + first client award saved under the player');
   // 2. re-login on the same device and a second device see the same state; nothing is added twice
   const r2=await T.sync({db:d1.db,account:acct,computeBadgeIds:legacyOf});
   assert.equal(r2.frozen,false);assert.deepEqual(r2.added,[]);
   const r3=await T.sync({db:d2.db,account:acct,computeBadgeIds:()=>[]});
-  assert.deepEqual(r3.added,[]);assert.deepEqual(Object.keys(T.view({snapshot:r3.snapshot,awards:r3.awards}).earned).sort(),['daily_easy_king','easy_adept','easy_master','first','streak10']);
+  assert.deepEqual(r3.added,[]);assert.deepEqual(Object.keys(T.view({snapshot:r3.snapshot,awards:r3.awards}).earned).sort(),['easy_adept','easy_master','first','streak10']);
   assert.equal((await d2.db.ref('games/factor/titleNextV1/snapshots/ap/migrationId').get()).val(),'v6-client-1');
   console.log('PASS re-login / second device reproduce the same titles without duplicates');
   // 3. peaks rising later add; legacy-looking inputs on a later run cannot overwrite the frozen snapshot

@@ -352,7 +352,6 @@ let C_FOLLOW = { win: 3000, mul: 1.2 };
 let handiDmgMul = h => 1 - 0.15 * (h || 0);
 let handiPtsMul = h => 1 + 0.1 * (h || 0);
 let BADGES = [
-  ...[['daily_easy_king','DEキング','イージー'],['daily_normal_king','DNキング','ノーマル'],['daily_hard_king','DHキング','ハード'],['daily_king','デイリーキング','全3部門']].map(([id,label,d])=>({id,g:id,r:4,icon:'👑',label,desc:`デイリー${d}優勝`,test:st=>!!st.dailyTitles?.[id]})),
   // g：系統（同じ系統は一番上だけ名前の横に出す） r：めずらしさ（大きいほど先に出す） desc：取り方
   { id: 'first', g: 'first', r: 1, icon: '🌱', label: 'はじめの一歩', desc: '初めて勝つ', test: st => (st.w || 0) + (+st.sWins || 0) >= 1 },
   { id: 'lose50', g: 'lose', r: 2, icon: '🧱', label: '七転び八起き', desc: '負け50回（それでも続けた！）', test: st => (st.l || 0) + (+st.sLoss || 0) >= 50 },
@@ -409,7 +408,6 @@ let BADGES = [
   { id: 'bounty1', g: 'bounty', r: 2, icon: '💰', label: '賞金稼ぎ', desc: '懸賞金がかかった相手に勝つ', test: st => (st.bountyWins || 0) >= 1 },
   { id: 'bounty10', g: 'bounty', r: 4, icon: '🤠', label: '伝説のハンター', desc: '懸賞金がかかった相手に通算10回勝つ', test: st => (st.bountyWins || 0) >= 10 },
   { id: 'wanted', g: 'wanted', r: 3, icon: '📜', label: 'お尋ね者', desc: '懸賞金50以上がかかる（7連勝）', test: st => (st.maxStreak || 0) >= 7 },
-  { id: 'mis7', g: 'mis', r: 3, icon: '📆', label: 'ミッション皆勤', desc: 'デイリーミッションを7日連続ですべて達成', test: st => ((st.misRun || {}).best || 0) >= 7 || keptTitle(st, 'mis7', s => (s.misDays || 0) >= 7) },
   { id: 'lasthit', g: 'lasthit', r: 4, icon: '🗡️', label: 'ラストアタッカー', desc: 'クラス協力レイドでボスにとどめを刺す', test: st => (st.lastHits || 0) >= 1 },
   // 今週のボス
   { id: 'wk1', g: 'wk', r: 1, icon: '🗓️', label: '初陣', desc: '今週のボスに初めて出撃する', test: st => ((st.wk || {}).weeks || 0) >= 1 },

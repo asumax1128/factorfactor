@@ -1,4 +1,4 @@
-// New profile: one equip slot (stats/nick) for all 100 catalog titles + the hidden title (mock Firebase).
+// New profile: one equip slot (stats/nick) for all catalog titles (95 since Ver.6.33) + the hidden title (mock Firebase).
 // Reuses the existing save (equipNick, shared with the old modal). Never writes profile.title or snapshots.equipped.
 const assert = require("node:assert/strict");
 const { chromium, context, sleep, openRankingHub } = require("./browser-harness.cjs"); // Ver.6.13: ranking = 順位 tab
@@ -78,13 +78,10 @@ const untouched = (tree, t0) => {
       assert.equal(await p.locator("[data-rating-title-note]").count(), 0);
       await equip(p, tree, "tour1", { clear: true });
       await equip(p, tree, "tour1");
-      // daily kings: earned (dailyV2/titles) and equippable (the reported bug)
-      for (const id of ["daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king"]) {
-        assert.equal(await eq(p, id).getAttribute("data-equip-state"), "off", `${id} shows as equippable`);
-        assert.doesNotMatch(await eq(p, id).innerText(), /未取得|対応していません/, `${id} has no false 'unsupported' message`);
-        await equip(p, tree, id);
-        assert.match(await p.locator(".next-equipped").first().innerText(), new RegExp(name(id)));
-      }
+      // Ver.6.33: the four daily winner titles and mis7 were removed with the daily mode. Even with the old records saved
+      // (dailyV2/titles in the fixture), they are not listed, not earned and cannot be equipped.
+      for (const id of ["daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7"]) assert.equal(await p.locator(`[data-title-id="${id}"]`).count(), 0, `${id} is not in the list`);
+      assert.equal(await p.locator("[data-title-id]").count(), catalog.titles.length + 1, "95 titles + the earned hidden title");
       // the titles that have no BADGES entry (display + equip through the catalog labels)
       for (const id of NOT_IN_BADGES) {
         await equip(p, tree, id);
@@ -140,7 +137,7 @@ const untouched = (tree, t0) => {
       await closeDlg(p);
       assert.match(await p.locator("[data-equip-current]").innerText(), /現在の装備：〈.+〉（従来の称号）/, id);
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*必殺技いらず/);
-      assert(await p.locator("[data-title-id]").count() >= 100, "the title list is shown: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 95, "the title list is shown: " + id);
       await p.locator("[data-equip-current]").getByRole("button", { name: /はずす/ }).click();
       await p.locator('.next-title-equip-current [data-equip-status="saved"]').waitFor();
       assert.strictEqual(tree.games.factor.accounts.ateacher.stats.nick, "", "cleared as an explicit unequip: " + id);
@@ -150,7 +147,7 @@ const untouched = (tree, t0) => {
     // Ver.6.29: an equipped id whose title was removed from the game (old-tower titles, or any id with no definition) is treated
     // as "no title equipped" on every screen. Nothing is written by opening the screens; another title can be equipped as usual,
     // and that changes only stats/nick.
-    for (const id of ["tw10", "tw50", "tw100", "some_title_removed_later"]) {
+    for (const id of ["tw10", "tw50", "tw100", "daily_easy_king", "daily_normal_king", "daily_hard_king", "daily_king", "mis7", "some_title_removed_later"]) {
       const tree = mkTree({ nick: id });
       const t = await context(b, { tree }), p = t.page;
       await p.setViewportSize({ width: 390, height: 844 });
@@ -163,7 +160,7 @@ const untouched = (tree, t0) => {
       assert.equal(await p.locator("[data-equip-current]").count(), 0, "no current-equip row for a removed title: " + id);
       assert.equal(await p.getByText("表示できない称号").count(), 0, "the old wording is gone: " + id);
       assert.equal(await p.locator('[data-title-id][data-equipped="true"]').count(), 0, "no title marked as equipped: " + id);
-      assert(await p.locator("[data-title-id]").count() >= 100, "the title list is shown: " + id);
+      assert(await p.locator("[data-title-id]").count() >= 95, "the title list is shown: " + id);
       assert(!/塔の|数理の書|終わりなき/.test(await p.locator("body").innerText()), "no old-tower title name shown: " + id);
       await p.getByRole("tab", { name: "概要" }).click();
       assert.match(await p.locator(".next-equipped").first().innerText(), /装備中称号：\s*未設定/, "profile overview: 未設定: " + id);
@@ -187,8 +184,8 @@ const untouched = (tree, t0) => {
       const tree = mkTree();
       const t = await context(b, { tree }), p = t.page;
       await open(p, 390, 844);
-      await p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "daily_king" }));
-      await p.waitForFunction(() => document.querySelector('[data-title-id="daily_king"]')?.dataset.equipped === "true", null, { timeout: 8000 });
+      await p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "giant250" }));
+      await p.waitForFunction(() => document.querySelector('[data-title-id="giant250"]')?.dataset.equipped === "true", null, { timeout: 8000 });
       assert.equal(await eq(p, "tour1").getAttribute("data-equip-state"), "off");
       await p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "" }));
       await closeDlg(p);
@@ -201,18 +198,18 @@ const untouched = (tree, t0) => {
       const tree = mkTree();
       const t = await context(b, { tree, onOperation: async (op) => { if (failing && /stats\/nick/.test(op.path)) throw new Error("mock permission denied"); } }), p = t.page;
       await open(p, 390, 844);
-      await eq(p, "daily_king").getByRole("button", { name: /装備する/ }).scrollIntoViewIfNeeded();
-      await eq(p, "daily_king").getByRole("button", { name: /装備する/ }).click();
-      await eq(p, "daily_king").locator('[data-equip-status="failed"]').waitFor();
-      assert.match(await eq(p, "daily_king").innerText(), /保存できませんでした/);
-      assert.equal(await eq(p, "daily_king").getAttribute("data-equip-state"), "off", "a failed equip never looks equipped");
+      await eq(p, "giant250").getByRole("button", { name: /装備する/ }).scrollIntoViewIfNeeded();
+      await eq(p, "giant250").getByRole("button", { name: /装備する/ }).click();
+      await eq(p, "giant250").locator('[data-equip-status="failed"]').waitFor();
+      assert.match(await eq(p, "giant250").innerText(), /保存できませんでした/);
+      assert.equal(await eq(p, "giant250").getAttribute("data-equip-state"), "off", "a failed equip never looks equipped");
       assert.equal(await eq(p, "tour1").getAttribute("data-equip-state"), "on", "the previous equip stays shown");
       assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "tour1");
       failing = false;
-      await eq(p, "daily_king").getByRole("button", { name: /装備する/ }).click();
-      await eq(p, "daily_king").locator('[data-equip-status="saved"]').waitFor();
-      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "daily_king");
-      if (SHOT) { await eq(p, "daily_king").scrollIntoViewIfNeeded(); await p.screenshot({ path: `${SHOT}/equip-retry-390.png` }); }
+      await eq(p, "giant250").getByRole("button", { name: /装備する/ }).click();
+      await eq(p, "giant250").locator('[data-equip-status="saved"]').waitFor();
+      assert.equal(tree.games.factor.accounts.ateacher.stats.nick, "giant250");
+      if (SHOT) { await eq(p, "giant250").scrollIntoViewIfNeeded(); await p.screenshot({ path: `${SHOT}/equip-retry-390.png` }); }
       await t.ctx.close();
     }
     // slow network: saving is shown and buttons locked; reflected only on success
@@ -220,14 +217,14 @@ const untouched = (tree, t0) => {
       const tree = mkTree();
       const t = await context(b, { tree, onOperation: async (op) => { if (/stats\/nick/.test(op.path)) await sleep(7500); } }), p = t.page;
       await open(p, 390, 844);
-      await eq(p, "daily_king").getByRole("button", { name: /装備する/ }).scrollIntoViewIfNeeded();
-      await eq(p, "daily_king").getByRole("button", { name: /装備する/ }).click();
-      await eq(p, "daily_king").locator('[data-equip-status="saving"]').waitFor();
-      assert.equal(await eq(p, "daily_king").getAttribute("data-equip-state"), "off", "not shown as equipped while saving");
+      await eq(p, "giant250").getByRole("button", { name: /装備する/ }).scrollIntoViewIfNeeded();
+      await eq(p, "giant250").getByRole("button", { name: /装備する/ }).click();
+      await eq(p, "giant250").locator('[data-equip-status="saving"]').waitFor();
+      assert.equal(await eq(p, "giant250").getAttribute("data-equip-state"), "off", "not shown as equipped while saving");
       assert(await p.locator(".next-title-equip-btn").evaluateAll((es) => es.every((e) => e.disabled)), "every equip button is locked while saving");
       await p.getByText(/通信が遅れています/).waitFor({ timeout: 9000 });
-      await eq(p, "daily_king").locator('[data-equip-status="saved"]').waitFor({ timeout: 12000 });
-      assert.equal(await eq(p, "daily_king").getAttribute("data-equip-state"), "on");
+      await eq(p, "giant250").locator('[data-equip-status="saved"]').waitFor({ timeout: 12000 });
+      assert.equal(await eq(p, "giant250").getAttribute("data-equip-state"), "on");
       await t.ctx.close();
     }
     // Ver.6.4: the old modal's grid and pickNick are gone. A catalog-only title equipped earlier is still resolved and can be released from the new profile.
@@ -266,7 +263,7 @@ const untouched = (tree, t0) => {
       assert.match(await p.locator(".account-main").innerText(), /装備中の称号なし/, "after a reload the cleared state holds and the old title does not come back");
       await open(p);
       assert.equal(await eq(p, "easy_adept").getAttribute("data-equip-state"), "off");
-      await equip(p, tree, "daily_king");
+      await equip(p, tree, "giant250");
       assert.equal(tree.games.factor.onlineSparkV1.profiles.ateacher.title, "easy_adept");
       assert.equal(await t.writes.filter((x) => /onlineSparkV1/.test(x.path)).length, 0, "no write ever touched the Spark profile");
       await t.ctx.close();
@@ -346,7 +343,7 @@ const untouched = (tree, t0) => {
       { const c = await setup(async (op) => { if (/stats\/nick/.test(op.path)) await sleep(3000); });
         await BTN(c.p).click(); await c.p.locator('[data-rank-equip="saving"]').waitFor();
         assert(await BTN(c.p).isDisabled(), "buttons are locked while saving");
-        await c.p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "daily_king" }));
+        await c.p.evaluate(() => window.__fbApply({ kind: "set", path: "games/factor/accounts/ateacher/stats/nick", v: "giant250" }));
         await c.p.locator('[data-rank-equip="saved"]').waitFor({ timeout: 20000 });
         const st = c.state(); assert.equal(st.title, "easy_adept"); assert.equal(st.nick, "easy_adept", "this device's save was the last write to the unified slot");
         await c.t.ctx.close(); }
@@ -375,7 +372,7 @@ const untouched = (tree, t0) => {
       assert.equal(await p.locator(".next-title-equip-btn:not([disabled])").count(), 0, "guests cannot equip");
       await t.ctx.close();
     }
-    console.log("PASS title equip (single slot, 3 states): daily kings, no-BADGES titles, hidden, locked, legacy-only, absent/cleared/id, ranking rows + HOME + ranking button agree, old modal, multi-device, failure/slow, guest, reload");
+    console.log("PASS title equip (single slot, 3 states): removed daily titles not listed and shown as not equipped, no-BADGES titles, hidden, locked, legacy-only, absent/cleared/id, ranking rows + HOME + ranking button agree, old modal, multi-device, failure/slow, guest, reload");
   } finally {
     await b.close();
   }

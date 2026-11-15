@@ -59,9 +59,9 @@ async function sync({db,account,computeBadgeIds=()=>[]}){
  const key=account?.key;if(!key)return{status:'skipped',reason:'guest',added:[],awards:{}};
  const g=p=>db.ref(`games/factor/${p}`).get().then(s=>s.val());
  const sRef=db.ref(`${ROOT}/snapshots/${key}`),aRef=db.ref(`${ROOT}/awards/${key}`);
- let stats,daily,sparkProfile,snap0,awards0,acctName,connected;
+ let stats,sparkProfile,snap0,awards0,acctName,connected;
  try{
-  [stats,daily,sparkProfile,snap0,awards0,acctName]=await Promise.all([g(`accounts/${key}/stats`),g(`dailyV2/titles/${key}`),g(`onlineSparkV1/profiles/${key}`),sRef.get().then(s=>s.val()),aRef.get().then(s=>s.val()),g(`accounts/${key}/name`)]);
+  [stats,sparkProfile,snap0,awards0,acctName]=await Promise.all([g(`accounts/${key}/stats`),g(`onlineSparkV1/profiles/${key}`),sRef.get().then(s=>s.val()),aRef.get().then(s=>s.val()),g(`accounts/${key}/name`)]);
  }catch(e){return{status:'failed',error:'READ_FAILED',added:[],awards:{}};}   // a failed read is never treated as "no titles"
  try{connected=(await db.ref('.info/connected').get()).val();}catch(e){connected=undefined;}
  // Offline writes would hang until reconnect: do nothing now and retry.
@@ -72,7 +72,7 @@ async function sync({db,account,computeBadgeIds=()=>[]}){
   if(acctName==null){canFreeze=false;freezeDeferred='ACCOUNT_UNCONFIRMED';}
   else if(isEmpty(stats)){canFreeze=false;freezeDeferred='STATS_EMPTY';}
  }
- const legacy=legacyIds({badgeIds:computeBadgeIds(stats||{}),flags:[daily,stats?.ghostTitles,sparkProfile?.badges]});
+ const legacy=legacyIds({badgeIds:computeBadgeIds(stats||{}),flags:[stats?.ghostTitles,sparkProfile?.badges]});
  const p=plan({account:key,snapshot,awards,legacy,equipped:stats?.nick||null,facts:{sparkProfile},canFreeze});
  let snapshotError=null;
  if(p.snapshot){
