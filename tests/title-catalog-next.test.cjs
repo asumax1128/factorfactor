@@ -22,6 +22,12 @@ test('owner supplied normal catalog: 1..100 minus the removed daily, bounty and 
   assert.equal(catalog.titles.filter(t => t.legacyId).length, 80);
   // Ver.6.36: wanted (No.39) stays, renamed for a plain 7-win streak; its id and condition (maxStreak >= 7) are unchanged.
   assert.deepEqual((({ number, name, condition, stars, id, legacyId }) => ({ number, name, condition, stars, id, legacyId }))(catalog.titles.find(t => t.id === 'wanted')), { number: 39, name: '快進撃', condition: '7連勝', stars: 3, id: 'wanted', legacyId: 'wanted' });
+  // Ver.6.40: the icon of wanted (快進撃) is ⚡ (was 📜). The catalog has no icon field; the icon lives in BADGES (index.html) and its generated copy.
+  for (const f of ['index.html', 'server/online-rated/engine-source.js']) {
+    const line = fs.readFileSync(f, 'utf8').split('\n').find((l) => l.includes("{ id: 'wanted', g: 'wanted',"));
+    assert(line && line.includes("icon: '⚡'") && !line.includes('📜'), 'wanted icon is ⚡ in ' + f);
+    assert(line.includes('r: 3') && line.includes("label: '7連勝'") && line.includes("desc: '7連勝する'") && line.includes('(st.maxStreak || 0) >= 7'), 'rank, label, description and condition unchanged in ' + f);
+  }
   assert(!catalog.titles.some(t => /^tw\d+$/.test(t.id)));
 });
 test('final owner approval promotes No.65 with stable ID and resolves 22 five-star titles', () => {
