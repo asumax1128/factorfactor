@@ -20,7 +20,7 @@ for(const e of entries){
  if(e.category==='ログイン')occurrences.push(ref('index.html','async function claimLogin'));
  if(e.category==='数学の塔')occurrences.push('旧TowerApp（Ver.6.12で到達不能のため削除。新規書き込みなし、保存済みst.towerは保持）');
  if(e.category==='ゴースト'){e.judge+='; '+ref('src/ghost-model.cjs','function titles');occurrences.push(ref('src/online-spark-client.cjs','ghostTitles'));}
- if(e.category==='デイリー優勝'){e.judge+='; '+ref('src/daily-client.cjs','async function awards');occurrences.push('firebase/daily-v2-rules.cjs（順位証明）');}
+ if(e.category==='デイリー優勝'){e.judge+='; デイリーチャレンジ削除（Ver.6.31）により新規付与なし';occurrences.push('firebase/daily-v2-rules.cjs（順位証明）');}
  if(e.category==='対戦')occurrences.push(ref('index.html','async function recordMatch'));
  if(['nomiss','nomiss10','clutch','miracle','flawless'].includes(e.id)){e.mode='戦績保存対象のB／C（集計条件isBm(mode)）';if(e.id!=='nomiss10')e.consistency='説明はB限定だが、実集計はisBm(mode)でBとCを含む。取得条件は変更しない。';}
  if(e.id==='flawless')e.consistency+=' 新B2のdmgTakenは誤答のHP罰で増え、お邪魔カードの受信では増えない。説明と指標の対応を要確認。';

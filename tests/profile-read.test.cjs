@@ -15,6 +15,6 @@ test('legacy B and rating generations are separate and all inputs are immutable'
  assert.equal(v.legacy.games,20);assert.equal(v.modes.B.games,10);assert.equal(v.rated.easy.games,20);assert.equal(v.rated.normal.games,5);assert.equal(v.modes.C.games,null);assert.equal(v.weekly.best,850);assert.equal(JSON.stringify({st,profile}),before);
 });
 test('shared navigation preserves known profile origins and rejects unknown returns',()=>{
- for(const from of ['home','solo','battle','daily','rankings','ranking-daily'])assert.equal(N.back({from}).page,from);
+ for(const from of ['home','solo','battle','rankings'])assert.equal(N.back({from}).page,from);
  assert.equal(N.back({from:'https://example.com'}).page,'home');assert.equal(N.target('rank'),'rankings');assert.equal(N.active('ranking-rating'),'rank');assert.equal(N.active('profile'),'account');assert.equal(N.back({from:'solo',fromArg:{menu:'help'}}).arg.menu,'help');
 });

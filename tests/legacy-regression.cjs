@@ -10,11 +10,11 @@ const Babel = require("@babel/standalone");
 // release commit (the previous test, against 56981bd + an allow-list, passed on PIN_BASE).
 const PIN_BASE = "5f599f49c6aed811ea85805e01d92647988e9e41"; // Ver.6.11
 const PROTECTED = {
-  math: "gcd randInt randSign randNonZero factorKey toCoeffs multiply polyEqual formatLinear formatQuadraticFactor formatFactorTile formatPoly coprime genL1 genL2 genL3 genL4 genL5 genL6 genL7 genL8 genL9 getLevelWeights pickLevelForQuestion flipSign shiftConst foreignFactor genDummies buildBoard getJudgment buildReverseQuestion patternOf pairOf dailyProblems drillProblems hashSeed mulberry32 withSeed makeBank answerOf problemForA towerModProb towerSimProb",
+  math: "gcd randInt randSign randNonZero factorKey toCoeffs multiply polyEqual formatLinear formatQuadraticFactor formatFactorTile formatPoly coprime genL1 genL2 genL3 genL4 genL5 genL6 genL7 genL8 genL9 getLevelWeights pickLevelForQuestion flipSign shiftConst foreignFactor genDummies buildBoard getJudgment buildReverseQuestion patternOf pairOf drillProblems hashSeed mulberry32 withSeed makeBank answerOf problemForA towerModProb towerSimProb",
   battle: "addOjama attackFor scoreA createBEngine bTarget BattleBoard GameA GameB BattleGame",
   online: "rankOf ratingDelta matchOutcome openMatch recordMatch b2PendRaw b2PendWrite b2PendLoad b2PendAdd b2PendDrop b2Confirm swissStandings swissPair flushOnlineLearn fetchRatings pickGhost makeBotProfile CpuBots",
   weekly: "weekKey weeklyInfo raidSchedule raidCalc chestRoll ensureWeekMeta settleWeek RaidPlay useBossGim",
-  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn applyMis missionEvent claimMission misRunStep missionsFor statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher completeDailySolo fbStart makeLocalDb",
+  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn applyMis missionEvent claimMission misRunStep missionsFor statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher fbStart makeLocalDb",
   ranking: "compareEntries dedupeByName withRanks aggregateTotalRanking fetchNetRanking submitNetScore loadRankingFromStorage saveRankingToStorage",
 };
 // Ver.6.15: the login screen is restyled. Its LOGIC stays pinned exactly: everything in the function except the returned markup
