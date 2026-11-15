@@ -132,5 +132,36 @@ const src = fs.readFileSync("index.html", "utf8");
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log("PASS daily challenge removed: no screen/client/bundle/files/routes; nothing written under dailyV2; saved daily data untouched");
     }
+    // Ver.6.32: the daily missions are removed: no mission code in the page, no mission wording, the teacher's class table has no
+    // 「今日のﾐｯｼｮﾝ」 column, and the saved mission record of an account is neither shown nor rewritten.
+    {
+      for (const name of ["missionEvent", "missionsFor", "applyMis", "misRunStep", "claimMission", "useMissions", "MissionList", "DailyProgress", "MIS_POOL", "MIS_EXP", "fxf_guest_mis_v1", "今日のミッション", "ﾐｯｼｮﾝ", "ck('mis')"])
+        assert(!src.includes(name), "removed from the page: " + name);
+      const exposed = src.replace("const root = ReactDOM.createRoot(rootEl);", "window.__dash={TeacherDash};\nconst root = ReactDOM.createRoot(rootEl);");
+      const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+      const g = tree();
+      g.games.factor.teachers = { ateacher: true };
+      g.games.factor.accounts.akid = { name: "Kid", stats: { exp: 300, games: 3, last: Date.now() }, prof: { at: Date.now(), lv: { L1: { n: 10, ok: 8, ms: 9000 } }, pt: { p1a: { n: 10, ok: 8 } } }, mis: { d: today, p: { ok: 30 }, c: { ch: 1, m1: 1, m2: 1, m3: 1, all: 1 } } };
+      const saved = JSON.stringify(g.games.factor.accounts.akid);
+      const t = await context(b, { tree: g, assetOverrides: { "/": exposed } }), p = t.page;
+      await p.waitForFunction(() => !!window.__dash);
+      await p.evaluate(() => { const el = document.createElement("div"); el.id = "dash-test"; document.body.appendChild(el); document.getElementById("root").style.display = "none"; ReactDOM.createRoot(el).render(React.createElement(window.__dash.TeacherDash, { acct: { key: "ateacher", name: "Teacher" }, onBack() {}, onWatch() {} })); });
+      await p.locator("#dash-test").getByText("クラスの理解度", { exact: true }).click();
+      await p.locator("#dash-test").getByText("全員", { exact: true }).click();
+      const head = p.locator("#dash-test").getByText("いちばん苦手な型", { exact: true }).locator("..");
+      await head.waitFor();
+      assert.deepEqual(await head.locator("span").allInnerTexts(), ["名前", "Lv", "ランク", "正答率", "解いた数", "いちばん苦手な型"], "class table columns (no mission column)");
+      const row = p.locator("#dash-test").getByText("Kid", { exact: true }).locator("..");
+      await row.waitFor();
+      assert.equal(await row.locator(":scope > span").count(), 6, "each row has the same six cells");
+      assert.match(await row.innerText(), /80%/);
+      assert.equal(await head.evaluate((e) => getComputedStyle(e).gridTemplateColumns.split(" ").length), 6);
+      assert.equal(await row.evaluate((e) => getComputedStyle(e).gridTemplateColumns.split(" ").length), 6);
+      assert.equal(await p.locator("#dash-test").getByText(/ﾐｯｼｮﾝ|ミッション|\/4/).count(), 0, "no mission wording or x/4 cell in the dashboard");
+      assert.equal(JSON.stringify(t.tree.games.factor.accounts.akid), saved, "the student's saved data (including the old mission record) is untouched");
+      assert.equal(t.writes.filter((x) => /\/mis(\/|$)/.test(x.path)).length, 0, "nothing written under mis");
+      assert.deepEqual(t.errors, []); await t.ctx.close();
+      console.log("PASS missions removed: no mission code or wording; the teacher's class table has six columns; saved mission records untouched");
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

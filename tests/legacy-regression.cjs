@@ -14,7 +14,7 @@ const PROTECTED = {
   battle: "addOjama attackFor scoreA createBEngine bTarget BattleBoard GameA GameB BattleGame",
   online: "rankOf ratingDelta matchOutcome openMatch recordMatch b2PendRaw b2PendWrite b2PendLoad b2PendAdd b2PendDrop b2Confirm swissStandings swissPair flushOnlineLearn fetchRatings pickGhost makeBotProfile CpuBots",
   weekly: "weekKey weeklyInfo raidSchedule raidCalc chestRoll ensureWeekMeta settleWeek RaidPlay useBossGim",
-  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn applyMis missionEvent claimMission misRunStep missionsFor statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher fbStart makeLocalDb",
+  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher fbStart makeLocalDb",
   ranking: "compareEntries dedupeByName withRanks aggregateTotalRanking fetchNetRanking submitNetScore loadRankingFromStorage saveRankingToStorage",
 };
 // Ver.6.15: the login screen is restyled. Its LOGIC stays pinned exactly: everything in the function except the returned markup
@@ -64,7 +64,23 @@ assert.equal(new Set(names).size, names.length, "protected list has duplicates")
 // pinned EXACTLY (sha256 of the same comment/position-free AST), so any further change still fails here.
 //  - acctLogin (Ver.6.20): only the failure kind → message mapping changed (network / write failure vs. wrong name or passphrase).
 //    The auth flow, the database paths and values written, and the return shape are the audited ones.
-const REPINNED = { acctLogin: "e8ad9483db79f1ff74eddf0963d7d049a6400d8631cfa2dacae87ce662b9a14e" };
+//  - Ver.6.32 (owner-approved 2026-11-15, removal of the daily missions): three functions lose exactly one statement each.
+//      flushLearn        the call  missionEvent(acct, ev)                      (nothing else)
+//      flushOnlineLearn  the call  await missionEvent(acct, ev, matchId, ...)  (nothing else)
+//      b2Confirm         the check of the mission mark mis.s['room:' + gid]    (the stats.roomSeen and prof.onlineLearnSeen checks stay)
+//    ONE_STATEMENT_REMOVED below proves it mechanically: removing that one statement from the Ver.6.11 baseline gives exactly the
+//    function that is in the page now.
+const REPINNED = {
+  acctLogin: "e8ad9483db79f1ff74eddf0963d7d049a6400d8631cfa2dacae87ce662b9a14e",
+  flushLearn: "1e4ab5aab5e790deb40d369fb31e6fbc22a0503ba078c6bdbfa2f716be4d8e62",
+  flushOnlineLearn: "541c120704bafd2d8a65dcdee8e6dfcfd99fdbca525c0728c32e1ad1929f7603",
+  b2Confirm: "b72af1ae642dab45835e9568a62c5bd08d4d78b4d819c38806351b0160c88a68",
+};
+const ONE_STATEMENT_REMOVED = {
+  flushLearn: ["    if (ev.ok || extra) missionEvent(acct, ev);\n", ""],
+  flushOnlineLearn: ["    await missionEvent(acct,ev,matchId,late?(rc.at[gid]!=null?jstDate(rc.at[gid]):'unknown'):undefined);}", "    }"],
+  b2Confirm: ["  if (matchDay && matchDay === jstDate()) { const mi = await ck('mis'); if (!mi || mi.d !== matchDay || !mi.s || !mi.s['room:' + gid]) return { ok: false, why: 'mis' }; }\n", ""],
+};
 const astHash = (s) => require("node:crypto").createHash("sha256").update(s).digest("hex");
 for (const name of names) {
   assert.ok(before[name], "Protected function missing from the pin baseline: " + name);
@@ -75,6 +91,13 @@ for (const name of names) {
   } else assert.equal(after[name], before[name], "Protected function changed: " + name + " (review it, then move PIN_BASE deliberately)");
 }
 for (const name of Object.keys(REPINNED)) assert.ok(names.includes(name), "re-pin names a protected function: " + name);
+for (const [name, [from, to]] of Object.entries(ONE_STATEMENT_REMOVED)) {
+  assert.equal(baseJsx.split(from).length, 2, "the removed statement occurs exactly once in the baseline: " + name);
+  const edited = functions(baseJsx.replace(from, to));
+  assert.equal(edited[name], after[name], "the only change to " + name + " is the one removed statement");
+  for (const other of names) if (other !== name && before[other]) assert.equal(edited[other], before[other], "removing it touches no other protected function: " + other);
+}
+console.log("PASS re-pinned for the mission removal: flushLearn, flushOnlineLearn, b2Confirm differ from Ver.6.11 by exactly one removed statement each");
 {
   const b0 = logicOnly(baseJsx), a0 = logicOnly(nowJsx);
   for (const name of LOGIC_ONLY) { assert.ok(b0[name] && a0[name], name + " found"); assert.equal(a0[name], b0[name], "Login logic changed: " + name + " (state / handlers / limits must stay as audited)"); }

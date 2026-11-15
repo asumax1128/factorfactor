@@ -109,7 +109,7 @@ export function Help({tiers,difficulties,missPenalty,timeoutExtra,questionMs,aLo
 
   <Step id="growth" n={8} title="成長とやりこみ" lead="遊ぶほど記録が増えて、レベルと称号が育つ。">
    <div className="hg-two"><Shot name="s8-profile" note="プロフィール"/>
-    <ul className="hg-bullets"><li><strong>レーティング</strong>：イージー・ノーマル別。対戦の勝敗で上下し、ランク帯が決まります。毎月新しいシーズン。</li><li><strong>EXPとレベル</strong>：ソロ・対戦・ミッションなどで経験値がたまり、レベルが上がります。</li><li><strong>称号</strong>：条件を満たすと取得し、名前の上に飾れます（未公開の条件は？？？）。</li><li><strong>きせかえ</strong>：タイル・背景・エフェクトを着せかえ。レベルやランク、ボス討伐などで解放。</li><li><strong>ランキング</strong>：「順位」タブからソロ・レーティング。</li></ul></div>
+    <ul className="hg-bullets"><li><strong>レーティング</strong>：イージー・ノーマル別。対戦の勝敗で上下し、ランク帯が決まります。毎月新しいシーズン。</li><li><strong>EXPとレベル</strong>：ソロ・対戦などで経験値がたまり、レベルが上がります。</li><li><strong>称号</strong>：条件を満たすと取得し、名前の上に飾れます（未公開の条件は？？？）。</li><li><strong>きせかえ</strong>：タイル・背景・エフェクトを着せかえ。レベルやランク、ボス討伐などで解放。</li><li><strong>ランキング</strong>：「順位」タブからソロ・レーティング。</li></ul></div>
    <Shot name="s8-ranking" note="ランキング（順位タブ）"/>
    <div className="hg-actions"><Play onClick={()=>go('profile')}>プロフィールへ</Play><Play onClick={()=>go('rankings')}>ランキングへ</Play></div>
   </Step>

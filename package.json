@@ -2,7 +2,7 @@
   "name": "factorfactor-development",
   "private": true,
   "scripts": {
-    "test:regression": "node tests/legacy-regression.cjs",
+    "test:regression": "node tests/legacy-regression.cjs && node --test tests/learn-record-missions-removed.test.cjs",
     "build:pages": "node scripts/build-version.cjs && npm run build:online-rated && node scripts/build-pages.cjs",
     "test:online": "node tests/online-regression.cjs",
     "test:accounts": "node tests/account-ranking-regression.cjs",
@@ -45,7 +45,7 @@
     "test:title-next": "node --test tests/title-compat-next.test.cjs && node tests/title-next-browser.cjs",
     "test:next-help": "node tests/next-help-browser.cjs",
     "test:login-ui": "node tests/login-ui-browser.cjs",
-    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs && node tests/solo-board-input-browser.cjs && node tests/cleanup-routes-browser.cjs",
+    "test:solo-difficulty": "node tests/solo-difficulty-browser.cjs && node tests/solo-board-input-browser.cjs && node tests/cleanup-routes-browser.cjs && node tests/solo-runlog-browser.cjs",
     "test:ghost-profile-ui": "node tests/ghost-profile-ui-browser.cjs"
   },
   "devDependencies": {
