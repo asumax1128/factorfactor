@@ -27,7 +27,7 @@ export function TitleEquipCurrent({equip}){
  const statusEl=stx&&<span className={'next-title-equip-status '+stx.state} role={stx.state==='failed'?'alert':'status'} data-equip-status={stx.state}>{stx.state==='saving'?'保存中…':stx.message}</span>;
  if(!cur)return statusEl?<div className="next-title-equip-current" data-equip-current-result>{statusEl}</div>:null;
  return <div className="next-title-equip-current" data-equip-current={cur.id}>
-  <span>現在の装備：〈{cur.label}〉{!cur.inCatalog&&cur.label!=='表示できない称号'&&'（従来の称号）'}</span>
+  <span>現在の装備：〈{cur.label}〉{!cur.inCatalog&&'（従来の称号）'}</span>
   <button type="button" className="next-title-equip-btn off" disabled={equip.busy||!equip.real} onClick={()=>equip.onUnequip(cur.id)} aria-label="装備中の称号をはずす">はずす</button>
   {statusEl}
  </div>

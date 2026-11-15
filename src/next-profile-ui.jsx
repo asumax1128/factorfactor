@@ -80,7 +80,7 @@ export function createProfile(H){
   };
   const labelOf=id=>(window.TitleLabelsNext?window.TitleLabelsNext.resolve(id,nickOf(id)):nickOf(id))?.label||id;
   const equipUi=H.equipNick?{routeOf,isEquipped:id=>shown===id,status:eqStatus,busy:eqBusy.current,real,compatId:disp.state==='compat'?disp.id:null,
-   current:shown?{id:shown,label:labelOf(shown),inCatalog:!!window.TitleLabelsNext?.of(shown)}:disp.state==='unresolved'?{id:eqNick,label:'表示できない称号',inCatalog:false}:null,
+   /* Ver.6.29: an equipped id whose title no longer exists (a removed title) is treated as NOT equipped everywhere. Read-time only: the saved slot is left as it is and is simply replaced the next time a title is equipped. */current:shown?{id:shown,label:labelOf(shown),inCatalog:!!window.TitleLabelsNext?.of(shown)}:null,
    reasonOf:(id,isEarned)=>TitleEquip.reason(id,{real,earned:isEarned,routeOf:routeOf(id,isEarned)}),
    onEquip:id=>doEquip(id,false),onUnequip:id=>doEquip(id,true)}:null;
   const equipped=[shown].filter(Boolean).map(id=>({id,name:labelOf(id)+(disp.state==='compat'?'（ランキング称号）':'')}));

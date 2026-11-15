@@ -3,7 +3,9 @@
 //   stats.nick = a title id -> that title                       (state 'nick')
 //   stats.nick = ""         -> explicitly unequipped: no title  (state 'cleared')
 //   stats.nick absent       -> the legacy ranking title (onlineSparkV1 profile.title) is shown for compatibility (state 'compat')
-// A non-empty nick that cannot be resolved to a known title shows nothing (never guessed).
+// A non-empty nick that cannot be resolved to a known title (for example a title that was removed from the game) is state
+// 'unresolved': every screen treats it exactly like "no title equipped" (Ver.6.29). Nothing is written to normalise it; the slot
+// is overwritten the next time the player equips a title.
 function resolve({ nick, title }, { valid }) {
   if (typeof nick === 'string') {
     if (nick === '') return { state: 'cleared', id: null };

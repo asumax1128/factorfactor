@@ -1172,7 +1172,7 @@
     const stx = equip.status && !listed(equip.status.id) ? equip.status : null;
     const statusEl = stx && /* @__PURE__ */ React.createElement("span", { className: "next-title-equip-status " + stx.state, role: stx.state === "failed" ? "alert" : "status", "data-equip-status": stx.state }, stx.state === "saving" ? "\u4FDD\u5B58\u4E2D\u2026" : stx.message);
     if (!cur) return statusEl ? /* @__PURE__ */ React.createElement("div", { className: "next-title-equip-current", "data-equip-current-result": true }, statusEl) : null;
-    return /* @__PURE__ */ React.createElement("div", { className: "next-title-equip-current", "data-equip-current": cur.id }, /* @__PURE__ */ React.createElement("span", null, "\u73FE\u5728\u306E\u88C5\u5099\uFF1A\u3008", cur.label, "\u3009", !cur.inCatalog && cur.label !== "\u8868\u793A\u3067\u304D\u306A\u3044\u79F0\u53F7" && "\uFF08\u5F93\u6765\u306E\u79F0\u53F7\uFF09"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn off", disabled: equip.busy || !equip.real, onClick: () => equip.onUnequip(cur.id), "aria-label": "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u3092\u306F\u305A\u3059" }, "\u306F\u305A\u3059"), statusEl);
+    return /* @__PURE__ */ React.createElement("div", { className: "next-title-equip-current", "data-equip-current": cur.id }, /* @__PURE__ */ React.createElement("span", null, "\u73FE\u5728\u306E\u88C5\u5099\uFF1A\u3008", cur.label, "\u3009", !cur.inCatalog && "\uFF08\u5F93\u6765\u306E\u79F0\u53F7\uFF09"), /* @__PURE__ */ React.createElement("button", { type: "button", className: "next-title-equip-btn off", disabled: equip.busy || !equip.real, onClick: () => equip.onUnequip(cur.id), "aria-label": "\u88C5\u5099\u4E2D\u306E\u79F0\u53F7\u3092\u306F\u305A\u3059" }, "\u306F\u305A\u3059"), statusEl);
   }
   function TitleDetail({ t, earnedMap = {}, earned, equipped, iconOf, equip, readOnly, onClose, onScene, hidden }) {
     const ref = React.useRef(null);
@@ -2196,7 +2196,8 @@
         busy: eqBusy.current,
         real,
         compatId: disp.state === "compat" ? disp.id : null,
-        current: shown ? { id: shown, label: labelOf(shown), inCatalog: !!((_g = window.TitleLabelsNext) == null ? void 0 : _g.of(shown)) } : disp.state === "unresolved" ? { id: eqNick, label: "\u8868\u793A\u3067\u304D\u306A\u3044\u79F0\u53F7", inCatalog: false } : null,
+        /* Ver.6.29: an equipped id whose title no longer exists (a removed title) is treated as NOT equipped everywhere. Read-time only: the saved slot is left as it is and is simply replaced the next time a title is equipped. */
+        current: shown ? { id: shown, label: labelOf(shown), inCatalog: !!((_g = window.TitleLabelsNext) == null ? void 0 : _g.of(shown)) } : null,
         reasonOf: (id, isEarned) => TitleEquip.reason(id, { real, earned: isEarned, routeOf: routeOf(id, isEarned) }),
         onEquip: (id) => doEquip(id, false),
         onUnequip: (id) => doEquip(id, true)
