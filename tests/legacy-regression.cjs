@@ -14,7 +14,7 @@ const PROTECTED = {
   battle: "addOjama attackFor scoreA createBEngine bTarget BattleBoard GameA GameB BattleGame",
   online: "rankOf ratingDelta matchOutcome openMatch recordMatch b2PendRaw b2PendWrite b2PendLoad b2PendAdd b2PendDrop b2Confirm swissStandings swissPair flushOnlineLearn fetchRatings pickGhost makeBotProfile CpuBots",
   weekly: "weekKey weeklyInfo raidSchedule raidCalc chestRoll ensureWeekMeta settleWeek RaidPlay useBossGim",
-  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn statsTx claimLogin keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher fbStart makeLocalDb",
+  save: "levelOf addExp migrateGuest migrateGuestExtra applyLearn flushLearn statsTx keepFreezeOnLogin holdRetiredCounters acctKey acctLogin loadLS saveLS unlockTeacher fbStart makeLocalDb",
   ranking: "compareEntries dedupeByName withRanks aggregateTotalRanking fetchNetRanking submitNetScore loadRankingFromStorage saveRankingToStorage",
 };
 // Ver.6.15: the login screen is restyled. Its LOGIC stays pinned exactly: everything in the function except the returned markup
