@@ -56,7 +56,8 @@ test("total games: room games + Spark + ghost + solo + completed weekly sorties;
 });
 test("every counted mode writes exactly once per completed play (source audit)", () => {
   assert.match(html, /if \(nextScreen === 'gameover'\) statsTx\(acct, s => \{ s\.soloPlays = \(s\.soloPlays \|\| 0\) \+ 1; \}\);/);
-  assert.match(html, /if\(submit\)\{statsTx\(acct,s=>\{s\.soloPlays=\(s\.soloPlays\|\|0\)\+1;\}\);/);
+  // Ver.6.31: the daily challenge was removed, and its completion counter (in completeDailySolo) went with it.
+  assert.equal(/s\.soloPlays=\(s\.soloPlays\|\|0\)\+1/.test(html), false, "no daily completion counter remains");
   assert.equal((html.match(/s\.soloPlays = \(s\.soloPlays \|\| 0\) \+ 1/g) || []).length, 1, "quitting ('menu') is not a completed play");
   assert.match(html, /if \(a2Completed\) W\.runs = \(W\.runs \|\| 0\) \+ 1;/);
   const src = fs.readFileSync("src/online-spark-client.cjs", "utf8");

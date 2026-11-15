@@ -33,7 +33,6 @@
 <link rel="stylesheet" href="ui-next/profile-modal.css" />
 <link rel="stylesheet" href="ui-next/titles.css" />
 <script src="online-rated-ui.js"></script>
-<script src="daily-ui.js"></script>
 <script src="room-b2-ui.js"></script>
 <script src="achievements-audit.js"></script>
 <link rel="stylesheet" href="online-rated.css" />
@@ -3779,12 +3778,7 @@ function weakScore(st) { if (!st || !st.n) return null; const acc = st.ok / st.n
 
 /* ---------- 日付（日本時間） ---------- */
 const jstDate = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-const DAILY_LEVELS = [1, 2, 3, 3, 4, 5, 6, 7, 8, 9];
 const DAILY_PENALTY = 5000;
-function dailyProblems(date) {
-  const bank = makeBank(`daily:${date}`, 6), used = {};
-  return DAILY_LEVELS.map(lv => { const k = used[lv] || 0; used[lv] = k + 1; const b = bank.get(lv, k); return { level: lv, tiles: b.tiles, poly: b.poly, factors: b.factors, pid: patternOf(lv, b.factors) }; });
-}
 /* 苦手ドリルの問題：ねらった型が出るまで作り直す */
 function drillProblems(targets, n = 10) {
   const out = [], seen = new Set();
@@ -10231,26 +10225,7 @@ async function flushOnlineLearn(acct,matchId,rows,extra) {
 /* ソロとオンライン対戦の切り替え */
 const OnlineComponents = window.OnlineRatedFactory && window.OnlineSpark ? window.OnlineRatedFactory({ equipNick, FB, FontImport, BattleSurface, BattleBoard, TargetCard, HpBar, JudgePop, FxLayer, TimingJudgment, ComboDisplay, CombatFX, multiply, polyEqual, getJudgment, timingVisual, v7Stat, SP_INFO, SP_MAX, DIFFICULTY_CONFIG, RatingDisplay, AResultDetails, PlayerView, Nick, BadgeIcons, nickOf, fxSound, FX, useBattleSound, useGameMute, createTransport: acct => window.OnlineSpark.create({ db: FB.db, uid: FB.uid, account: acct, now: fbNow, bot:makeBotProfile, learning:(id,rows)=>flushOnlineLearn(acct,id,rows) }) }) : null;
 const OnlineRatedApp = OnlineComponents?.App;
-function DailyMissionsView({acct,onMode}){const prof=useProf(acct,0),mis=useMissions(acct,prof);return <section><MissionList acct={acct} rows={mis.rows} onGo={r=>onMode?.(r.go==='drilllv'||r.go==='drillpt'?'learn':r.go,r.go==='drillpt'?{drill:{lv:r.lv,pid:r.pid}}:r.go==='drilllv'?{drill:{lv:r.lv}}:null)}/></section>;}
-async function completeDailySolo(acct,attempt,game){
- if(!isReal(acct))return;
- const entry={name:acct.name,score:Math.max(0,game.score),caught:game.correct,difficulty:attempt.difficulty,id:attempt.id};
- const local=loadRankingFromStorage();if(entry.score>0&&!local.some(r=>r.id===entry.id))saveRankingToStorage([...local,entry].sort(compareEntries).slice(0,3));
- if(game.cleared)await FB.db.ref(`games/factor/accounts/${acct.key}/stats`).transaction(st=>{st ||= {};st.dailyRewards ||= {};const day=st.dailyRewards[attempt.day] ||= {};if(day[attempt.id]!=null)return st;const exp=Object.keys(day).length?5:20;day[attempt.id]=exp;st.exp=(st.exp||0)+exp;return st;});
- let submit=false;
- // Shared learning/delivery receipt. Replaying this result cannot double EXP.
- await FB.db.ref(`games/factor/accounts/${acct.key}/prof`).transaction(p=>{p ||= {};p.dailySoloSeen ||= {};submit=!p.dailySoloSeen[attempt.id];if(submit){p.dailySoloSeen[attempt.id]=true;applyLearn(p,game.hist||[]);}return p;});
- if(submit){statsTx(acct,s=>{s.soloPlays=(s.soloPlays||0)+1;});await missionEvent(acct,{daily:1,ok:game.correct,pf:game.hist.filter(h=>h.j==='Perfect').length});if(entry.score>0&&GAS_ENDPOINT_URL)await submitNetScore(entry);}
-}
 const RoomB2App = window.RoomB2Factory && OnlineComponents ? window.RoomB2Factory({FB,dbOf,CPU_LEVELS,cpuThink,cpuMiss,now:fbNow,DIFFICULTY_CONFIG,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,multiply,polyEqual,getJudgment,timingVisual,BattleView:OnlineComponents.BattleView,Final:BattleGame,TournamentFinal:TournamentB2Final}).App : null;
-const NewDailyApp = window.DailyFactory && OnlineComponents ? window.DailyFactory({FB,DIFFICULTY_CONFIG,useGameMute,getJudgment,BattleSurface,BattleBoard,TargetCard,HpBar,TimingJudgment,ComboDisplay,CombatFX,v7Stat,SP_INFO,SP_MAX,RatingDisplay,MathText,formatFactorTile,timingVisual,useBattleSound,Missions:DailyMissionsView,onCompleted:completeDailySolo,BattleView:OnlineComponents.BattleView}).App : null;
-function DailyApp(props){
- const fb=useFbReady(),[ready,setReady]=useState(null),[retry,setRetry]=useState(0);
- // Ver.6.23: 旧デイリー(10問タイムアタック)への切り替えは廃止。設定を読めなかったときは、読み込み失敗の案内と再読み込みを出す
- useEffect(()=>{if(!fb.ready)return;let active=true;FB.db.ref('games/factor/dailyV2/ready').get().then(()=>active&&setReady(true)).catch(()=>active&&setReady(false));return()=>{active=false}},[fb.ready,retry]);
- if(ready===null)return <div className="or-app"><p>デイリーの設定を確認しています…</p><button onClick={props.onExit}>戻る</button></div>;
- return ready&&NewDailyApp?<NewDailyApp {...props}/>:props.rankingsOnly?<section><p>デイリーランキングを読み込めませんでした。</p><button onClick={props.onExit}>ランキング総合へ</button></section>:<div className="or-app" data-daily-load-error><p role="alert">デイリーの読み込みに失敗しました。通信を確認して、もう一度お試しください。</p><button onClick={()=>{setReady(null);setRetry(x=>x+1)}}>もう一度読み込む</button><button onClick={props.onExit}>戻る</button></div>;
-}
 const NextHome = window.NextHomeFactory ? window.NextHomeFactory({uiSnd,GhostBattlePanel,soloBestOf,equipNick,FB,useFbReady,weekKey,now:fbNow,weeklyInfo,bossForm,suriImg,useRatingHistoryProfile,RatingDisplay,levelOf,isReal,loadGuest,nickOf,GhostHistory,PlayerView,Wardrobe,useFbValue,useGameMute,LoginBonus,RatingHistory,useDailyTitles,badgesOf,activeAchievements,DIFFICULTY_CONFIG,CPU_LEVELS,skinCatalog:{tile:SKIN_TILES,bg:SKIN_BGS,fx:SKIN_FX},syncSkin:skin=>{SKIN={...skin};saveLS(SKIN_LS,SKIN);SKINBUS.forEach(f=>f());}}) : null;
 function RankingPanel({title,onClose,children}){return <section className="next-ranking-panel"><header><h2>{title}</h2><button className="v7-pill" onClick={onClose}>ランキング総合へ</button></header>{children}</section>;}
 function AppRoot() {
@@ -10281,7 +10256,6 @@ function AppRoot() {
   const darkFrame = (page, cls) => NextHome.Lobby ? children => <NextHome page={page} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className={cls}>{children}</div></NextHome> : undefined;
   usePresenceRoot(acct, mode);
   useEffect(() => { if (!isReal(acct)) { keepFreezeSeen.clear(); return; } let stop = false, t; const run = () => { if (stop) return; if (!FB.db || !FB.uid) { t = setTimeout(run, 500); return; } keepFreezeOnLogin(acct); }; run(); return () => { stop = true; clearTimeout(t); }; }, [acct && acct.key]);
-  useEffect(()=>{if(!isReal(acct))return;let stop=false,t;const claim=()=>{if(stop)return;if(!FB.db||!FB.uid){t=setTimeout(claim,500);return;}window.DailyV2?.create({db:FB.db,uid:FB.uid,account:acct}).awards().catch(()=>{});};claim();return()=>{stop=true;clearTimeout(t)}},[acct?.key]);
   // ver.7：どの画面でも .v7-cur の部品に指をのせると ▶ と「ピッ」
   const gcur = useMenuCursor();
   useEffect(() => { gcur(document.body); }, []);
@@ -10291,13 +10265,11 @@ function AppRoot() {
   return (<>
     <FxLayer />
     {mode === 'home' ? <NextHome acct={acct} onLogout={() => setAcct(null)} onGo={navigateNext} />
-      : ['profile','rankings','ranking-solo','ranking-daily','ranking-rating'].includes(mode) ? <NextHome page={mode} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>
+      : ['profile','rankings','ranking-solo','ranking-rating'].includes(mode) ? <NextHome page={mode} acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>
         {mode==='ranking-solo'&&<FactorHunt acct={acct} initialMenu="rank" rankingOnly onRankExit={()=>go('rankings')} onMode={go}/>}
-        {mode==='ranking-daily'&&<DailyApp acct={acct} rankingsOnly onExit={()=>go('rankings')} onMode={go}/>}
         {mode==='ranking-rating'&&<BattleApp acct={acct} initialScreen="ratings" onExit={()=>go('rankings')}/>}
       </NextHome>
       : mode === 'battle' ? <BattleApp acct={acct} onExit={toSolo} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="battle" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />
-      : mode === 'daily' ? <DailyApp renderMenu={NextHome.Lobby?children=><NextHome page="daily" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}><div className="next-legacy-daily ld-dark">{children}</div></NextHome>:undefined} acct={acct} onExit={goBack} onMode={go} />
       : mode === 'learn' ? <LearnApp acct={acct} onExit={goBack} init={modeArg} renderMenu={darkFrame('solo', 'next-legacy-skin ld-dark')} />
       : mode === 'raidw' ? <WeeklyAuthorityGate acct={acct} onExit={goBack} renderMenu={darkFrame('solo', 'next-legacy-skin ld-dark')} />
       : mode === 'cpu' ? <BattleApp acct={acct} cpuOnly onExit={()=>go('solo')} onNavigate={navigateNext} onProfile={()=>navigateNext('profile')} renderMenu={NextHome.Lobby?children=><NextHome page="solo" acct={acct} onLogout={()=>setAcct(null)} onGo={navigateNext}>{children}</NextHome>:undefined} />

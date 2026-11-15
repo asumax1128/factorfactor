@@ -106,5 +106,31 @@ const src = fs.readFileSync("index.html", "utf8");
       assert.deepEqual(t.errors, []); await t.ctx.close();
       console.log("PASS daily: no entry on the home, the solo hub or the ranking hub; あそびかた does not mention it");
     }
+    // Ver.6.31: the daily challenge itself is removed: screen, client, bundle, files, routes. Saved daily data is left alone
+    // (nothing is written under dailyV2; the saved boards and attempts in the fixture stay exactly as they were).
+    {
+      for (const name of ["DailyApp", "NewDailyApp", "DailyFactory", "DailyV2", "completeDailySolo", "dailyProblems", "DailyMissionsView", "daily-ui.js", "ranking-daily", "mode === 'daily'"])
+        assert(!src.includes(name), "removed from the page: " + name);
+      for (const f of ["daily-ui.js", "src/daily-ui.jsx", "src/daily-client.cjs", "ui-next/solo/dairymission.png", "ui-next/solo/dairymission.webp"]) assert(!fs.existsSync(f), "file removed: " + f);
+      for (const f of ["server/daily-play.cjs", "tests/daily-play.test.cjs", "firebase/daily-v2-rules.cjs", "src/daily-model.cjs"]) assert(fs.existsSync(f), "file kept: " + f);
+      assert(!/DailyV2|daily-client/.test(fs.readFileSync("online-spark.js", "utf8") + fs.readFileSync("scripts/build-online-spark.cjs", "utf8")), "the daily client is not in the online bundle");
+      if (fs.existsSync("dist/release-manifest.json")) assert.deepEqual(JSON.parse(fs.readFileSync("dist/release-manifest.json", "utf8")).files.map((f) => f.path).filter((f) => /daily|dairy/i.test(f)), [], "no daily file in the public artifact");
+      const day = Number(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, ""));
+      const g = tree();
+      g.games.factor.dailyV2 = { ready: true, boards: { [day - 1]: { easy: { leader: { key: "ateacher", score: 500 }, records: { ateacher: { key: "ateacher", name: "Teacher", score: 500 } } } } }, attempts: { ateacher: { [day]: { slots: { 0: { id: "x", difficulty: "easy" } } } } } };
+      const saved = JSON.stringify(g.games.factor.dailyV2), requests = [];
+      const t = await context(b, { tree: g }), p = t.page;
+      p.on("request", (r) => { if (/daily/i.test(new URL(r.url()).pathname)) requests.push(r.url()); });
+      await p.goto(p.url().split("#")[0] + "#daily"); await p.reload();
+      await p.locator("[data-next-home] .home-content").waitFor();
+      assert.equal(await p.evaluate(() => typeof window.DailyV2 + typeof window.DailyFactory), "undefinedundefined", "daily code not loaded");
+      await p.locator(".action-card.solo").click(); await p.locator("[data-solo-hub]").waitFor();
+      await goHome(p); await p.waitForTimeout(600);
+      assert.deepEqual(requests, [], "no daily file requested");
+      assert.equal(t.writes.filter((x) => /dailyV2/.test(x.path)).length, 0, "nothing written under dailyV2");
+      assert.equal(JSON.stringify(t.tree.games.factor.dailyV2), saved, "saved daily data left exactly as it was");
+      assert.deepEqual(t.errors, []); await t.ctx.close();
+      console.log("PASS daily challenge removed: no screen/client/bundle/files/routes; nothing written under dailyV2; saved daily data untouched");
+    }
   } finally { await b.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

@@ -26,12 +26,10 @@ test("display rule unchanged: a stored daily_king is held forever; bare division
   for (const id of ["daily_easy_king", "daily_normal_king", "daily_hard_king"]) assert.equal(ids({ dailyTitles: { [id]: { day: 1 } } }).includes(id), true, "each division title still works on its own");
   assert.equal(scope.B.filter((b) => b.id === "daily_king").length, 1);
 });
-test("the client no longer builds the composite from the three flags and uses the same-day proof", () => {
-  const src = fs.readFileSync("src/daily-client.cjs", "utf8");
-  assert.equal(/every\(id=>had\[id\]\)&&!had\.daily_king\)\{await ref/.test(src), false, "the cumulative grant is gone");
-  assert.equal(src.includes("D.kingDay(day,fin,key,kingFromDay)"), true);
-  assert.equal(src.includes("sameStoredDay") || src.includes("fxf_daily_king_scan_v1"), false, "no retroactive grant or scan remains");
-  assert.match(src, /kingFromDay=D\.KING_FROM_DAY/);
+// Ver.6.31: the daily challenge and its client (src/daily-client.cjs) were removed, so nothing grants these titles any more.
+// The checks of the client source that used to be here went with it; the shared day model is still checked.
+test("the day model does not build the composite from the three flags", () => {
+  assert.equal(fs.existsSync("src/daily-client.cjs"), false, "the daily client is gone");
   const model = fs.readFileSync("src/daily-model.cjs", "utf8");
   assert.equal(/next\.daily_king/.test(model), false);
   assert.deepEqual(D.titles({ x: 1 }, "hard"), { x: 1, daily_hard_king: true });
