@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="online-rated.css" />
 <link rel="stylesheet" href="ui-next/online-menu.css" />
 <link rel="stylesheet" href="ui-next/play-frame.css" />
+<link rel="stylesheet" href="ui-next/battle-ui.css" />
 <link rel="stylesheet" href="ui-next/login.css" />
 <link rel="preload" href="fonts/katex/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/katex/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin />
@@ -647,9 +648,77 @@ function formatFactorTile(f) {
 
 const POW_SYMBOL = { 4: 'x⁴', 3: 'x³', 2: 'x²', 1: 'x', 0: '' };
 
-/* 数式を教科書のような書体で表示する（x は斜体、指数は上付き、マイナスは長い −） */
+/* 数式の表示。
+   Ver.6.41: バトル画面の数式は MathText = MathML（<math> の mn / mi / mo / msup / mfrac）で描く。
+   - 文字列（formatPoly / formatFactorTile などの出力）を読んで組み立てるだけで、式の値や判定には関わらない。
+   - x は斜体の変数(mi)、指数は msup、a/b（数字/数字）は mfrac、2項演算子は左右に 0.2222em、符号と括弧は詰める。
+   - 外側の <span class="fxm"> と幅の目安 --mw は従来どおり（長い式を枠に収める CSS が読む）。
+   バトル以外の画面（あそびかた・学びの部屋・結果・きせかえ など）は MathTextLegacy（従来の span 表示）のまま。 */
 const MATH_SUP = { '²': '2', '³': '3', '⁴': '4' };
+function mathTokens(text) {
+  const s = String(text == null ? '' : text), toks = [];
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    if (/[0-9]/.test(ch)) { let j = i; while (j < s.length && /[0-9.]/.test(s[j])) j++; toks.push({ t: 'n', v: s.slice(i, j) }); i = j; continue; }
+    if (ch === 'x') { toks.push({ t: 'v', v: 'x' }); i++; continue; }
+    if (MATH_SUP[ch]) { toks.push({ t: 'sup', v: MATH_SUP[ch] }); i++; continue; }
+    if (ch === '+' || ch === '-' || ch === '−' || ch === '±' || ch === '∓') {
+      const prev = toks[toks.length - 1];
+      const binary = !!prev && !(prev.t === 'open' || prev.t === 'arrow' || prev.t === 'op' || prev.t === 'rel');
+      toks.push({ t: 'op', v: ch === '-' ? '−' : ch, binary }); i++; continue;
+    }
+    if (ch === '(' || ch === '（') { toks.push({ t: 'open', v: '(' }); i++; continue; }
+    if (ch === ')' || ch === '）') { toks.push({ t: 'close', v: ')' }); i++; continue; }
+    if (ch === '/') { toks.push({ t: 'slash', v: '/' }); i++; continue; }
+    if (ch === '→') { toks.push({ t: 'arrow', v: '→' }); i++; continue; }
+    if (ch === '=' || ch === '×' || ch === '·' || ch === '÷') { toks.push({ t: 'rel', v: ch }); i++; continue; }
+    toks.push({ t: 'c', v: ch }); i++;
+  }
+  return toks;
+}
 function MathText({ text }) {
+  const toks = mathTokens(text);
+  let key = 0, mw = 0;
+  const mo = (v, sp, cls) => <mo key={key++} className={cls} stretchy="false" lspace={sp} rspace={sp}>{v}</mo>;
+  // 並びを組み立てる。括弧の中身は入れ子の mrow、指数は直前のかたまりに付ける、数字/数字 は分数。
+  const build = (from, depth) => {
+    const out = [];
+    let i = from;
+    while (i < toks.length) {
+      const k = toks[i];
+      if (k.t === 'close') { if (depth > 0) break; out.push(mo(')', '0em', 'fxm-par')); mw += 0.39; i++; continue; }
+      if (k.t === 'open') {
+        const inner = build(i + 1, depth + 1); mw += 0.78;
+        out.push(<mrow key={key++} className="fxm-grp">{mo('(', '0em', 'fxm-par')}<mrow>{inner.out}</mrow>{mo(')', '0em', 'fxm-par')}</mrow>);
+        i = inner.next; continue;
+      }
+      if (k.t === 'n') {
+        const sl = toks[i + 1], den = toks[i + 2];
+        if (sl && sl.t === 'slash' && den && den.t === 'n') {
+          out.push(<mfrac key={key++} className="fxm-frac"><mn>{k.v}</mn><mn>{den.v}</mn></mfrac>); mw += 0.5 * Math.max(k.v.length, den.v.length) * 0.75 + 0.3; i += 3; continue;
+        }
+        out.push(<mn key={key++}>{k.v}</mn>); mw += 0.5 * k.v.length; i++; continue;
+      }
+      if (k.t === 'v') { out.push(<mi key={key++} className="fxm-v" mathvariant="normal">x</mi>); mw += 0.58; i++; continue; }
+      if (k.t === 'sup') {
+        const base = out.pop() || <mrow key={key++} />;
+        out.push(<msup key={key++}>{base}<mn className="fxm-exp">{k.v}</mn></msup>); mw += 0.37; i++; continue;
+      }
+      if (k.t === 'op') { out.push(mo(k.v, k.binary ? '0.2222em' : '0em', k.binary ? 'fxm-bin' : 'fxm-sign')); mw += k.binary ? 1.22 : 0.78; i++; continue; }
+      if (k.t === 'arrow') { out.push(mo('→', '0.2778em', 'fxm-to')); mw += 1.4; i++; continue; }
+      if (k.t === 'rel') { out.push(mo(k.v, '0.2778em', 'fxm-rel')); mw += 1.3; i++; continue; }
+      if (k.t === 'slash') { out.push(mo('/', '0em', 'fxm-par')); mw += 0.5; i++; continue; }
+      out.push(/[a-zA-Z]/.test(k.v) ? <mi key={key++} mathvariant="normal">{k.v}</mi> : <mtext key={key++}>{k.v}</mtext>); mw += 0.55; i++;
+    }
+    return { out, next: i < toks.length ? i + 1 : i };
+  };
+  const { out } = build(0, 0);
+  return <span className="fxm fxm-ml" style={{ '--mw': (mw * 1.03).toFixed(2) }}><math display="inline"><mrow>{out}</mrow></math></span>;
+}
+/* 従来の span 表示（バトル以外の画面用。見た目・DOM は Ver.6.40 までと同じ） */
+function MathTextLegacy({ text }) {
   const s = String(text == null ? '' : text);
   const out = [];
   let i = 0, key = 0, mw = 0; // mw: rough width in em (KaTeX metrics). Presentation hint only: read by ui-next/play-frame.css to fit long formulas.
@@ -1147,8 +1216,8 @@ const TUTORIAL_STEPS = [
 
 /* 図（本番と同じ部品の見た目） */
 function TutVisual({ v }) {
-  const tile = (t, st) => <div className="rounded-xl flex items-center justify-center font-bold" style={{ background: '#F4F7FF', border: '2px solid #C9D5F5', color: '#14204A', boxShadow: '0 4px 0 #0A1230', padding: '8px 12px', fontSize: 15, minWidth: 64, ...bFont, ...st }}><MathText text={t} /></div>;
-  const target = (t, small) => <div className="v7-target" style={{ padding: small ? '6px 10px' : '8px 12px' }}><div className="text-[10px] font-bold" style={{ color: '#6F7785' }}>この式を因数分解しよう</div><div className="font-black" style={{ fontSize: small ? 18 : 22, color: '#1D2633', ...bFont }}><MathText text={t} /></div></div>;
+  const tile = (t, st) => <div className="rounded-xl flex items-center justify-center font-bold" style={{ background: '#F4F7FF', border: '2px solid #C9D5F5', color: '#14204A', boxShadow: '0 4px 0 #0A1230', padding: '8px 12px', fontSize: 15, minWidth: 64, ...bFont, ...st }}><MathTextLegacy text={t} /></div>;
+  const target = (t, small) => <div className="v7-target" style={{ padding: small ? '6px 10px' : '8px 12px' }}><div className="text-[10px] font-bold" style={{ color: '#6F7785' }}>この式を因数分解しよう</div><div className="font-black" style={{ fontSize: small ? 18 : 22, color: '#1D2633', ...bFont }}><MathTextLegacy text={t} /></div></div>;
   const navy = children => <div className="rounded-2xl p-3 w-full flex flex-col items-center gap-2" style={{ background: V7_NIGHT, maxWidth: 340 }}>{children}</div>;
   const jw = (t, c) => <span style={{ fontFamily: 'var(--v7-f-fx)', fontSize: 20, color: c, WebkitTextStroke: '1px #fff', textShadow: `0 0 10px ${c}` }}>{t}</span>;
   const chip = (t, bg) => <span className="v7-chip" style={{ background: bg, fontSize: 11 }}>{t}</span>;
@@ -1429,25 +1498,142 @@ async function decodeDataUriToAudioBuffer(dataUri) {
      広げた範囲はとなり同士でちょうど境目を接するだけで重ならないので、すき間のどちら側かで必ず近いほうのタイルに決まり、
      となりのタイルへ誤って入ることはない。盤面の外・どの範囲にも入らない点は従来どおり不成立(null)。
    selectedId(つかんでいるタイル)自身は成立先にしない：つかんだタイルの範囲に入っている点は不成立。 */
-function soloDropTarget(grid, clientX, clientY, selectedId) {
+function soloDropTarget(grid, clientX, clientY, selectedId) { return boardDropTarget(grid, clientX, clientY, selectedId, 'data-tile-id'); }
+/* Ver.6.41: 上のルールを「置いてある位置(レイアウト上の枠)」だけで測る共通版（ソロ盤 data-tile-id ／ 共有盤 data-btile）。
+   つかんだタイルは指に付いて動く(BoardDragFx)ので、画面上の見た目の位置ではなく、盤面の中の元の枠で判定する。
+   ルール自体は Ver.6.22 と同じ：タイルの枠の中ならそのタイル、盤面の中のすき間なら中心が近いほう、つかんだタイル自身と盤面の外は不成立。 */
+function boardDropTarget(grid, clientX, clientY, selectedId, attr) {
   if (!grid) return null;
-  const hit = document.elementFromPoint(clientX, clientY);
-  const direct = hit && hit.closest ? hit.closest('[data-tile-id]') : null;
-  if (direct && grid.contains(direct)) { const id = direct.getAttribute('data-tile-id'); return id && id !== selectedId ? id : null; }
   const g = grid.getBoundingClientRect();
   if (clientX < g.left || clientX > g.right || clientY < g.top || clientY > g.bottom) return null;
-  const cs = getComputedStyle(grid), gx = (parseFloat(cs.columnGap) || 0) / 2, gy = (parseFloat(cs.rowGap) || 0) / 2;
-  let best = null, bestD = Infinity;
-  grid.querySelectorAll('[data-tile-id]').forEach(el => {
-    // 置いてある位置で測る。つかんでいるタイルだけは見た目が持ち上がって少し大きい(translateY(-3px) scale(1.04))ので元の位置に戻して測る
-    const r = el.getBoundingClientRect(), held = el.getAttribute('data-tile-id') === selectedId;
-    const w = held ? r.width / 1.04 : r.width, h = held ? r.height / 1.04 : r.height;
-    const left = r.left + (r.width - w) / 2, top = r.top + (r.height - h) / 2 + (held ? 3 : 0);
-    const d = Math.hypot(clientX - (left + w / 2), clientY - (top + h / 2));   // 境目ちょうどは中心が近いほう
-    if (d < bestD) { bestD = d; best = el.getAttribute('data-tile-id'); }
+  let best = null, bestD = Infinity, direct = null;
+  grid.querySelectorAll('[' + attr + ']').forEach(el => {
+    const id = el.getAttribute(attr);
+    let l, t, w, h;
+    if (id === selectedId || el.style.translate) {
+      // 指に付いて動いているタイル：盤面の中の元の枠（レイアウト上の位置）で測る
+      if (el.offsetParent !== grid) return;
+      w = el.offsetWidth; h = el.offsetHeight; l = g.left + grid.clientLeft + el.offsetLeft; t = g.top + grid.clientTop + el.offsetTop;
+    } else {
+      // 置いてあるタイル：画面上の枠（光っていても大きさは変えないので、そのまま測れる）
+      const r = el.getBoundingClientRect();
+      w = r.width; h = r.height; l = r.left; t = r.top;
+    }
+    if (clientX >= l && clientX <= l + w && clientY >= t && clientY <= t + h) direct = id;
+    const d = Math.hypot(clientX - (l + w / 2), clientY - (t + h / 2));   // 境目ちょうどは中心が近いほう
+    if (d < bestD) { bestD = d; best = id; }
   });
-  return best && best !== selectedId ? best : null;
+  const id = direct || best;
+  return id && id !== selectedId ? id : null;
 }
+/* Ver.6.41: つなげるドラッグの見た目（ソロ盤・共有盤 共通）。見た目と入力の受け止め方だけで、判定・得点には関わらない。
+   - つかんだタイルそのものを指に付けて動かす（React の再描画を通さず、CSS の translate を直接書くので遅れない）。
+   - 元の位置には点線の枠（プレースホルダー）、元の位置からタイルまで点線、いま離すと成立する相手のタイルは光る。
+   - ポインターキャプチャで盤の外へ出ても指を追い、pointercancel / touchcancel・盤面の入れ替わりでは静かに元へ戻す。
+   - 共有盤(BattleBoard)は「離した点の真下のタイル」しか見ないので、すき間で離したときは、離した点を
+     boardDropTarget が決めたタイルの中心に読み替えて渡す（ソロ盤の Ver.6.22 と同じスナップ。判定そのものは BattleBoard のまま）。 */
+const BoardDragFx = (() => {
+  let d = null, flight = null;
+  const ACC = 'data-bb-held', TGT = 'data-bb-target';
+  const tileOf = t => (t && t.closest ? t.closest('[data-btile],[data-tile-id]') : null);
+  const setTarget = el => { if (!d || d.target === el) return; if (d.target) d.target.removeAttribute(TGT); d.target = el || null; if (el) el.setAttribute(TGT, ''); };
+  const place = (x, y) => {
+    if (!d) return;
+    d.dx = x - d.sx; d.dy = y - d.sy;
+    d.el.style.translate = d.dx + 'px ' + d.dy + 'px';
+    if (d.line) { const len = Math.hypot(d.dx, d.dy); d.line.style.width = len + 'px'; d.line.style.rotate = Math.atan2(d.dy, d.dx) + 'rad'; d.line.style.opacity = len > 12 ? 1 : 0; }
+    const id = boardDropTarget(d.grid, x, y, d.id, d.attr);
+    setTarget(id ? d.grid.querySelector('[' + d.attr + '="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]') : null);
+  };
+  const clear = (animate) => {
+    if (!d) return;
+    const cur = d; d = null;
+    if (cur.watch) cancelAnimationFrame(cur.watch);
+    if (cur.target) cur.target.removeAttribute(TGT);
+    try { cur.el.releasePointerCapture && cur.pid != null && cur.el.hasPointerCapture && cur.el.hasPointerCapture(cur.pid) && cur.el.releasePointerCapture(cur.pid); } catch (err) {}
+    cur.el.style.translate = ''; cur.el.style.zIndex = '';
+    cur.el.removeAttribute(ACC);
+    document.documentElement.classList.remove('bb-dragging');
+    const done = () => { if (cur.fx && cur.fx.parentNode) cur.fx.parentNode.removeChild(cur.fx); if (cur.el.style.opacity === '0') cur.el.style.opacity = ''; if (flight === cur) flight = null; };
+    // 相手のいない所で離した・中断したとき：元の位置へ戻る短い動き（見た目だけ）。
+    // 本物のタイルはすぐ元の枠に戻して触れる状態にし（透明にするだけ）、戻る動きは写しに任せる。こうすると戻る途中でもすぐつかみ直せる。
+    if (animate && !cur.hit && cur.el.isConnected && cur.fx.isConnected && cur.el.animate && (Math.abs(cur.dx) + Math.abs(cur.dy) > 4)) {
+      try {
+        const g = cur.el.cloneNode(true), f = cur.el.querySelector('.fxm'), gf = g.querySelector('.fxm');
+        ['data-btile', 'data-tile-id', 'data-f', 'data-drop-target', 'data-flash', ACC, TGT].forEach(a => g.removeAttribute(a));
+        g.className += ' bb-ghost';
+        if (f && gf) gf.style.fontSize = getComputedStyle(f).fontSize;
+        Object.assign(g.style, { position: 'absolute', left: cur.el.offsetLeft + 'px', top: cur.el.offsetTop + 'px', width: cur.el.offsetWidth + 'px', height: cur.el.offsetHeight + 'px', margin: '0', translate: '', zIndex: '', pointerEvents: 'none', transform: 'none' });
+        cur.fx.appendChild(g); cur.el.style.opacity = '0'; flight = cur; cur.done = done;
+        const an = g.animate([{ translate: cur.dx + 'px ' + cur.dy + 'px', rotate: '-2.5deg', scale: '1.06' }, { translate: '0px 0px', rotate: '0deg', scale: '1' }], { duration: 150, easing: 'cubic-bezier(.2,.9,.3,1.12)' });
+        an.onfinish = an.oncancel = done; return;
+      } catch (err) {}
+    }
+    done();
+  };
+  const begin = (e, el) => {
+    if (d) clear(false);
+    if (flight && flight.done) flight.done();   // 戻る動きの途中でつかみ直したら、前の動きはすぐ片づける
+    const grid = el && el.parentElement; if (!el || !grid || e.button > 0) return;
+    const attr = el.hasAttribute('data-btile') ? 'data-btile' : 'data-tile-id';
+    const fx = document.createElement('div'); fx.className = 'bb-fx'; fx.setAttribute('aria-hidden', 'true');
+    const l = el.offsetLeft, t = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
+    fx.innerHTML = '<i class="bb-ph" style="left:' + l + 'px;top:' + t + 'px;width:' + w + 'px;height:' + h + 'px"></i><i class="bb-link" style="left:' + (l + w / 2) + 'px;top:' + (t + h / 2) + 'px"></i>';
+    grid.appendChild(fx);
+    d = { el, grid, attr, id: el.getAttribute(attr), sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, cx: l + w / 2, cy: t + h / 2, pid: e.pointerId, fx, line: fx.querySelector('.bb-link'), target: null, battle: attr === 'data-btile' };
+    el.setAttribute(ACC, e.pointerType === 'touch' ? 'touch' : 'pointer');   // タッチ以外は、つかんだタイルを当たり判定から外す（CSS）。タッチの流れには触れない
+    document.documentElement.classList.add('bb-dragging');
+    // マウス・ペンは盤の外へ出ても追えるようにキャプチャする。タッチはブラウザが最初に触れた要素へ暗黙にキャプチャするので、何もしない（明示キャプチャはタッチの流れに触れない）
+    try { if (e.pointerId != null && e.pointerType !== 'touch' && el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (err) {}
+    // 盤面が入れ替わった・操作不可になった（次の問題、相手の正解、FREEZE など）ときは見た目も片づける
+    const tick = () => { if (!d) return; if (!d.ending && (!d.el.isConnected || (d.battle && !BB_DRAG.on))) { clear(false); return; } d.watch = requestAnimationFrame(tick); };
+    d.watch = requestAnimationFrame(tick);
+  };
+  const pt = e => { const t = e.touches && e.touches[0] ? e.touches[0] : e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e; return { x: t.clientX, y: t.clientY }; };
+  const onMove = e => { if (!d) return; if (e.pointerId != null && d.pid != null && e.pointerId !== d.pid) return; const p = pt(e); place(p.x, p.y); };
+  const onUp = e => {
+    if (!d || d.ending) return;
+    if (e.pointerId != null && d.pid != null && e.pointerId !== d.pid) return;
+    const p = pt(e), cur = d;
+    cur.ending = true;
+    const id = boardDropTarget(cur.grid, p.x, p.y, cur.id, cur.attr);
+    cur.hit = !!id;   // 相手のタイルで離した：判定の演出（光る・ゆれる）に任せて、戻る動きは付けない
+    // つかんだタイルは指の下に重なっているので、離す瞬間にいったん元の枠へ戻す（BattleBoard は「離した点の真下のタイル」を見る）。
+    // 当たり判定の設定(pointer-events)は変えない。
+    cur.el.style.translate = '';
+    // 共有盤：成立するタイル（真上、またはすき間の近いほう）の中心で離したことにする（スナップ）
+    if (cur.battle && id) {
+      const tgt = cur.grid.querySelector('[data-btile="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      // （真下かどうかでは決めず、成立先が決まっていれば必ずその中心に読み替える）
+      if (tgt) {
+        const r = tgt.getBoundingClientRect(), nx = r.left + r.width / 2, ny = r.top + r.height / 2;
+        try {
+          if (e.changedTouches) Object.defineProperty(e, 'changedTouches', { configurable: true, value: [{ clientX: nx, clientY: ny }] });
+          else { Object.defineProperty(e, 'clientX', { configurable: true, value: nx }); Object.defineProperty(e, 'clientY', { configurable: true, value: ny }); }
+        } catch (err) {}
+      }
+    }
+    // 判定(BattleBoard / ソロ盤の処理)はこのあと同じイベントで走る。正解演出がタイルの見た目を写し取るので、
+    // 「つかんでいる」「相手」の印はここで外しておく（位置と重なり順だけ、片づけの瞬間まで保つ）。
+    if (cur.target) { cur.target.removeAttribute(TGT); cur.target = null; }
+    cur.el.removeAttribute(ACC);
+    setTimeout(() => { if (d === cur) clear(true); }, 0);
+  };
+  const onCancel = () => { if (d) clear(true); };
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pointermove', onMove, true);
+    window.addEventListener('touchmove', onMove, { capture: true, passive: true });
+    window.addEventListener('pointerup', onUp, true);
+    window.addEventListener('touchend', onUp, true);
+    window.addEventListener('pointercancel', onCancel, true);
+    window.addEventListener('touchcancel', onCancel, true);
+    window.addEventListener('blur', onCancel);
+    // 共有盤(BattleBoard)は自分で pointerdown を受ける。受け付けたとき(BB_DRAG.on)だけ見た目を始める。
+    window.addEventListener('pointerdown', e => { const el = tileOf(e.target); if (el && el.hasAttribute('data-btile') && BB_DRAG.on && !(d && d.el === el)) begin(e, el); });
+  }
+  return { begin, cancel: () => clear(false), active: () => !!d };
+})();
+
 function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly = false, onRankExit, renderMenu }) {
   useEffect(()=>()=>CombatFX.cancel(),[]);
   const [screen, setScreen] = useState(initialMenu === 'help' ? 'tutorial' : 'menu'); // menu | playing | gameover
@@ -2378,6 +2564,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
     setDragging(true);
     const c = getCenter(id);
     setDragPos(c);
+    BoardDragFx.begin(e, tileRefs.current[id]);   // Ver.6.41: つかんだタイルを指に付けて動かす見た目（判定には関わらない）
   };
 
   useEffect(() => {
@@ -2702,7 +2889,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                   <div key={lv} className="flex items-center gap-2 text-xs">
                     <span className="w-14 shrink-0 font-black rounded-full text-center py-0.5" style={{ background: info.color, color: COLORS.paper }}>Lv.{lv}</span>
                     <span className="font-bold" style={{ color: COLORS.ink }}>{info.name}</span>
-                    <span className="ml-auto" style={{ color: COLORS.inkSoft, fontSize: '0.85rem' }}><MathText text={info.example} /></span>
+                    <span className="ml-auto" style={{ color: COLORS.inkSoft, fontSize: '0.85rem' }}><MathTextLegacy text={info.example} /></span>
                   </div>
                 );
               })}
@@ -3045,10 +3232,8 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                 let borderColor = sk.bc, tc = sk.color, shadow = sk.glow || '0 4px 0 #0A1230';
                 if (flash === 'correct') { bg = '#7FD8FF'; borderColor = '#fff'; tc = '#14204A'; }
                 if (flash === 'wrong') { bg = '#FF8A75'; borderColor = '#fff'; tc = '#14204A'; }
-                if (isSelected && !flash) { borderColor = '#FFC94D'; shadow = '0 0 0 3px rgba(255,201,77,.6), 0 4px 0 #0A1230'; }
-                // Ver.6.22: いま離すと成立するタイルを光らせて予告する
+                // Ver.6.22: いま離すと成立するタイルを光らせて予告する（Ver.6.41: 光り方は ui-next/battle-ui.css の [data-drop-target]）
                 const isDrop = dragging && !flash && !isSelected && dropId === tile.id;
-                if (isDrop) { borderColor = '#7FE8FF'; shadow = '0 0 0 3px rgba(127,232,255,.85), 0 0 16px rgba(127,232,255,.7), 0 4px 0 #0A1230'; }
                 const fontSize = tile.factor.type === 'const'
                   ? 'clamp(1.4rem, 7.6vmin, 3.2rem)'
                   : tile.factor.type === 'quadratic'
@@ -3059,6 +3244,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                     key={tile.id}
                     data-tile-id={tile.id}
                     data-drop-target={isDrop ? '' : undefined}
+                    data-flash={flash || undefined}
                     ref={el => { tileRefs.current[tile.id] = el; }}
                     onPointerDown={(e) => onTilePointerDown(e, tile.id)}
                     className="rounded-xl flex items-center justify-center font-bold select-none cursor-pointer"
@@ -3067,8 +3253,7 @@ function FactorHunt({ onBattle, onMode, acct, onLogout, initialMenu, rankingOnly
                       border: `2px solid ${borderColor}`,
                       color: tc,
                       boxShadow: shadow,
-                      transform: isSelected ? 'translateY(-3px) scale(1.04)' : 'none',
-                      transition: 'transform 120ms ease, background 150ms ease',
+                      transition: 'background 150ms ease',
                       fontSize,
                       fontFamily: "'Zen Maru Gothic', sans-serif",
                       touchAction: 'none',
@@ -3509,7 +3694,8 @@ function setSkin(patch, acct) {
   if (isReal(acct) && FB.db) FB.db.ref(`games/factor/accounts/${acct.key}/stats/skin`).set(SKIN).catch(() => {});
 }
 // v7=true のとき（新UIの画面）、標準のタイル・背景は新しい見た目（白いタイル・夜空の紺）にする
-const V7_TILE = { id: 'std', bg: '#F4F7FF', bc: '#C9D5F5', color: '#14204A', glow: '0 4px 0 #0A1230' };
+/* Ver.6.41: 標準タイルの影を層にする（上の光・下の厚み・台の影・落ち影）。色と文字色は従来どおり。面の光は ui-next/battle-ui.css */
+const V7_TILE = { id: 'std', bg: '#F4F7FF', bc: '#DCE3F7', color: '#14204A', glow: 'inset 0 2px 0 rgba(255,255,255,.95), inset 0 -5px 0 rgba(168,183,228,.5), 0 4px 0 #0A1230, 0 10px 18px rgba(2,6,24,.45)' };
 const V7_NIGHT = 'radial-gradient(ellipse 120% 70% at 50% 0%, #1C2C68, #0B1430 70%)';
 const tileSkin = v7 => { const t = SKIN_TILES.find(x => x.id === SKIN.tile); if (v7 && (!t || t.id === 'std')) return V7_TILE; return t || SKIN_TILES[0]; };
 const skinBg = dflt => { const t = SKIN_BGS.find(x => x.id === SKIN.bg); if (dflt && (!t || t.id === 'sky')) return dflt; return (t || SKIN_BGS[0]).bg; };
@@ -3628,7 +3814,7 @@ function Wardrobe({ acct, st, exp, onClose, appearance }) {
     FX.text(window.innerWidth / 2, window.innerHeight / 2, `${x.name} にきせかえ！`, '#d4a017', 24);
   };
   const preview = x => {
-    if (tab === 'tile') return <div className="rounded-lg flex items-center justify-center font-bold mx-auto" style={{ width: '4.2rem', height: '3rem', background: x.bg, border: `2px solid ${x.bc}`, color: x.color, boxShadow: x.glow || '0 1px 3px rgba(0,0,0,.15)', ...bFont }}><MathText text="(x+3)" /></div>;
+    if (tab === 'tile') return <div className="rounded-lg flex items-center justify-center font-bold mx-auto" style={{ width: '4.2rem', height: '3rem', background: x.bg, border: `2px solid ${x.bc}`, color: x.color, boxShadow: x.glow || '0 1px 3px rgba(0,0,0,.15)', ...bFont }}><MathTextLegacy text="(x+3)" /></div>;
     if (tab === 'bg') return <div className="rounded-lg mx-auto" style={{ width: '4.2rem', height: '3rem', background: x.bg, border: `2px solid ${COLORS.paperDark}` }} />;
     const c = x.color === 'rainbow' ? 'conic-gradient(#ff4d4d,#ffb020,#ffe14d,#43c97b,#3aa0ff,#9b5bff,#ff4d4d)' : x.color || 'conic-gradient(#FFD54A,#8BE38F,#6BD4E8,#8FB8FF,#FFD54A)';
     return <div className="rounded-full mx-auto" style={{ width: '3rem', height: '3rem', background: c, boxShadow: '0 0 12px rgba(0,0,0,.15)' }} />;
@@ -3930,7 +4116,7 @@ function RunReview({ problems, hist }) {
               <span>問{i + 1} ・ Lv.{p.level}{p.pid ? ` ・ ${PATTERN_BY_ID[p.pid].name}` : ''}</span>
               <span style={{ color: good ? COLORS.leafDeep : COLORS.coral }}>{good ? `○ ${first.j} ${(first.ms / 1000).toFixed(1)}秒` : first ? '× ミスあり' : 'ー'}</span>
             </div>
-            <div className="font-black text-base" style={{ color: COLORS.ink, ...bFont }}><MathText text={formatPoly(p.poly)} /> <span style={{ color: COLORS.inkSoft }}>=</span> <span style={{ color: COLORS.leafDeep }}><MathText text={pairText(p.factors)} /></span></div>
+            <div className="font-black text-base" style={{ color: COLORS.ink, ...bFont }}><MathTextLegacy text={formatPoly(p.poly)} /> <span style={{ color: COLORS.inkSoft }}>=</span> <span style={{ color: COLORS.leafDeep }}><MathTextLegacy text={pairText(p.factors)} /></span></div>
           </div>
         );
       })}
@@ -4010,7 +4196,7 @@ function LearnApp({ acct, onExit, init, renderMenu }) {
               : weakPts.map((r, i) => (
                 <div key={r.id} className="py-1.5" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
                   <div className="flex items-center justify-between text-sm"><span className="font-black" style={{ color: COLORS.ink, ...bFont }}>{i + 1}. {r.name} <span className="text-[10px]" style={{ color: COLORS.inkSoft }}>Lv.{r.lv}</span></span><span className="font-black" style={{ color: COLORS.coral }}>{Math.round(r.st.ok / r.st.n * 100)}%（{r.st.ok}/{r.st.n}）</span></div>
-                  <div className="text-xs" style={{ color: COLORS.inkSoft }}><MathText text={r.ex} /></div>
+                  <div className="text-xs" style={{ color: COLORS.inkSoft }}><MathTextLegacy text={r.ex} /></div>
                 </div>
               ))}
             {weakPts.length > 0 && <div className="mt-3"><BigBtn color="#7B61FF" onClick={() => startDrill(weakPts.map(r => ({ lv: r.lv, pid: r.id })), '苦手ドリル')}>苦手な型だけの10問ドリル</BigBtn></div>}
@@ -4041,7 +4227,7 @@ function LearnApp({ acct, onExit, init, renderMenu }) {
                   <div key={p.id} className="rounded-xl px-2 py-2" style={{ background: ok ? '#fff' : COLORS.paperDark, border: `2px solid ${ok ? LEVEL_INFO[p.lv].color : 'transparent'}`, opacity: ok ? 1 : 0.6, animation: `fxEnter 360ms ${i * 25}ms both` }}>
                     <div className="flex items-center justify-between"><span className="text-[10px] font-black rounded-full px-1.5 text-white" style={{ background: LEVEL_INFO[p.lv].color }}>No.{String(i + 1).padStart(2, '0')}</span>{ok && <span className="text-[10px] font-black" style={{ color: COLORS.leafDeep }}>×{p.st.ok}</span>}</div>
                     <div className="text-xs font-black mt-1" style={{ color: COLORS.ink, ...bFont }}>{ok ? p.name : '？？？'}</div>
-                    <div className="text-[11px]" style={{ color: COLORS.inkSoft, minHeight: '1.4em' }}>{ok ? <MathText text={p.ex} /> : `Lv.${p.lv} のどこかに…`}</div>
+                    <div className="text-[11px]" style={{ color: COLORS.inkSoft, minHeight: '1.4em' }}>{ok ? <MathTextLegacy text={p.ex} /> : `Lv.${p.lv} のどこかに…`}</div>
                   </div>
                 );
               })}
@@ -8108,7 +8294,7 @@ function TeacherDash({ acct, onBack, onWatch }) {
                 {Object.entries(cls.pt).filter(([id, t]) => t.n >= 3 && PATTERN_BY_ID[id]).map(([id, t]) => ({ P: PATTERN_BY_ID[id], a: t.ok / t.n, t })).sort((x, y) => x.a - y.a).slice(0, 8).map(({ P, a, t }) => (
                   <div key={P.id} className="py-1 text-xs" style={{ borderBottom: `1px solid ${COLORS.paperDark}` }}>
                     <div className="flex justify-between"><span className="font-black" style={{ color: COLORS.ink }}>Lv.{P.lv} {P.name}</span><span className="font-black" style={{ color: accColor(a) }}>{Math.round(a * 100)}%（{t.ok}/{t.n}）</span></div>
-                    <div className="flex justify-between" style={{ color: COLORS.inkSoft }}><span><MathText text={P.ex} /></span><span className="font-bold">苦手な人 {t.who}人</span></div>
+                    <div className="flex justify-between" style={{ color: COLORS.inkSoft }}><span><MathTextLegacy text={P.ex} /></span><span className="font-bold">苦手な人 {t.who}人</span></div>
                   </div>))}
               </Card>
             </div>
@@ -9367,7 +9553,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
           <RS.ReviewCard summary={`📝 ふり返り（${review.length}問 ・ ${isBm(mode) ? `正解${review.filter(r => r.good).length}` : `自分が取った${review.filter(r => r.good).length}`}）`}
             open={showRev} onToggle={() => setShowRev(v => !v)} onlyMiss={onlyMiss} onOnlyMiss={setOnlyMiss}
             onlyLabel={isBm(mode) ? 'まちがえた・時間切れの問題だけ' : '取れなかった問題だけ'}
-            rows={rv.map(r => ({ n: r.n, lv: r.lv, good: r.good, mark: r.mark, content: <><MathText text={formatPoly(r.poly)} /> <span>=</span> <span className="rs-ans"><MathText text={r.ans} /></span></> }))} />
+            rows={rv.map(r => ({ n: r.n, lv: r.lv, good: r.good, mark: r.mark, content: <><MathTextLegacy text={formatPoly(r.poly)} /> <span>=</span> <span className="rs-ans"><MathTextLegacy text={r.ans} /></span></> }))} />
           <RS.ResultActions>
             {onBack ? <RS.ResultButton tone="gold" onClick={onBack}>🏆 大会の表にもどる</RS.ResultButton>
               : practice ? (<>
@@ -9428,7 +9614,7 @@ function BattleResult({ result, rec, me, ids, names, mode, N, live, ko, bank, cl
                 <div className="flex items-center justify-between text-[10px] font-bold" style={{ color: COLORS.inkSoft }}>
                   <span>問{r.n} ・ Lv.{r.lv}</span><span style={{ color: r.good ? COLORS.leafDeep : COLORS.coral }}>{r.good ? '○' : '×'} {r.mark}</span>
                 </div>
-                <div className="font-black text-base" style={{ color: COLORS.ink, ...bFont }}><MathText text={formatPoly(r.poly)} /> <span style={{ color: COLORS.inkSoft }}>=</span> <span style={{ color: COLORS.leafDeep }}><MathText text={r.ans} /></span></div>
+                <div className="font-black text-base" style={{ color: COLORS.ink, ...bFont }}><MathTextLegacy text={formatPoly(r.poly)} /> <span style={{ color: COLORS.inkSoft }}>=</span> <span style={{ color: COLORS.leafDeep }}><MathTextLegacy text={r.ans} /></span></div>
               </div>
             ))}
           </div>

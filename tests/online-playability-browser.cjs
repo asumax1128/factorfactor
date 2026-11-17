@@ -89,6 +89,10 @@ async function touchPair(page, long = false, correct = true) {
     1,
     "shared CPU drag feedback must be visible",
   );
+  // Ver.6.41: the visible drag feedback is the held tile itself (lifted, following the finger) plus a placeholder at its
+  // origin; BattleBoard's own dashed line is still rendered (checked above) but hidden while the new feedback is on.
+  assert.equal(await page.locator(".or-battle [data-bb-held]").count(), 1, "shared CPU drag feedback must be visible (held tile)");
+  assert.equal(await page.locator(".or-battle .bb-ph").count(), 1, "shared CPU drag feedback must be visible (origin placeholder)");
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchMove",
     touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }],

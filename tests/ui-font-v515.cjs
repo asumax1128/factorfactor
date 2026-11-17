@@ -31,8 +31,15 @@ const stripMwHint = (src) =>
   assert.notEqual(stripMwHint(hinted.replace('className=\"fxm\"', 'className=\"fxn\"')), base, "any other change to MathText stays visible");
   assert.notEqual(stripMwHint(hinted.replace("i++;\n  return", "i += 2;\n  return")), base, "logic changes stay visible");
 }
+// Ver.6.41: the battle screens render formulas as MathML (MathText). The span renderer pinned here lives on, unchanged,
+// as MathTextLegacy for the non-battle screens: compare it (under its new name) with the old MathText.
+assert.equal(
+  stripMwHint(html.match(/function MathTextLegacy\([\s\S]*?\n\}/)[0]).replace("function MathTextLegacy(", "function MathText("),
+  before.match(/function MathText\([\s\S]*?\n\}/)[0],
+  "the span renderer (now MathTextLegacy) is unchanged",
+);
+assert(/function MathText\(\{ text \}\) \{[\s\S]*?<math display="inline">/.test(html), "MathText renders MathML");
 for (const re of [
-  /function MathText\([\s\S]*?\n\}/,
   /  \.fxm \{[^}]+\}/,
   /  \.fxm-v \{[^}]+\}/,
   /  \.fxm sup \{[^}]+\}/,
