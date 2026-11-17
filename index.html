@@ -1551,7 +1551,7 @@ const BoardDragFx = (() => {
     if (cur.watch) cancelAnimationFrame(cur.watch);
     if (cur.target) cur.target.removeAttribute(TGT);
     try { cur.el.releasePointerCapture && cur.pid != null && cur.el.hasPointerCapture && cur.el.hasPointerCapture(cur.pid) && cur.el.releasePointerCapture(cur.pid); } catch (err) {}
-    cur.el.style.translate = ''; cur.el.style.pointerEvents = ''; cur.el.style.zIndex = '';
+    cur.el.style.translate = ''; cur.el.style.zIndex = '';
     cur.el.removeAttribute(ACC);
     document.documentElement.classList.remove('bb-dragging');
     const done = () => { if (cur.fx && cur.fx.parentNode) cur.fx.parentNode.removeChild(cur.fx); if (cur.el.style.opacity === '0') cur.el.style.opacity = ''; if (flight === cur) flight = null; };
@@ -1581,9 +1581,10 @@ const BoardDragFx = (() => {
     fx.innerHTML = '<i class="bb-ph" style="left:' + l + 'px;top:' + t + 'px;width:' + w + 'px;height:' + h + 'px"></i><i class="bb-link" style="left:' + (l + w / 2) + 'px;top:' + (t + h / 2) + 'px"></i>';
     grid.appendChild(fx);
     d = { el, grid, attr, id: el.getAttribute(attr), sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, cx: l + w / 2, cy: t + h / 2, pid: e.pointerId, fx, line: fx.querySelector('.bb-link'), target: null, battle: attr === 'data-btile' };
-    el.setAttribute(ACC, '');
+    el.setAttribute(ACC, e.pointerType === 'touch' ? 'touch' : 'pointer');   // タッチ以外は、つかんだタイルを当たり判定から外す（CSS）。タッチの流れには触れない
     document.documentElement.classList.add('bb-dragging');
-    try { if (e.pointerId != null && el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (err) {}
+    // マウス・ペンは盤の外へ出ても追えるようにキャプチャする。タッチはブラウザが最初に触れた要素へ暗黙にキャプチャするので、何もしない（明示キャプチャはタッチの流れに触れない）
+    try { if (e.pointerId != null && e.pointerType !== 'touch' && el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (err) {}
     // 盤面が入れ替わった・操作不可になった（次の問題、相手の正解、FREEZE など）ときは見た目も片づける
     const tick = () => { if (!d) return; if (!d.ending && (!d.el.isConnected || (d.battle && !BB_DRAG.on))) { clear(false); return; } d.watch = requestAnimationFrame(tick); };
     d.watch = requestAnimationFrame(tick);
@@ -1597,9 +1598,9 @@ const BoardDragFx = (() => {
     cur.ending = true;
     const id = boardDropTarget(cur.grid, p.x, p.y, cur.id, cur.attr);
     cur.hit = !!id;   // 相手のタイルで離した：判定の演出（光る・ゆれる）に任せて、戻る動きは付けない
-    // つかんだタイルは指の下にあるので、ドラッグ中は当たり判定を素通しにしてある(CSS)。
-    // 元の枠の上で離したときだけ当たりを戻す（共有盤の「同じタイルをタップで選ぶ」動作をそのまま残すため）。
-    if (!id) cur.el.style.pointerEvents = 'auto';
+    // つかんだタイルは指の下に重なっているので、離す瞬間にいったん元の枠へ戻す（BattleBoard は「離した点の真下のタイル」を見る）。
+    // 当たり判定の設定(pointer-events)は変えない。
+    cur.el.style.translate = '';
     // 共有盤：成立するタイル（真上、またはすき間の近いほう）の中心で離したことにする（スナップ）
     if (cur.battle && id) {
       const tgt = cur.grid.querySelector('[data-btile="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
@@ -1616,7 +1617,6 @@ const BoardDragFx = (() => {
     // 「つかんでいる」「相手」の印はここで外しておく（位置と重なり順だけ、片づけの瞬間まで保つ）。
     if (cur.target) { cur.target.removeAttribute(TGT); cur.target = null; }
     cur.el.removeAttribute(ACC);
-    cur.el.style.zIndex = '30'; if (id) cur.el.style.pointerEvents = 'none';
     setTimeout(() => { if (d === cur) clear(true); }, 0);
   };
   const onCancel = () => { if (d) clear(true); };
