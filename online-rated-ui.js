@@ -83,7 +83,7 @@
         feedback,
         extraControls
       }) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
         const tiles = useMemo(
           () => g.tiles,
           [g.question, JSON.stringify(g.tiles)]
@@ -215,7 +215,7 @@
               v7: true
             }
           )), /* @__PURE__ */ React.createElement("p", { className: "v7-hint" }, m.mode === "A" ? "\u5148\u306B\u6B63\u89E3\u3057\u305F\u4EBA\u3060\u3051\u5F97\u70B9 \u30FB \u307E\u3061\u304C\u3048\u308B\u30682\u79D2\u304A\u624B\u3064\u304D" : m.daily ? "\u6700\u5F8C\u307E\u3067\u5B8C\u8D70\u3067\u30AF\u30EA\u30A2 \u30FB \u8AA4\u7B54\u304C\u3042\u3063\u3066\u3082\u7D9A\u3051\u3089\u308C\u307E\u3059" : "\u30B3\u30F3\u30DC\u3067\u653B\u6483 \u30FB \u30B2\u30FC\u30B8\u6E80\u30BF\u30F3\u3067\u5FC5\u6BBA\u6280")),
-          g.rules === "b2" && /* @__PURE__ */ React.createElement("div", { className: "or-b2-status" }, "\u5FC5\u6BBA\u30B2\u30FC\u30B8 ", (self == null ? void 0 : self.gauge) || 0, "% \u30FB \u304A\u90AA\u9B54 ", ((_m = self == null ? void 0 : self.cur) == null ? void 0 : _m.oj) || 0, "\u679A \u30FB \u30AB\u30A6\u30F3\u30BF\u30FC ", (self == null ? void 0 : self.pending) ? Math.max(0, (self.counterUntil - time) / 1e3).toFixed(1) + "\u79D2" : "\u2015"),
+          g.rules === "b2" && /* @__PURE__ */ React.createElement("div", { className: "or-b2-status bu-status", "data-gauge-full": ((self == null ? void 0 : self.gauge) || 0) >= 100 || void 0 }, /* @__PURE__ */ React.createElement("span", { className: "bu-status-text" }, "\u5FC5\u6BBA\u30B2\u30FC\u30B8 ", /* @__PURE__ */ React.createElement("b", { className: "bu-gauge-num" }, (self == null ? void 0 : self.gauge) || 0, "%"), " \u30FB \u304A\u90AA\u9B54 ", /* @__PURE__ */ React.createElement("b", { "data-warn": (((_m = self == null ? void 0 : self.cur) == null ? void 0 : _m.oj) || 0) > 0 || void 0 }, ((_n = self == null ? void 0 : self.cur) == null ? void 0 : _n.oj) || 0, "\u679A"), " \u30FB \u30AB\u30A6\u30F3\u30BF\u30FC ", /* @__PURE__ */ React.createElement("b", { "data-warn": !!(self == null ? void 0 : self.pending) || void 0 }, (self == null ? void 0 : self.pending) ? Math.max(0, (self.counterUntil - time) / 1e3).toFixed(1) + "\u79D2" : "\u2015")), /* @__PURE__ */ React.createElement("i", { className: "bu-gauge", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("i", { style: { width: Math.max(0, Math.min(100, (self == null ? void 0 : self.gauge) || 0)) + "%" } }))),
           iceBreak && /* @__PURE__ */ React.createElement("div", { className: "or-ice-break", "aria-hidden": "true" }, [0, 1, 2, 3, 4, 5, 6, 7].map((i) => /* @__PURE__ */ React.createElement("i", { key: i, style: { left: i % 4 * 25 + "%", top: Math.floor(i / 4) * 50 + "%", "--ice-x": (i % 2 ? 1 : -1) * 120 + "px" } }))),
           frozen && /* @__PURE__ */ React.createElement("div", { className: "or-freeze", "aria-label": "FREEZE\u4E2D" }, /* @__PURE__ */ React.createElement("strong", null, "FREEZE!"), /* @__PURE__ */ React.createElement("b", null, Math.ceil((g.freezeUntil - time) / 1e3))),
           counting && /* @__PURE__ */ React.createElement("div", { className: "or-countdown", "aria-label": "\u958B\u59CB\u30AB\u30A6\u30F3\u30C8\u30C0\u30A6\u30F3" }, (m.gameStartAt || g.startAt) - time > 3e3 ? "READY" : Math.max(

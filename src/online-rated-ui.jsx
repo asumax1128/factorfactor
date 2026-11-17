@@ -275,7 +275,7 @@
                   : m.daily ? "最後まで完走でクリア ・ 誤答があっても続けられます" : "コンボで攻撃 ・ ゲージ満タンで必殺技"}
               </p>
             </div>
-            {g.rules === "b2" && <div className="or-b2-status">必殺ゲージ {self?.gauge || 0}% ・ お邪魔 {self?.cur?.oj || 0}枚 ・ カウンター {self?.pending ? Math.max(0,(self.counterUntil-time)/1000).toFixed(1)+"秒" : "―"}</div>}
+            {g.rules === "b2" && <div className="or-b2-status bu-status" data-gauge-full={(self?.gauge || 0) >= 100 || undefined}><span className="bu-status-text">必殺ゲージ <b className="bu-gauge-num">{self?.gauge || 0}%</b> ・ お邪魔 <b data-warn={(self?.cur?.oj || 0) > 0 || undefined}>{self?.cur?.oj || 0}枚</b> ・ カウンター <b data-warn={!!self?.pending || undefined}>{self?.pending ? Math.max(0,(self.counterUntil-time)/1000).toFixed(1)+"秒" : "―"}</b></span><i className="bu-gauge" aria-hidden="true"><i style={{ width: Math.max(0, Math.min(100, self?.gauge || 0)) + "%" }} /></i></div>}
             {iceBreak && <div className="or-ice-break" aria-hidden="true">{[0,1,2,3,4,5,6,7].map(i=><i key={i} style={{left:(i%4)*25+"%",top:Math.floor(i/4)*50+"%","--ice-x":(i%2?1:-1)*120+"px"}} />)}</div>}
             {frozen && <div className="or-freeze" aria-label="FREEZE中"><strong>FREEZE!</strong><b>{Math.ceil((g.freezeUntil-time)/1000)}</b></div>}
             {counting && (

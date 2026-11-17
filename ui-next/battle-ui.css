@@ -1,0 +1,111 @@
+/* Ver.6.41 バトル画面の統一デザイン（全方式共通）。見た目だけ：判定・得点・通信・盤面の大きさには関わらない。
+   対象は .game-lock.v7-battle（ソロ / CPU・ルーム・レーティング・ゴースト / 今週のボス / ドリル / 観戦 のプレイ画面）だけ。
+   部品：タイル・問題パネル・HUDの箱・バー・ボタン・チップ・進行の点・ドラッグ表示・MathML の数式。
+   色の世界は従来どおり（紺の背景・白いタイル・クリーム色に金枠の問題・濃紺の文字）。質感（面の光・影の層・二重線）だけを足す。 */
+.v7-battle.game-lock{
+ --bu-accent:#3EE0A8;--bu-accent-soft:rgba(62,224,168,.24);--bu-gold:#FFC94D;--bu-gold-deep:#C48A14;
+ --bu-line:rgba(222,230,255,.86);--bu-line-soft:rgba(160,176,230,.5);--bu-depth:#070D26;--bu-label:#B9C6F0;
+ --bu-math:FxMathMain,"KaTeX_Main","Times New Roman","Cambria Math",serif;
+ --bu-math-it:FxMathItalic,"KaTeX_Math","Times New Roman","Cambria Math",serif}
+
+/* ---------- 数式（MathML） ---------- */
+.fxm-ml math{font-family:var(--bu-math,FxMathMain,"KaTeX_Main","Times New Roman",serif);font-size:inherit;font-weight:400;font-style:normal;line-height:inherit;color:inherit;direction:ltr}
+.fxm-ml mn,.fxm-ml mo,.fxm-ml mtext{font-family:inherit;font-style:normal}
+.fxm-ml mi{font-family:var(--bu-math-it,FxMathItalic,"KaTeX_Math","Times New Roman",serif);font-style:italic;text-transform:none}
+.fxm-ml mi.fxm-v{padding-right:.02em}
+.fxm-ml mo{padding:0;margin:0}
+/* MathML を描けない古いブラウザでも、指数と分数だけは読める形にする */
+@supports not (display:math){
+ .fxm-ml math{display:inline-block}
+ .fxm-ml msup>:last-child{font-size:.7em;vertical-align:.55em;margin-left:.03em}
+ .fxm-ml mfrac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.75em;line-height:1.1}
+ .fxm-ml mfrac>:first-child{border-bottom:1px solid currentColor;padding:0 .15em}
+ .fxm-ml mo.fxm-bin{margin:0 .2222em}
+}
+
+/* ---------- タイル ---------- */
+.v7-battle.game-lock [data-btile],.v7-battle.game-lock [data-tile-id]{position:relative;isolation:isolate;border-radius:16px;-webkit-tap-highlight-color:transparent}
+/* 面の光（上のハイライトと下のかげり）。台の色やきせかえの柄の上に重ねるだけ */
+.v7-battle.game-lock [data-btile]::before,.v7-battle.game-lock [data-tile-id]::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+ background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,0) 36%,rgba(140,160,220,0) 64%,rgba(140,160,220,.2) 100%)}
+/* 正解・不正解の手ごたえ（色は従来どおり。動きだけ足す） */
+@keyframes buPop{0%{scale:1}40%{scale:1.07}100%{scale:1}}
+@keyframes buShake{0%,100%{translate:0 0}20%{translate:-5px 0}45%{translate:5px 0}70%{translate:-3px 0}88%{translate:2px 0}}
+.v7-battle.game-lock [data-tile-id][data-flash=correct],.v7-battle.game-lock [data-btile][style*="127, 216, 255"]{animation:buPop .3s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 0 0 3px rgba(255,255,255,.9),0 0 22px rgba(127,216,255,.85),0 4px 0 #0A1230 !important}
+.v7-battle.game-lock [data-tile-id][data-flash=wrong],.v7-battle.game-lock [data-btile][style*="255, 138, 117"]{animation:buShake .32s ease;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 18px rgba(255,110,90,.7),0 4px 0 #0A1230 !important}
+
+/* ---------- つなげるドラッグ ---------- */
+.bb-fx{position:absolute;inset:0;pointer-events:none;z-index:1}
+.bb-ph{position:absolute;box-sizing:border-box;border:2px dashed rgba(196,210,255,.6);border-radius:16px;background:rgba(8,14,40,.42);box-shadow:inset 0 3px 12px rgba(0,0,0,.4)}
+/* 元の位置からつかんだタイルへ伸びる点線（長さと向きはドラッグ中に直接書き換える） */
+.bb-link{position:absolute;width:0;height:0;margin-top:-2px;border-top:4px dotted var(--bu-accent,#3EE0A8);transform-origin:0 2px;opacity:0;transition:opacity .1s;pointer-events:none}
+html.bb-dragging .game-lock .grid>svg{visibility:hidden}
+.v7-battle.game-lock [data-bb-held]{z-index:30;pointer-events:none;cursor:grabbing;rotate:-2.5deg;scale:1.06;will-change:translate;
+ border-color:var(--bu-accent) !important;
+ box-shadow:0 0 0 2px rgba(62,224,168,.5),0 7px 0 rgba(7,13,38,.55),0 22px 30px rgba(0,3,18,.6) !important}
+.v7-battle.game-lock [data-btile][data-bb-held]{scale:1.02}
+/* 元の位置へ戻る動きを見せる写し（本物のタイルはもう元の枠にある） */
+.v7-battle.game-lock .bb-ghost{box-sizing:border-box;border-radius:16px;isolation:isolate;border-color:var(--bu-accent) !important;box-shadow:0 0 0 2px rgba(62,224,168,.5),0 7px 0 rgba(7,13,38,.55),0 22px 30px rgba(0,3,18,.6) !important}
+.v7-battle.game-lock .bb-ghost::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,0) 36%,rgba(140,160,220,0) 64%,rgba(140,160,220,.2) 100%)}
+@keyframes buGlow{0%,100%{box-shadow:0 0 0 3px rgba(62,224,168,.95),0 0 0 8px var(--bu-accent-soft),0 0 28px rgba(62,224,168,.8),0 4px 0 #0A1230}50%{box-shadow:0 0 0 3px rgba(62,224,168,.95),0 0 0 11px rgba(62,224,168,.14),0 0 36px rgba(62,224,168,.95),0 4px 0 #0A1230}}
+/* 大きさは変えない（当たりの範囲＝見た目の枠のまま）。光の輪だけで知らせる */
+.v7-battle.game-lock [data-bb-target],.v7-battle.game-lock [data-drop-target]{animation:buGlow .9s ease-in-out infinite;border-color:var(--bu-accent) !important}
+
+/* ---------- 問題パネル（クリーム色・金の二重線） ---------- */
+.v7-battle.game-lock .v7-target{border-radius:18px;background-image:linear-gradient(180deg,#FFFEFA 0%,#FFFAEA 62%,#FFF2D2 100%);
+ box-shadow:0 0 0 2px var(--v7-night),0 5px 0 #7A5410,0 14px 24px rgba(0,0,0,.42),0 0 26px rgba(255,201,77,.3)}
+.v7-battle.game-lock .v7-target::after{content:"";position:absolute;inset:6px 5px 5px;border:1.5px solid rgba(203,150,35,.6);border-radius:11px;pointer-events:none}
+.v7-battle.game-lock .v7-target.rev{background-image:linear-gradient(160deg,#3a0d0d,#6b1414);box-shadow:0 0 0 2px var(--v7-night),0 5px 0 #3a0808,0 14px 24px rgba(0,0,0,.42),0 0 20px rgba(255,46,46,.55)}
+.v7-battle.game-lock .v7-target.rev::after{border-color:rgba(255,170,170,.55)}
+.v7-battle.game-lock .v7-target .v7-poly{position:relative;z-index:1}
+
+/* ---------- HUD の箱・バー・ボタン・チップ ---------- */
+.v7-battle.game-lock .v7-wnd{border:1.5px solid var(--bu-line);border-radius:12px;
+ background:linear-gradient(180deg,#2B4292 0%,#1A2B6E 50%,#111D52 100%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(8,14,40,.55),0 3px 0 var(--bu-depth),0 8px 14px rgba(0,0,0,.28)}
+.v7-battle.game-lock .v7-st small{letter-spacing:.18em;color:var(--bu-label)}
+.v7-battle.game-lock .v7-st b{text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.v7-battle.game-lock .v7-hpb{border-color:rgba(214,224,255,.78);background:#060C24;box-shadow:inset 0 2px 5px rgba(0,0,0,.7),0 2px 0 var(--bu-depth)}
+.v7-battle.game-lock .v7-hpb i{border-radius:99px;box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -3px 0 rgba(0,0,0,.2)}
+.v7-battle.game-lock .v7-hpb em{letter-spacing:.08em;text-shadow:0 1px 0 rgba(0,0,0,.55),0 0 6px rgba(0,0,0,.45)}
+/* 枠線は内側の影で描く（ボタンの寸法を変えない＝HUD の高さを増やさない） */
+.v7-battle.game-lock .v7-bar-btn{border-radius:10px;background:linear-gradient(180deg,#1E2E6C,#0F1A47);color:#E8EEFF;
+ box-shadow:inset 0 0 0 1px var(--bu-line-soft),inset 0 2px 0 rgba(255,255,255,.14),0 2px 0 var(--bu-depth)}
+.v7-battle.game-lock .v7-bar-btn:active{translate:0 1px;box-shadow:inset 0 0 0 1px var(--bu-line-soft),0 1px 0 var(--bu-depth)}
+.v7-battle.game-lock .v7-chip{text-shadow:0 1px 0 rgba(0,0,0,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.14),0 2px 0 rgba(4,8,26,.55)}
+.v7-battle.game-lock .v7-hint{color:#B4C0EC}
+
+/* ---------- 対戦カード・進行の点・状態の行（共有ビュー / GameA の枠） ---------- */
+.v7-battle.game-lock.pf-surface .pf-exit,.v7-battle.game-lock.pf-surface .pf-mute{border:1px solid var(--bu-line-soft);border-radius:10px;background:linear-gradient(180deg,#1E2E6C,#0F1A47);box-shadow:inset 0 2px 0 rgba(255,255,255,.14),0 2px 0 var(--bu-depth)}
+.v7-battle.game-lock.pf-surface .pf-chip{border:1px solid var(--bu-line-soft);background:linear-gradient(180deg,rgba(20,32,78,.92),rgba(10,18,48,.92)) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1);text-shadow:none}
+.v7-battle.game-lock.pf-surface .pf-self{border:2px solid var(--bu-accent);border-radius:12px;background:linear-gradient(180deg,#16306A 0%,#0F2050 100%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(8,14,40,.6),0 0 14px rgba(62,224,168,.28),0 3px 0 var(--bu-depth)}
+.v7-battle.game-lock.pf-surface .or-opponent{border-radius:12px}
+.v7-battle.game-lock .or-progress i{border-radius:99px;box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.v7-battle.game-lock.pf-surface .or-b2-status{border:1px solid var(--bu-line-soft);border-radius:12px;background:linear-gradient(180deg,rgba(20,32,78,.92),rgba(10,18,48,.92));box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 var(--bu-depth);position:relative;overflow:hidden}
+.v7-battle.game-lock .bu-status-text{display:block}
+.v7-battle.game-lock .bu-status-text b{font-weight:900;color:#fff}
+.v7-battle.game-lock .bu-status-text .bu-gauge-num{color:var(--bu-gold)}
+.v7-battle.game-lock .bu-status-text b[data-warn]{color:#FF9E8A}
+/* ゲージは状態の行の下の縁に重ねる（行の高さを増やさない＝タイルを小さくしない） */
+.v7-battle.game-lock .bu-gauge{display:block;position:absolute;left:0;right:0;bottom:0;height:4px;background:#060C24;box-shadow:inset 0 1px 2px rgba(0,0,0,.7);overflow:hidden}
+.v7-battle.game-lock .bu-gauge>i{display:block;height:100%;border-radius:0 99px 99px 0;background:linear-gradient(90deg,#F2A516,#FFD54A);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);transition:width .3s ease}
+.v7-battle.game-lock .bu-status[data-gauge-full] .bu-gauge>i{background:linear-gradient(90deg,#FFD54A,#FFF3B0);box-shadow:0 0 10px rgba(255,213,74,.9)}
+.v7-battle.game-lock.pf-surface .pf-target{border:1.5px solid var(--bu-line-soft);border-radius:12px;background:linear-gradient(180deg,#1E2E6C,#0F1A47);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 2px 0 var(--bu-depth)}
+.v7-battle.game-lock.pf-surface .pf-target[aria-pressed=true]{border-color:var(--bu-gold);background:linear-gradient(180deg,#4A3E14,#2E2609);box-shadow:inset 0 0 0 1px var(--bu-gold),0 0 12px rgba(255,201,77,.35),0 2px 0 var(--bu-depth)}
+/* 式が2本並ぶ問題パネル（今週のボスの連携型）は、内側の線が説明文に重なるので外枠だけにする */
+.v7-battle.game-lock .v7-target:has([data-poly2])::after{display:none}
+/* PC・タブレット横：判定の文字が出る欄。点線の空箱をやめて、うっすら光る面にする */
+@media (min-width:900px) and (orientation:landscape){
+ .v7-battle.game-lock .v7-fxbox{border:1px solid rgba(160,176,230,.2);border-radius:14px;background:radial-gradient(ellipse 80% 70% at 50% 45%,rgba(64,92,190,.26),rgba(10,18,48,.12) 70%);box-shadow:inset 0 2px 12px rgba(0,0,0,.35)}
+}
+/* 指数のあとの余分なすき間を詰める（教科書の組み方に合わせる） */
+.fxm-ml msup{margin-right:-.1em}
+/* 長い式を枠に収める（枠付きの対戦画面は play-frame.css が同じことをしている）。大きくはしない：あふれるときだけ縮める */
+@supports (width:1cqw){
+ .v7-battle.game-lock:not(.pf-surface) .v7-poly,.v7-battle.game-lock:not(.pf-surface) [data-btile],.v7-battle.game-lock:not(.pf-surface) [data-tile-id]{container-type:inline-size}
+ .v7-battle.game-lock:not(.pf-surface) .v7-poly .fxm-ml{font-size:min(1em,calc(92cqw / var(--mw,8)))}
+ .v7-battle.game-lock:not(.pf-surface) [data-btile] .fxm-ml,.v7-battle.game-lock:not(.pf-surface) [data-tile-id] .fxm-ml{font-size:min(1em,calc(86cqw / var(--mw,6)))}
+}
+/* 問題の式の行の高さを従来とそろえる（問題パネルを低くしない） */
+.v7-battle.game-lock .v7-poly .fxm-ml{display:inline-block;line-height:1.25}
