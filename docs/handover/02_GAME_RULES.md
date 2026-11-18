@@ -75,7 +75,7 @@
 
 ## 6. 新B2の確定ルール
 
-- **P**＝round(LEVEL_POINTS[level]×(1+0.1×(combo−1)))＋max(0,round(HP_before+heal−100))。正解後comboを使う。**bonus**＝round(P×0.10×cur.oj)、total=P+bonus。途中で到着した未配置カードは含めない。
+- **P**＝round(LEVEL_POINTS[level]×(1+0.1×(combo−1)))＋max(0,round(HP_before+heal−100))。正解後comboを使う。**bonus**＝round(P×係数×oj×(oj+1))（oj＝cur.oj、係数は`OJ_BONUS_COEF`＝easy 0.05／normal 0.10。加算率 easy 10・30・60・100・150・210%、normal 20・60・120%。コンボ倍率に上限なし）、total=P+bonus。途中で到着した未配置カードは含めない。
 - E/N基本枚数6/9、最大12、妨害上限6/3。通常カードと見た目を分けない。正解後の持越しojは1減り、全カードは次問用へ交換。誤答でも次問へ進むがoj減少は正解だけ。
 - 正解combo1/2/3/4以上の攻撃0/1/2/3枚。最初の到着からcounter3秒、追加で延長なし。受付中に今回発生した攻撃から相殺し余剰だけ送信。受付期限後のカードは次盤面へ。判定は`counterUntil>now`で、ちょうど期限では相殺しない。
 - コンボ10秒は新問操作可能から。`comboDue<time`で切れるので、ちょうど10秒は保持。誤答/timeoutで0。凍結中はcomboDue/counterUntilを延長して残時間を保持する。

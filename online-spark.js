@@ -44,6 +44,11 @@
       var POINTS = { 1: 10, 2: 12, 3: 14, 4: 16, 5: 18, 6: 20, 7: 30, 8: 40, 9: 50 };
       var heal = (ms) => ms <= 2e3 ? 25 : ms <= 3e3 ? 20 : ms <= 5e3 ? 15 : ms <= 1e4 ? 10 : ms <= 15e3 ? 5 : 2;
       var cap = (d) => d === "easy" ? 6 : 3;
+      var OJ_BONUS_COEF = { easy: 0.05, normal: 0.1 };
+      var ojBonus = (P, difficulty, oj) => {
+        var _a;
+        return Math.round(P * Math.round(((_a = OJ_BONUS_COEF[difficulty]) != null ? _a : OJ_BONUS_COEF.normal) * 100 * oj * (oj + 1)) / 100);
+      };
       function event(m, uid, type, payload) {
         m.visualEvents || (m.visualEvents = []);
         m.visualSeq = (m.visualSeq || 0) + 1;
@@ -225,7 +230,7 @@
           s.combo++;
           s.best = Math.max(s.best, s.combo);
           const recovery = heal(ms), P = Math.round(POINTS[s.cur.level] * (1 + 0.1 * (s.combo - 1))) + Math.max(0, Math.round(s.hp + recovery - 100));
-          const bonus = Math.round(P * 0.1 * s.cur.oj);
+          const bonus = ojBonus(P, m.difficulty, s.cur.oj);
           s.score += P + bonus;
           s.hp = Math.min(100, s.hp + recovery);
           s.c++;
@@ -290,7 +295,7 @@
         const s = m.states[uid];
         return { id: m.id, mode: "B", difficulty: m.difficulty, rules: "b2", result: m.result || null, question: `${s.cur.level}:${s.cur.k}`, poly: s.cur.poly, tiles: s.cur.tiles, level: s.cur.level, startAt: s.qStart, timeoutMs: 2e4, acceptedSeq: ((_a = m.seq) == null ? void 0 : _a[uid]) || 0, visualEvents: m.visualEvents || [], resolving: s.resolving, combo: s.combo, readyAt: s.nextAt || s.qStart, endAt: m.endAt, freezeUntil: s.freezeUntil, live: copy(m.states) };
       }
-      module.exports = { begin, step, view, advance, heal, cap, POINTS };
+      module.exports = { begin, step, view, advance, heal, cap, POINTS, OJ_BONUS_COEF, ojBonus };
     }
   });
 

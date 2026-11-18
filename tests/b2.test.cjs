@@ -20,3 +20,17 @@ test('spectator UID and account share the three-cheer cap; reorder and rejected 
  const raw={game,accounts:{a:'account-a',b:'account-b'},inputs:{visitor:{c4:{type:'cheer',account:'another-account',seq:4,target:'a',at:start+70}},a:{a1:{type:'answer',seq:1,question:v.question,tiles,at:start+100}}}};
  const next=pump(raw,start+200);assert.equal(next.game.states.a.c,1);assert.equal(next.game.states.a.cheerRemoved,0);assert.equal(next.rejected.visitor.code,'CHEER_LIMIT');assert(next.handled.visitor.c4);
 });
+// Ver.6.42: ojama bonus = round(P x coef x oj x (oj+1)); the combo multiplier is NOT capped.
+const OJ_RATES={easy:[0,10,30,60,100,150,210],normal:[0,20,60,120]};
+test('ojama bonus constants and caps',()=>{assert.deepEqual(B.OJ_BONUS_COEF,{easy:.05,normal:.10});for(const d of ['easy','normal'])assert.equal(OJ_RATES[d].length,B.cap(d)+1)});
+for(const d of ['easy','normal'])for(let n=0;n<=B.cap(d);n++)test(`ojama bonus ${d} oj=${n}: round(P x ${OJ_RATES[d][n]}%)`,()=>{
+ let m=begin(d);m.states.a.oj=n+1;m=answer(m);m=E.step(m,'a',{type:'heartbeat'},m.states.a.nextAt);
+ const s0=m.states.a;assert.equal(s0.cur.oj,n,'the next board really holds '+n+' ojama');const before=s0.score;m=answer(m);const s=m.states.a,h=s.hist[1];
+ assert.equal(h.oj,n);assert.equal(h.bonus,Math.round(h.base*OJ_RATES[d][n]/100),'bonus = round(P x rate)');assert.equal(h.gain,h.base+h.bonus);assert.equal(s.score,before+h.gain);
+ if(n===0)assert.equal(h.bonus,0)});
+test('ojama bonus only counts ojama placed at the start of the question (arrived but unplaced do not count)',()=>{let m=begin('easy');m.states.a.queued=3;m=answer(m);const h=m.states.a.hist[0];assert.equal(h.oj,0);assert.equal(h.bonus,0)});
+test('ojama bonus rounding is exact at .5 boundaries and never uses floats',()=>{for(const d of ['easy','normal'])for(let n=0;n<=B.cap(d);n++)for(let P=0;P<=400;P++)assert.equal(B.ojBonus(P,d,n),Math.round(P*OJ_RATES[d][n]/100),`${d} ${n} ${P}`)});
+for(const d of ['easy','normal'])test('combo multiplier has no cap '+d,()=>{
+ let m=begin(d);const s=m.states.a;s.combo=9;s.hp=50;m=answer(m);const h=m.states.a.hist[0];assert.equal(m.states.a.combo,10);
+ assert.equal(h.base,Math.round(B.POINTS[h.lv]*1.9),'combo 10 keeps x1.9');
+ for(const c of [20,50]){let q=begin(d);q.states.a.combo=c-1;q.states.a.hp=50;q=answer(q);assert.equal(q.states.a.hist[0].base,Math.round(B.POINTS[q.states.a.hist[0].lv]*(1+.1*(c-1))),'combo '+c)}});
