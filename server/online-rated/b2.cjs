@@ -3,6 +3,12 @@ const copy = x => JSON.parse(JSON.stringify(x));
 const POINTS = {1:10,2:12,3:14,4:16,5:18,6:20,7:30,8:40,9:50};
 const heal = ms => ms<=2000?25:ms<=3000?20:ms<=5000?15:ms<=10000?10:ms<=15000?5:2;
 const cap = d => d==='easy'?6:3;
+// Ver.6.42: 正解時のお邪魔ボーナス = round(P × 係数 × oj × (oj+1))。oj は問題開始時に盤面へ配置された枚数（s.cur.oj）。
+// 加算率は easy: 1枚10%・2枚30%・3枚60%・4枚100%・5枚150%・6枚210% ／ normal: 1枚20%・2枚60%・3枚120%。係数はここで調整する。
+// （コンボ倍率 1+0.1×(コンボ−1) に上限はない。P の定義はこの式の外）
+const OJ_BONUS_COEF = { easy: 0.05, normal: 0.10 };
+// 加算率(%)を整数で出してから割る：小数の丸め誤差で .5 の境目がぶれないようにする
+const ojBonus = (P, difficulty, oj) => Math.round(P * Math.round((OJ_BONUS_COEF[difficulty] ?? OJ_BONUS_COEF.normal) * 100 * oj * (oj + 1)) / 100);
 function event(m,uid,type,payload){m.visualEvents ||= [];m.visualSeq=(m.visualSeq||0)+1;m.visualEvents.push({id:m.visualSeq,uid,type,payload});m.visualEvents=m.visualEvents.slice(-32)}
 // Additive, match-scoped record; old in-flight games deliberately remain without a trace.
 function scoreEvent(m,uid,gain){if(!m.scoreTrace)return;const t=m.scoreTrace;t.seq++;t.events.push({id:t.seq,at:m.time,uid,gain,scores:Object.fromEntries(m.ids.map(u=>[u,m.states[u].score]))});}
@@ -92,7 +98,7 @@ function step(raw,uid,cmd,now,bank,api){
   const ok=api.polyEqual(api.multiply(...fs),s.cur.poly),ms=now-s.qStart;
   if(ok){
     s.combo++;s.best=Math.max(s.best,s.combo);const recovery=heal(ms),P=Math.round(POINTS[s.cur.level]*(1+.1*(s.combo-1)))+Math.max(0,Math.round(s.hp+recovery-100));
-    const bonus=Math.round(P*.1*s.cur.oj);s.score+=P+bonus;s.hp=Math.min(100,s.hp+recovery);s.c++;s.oj=Math.max(0,s.oj-1);
+    const bonus=ojBonus(P,m.difficulty,s.cur.oj);s.score+=P+bonus;s.hp=Math.min(100,s.hp+recovery);s.c++;s.oj=Math.max(0,s.oj-1);
     let attack=s.combo===1?0:s.combo===2?1:s.combo===3?2:3;
     if(s.pending&&s.counterUntil>now){const cancel=Math.min(s.pending,attack);s.cancelTotal=(s.cancelTotal||0)+cancel;cancelEvents(s,cancel);s.pending-=cancel;attack-=cancel;if(!s.pending)s.counterUntil=0;}
     const room=Math.max(0,cap(m.difficulty)-o.oj-o.queued-o.pending),arrived=Math.min(attack,room);
@@ -113,4 +119,4 @@ function pendQueue(s){return Array.isArray(s.pendQ)?s.pendQ:(s.pendQ=s.pending>0
 function queueArrival(o,arrived){pendQueue(o).push(arrived)}
 function cancelEvents(s,c){const q=pendQueue(s);while(c>0&&q.length){const t=Math.min(c,q[0]);q[0]-=t;c-=t;if(q[0]<=0){q.shift();s.cancelFull=(s.cancelFull||0)+1}}}
 function view(m,uid){const s=m.states[uid];return {id:m.id,mode:'B',difficulty:m.difficulty,rules:'b2',result:m.result||null,question:`${s.cur.level}:${s.cur.k}`,poly:s.cur.poly,tiles:s.cur.tiles,level:s.cur.level,startAt:s.qStart,timeoutMs:20000,acceptedSeq:m.seq?.[uid]||0,visualEvents:m.visualEvents||[],resolving:s.resolving,combo:s.combo,readyAt:s.nextAt||s.qStart,endAt:m.endAt,freezeUntil:s.freezeUntil,live:copy(m.states)};}
-module.exports={begin,step,view,advance,heal,cap,POINTS};
+module.exports={begin,step,view,advance,heal,cap,POINTS,OJ_BONUS_COEF,ojBonus};
