@@ -6079,10 +6079,150 @@ function SplitView({ ids, names, nicks, mode, diff, bank, live, ko, result, clai
     </div>
   );
 }
+/* Ver.6.43 大会の観戦者リザルト（先生・観戦者用）。表示専用：読み取りだけで、書き込み・記録・判定はしない。
+   試合の result が確定したら観戦画面の代わりにこれを出す。参加者の BattleResult とは別物で、個人要素（EXP・称号・レート・せいせき・再戦）は出さない。
+   - A方式：claims（全問の正解者）と seed から作り直した bank で全問ふり返り。
+   - 旧B方式：解答履歴がサーバーに無いので、live／ko／result から取れる範囲のサマリだけ。
+   - 大会B2：b2/{gid}/game の両選手の hist から、両選手分の全問ふり返り。 */
+const TW_COLORS = ['#72dfce', '#f6bd62', '#b5a5ff', '#83c8ff'];
+const twSec = ms => (Number.isFinite(ms) ? (ms / 1000).toFixed(1) : null);
+function twReason(reason, ids, names, winner, N) {
+  const loser = ids.find(u => u !== winner), nm = u => names[u] || 'プレイヤー';
+  return ({
+    ko: winner ? `${nm(loser)}の体力が0になった` : '両者の体力が0になった',
+    clear: winner ? `${nm(winner)}が先に${N}問を解き切った` : '',
+    leave: winner ? `${nm(loser)}が退出した（${nm(winner)}の不戦勝）` : '退出',
+    time: '試合時間終了・得点で勝負',
+    points: '得点で勝負',
+    judge: '先生の判定',
+  })[reason] || '';
+}
+// 引き分けのときの扱い（表の勝ち上がりと同じ matchOutcome で決まる）
+function twDrawNote(m, res, state, r, names) {
+  if (!res || res.winner) return '';
+  const o = matchOutcome(m, res, state, r);
+  if (isSwissRound(state, r)) return '引き分け（両者に1点）';
+  return o.w ? `引き分け → ${state.fmt === 'swiss' ? '上位シードの' : '抽選で'} ${names[o.w] || 'プレイヤー'} が勝ち上がり` : '';
+}
+function TwCompare({ rows, ids, names }) {
+  if (!rows.length) return null;
+  return <div className="tw-cmp" role="table" aria-label="成績の比較">
+    <div className="tw-cmp-row tw-cmp-head" role="row"><span role="columnheader">項目</span>{ids.map((u, i) => <span key={u} role="columnheader"><i className="tw-dot" style={{ background: TW_COLORS[i % 4] }} />{names[u] || 'プレイヤー'}</span>)}</div>
+    {rows.map(r => {
+      const vals = ids.map(u => r.values[u]), best = r.better === 'low' ? Math.min(...vals) : Math.max(...vals), tie = vals.every(v => v === vals[0]);
+      return <div key={r.id} className="tw-cmp-row" role="row" data-row={r.id}><span role="rowheader">{r.label}{r.note && <small>{r.note}</small>}</span>
+        {ids.map(u => <b key={u} role="cell" data-best={!tie && r.values[u] === best}>{r.decimals ? r.values[u].toFixed(r.decimals) : r.values[u]}{r.unit}</b>)}</div>;
+    })}
+  </div>;
+}
+function TourWatchResult({ kind, ids, names, nicks = {}, roundLabel, winner, draw, rank, reasonText, drawNote, rows = [], reviews = [], onClose }) {
+  const NR = window.NextResults;
+  const [open, setOpen] = useState({}), [only, setOnly] = useState({});
+  useEffect(() => { const el = document.querySelector('[data-tour-watch-result]'); if (el) el.scrollTop = 0; }, []);
+  const methodLabel = kind === 'A' ? 'A方式（早い者勝ち）' : kind === 'B2' ? '新B方式（レース＋攻撃）' : 'B方式（レース＋攻撃）';
+  const order = [...ids].sort((a, b) => (rank[a] || 9) - (rank[b] || 9));
+  return (
+    <div className="fixed inset-0 fx-scroll overflow-y-auto" style={{ zIndex: 85, background: '#101720', touchAction: 'pan-y', padding: 'max(0.75rem, env(safe-area-inset-top)) 0.75rem 0' }} data-tour-watch-result data-kind={kind}>
+      <div style={{ maxWidth: '46rem', margin: '0 auto' }}>
+        <NR.ResultShell kind={kind} outcome={draw ? 'draw' : 'win'} className="tw-result">
+          <header className="tw-hero">
+            <span className="tw-chip" data-tw-round>🏆 {roundLabel} ・ {methodLabel}</span>
+            <h2 className="tw-winner" data-tw-winner>{draw ? '引き分け' : `👑 ${names[winner] || 'プレイヤー'} の勝利`}</h2>
+            {reasonText && <p className="tw-reason">{reasonText}</p>}
+            {drawNote && <p className="tw-reason tw-note">{drawNote}</p>}
+            <ol className="tw-players">{order.map(u => <li key={u} data-tw-player={u} data-rank={rank[u] || ''}>
+              <b className="tw-rank">{rank[u] === 1 ? '👑 1位' : rank[u] ? `${rank[u]}位` : '—'}</b>
+              <span className="tw-name"><i className="tw-dot" style={{ background: TW_COLORS[ids.indexOf(u) % 4] }} />{nicks[u] && <Nick id={nicks[u]} size={9} block />}{names[u] || 'プレイヤー'}</span>
+            </li>)}</ol>
+          </header>
+          <NR.ResultDetails title="両選手の成績" data-tw-summary><TwCompare rows={rows} ids={ids} names={names} />
+            {kind === 'B' && <p className="tw-foot">この方式では解答の記録が残らないため、問題ごとのふり返りはありません。</p>}
+          </NR.ResultDetails>
+          {reviews.map(rv => {
+            const shown = only[rv.key] ? rv.rows.filter(r => !r.good) : rv.rows;
+            return <div key={rv.key} data-tw-review={rv.key}><NR.ReviewCard summary={rv.summary} open={!!open[rv.key]} onToggle={() => setOpen(o => ({ ...o, [rv.key]: !o[rv.key] }))}
+              onlyMiss={!!only[rv.key]} onOnlyMiss={v => setOnly(o => ({ ...o, [rv.key]: v }))} onlyLabel={rv.onlyLabel} rows={shown} /></div>;
+          })}
+          <NR.ResultActions><NR.ResultButton tone="gold" onClick={onClose}>🏆 大会の表にもどる</NR.ResultButton></NR.ResultActions>
+        </NR.ResultShell>
+      </div>
+    </div>
+  );
+}
+const twContent = (poly, ans) => <><MathTextLegacy text={formatPoly(poly)} /> <span>=</span> <span className="rs-ans"><MathTextLegacy text={ans} /></span></>;
+// A方式・旧B方式（TourSplit から。result 確定後だけ呼ばれる）
+function TourWatchResultLegacy({ state, m, mode, diff, bank, claims, live, ko, result, roundLabel, onClose }) {
+  const ids = [m.a, m.b], names = state.names || {}, N = DIFFICULTY_CONFIG[diff].clearCount, r = state.round || 0;
+  const rank = result.rank || {}, winner = result.winner || '', draw = !winner;
+  const model = useMemo(() => {
+    const NR = window.NextResults;
+    if (mode === 'A') {
+      const scA = scoreA(bank, claims, ids, N, {});
+      const report = result.aResult || window.OnlineSpark?.buildAResult?.(scA, claims, ids, m.startAt, A_NEXT_DELAY);
+      let rows = [];
+      try { rows = (NR.ResultModel.build({ kind: 'A', me: ids[0], ids, names, outcome: 'd', A: { report, claims } }) || {}).rows || []; } catch (e) { rows = []; }
+      // 取った問数とスコアは必ず出す（確定記録 result.sc と claims から）
+      const sc = result.sc || scA.sc;
+      if (!rows.some(x => x.id === 'score')) rows.unshift({ id: 'score', label: '得点', unit: '点', values: Object.fromEntries(ids.map(u => [u, sc[u] || 0])) });
+      if (!rows.some(x => x.id === 'won')) rows.splice(1, 0, { id: 'won', label: '取った問題', unit: '問', values: Object.fromEntries(ids.map(u => [u, claims.filter(c => c && c.uid === u).length])) });
+      // 全問ふり返り：正解者とその時点のコンボ（scoreA と同じ数え方）
+      const cb = Object.fromEntries(ids.map(u => [u, 0])), rowsQ = [];
+      claims.forEach((c, q) => {
+        if (!c) return;
+        const p = problemForA(bank, q), solver = ids.includes(c.uid) ? c.uid : null;
+        if (solver) { cb[solver]++; ids.forEach(u => { if (u !== solver) cb[u] = 0; }); } else ids.forEach(u => { cb[u] = 0; });
+        const spurt = q >= N - A_LASTSPURT;
+        rowsQ.push({ n: q + 1, lv: p.level, good: !!solver,
+          mark: (solver ? `${names[solver] || 'プレイヤー'}が正解${cb[solver] >= 2 ? `（${cb[solver]}コンボ）` : ''}` : 'だれも解けず') + (spurt ? ' ・ 2倍' : ''),
+          content: twContent(p.poly, answerOf(p)) });
+      });
+      const nobody = rowsQ.filter(x => !x.good).length;
+      return { rows, reviews: [{ key: 'all', summary: `📝 全問ふり返り（${rowsQ.length}問${nobody ? ` ・ だれも解けず${nobody}` : ''}）`, onlyLabel: 'だれも解けなかった問題だけ', rows: rowsQ }] };
+    }
+    // 旧B方式：live（最後の報告）・ko・result から取れる範囲だけ
+    const L = u => (live || {})[u] || {}, fin = v => typeof v === 'number' && Number.isFinite(v);
+    const rows = [];
+    if (ids.every(u => fin(L(u).score))) rows.push({ id: 'score', label: '得点', unit: '点', values: Object.fromEntries(ids.map(u => [u, L(u).score])) });
+    if (ids.every(u => fin(L(u).c))) rows.push({ id: 'correct', label: '正解数', unit: '問', values: Object.fromEntries(ids.map(u => [u, L(u).c])) });
+    if (ids.every(u => (ko || {})[u] || fin(L(u).hp))) rows.push({ id: 'hp', label: '残りHP', unit: '%', values: Object.fromEntries(ids.map(u => [u, (ko || {})[u] ? 0 : Math.round(L(u).hp)])) });
+    return { rows, reviews: [] };
+  }, [mode, claims, result, live, ko]);
+  return <TourWatchResult kind={mode === 'A' ? 'A' : 'B'} ids={ids} names={names} nicks={state.nicks || {}} roundLabel={roundLabel} winner={winner} draw={draw} rank={rank}
+    reasonText={twReason(result.reason, ids, names, winner, N)} drawNote={twDrawNote(m, result, state, r, names)} rows={model.rows} reviews={model.reviews} onClose={onClose} />;
+}
+// 大会B2（TournamentB2Watch から。game.result 確定後だけ呼ばれる）
+function TourWatchResultB2({ state, m, game, roundLabel, onClose }) {
+  const ids = game.ids, names = state.names || {}, res = game.result, r = state.round || 0;
+  const winner = res.winner || '', draw = !winner, rank = Object.fromEntries(ids.map(u => [u, draw || u === winner ? 1 : 2]));
+  const model = useMemo(() => {
+    const NR = window.NextResults;
+    let rows = [];
+    try { rows = (NR.ResultModel.build({ kind: 'B', me: ids[0], ids, names, outcome: 'd', B: { game, trace: NR.buildB(game) } }) || {}).rows || []; } catch (e) { rows = []; }
+    const S = game.states, hist = u => (Array.isArray(S[u]?.hist) ? S[u].hist : Object.values(S[u]?.hist || {}));
+    if (ids.every(u => S[u])) rows.splice(Math.max(0, rows.findIndex(x => x.id === 'combo') + 1), 0, { id: 'ojbonus', label: 'お邪魔ボーナス', unit: '点', note: '正解時に加算されたお邪魔ボーナスの合計', values: Object.fromEntries(ids.map(u => [u, hist(u).reduce((n, h) => n + (h.ok && Number.isFinite(h.bonus) ? h.bonus : 0), 0)])) });
+    // 出題は試合の seed から作る bank と同じ（engine.cjs の runtime と同じ makeBank(seed, tileCount)）
+    const bank = makeBank(game.seed, DIFFICULTY_CONFIG[game.difficulty || state.diff || 'easy'].tileCount);
+    const reviews = ids.map(u => {
+      const rowsQ = hist(u).map((h, i) => {
+        const b = bank.get(h.lv, h.k), t = twSec(h.ms);
+        return { n: i + 1, lv: h.lv, good: !!h.ok,
+          mark: h.ok ? `正解 ${t}秒${h.bonus > 0 ? ` ・ お邪魔ボーナス＋${h.bonus}` : ''}` : h.timeout ? '時間切れ' : `ミス（${t}秒）`,
+          content: twContent(b.poly, answerOf(b)) };
+      });
+      return { key: u, summary: `📝 ${names[u] || 'プレイヤー'} のふり返り（${rowsQ.length}問 ・ 正解${rowsQ.filter(x => x.good).length}）`, onlyLabel: 'まちがえた・時間切れの問題だけ', rows: rowsQ };
+    });
+    return { rows, reviews };
+  }, [game]);
+  return <TourWatchResult kind="B2" ids={ids} names={names} nicks={state.nicks || {}} roundLabel={roundLabel} winner={winner} draw={draw} rank={rank}
+    reasonText={twReason(res.reason, ids, names, winner, 0)} drawNote={twDrawNote(m, res, state, r, names)} rows={model.rows} reviews={model.reviews} onClose={onClose} />;
+}
+const twReady = () => !!(window.NextResults && window.NextResults.ResultShell && window.NextResults.ReviewCard && window.NextResults.ResultModel);
 /* 大会：選んだ試合を分割画面で見る */
 function TournamentB2Watch({code,state,m,onClose}) {
  const [raw,setRaw]=useState(null),[time,setTime]=useState(fbNow());
  useEffect(()=>{const r=FB.db.ref(`games/factor/rooms/${code}/b2/${m.gid}`),f=x=>setRaw(x.val());r.on('value',f);const t=setInterval(()=>setTime(fbNow()),100);return()=>{r.off('value',f);clearInterval(t)}},[code,m.gid]);
+ // Ver.6.43: 結果が確定したら観戦者リザルトへ自動で切り替える（読み取りのみ）
+ if (raw?.game?.result && twReady()) return <TourWatchResultB2 state={state} m={m} game={raw.game} roundLabel={tourRoundLabel(state.round || 0, toArrB(state.rounds).map(toArrB), state)} onClose={onClose}/>;
  return raw?.game ? <window.NextResults.Spectator H={{TargetCard,BattleBoard}} g={raw.game} time={time} names={state.names} onLeave={onClose}/> : <div className="or-app"><p>大会B2を同期しています…</p><button onClick={onClose}>大会の表にもどる</button></div>;
 }
 function TourSplit({ code, state, m, onClose }) {
@@ -6094,6 +6234,8 @@ function TourSplit({ code, state, m, onClose }) {
   const claims = useMemo(() => claimsArr(claimsV), [claimsV]);
   const bank = useMemo(() => makeBank(m.seed, DIFFICULTY_CONFIG[diff].tileCount), [m.seed, diff]);
   const rounds = toArrB(state.rounds).map(toArrB);
+  // Ver.6.43: 結果が確定したら観戦者リザルトへ自動で切り替える（応援バーは出さない）
+  if (result && twReady()) return <TourWatchResultLegacy state={state} m={m} mode={mode} diff={diff} bank={bank} claims={claims} live={live} ko={ko} result={result} roundLabel={tourRoundLabel(state.round || 0, rounds, state)} onClose={onClose} />;
   return <SplitView ids={[m.a, m.b]} names={state.names || {}} nicks={state.nicks || {}} mode={mode} diff={diff} bank={bank} live={live} ko={ko} result={result} claims={claims} startAt={m.startAt}
     title={`${tourRoundLabel(state.round || 0, rounds, state)}`} onClose={onClose} cheer={{ code, gid: m.gid }} />;
 }
