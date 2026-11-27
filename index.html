@@ -7714,11 +7714,13 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
 
   const announce = useCallback(() => {
     if (!code || localRoom || !FB.uid || spectator) return;
-    if ((isTour || (isRaid && !isFriend)) && isHost) return; // 大会・クラスレイドのホスト（先生）は参加しない
+    if (isRaid && !isFriend && isHost) return; // クラスレイドのホスト（先生）は参加しない
+    // 大会のホスト：ロビーで「自分も参加する」を選んだときだけ参加者として名簿に入る（Ver.6.44）。「運営だけ」に戻したら名簿から外れる
+    if (isTour && isHost && !(state && state.hostPlays)) { if (state && state.phase === 'lobby' && state.hostPlays === false) fref(`rooms/${code}/players/${FB.uid}`).remove().catch(() => {}); return; }
     const r = fref(`rooms/${code}/players/${FB.uid}`);
     r.set({ name: myName, acct: acct ? acct.key : '', nick: myNick || '', joinedAt: TSV() }).catch(() => {});
     r.onDisconnect().remove();
-  }, [code, spectator, myName, acct, localRoom, isTour, isRaid, isFriend, isHost, myNick]);
+  }, [code, spectator, myName, acct, localRoom, isTour, isRaid, isFriend, isHost, myNick, !!(state && state.hostPlays)]);
   useEffect(() => { if (code && !spectator) announce(); }, [code, spectator, announce]);
   // 通信が戻ったら名簿に入り直す
   useEffect(() => {
@@ -7743,7 +7745,9 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     const friendNext=fraid&&window.FriendRaidNext?.enabled(FB.db,window.location);
     if(friendNext){try{await window.FriendRaidNext.qualify({db:FB.db,account:acct})}catch(e){setErr(e.message);return;}}
     let delegated=false;
-    if((tour||raid)&&acct&&FB.db){try{delegated=!(await FB.db.ref(`games/factor/teachers/${acct.key}`).get()).exists();}catch(e){setErr('開催権限を確認できませんでした');return;}}
+    // Ver.6.44: 大会はログインした登録アカウントならだれでも開ける（委任・開催登録は使わない）。委任はクラス協力レイドだけ
+    if(tour&&!acct){setErr('クラス大会を開くには、アカウントにログインしてください');return;}
+    if(raid&&acct&&FB.db){try{delegated=!(await FB.db.ref(`games/factor/teachers/${acct.key}`).get()).exists();}catch(e){setErr('開催権限を確認できませんでした');return;}}
     for (let t = 0; t < 12; t++) {
       const c = String(randInt(1000, 9999));
       let res;
@@ -8050,7 +8054,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
   async function tourStart() {
     const st = state || {};
     const nextTournament = (st.mode||'B')==='B' ? {tournamentVersion:2,tournamentId:FB.db.ref('games/factor/rooms').push().key,duration:st.duration||90} : {};
-    const ids = shuffleArr(Object.entries(players).filter(([k, p]) => p && p.name && k !== FB.uid).map(([k]) => k)).slice(0, TOUR_MAX);
+    const hostEntry = st.hostPlays ? { hostPlays: true } : {};   // Ver.6.44: 参戦ホストの選択を大会中も保つ（開始後は変更不可）
+    const ids = shuffleArr(Object.entries(players).filter(([k, p]) => p && p.name && (k !== FB.uid || st.hostPlays)).map(([k]) => k)).slice(0, TOUR_MAX);
     if (ids.length < 2) return;
     const names = {}, accts = {}, nicks = {};
     ids.forEach(k => { names[k] = players[k].name; accts[k] = players[k].acct || ''; nicks[k] = players[k].nick || ''; });
@@ -8060,7 +8065,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
       const swissRounds = swissEst(ids.length);   // 見込み（実際は全勝が1人になるまで）
       const pairs = swissPair(ids, [], 0);
       await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
-      await fref(`rooms/${code}/state`).set({ ...nextTournament, phase: 'tour', tour: true, fmt: 'swiss', swissRounds, topSize: topSizeFor(ids.length), mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(pairs, 0)] });
+      await fref(`rooms/${code}/state`).set({ ...nextTournament, ...hostEntry, phase: 'tour', tour: true, fmt: 'swiss', swissRounds, topSize: topSizeFor(ids.length), mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(pairs, 0)] });
       return;
     }
     let P = 1; while (P < ids.length) P *= 2;
@@ -8073,7 +8078,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     // 不戦勝を散らす（上と下に交互）
     const ordered = []; ms.forEach((m, k) => { if (k % 2 === 0) ordered.push(m); else ordered.unshift(m); });
     await Promise.all(['claims', 'ev', 'live', 'result', 'ko'].map(p => fref(`rooms/${code}/${p}`).remove().catch(() => {})));
-    await fref(`rooms/${code}/state`).set({ ...nextTournament, phase: 'tour', tour: true, mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(ordered, 0)] });
+    await fref(`rooms/${code}/state`).set({ ...nextTournament, ...hostEntry, phase: 'tour', tour: true, mode: st.mode || 'B', diff: st.diff || 'easy', names, accts, nicks, rt, round: 0, rounds: [tourRound(ordered, 0)] });
   }
   function tourRound(pairs, r) {
     const startAt = fbNow() + BATTLE_START_DELAY + 1500;
@@ -8170,7 +8175,8 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
     const me = FB.uid;
     const rounds = toArrB(state.rounds).map(toArrB);
     const cur = rounds[state.round] || [];
-    const m = !isHost && !spectator ? cur.find(x => x.a === me || x.b === me) : null;
+    // Ver.6.44: 参戦するホスト（state.hostPlays）も、自分の試合は参加者として入る（isHost={false} の参加者経路・記録も参加者と同じ）
+    const m = (!isHost || (state.hostPlays && (state.names || {})[me])) && !spectator ? cur.find(x => x.a === me || x.b === me) : null;
     if (m && m.b && !seenGid[m.gid]) {
       const ms = { phase: 'play', mode: state.mode, diff: state.diff, gid: m.gid, seed: m.seed, startAt: m.startAt, players: [m.a, m.b],
         names: { [m.a]: state.names[m.a], [m.b]: state.names[m.b] }, accts: state.accts || {}, nicks: state.nicks || {}, rt: state.rt || {}, handi: {}, tour: true, fmt: state.fmt || 'single', swissStage: isSwissRound(state, state.round), final: cur.length === 1 && !isSwissRound(state, state.round), roundLabel: tourRoundLabel(state.round, rounds, state) };
@@ -8179,7 +8185,7 @@ function BattleApp({ acct: who, onExit, initialScreen = 'home', renderMenu, onNa
         sound={sound} muted={muted} setMuted={setMuted} onLeave={() => leave()} onBack={() => setSeenGid(s => ({ ...s, [m.gid]: 1 }))} />;
     }
     return shell(<TourBoard code={code} state={state} players={players} isHost={isHost} me={me} onAdvance={tourAdvance} onLeave={() => leave()}
-      onLobby={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', tour: true, mode: state.mode, diff: state.diff, fmt: state.fmt || 'single' })} />, true);
+      onLobby={() => fref(`rooms/${code}/state`).set({ phase: 'lobby', tour: true, mode: state.mode, diff: state.diff, fmt: state.fmt || 'single', ...(state.hostPlays ? { hostPlays: true } : {}) })} />, true);
   }
 
   // 対戦中
@@ -8474,7 +8480,9 @@ function StudentHostArea({fb,acct,onCreate}) {
   const [grant,setGrant]=useState(null);
   useEffect(()=>{if(!fb.ready||!acct?.key)return;const r=FB.db.ref(`games/factor/eventHosts/${acct.key}`),f=s=>setGrant(s.val());r.on('value',f,()=>{});return()=>r.off('value',f);},[fb.ready,acct?.key]);
   if(!grant?.enabled)return null;
-  return <div className="my-3"><h3 className="text-sm font-black">開催係</h3>{grant.tournament&&<BigBtn small onClick={()=>onCreate(true)}>クラス大会を開催</BigBtn>}{grant.raid&&<div className="mt-2"><BigBtn small onClick={()=>onCreate('raid')}>クラス協力レイドを開催</BigBtn></div>}<p className="text-xs">開催権限のみ。先生モードの権限はありません。</p></div>;
+  // Ver.6.44: クラス大会はログインした人ならだれでも開ける（下の「クラス大会を開く」）。開催係の権限はクラス協力レイドだけに使う
+  if(!grant.raid)return null;
+  return <div className="my-3"><h3 className="text-sm font-black">開催係</h3><div className="mt-2"><BigBtn small onClick={()=>onCreate('raid')}>クラス協力レイドを開催</BigBtn></div><p className="text-xs">開催権限のみ。先生モードの権限はありません。</p></div>;
 }
 function EventHostManager({acct,onJoin}) {
  const [accounts,setAccounts]=useState({}),[teachers,setTeachers]=useState({}),[hosts,setHosts]=useState({}),[target,setTarget]=useState(''),[scope,setScope]=useState('both'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[transferred,setTransferred]=useState([]);
@@ -8499,8 +8507,10 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
     <div className="mt-2"><BigBtn small color="#2a9d8f" disabled={!fb.ready} onClick={() => onCreate('raid')}>🐉 クラス協力レイドを開く（授業用）</BigBtn></div>
     <div className="mt-2"><BigBtn small color="#0e4d44" disabled={!fb.ready} onClick={onDash}>📊 先生用ダッシュボード（いまプレイ中の人・クラスの理解度）</BigBtn></div>
   </>);
-  if (!open) return <button onClick={() => setOpen(true)} className="w-full text-[11px] font-bold py-1" style={{ color: COLORS.inkSoft }}>👩‍🏫 先生の方へ：クラス大会・クラス協力レイドを開くには</button>;
-  return (
+  // Ver.6.44: ログインしていれば、先生でなくてもクラス大会を開ける
+  const openTour = acct && isT === false ? <div className="mb-2" data-open-tour><BigBtn small color={COLORS.amber} disabled={!fb.ready} onClick={() => onCreate(true)}>🏆 クラス大会を開く（{TOUR_MAX}人まで）</BigBtn></div> : null;
+  if (!open) return <>{openTour}<button onClick={() => setOpen(true)} className="w-full text-[11px] font-bold py-1" style={{ color: COLORS.inkSoft }}>👩‍🏫 先生の方へ：クラス協力レイドを開くには</button></>;
+  return (<>{openTour}
     <div className="rounded-xl p-2" style={{ background: COLORS.paperDark }}>
       {!acct ? <p className="text-[11px] font-bold" style={{ color: COLORS.inkSoft }}>先生用の機能は、タイトル画面でアカウントにログインしてから使えます。</p> : (<>
         <p className="text-[11px] font-bold mb-1" style={{ color: COLORS.inkSoft }}>先生用の合言葉を入力すると、このアカウント（{acct.name}）でクラス大会・クラス協力レイドを開けるようになります（一度だけ）。</p>
@@ -8511,7 +8521,7 @@ function TeacherArea({ fb, acct, onCreate, onDash }) {
       </>)}
       {msg && <p className="text-xs font-bold mt-1" style={{ color: COLORS.coral }}>{msg}</p>}
     </div>
-  );
+  </>);
 }
 
 /* ---------- 対戦のトップ画面 ---------- */
@@ -9913,7 +9923,9 @@ function TournamentB2Final({code,state,game,acct,onBack,onLeave}) {
   return <div className="or-app"><h1>{game.result.draw?'引き分け':game.result.winner===me?'勝利':'敗北'}</h1><p>大会B方式・公式レーティング対象外</p><window.NextResults.BDetails game={game} names={state.names} me={me}/><p role="status">{saved?'大会記録・EXPを保存しました':isReal(acct)?'大会記録を保存しています…':'ゲストの大会結果'}</p>{error&&<p role="alert">{error}</p>}<button onClick={onBack||onLeave}>大会の表にもどる</button></div>;
 }
 function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStart, onLeave }) {
-  const list = Object.entries(players).filter(([k, p]) => p && p.name && k !== me).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+  // ホストは「運営だけ」（従来どおり名簿に入らない）か「自分も参加する」（Ver.6.44・名簿に入り人数にも数える）を選べる
+  const hostPlays = !!state.hostPlays;
+  const list = Object.entries(players).filter(([k, p]) => p && p.name && (k !== me || (isHost && hostPlays))).sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
   const mode = state.mode || 'B', diff = state.diff || 'easy';
   const amIn = !!players[me];
   return (<>
@@ -9921,7 +9933,7 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
       <div className="text-sm font-black" style={{ color: '#9a6a12' }}>🏆 クラス大会（トーナメント）</div>
       <div className="text-xs font-black mt-1" style={{ color: COLORS.inkSoft }}>部屋コード</div>
       <div className="font-black tracking-widest my-1" style={{ color: COLORS.sky, fontSize: isHost ? 'clamp(3rem,10vw,6rem)' : '3rem', ...bFont }}>{code}</div>
-      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? `みんなは「部屋コード」を入れて「参加」（${TOUR_MAX}人まで）。ホストは試合に出ず、この画面で進行します` : spectator ? '観戦中：大会が始まるのを待っています' : amIn ? 'エントリーしました！ ホストが始めるのを待っています…' : '接続しています…'}</div>
+      <div className="text-xs font-bold" style={{ color: COLORS.inkSoft }}>{isHost ? `みんなは「部屋コード」を入れて「参加」（${TOUR_MAX}人まで）。${hostPlays ? 'ホストも試合に出ます。自分の試合がない間はこの画面で進行します' : 'ホストは試合に出ず、この画面で進行します'}` : spectator ? '観戦中：大会が始まるのを待っています' : amIn ? 'エントリーしました！ ホストが始めるのを待っています…' : '接続しています…'}</div>
     </Card>
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>エントリー（{list.length}人）</div>
@@ -9931,6 +9943,11 @@ function TourLobby({ code, isHost, spectator, players, state, me, onRule, onStar
         </div>
       )}
     </Card>
+    {isHost && <Card className="mb-4">
+      <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }} data-host-plays={hostPlays ? 'on' : 'off'}>ホスト（あなた）</div>
+      <Seg items={[['off', '運営だけ', COLORS.inkSoft], ['on', '自分も参加する', COLORS.sky]]} cur={hostPlays ? 'on' : 'off'} onPick={v => onRule({ hostPlays: v === 'on' })} />
+      <p className="text-[10px] font-bold mt-2" style={{ color: COLORS.inkSoft }}>「自分も参加する」にすると、エントリーに入り、自分の試合では参加者として戦います（大会が始まったら変えられません）。</p>
+    </Card>}
     <Card className="mb-4">
       <div className="text-xs font-black mb-2" style={{ color: COLORS.inkSoft }}>試合の方式（全試合 1 vs 1）{isHost ? '' : '（ホストが決めます）'}</div>
       <Seg disabled={!isHost} items={[['A', BATTLE_MODES.A.label, BATTLE_MODES.A.color], ['B', BATTLE_MODES.B.label, BATTLE_MODES.B.color]]} cur={mode} onPick={v => onRule({ mode: v })} />
