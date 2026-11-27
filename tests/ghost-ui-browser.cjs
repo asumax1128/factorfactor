@@ -95,9 +95,12 @@ const { chromium, context } = require("./browser-harness.cjs");
       await p
         .getByRole("button", { name: "オンライン対戦（ロビー）", exact: true })
         .click();
+      // Ver.6.44: a class tournament can be opened by any logged-in account, so the tournament-only event host now
+      // sees the common 「🏆 クラス大会を開く」 button (the event-host area keeps only the raid button, shown with a raid grant)
       await p
-        .getByRole("button", { name: "クラス大会を開催", exact: true })
+        .getByRole("button", { name: /^🏆 クラス大会を開く/ })
         .waitFor();
+      assert.equal(await p.getByRole("button", { name: "クラス大会を開催", exact: true }).count(), 0);
       assert.equal(
         await p
           .getByRole("button", { name: "クラス協力レイドを開催", exact: true })
