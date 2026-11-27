@@ -142,7 +142,7 @@ jobs:
       - name: Ghost history, rating isolation and limited-host authorization
         if: matrix.emulator
         run: |
-          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs && HTTP_PROXY= http_proxy= node tests/v524-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs && HTTP_PROXY= http_proxy= node tests/room-b2-ack-emulator.cjs"
+          "$RUNNER_TEMP/firebase-cli/node_modules/.bin/firebase" emulators:exec --only auth,database --project demo-factorfactor-tower --config firebase.spark.emulator.json "HTTP_PROXY= http_proxy= node tests/online-latency-native.cjs && HTTP_PROXY= http_proxy= node tests/ghost-emulator.cjs && HTTP_PROXY= http_proxy= node tests/event-host-emulator.cjs && HTTP_PROXY= http_proxy= node tests/v524-emulator.cjs && HTTP_PROXY= http_proxy= node tests/weekly-next-emulator.cjs && HTTP_PROXY= http_proxy= node tests/room-b2-ack-emulator.cjs && HTTP_PROXY= http_proxy= node tests/tour-watch-result-emulator.cjs"
       - name: Browser suites against the built public artifact
         if: matrix.artifact_scripts
         env:

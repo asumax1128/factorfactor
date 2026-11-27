@@ -96,3 +96,27 @@
  .next-result-table th{font-size:8.5px;word-break:normal;overflow-wrap:normal;padding:8px 0;line-height:1.25}
  .next-result-table td{padding:8px 1px}
 }
+/* Ver.6.43 大会の観戦者リザルト（TourWatchResult）。先生の投影でも読める大きさ */
+.tw-result{padding-bottom:4px}
+.tw-hero{margin:0 0 14px;padding:clamp(14px,3vw,22px);border:1px solid var(--line);border-radius:14px;background:linear-gradient(160deg,#20344a,#14202c);text-align:center}
+.tw-chip{display:inline-block;padding:4px 14px;border-radius:99px;background:#0b141e;border:1px solid var(--line);font:900 13px/1.5 var(--heading);color:var(--gold)}
+.tw-winner{margin:10px 0 4px;font:900 clamp(26px,6vw,44px)/1.25 var(--heading);color:#fff;overflow-wrap:anywhere}
+.tw-reason{margin:0;font:700 14px/1.6 var(--body);color:var(--muted)}
+.tw-reason.tw-note{color:var(--gold)}
+.tw-players{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.tw-players li{flex:1 1 200px;min-width:0;max-width:320px;display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#101a23}
+.tw-players li[data-rank="1"]{border-color:var(--gold);background:#2a2412}
+.tw-rank{font:900 16px var(--number);white-space:nowrap;color:var(--gold)}
+.tw-name{min-width:0;font:900 17px/1.35 var(--heading);text-align:left;overflow-wrap:anywhere}
+.tw-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.tw-cmp{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tw-cmp-row{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr));align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line);background:#101a23}
+.tw-cmp-row:first-child{border-top:0}
+.tw-cmp-head{background:#0b141e;font:900 13px/1.4 var(--heading);color:var(--muted)}
+.tw-cmp-head span{min-width:0;overflow-wrap:anywhere}
+.tw-cmp-head span+span{text-align:right}
+.tw-cmp-row>span small{display:block;font-size:10px;line-height:1.4;color:var(--muted);font-weight:400}
+.tw-cmp-row>span{font:700 14px/1.4 var(--heading)}
+.tw-cmp-row>b{font:700 20px var(--number);text-align:right;color:var(--text)}
+.tw-cmp-row>b[data-best=true]{color:var(--accent)}
+.tw-foot{margin:10px 0 0;font-size:12px}
